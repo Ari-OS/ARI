@@ -1,0 +1,350 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ari.foundation/schemas/tool_call.json",
+  "title": "ARI Tool Call",
+  "description": "Schema for tool invocations in the ARI system",
+  "type": "object",
+  "required": ["call_id", "timestamp", "tool_name", "status"],
+  "properties": {
+    "call_id": {
+      "type": "string",
+      "description": "Unique identifier for this tool call",
+      "pattern": "^TOOL-[0-9]{8}-[A-Z0-9]{8}$",
+      "examples": ["TOOL-20260126-A1B2C3D4"]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of call initiation"
+    },
+    "tool_name": {
+      "type": "string",
+      "description": "Name of the tool being invoked",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "tool_category": {
+      "type": "string",
+      "description": "Category of tool",
+      "enum": [
+        "file_system",
+        "web_search",
+        "web_fetch",
+        "api_call",
+        "database",
+        "communication",
+        "calendar",
+        "document",
+        "code_execution",
+        "image_processing",
+        "data_analysis",
+        "external_service",
+        "internal_utility"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "description": "Current status of the tool call",
+      "enum": [
+        "pending",
+        "validating",
+        "executing",
+        "completed",
+        "failed",
+        "timeout",
+        "cancelled",
+        "blocked"
+      ]
+    },
+    "request": {
+      "type": "object",
+      "description": "Tool call request details",
+      "properties": {
+        "parameters": {
+          "type": "object",
+          "description": "Parameters passed to the tool"
+        },
+        "context": {
+          "type": "object",
+          "description": "Context provided with the call",
+          "properties": {
+            "request_id": {
+              "type": "string"
+            },
+            "agent_id": {
+              "type": "string"
+            },
+            "conversation_id": {
+              "type": "string"
+            },
+            "purpose": {
+              "type": "string",
+              "description": "Why this tool is being called"
+            }
+          }
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 300000,
+          "description": "Timeout in milliseconds"
+        },
+        "retry_policy": {
+          "type": "object",
+          "properties": {
+            "max_retries": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5
+            },
+            "retry_delay_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "backoff_multiplier": {
+              "type": "number",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "description": "Tool call response details",
+      "properties": {
+        "result": {
+          "description": "The actual result from the tool"
+        },
+        "result_type": {
+          "type": "string",
+          "enum": ["success", "partial", "empty", "error"]
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "details": {
+              "type": "object"
+            },
+            "recoverable": {
+              "type": "boolean"
+            }
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "description": "Timing information",
+      "properties": {
+        "queued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queue_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "execution_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "description": "Pre-execution validation results",
+      "properties": {
+        "validated": {
+          "type": "boolean"
+        },
+        "validator": {
+          "type": "string",
+          "description": "Which component performed validation"
+        },
+        "checks_performed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "check_name": {
+                "type": "string"
+              },
+              "passed": {
+                "type": "boolean"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "risk_level": {
+          "type": "string",
+          "enum": ["none", "low", "medium", "high", "critical"]
+        },
+        "approval_required": {
+          "type": "boolean"
+        },
+        "approved_by": {
+          "type": "string"
+        },
+        "approval_time": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "description": "Security-related information",
+      "properties": {
+        "permission_level": {
+          "type": "string",
+          "enum": ["read", "write", "execute", "admin"]
+        },
+        "requires_confirmation": {
+          "type": "boolean"
+        },
+        "confirmed_by": {
+          "type": "string"
+        },
+        "audit_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "data_sensitivity": {
+          "type": "string",
+          "enum": ["none", "low", "medium", "high"]
+        },
+        "blocked_reason": {
+          "type": "string"
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "description": "Resource usage information",
+      "properties": {
+        "api_calls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tokens_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bytes_transferred": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimated_cost": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "retry_info": {
+      "type": "object",
+      "description": "Retry tracking",
+      "properties": {
+        "attempt_number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "previous_attempts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "attempt": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "error": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "will_retry": {
+          "type": "boolean"
+        },
+        "next_retry_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "correlation": {
+      "type": "object",
+      "description": "Correlation with other system elements",
+      "properties": {
+        "parent_call_id": {
+          "type": "string"
+        },
+        "child_call_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "trace_id": {
+          "type": "string"
+        },
+        "span_id": {
+          "type": "string"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "properties": {
+        "tool_version": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "string",
+          "default": "1.0"
+        },
+        "custom_fields": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

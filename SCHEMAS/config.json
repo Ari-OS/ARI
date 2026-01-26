@@ -1,0 +1,460 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ari.foundation/schemas/config.json",
+  "title": "ARI Configuration",
+  "description": "Schema for ARI system configuration",
+  "type": "object",
+  "required": ["version", "operator", "system"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Configuration schema version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
+    },
+    "operator": {
+      "type": "object",
+      "description": "Operator profile and preferences",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique operator identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Operator display name"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone identifier",
+          "examples": ["America/New_York", "UTC"]
+        },
+        "preferences": {
+          "type": "object",
+          "properties": {
+            "communication_style": {
+              "type": "string",
+              "enum": ["formal", "casual", "technical", "brief"]
+            },
+            "notification_level": {
+              "type": "string",
+              "enum": ["all", "important", "critical", "none"]
+            },
+            "working_hours": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "string",
+                  "pattern": "^\\d{2}:\\d{2}$"
+                },
+                "end": {
+                  "type": "string",
+                  "pattern": "^\\d{2}:\\d{2}$"
+                },
+                "days": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "system": {
+      "type": "object",
+      "description": "Core system settings",
+      "properties": {
+        "name": {
+          "type": "string",
+          "default": "ARI"
+        },
+        "environment": {
+          "type": "string",
+          "enum": ["development", "staging", "production"],
+          "default": "production"
+        },
+        "debug_mode": {
+          "type": "boolean",
+          "default": false
+        },
+        "log_level": {
+          "type": "string",
+          "enum": ["debug", "info", "warning", "error"],
+          "default": "info"
+        }
+      }
+    },
+    "api_keys": {
+      "type": "object",
+      "description": "API key references (actual keys stored securely)",
+      "properties": {
+        "anthropic": {
+          "type": "object",
+          "properties": {
+            "key_reference": {
+              "type": "string",
+              "description": "Reference to securely stored key"
+            },
+            "model": {
+              "type": "string",
+              "default": "claude-sonnet-4-20250514"
+            }
+          }
+        },
+        "openai": {
+          "type": "object",
+          "properties": {
+            "key_reference": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            }
+          }
+        },
+        "google": {
+          "type": "object",
+          "properties": {
+            "key_reference": {
+              "type": "string"
+            },
+            "services": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "description": "External service integrations",
+      "properties": {
+        "notion": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "workspace_id": {
+              "type": "string"
+            },
+            "sync_frequency": {
+              "type": "string",
+              "enum": ["realtime", "hourly", "daily"],
+              "default": "hourly"
+            }
+          }
+        },
+        "email": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "provider": {
+              "type": "string",
+              "enum": ["gmail", "outlook", "imap"]
+            },
+            "sync_frequency": {
+              "type": "string",
+              "enum": ["realtime", "every_5_min", "every_15_min", "hourly"]
+            }
+          }
+        },
+        "calendar": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "provider": {
+              "type": "string",
+              "enum": ["google", "outlook", "apple"]
+            }
+          }
+        },
+        "github": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "repositories": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "agents": {
+      "type": "object",
+      "description": "Agent-specific configurations",
+      "properties": {
+        "enabled_agents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["research", "marketing", "sales", "content", "seo", "build", "development", "client_comms", "strategy", "pipeline", "learning"]
+        },
+        "agent_settings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "priority": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "custom_settings": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "description": "Security settings",
+      "properties": {
+        "input_validation": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "strictness": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "paranoid"],
+              "default": "high"
+            }
+          }
+        },
+        "output_filtering": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "pii_detection": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "rate_limiting": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "requests_per_minute": {
+              "type": "integer",
+              "default": 60
+            },
+            "requests_per_hour": {
+              "type": "integer",
+              "default": 1000
+            }
+          }
+        },
+        "allowed_domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Domains allowed for web operations"
+        },
+        "blocked_domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Domains blocked from web operations"
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "description": "Memory system settings",
+      "properties": {
+        "max_entries": {
+          "type": "integer",
+          "default": 10000
+        },
+        "retention": {
+          "type": "object",
+          "properties": {
+            "ephemeral_hours": {
+              "type": "integer",
+              "default": 24
+            },
+            "short_term_days": {
+              "type": "integer",
+              "default": 7
+            },
+            "long_term_days": {
+              "type": "integer",
+              "default": 365
+            }
+          }
+        },
+        "backup": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "frequency": {
+              "type": "string",
+              "enum": ["hourly", "daily", "weekly"],
+              "default": "daily"
+            },
+            "retention_count": {
+              "type": "integer",
+              "default": 30
+            }
+          }
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "description": "Logging settings",
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["debug", "info", "warning", "error"],
+          "default": "info"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["json", "text"],
+          "default": "json"
+        },
+        "destinations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["console", "file", "remote"]
+          },
+          "default": ["console", "file"]
+        },
+        "retention_days": {
+          "type": "integer",
+          "default": 90
+        }
+      }
+    },
+    "capacity": {
+      "type": "object",
+      "description": "Capacity and resource settings",
+      "properties": {
+        "daily_budget": {
+          "type": "number",
+          "description": "Daily spending limit in USD"
+        },
+        "monthly_budget": {
+          "type": "number",
+          "description": "Monthly spending limit in USD"
+        },
+        "token_limits": {
+          "type": "object",
+          "properties": {
+            "per_request": {
+              "type": "integer",
+              "default": 4000
+            },
+            "per_day": {
+              "type": "integer",
+              "default": 100000
+            }
+          }
+        },
+        "concurrent_tasks": {
+          "type": "integer",
+          "default": 5
+        }
+      }
+    },
+    "business": {
+      "type": "object",
+      "description": "Business-specific settings",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "industry": {
+          "type": "string"
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "price": {
+                "type": "number"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "pricing_rules": {
+          "type": "object"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Configuration metadata",
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_validated": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
