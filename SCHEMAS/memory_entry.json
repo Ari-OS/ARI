@@ -2,293 +2,208 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://ari.local/schemas/memory_entry.json",
   "title": "ARI Memory Entry Schema",
-  "description": "Schema for memory entries across all memory tiers",
-  "version": "11.0.0",
-  
-  "definitions": {
-    "timestamp": {
-      "type": "string",
-      "format": "date-time"
-    },
-    
-    "uuid": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
-    },
-    
-    "confidence_score": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 1
-    },
-    
-    "memory_tier": {
-      "type": "string",
-      "enum": ["ephemeral", "short_term", "working", "long_term", "permanent"]
-    },
-    
-    "memory_type": {
-      "type": "string",
-      "enum": [
-        "fact",
-        "preference",
-        "pattern",
-        "decision",
-        "context",
-        "learning",
-        "relationship",
-        "procedure",
-        "constraint",
-        "goal"
-      ]
-    },
-    
-    "verification_status": {
-      "type": "string",
-      "enum": ["unverified", "single_source", "multi_source", "operator_confirmed", "system_verified"]
-    },
-    
-    "source_reference": {
-      "type": "object",
-      "required": ["type"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["operator_statement", "inferred", "tool_result", "external_source", "system"]
-        },
-        "conversation_id": { "$ref": "#/definitions/uuid" },
-        "timestamp": { "$ref": "#/definitions/timestamp" },
-        "context": { "type": "string" },
-        "url": { "type": "string", "format": "uri" }
-      }
-    }
-  },
+  "description": "Schema for memory entries with provenance tracking and poisoning defense",
+  "version": "12.0.0",
   
   "type": "object",
-  "required": ["id", "tier", "type", "content", "created_at", "confidence", "verification"],
+  "required": [
+    "id",
+    "type",
+    "partition",
+    "content",
+    "source",
+    "confidence",
+    "sensitivity",
+    "created_at",
+    "hash"
+  ],
   
   "properties": {
     "id": {
-      "$ref": "#/definitions/uuid",
-      "description": "Unique memory entry identifier"
-    },
-    
-    "tier": {
-      "$ref": "#/definitions/memory_tier",
-      "description": "Memory storage tier"
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this memory entry"
     },
     
     "type": {
-      "$ref": "#/definitions/memory_type",
-      "description": "Classification of memory content"
+      "type": "string",
+      "enum": ["FACT", "PREFERENCE", "PROCEDURE", "EVENT", "CONTEXT"],
+      "description": "Type of memory content"
+    },
+    
+    "partition": {
+      "type": "string",
+      "pattern": "^(KERNEL|OPS|PERSONAL|VENTURE_[a-z_]+|LIFE_[a-z_]+)$",
+      "description": "Memory partition for isolation"
     },
     
     "content": {
+      "type": "string",
+      "maxLength": 65536,
+      "description": "The actual memory content"
+    },
+    
+    "source": {
       "type": "object",
-      "required": ["summary"],
+      "required": ["origin", "timestamp"],
       "properties": {
-        "summary": {
+        "origin": {
           "type": "string",
-          "maxLength": 500,
-          "description": "Concise summary of the memory"
+          "enum": ["OPERATOR", "SYSTEM", "AGENT", "EXTERNAL"],
+          "description": "Trust level of source"
         },
-        "detail": {
+        "agent": {
           "type": "string",
-          "maxLength": 5000,
-          "description": "Detailed content when needed"
+          "description": "Agent that created this memory"
         },
-        "structured_data": {
-          "type": "object",
-          "description": "Optional structured data payload"
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Linked request ID for traceability"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the source data was received"
+        },
+        "external_source": {
+          "type": "string",
+          "description": "For EXTERNAL origin, the specific source (URL, email, etc.)"
         }
+      }
+    },
+    
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Confidence level in the memory accuracy"
+    },
+    
+    "sensitivity": {
+      "type": "string",
+      "enum": ["PUBLIC", "INTERNAL", "SENSITIVE"],
+      "description": "Sensitivity classification"
+    },
+    
+    "access_control": {
+      "type": "object",
+      "properties": {
+        "read": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Agents with read access"
+        },
+        "write": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Agents with write access"
+        },
+        "admin": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Agents with admin access"
+        }
+      },
+      "default": {
+        "read": ["*"],
+        "write": [],
+        "admin": []
       }
     },
     
     "created_at": {
-      "$ref": "#/definitions/timestamp"
+      "type": "string",
+      "format": "date-time",
+      "description": "When this memory was created"
     },
     
     "updated_at": {
-      "$ref": "#/definitions/timestamp"
+      "type": "string",
+      "format": "date-time",
+      "description": "When this memory was last updated"
     },
     
     "expires_at": {
-      "$ref": "#/definitions/timestamp",
-      "description": "Optional expiration time"
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When this memory expires (null = no expiry)"
     },
     
-    "confidence": {
-      "$ref": "#/definitions/confidence_score",
-      "description": "Current confidence in this memory"
+    "approved_by": {
+      "type": "string",
+      "enum": ["operator", "overseer", "auto", "system"],
+      "description": "Who approved this memory write"
     },
     
-    "initial_confidence": {
-      "$ref": "#/definitions/confidence_score",
-      "description": "Confidence when first created"
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA256 hash of content for integrity verification"
     },
     
-    "verification": {
-      "type": "object",
-      "required": ["status"],
-      "properties": {
-        "status": {
-          "$ref": "#/definitions/verification_status"
-        },
-        "verified_at": {
-          "$ref": "#/definitions/timestamp"
-        },
-        "verified_by": {
-          "type": "string",
-          "description": "Agent or operator that verified"
-        },
-        "verification_count": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "last_challenged_at": {
-          "$ref": "#/definitions/timestamp"
-        },
-        "challenge_count": {
-          "type": "integer",
-          "minimum": 0
-        }
-      }
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Version number for this memory"
     },
     
-    "sources": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/source_reference"
-      },
-      "minItems": 1,
-      "description": "Provenance information"
+    "previous_version": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "ID of previous version (null if first version)"
+    },
+    
+    "quarantine_status": {
+      "type": "string",
+      "enum": ["NONE", "PENDING", "APPROVED", "REJECTED"],
+      "default": "NONE",
+      "description": "Quarantine status for untrusted sources"
     },
     
     "tags": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Categorization tags"
-    },
-    
-    "domain": {
-      "type": "string",
-      "description": "Domain this memory belongs to (e.g., 'research', 'marketing', 'personal')"
-    },
-    
-    "relationships": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["type", "target_id"],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["supports", "contradicts", "supersedes", "related_to", "derived_from", "part_of"]
-          },
-          "target_id": {
-            "$ref": "#/definitions/uuid"
-          },
-          "strength": {
-            "$ref": "#/definitions/confidence_score"
-          }
-        }
-      },
-      "description": "Links to related memories"
-    },
-    
-    "access": {
-      "type": "object",
-      "properties": {
-        "read_count": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "last_accessed_at": {
-          "$ref": "#/definitions/timestamp"
-        },
-        "write_count": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "last_modified_at": {
-          "$ref": "#/definitions/timestamp"
-        }
-      }
-    },
-    
-    "lifecycle": {
-      "type": "object",
-      "properties": {
-        "created_by": {
-          "type": "string"
-        },
-        "promoted_from": {
-          "$ref": "#/definitions/memory_tier"
-        },
-        "promoted_at": {
-          "$ref": "#/definitions/timestamp"
-        },
-        "archived": {
-          "type": "boolean",
-          "default": false
-        },
-        "archived_at": {
-          "$ref": "#/definitions/timestamp"
-        },
-        "deletion_scheduled_at": {
-          "$ref": "#/definitions/timestamp"
-        }
-      }
+      "description": "Optional tags for categorization"
     },
     
     "metadata": {
       "type": "object",
-      "properties": {
-        "version": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "schema_version": {
-          "type": "string"
-        },
-        "consolidation_source_ids": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/uuid" }
-        },
-        "importance_score": {
-          "$ref": "#/definitions/confidence_score"
-        }
-      }
+      "description": "Additional metadata as needed"
     }
   },
+  
+  "additionalProperties": false,
   
   "examples": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440000",
-      "tier": "long_term",
-      "type": "preference",
-      "content": {
-        "summary": "Operator prefers direct communication style",
-        "detail": "Operator has stated they prefer responses that are direct, concise, and action-oriented. Avoid excessive pleasantries."
+      "type": "FACT",
+      "partition": "PERSONAL",
+      "content": "Operator prefers direct communication style",
+      "source": {
+        "origin": "OPERATOR",
+        "agent": "Router",
+        "request_id": "660e8400-e29b-41d4-a716-446655440001",
+        "timestamp": "2026-01-26T10:00:00Z"
       },
-      "created_at": "2026-01-26T10:30:00Z",
-      "confidence": 0.95,
-      "initial_confidence": 0.9,
-      "verification": {
-        "status": "operator_confirmed",
-        "verified_at": "2026-01-26T10:30:00Z",
-        "verified_by": "operator",
-        "verification_count": 1
+      "confidence": 1.0,
+      "sensitivity": "INTERNAL",
+      "access_control": {
+        "read": ["*"],
+        "write": ["Memory_Manager"],
+        "admin": ["Arbiter"]
       },
-      "sources": [
-        {
-          "type": "operator_statement",
-          "conversation_id": "660e8400-e29b-41d4-a716-446655440001",
-          "timestamp": "2026-01-26T10:30:00Z"
-        }
-      ],
-      "tags": ["communication", "style", "operator"],
-      "domain": "general"
+      "created_at": "2026-01-26T10:00:00Z",
+      "updated_at": "2026-01-26T10:00:00Z",
+      "expires_at": null,
+      "approved_by": "auto",
+      "hash": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd",
+      "version": 1,
+      "previous_version": null,
+      "quarantine_status": "NONE",
+      "tags": ["preference", "communication"],
+      "metadata": {}
     }
   ]
 }

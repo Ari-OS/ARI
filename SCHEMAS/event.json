@@ -2,259 +2,197 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://ari.local/schemas/event.json",
   "title": "ARI Event Schema",
-  "description": "Schema for all system events including requests, responses, decisions, and audits",
-  "version": "11.0.0",
+  "description": "Canonical event schema for tamper-evident audit logging",
+  "version": "12.0.0",
   
-  "definitions": {
+  "type": "object",
+  "required": [
+    "event_id",
+    "timestamp",
+    "event_type",
+    "agent",
+    "action",
+    "status",
+    "hash",
+    "previous_hash"
+  ],
+  
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event"
+    },
+    
     "timestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "ISO 8601 timestamp"
+      "description": "When this event occurred"
     },
     
-    "uuid": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
-      "description": "UUID v4 format"
-    },
-    
-    "trust_level": {
-      "type": "string",
-      "enum": ["system", "operator", "verified", "standard", "untrusted", "hostile"]
-    },
-    
-    "severity": {
-      "type": "string",
-      "enum": ["debug", "info", "warning", "error", "critical"]
-    }
-  },
-  
-  "type": "object",
-  "required": ["id", "type", "timestamp", "source"],
-  
-  "properties": {
-    "id": {
-      "$ref": "#/definitions/uuid",
-      "description": "Unique event identifier"
-    },
-    
-    "type": {
+    "event_type": {
       "type": "string",
       "enum": [
-        "request",
-        "response", 
-        "decision",
-        "tool_call",
-        "memory_operation",
-        "security_event",
-        "governance_action",
-        "error",
-        "audit"
+        "TOOL_CALL",
+        "MEMORY_WRITE",
+        "MEMORY_DELETE",
+        "MEMORY_UPDATE",
+        "CONFIG_CHANGE",
+        "GOVERNANCE_VOTE",
+        "GOVERNANCE_DECISION",
+        "SECURITY_ALERT",
+        "CONTEXT_LOAD",
+        "CONTEXT_UNLOAD",
+        "PERMISSION_REQUEST",
+        "PERMISSION_GRANT",
+        "PERMISSION_DENY",
+        "INJECTION_ATTEMPT",
+        "ANOMALY_DETECTED",
+        "ROLLBACK",
+        "SYSTEM_START",
+        "SYSTEM_STOP",
+        "ERROR"
       ],
-      "description": "Event type classification"
+      "description": "Type of event"
     },
     
-    "timestamp": {
-      "$ref": "#/definitions/timestamp"
+    "agent": {
+      "type": "string",
+      "description": "Agent that initiated or is associated with this event"
     },
     
-    "source": {
+    "action": {
+      "type": "string",
+      "description": "Specific action taken"
+    },
+    
+    "status": {
+      "type": "string",
+      "enum": ["SUCCESS", "FAILURE", "BLOCKED", "PENDING", "ROLLED_BACK"],
+      "description": "Outcome of the action"
+    },
+    
+    "request_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Associated request ID for traceability"
+    },
+    
+    "plan_id": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "Associated plan ID if part of a plan execution"
+    },
+    
+    "details": {
       "type": "object",
-      "required": ["agent", "trust_level"],
+      "description": "Event-specific details",
       "properties": {
-        "agent": {
-          "type": "string",
-          "description": "Agent that generated this event"
-        },
-        "trust_level": {
-          "$ref": "#/definitions/trust_level"
-        },
-        "session_id": {
-          "$ref": "#/definitions/uuid"
-        },
-        "conversation_id": {
-          "$ref": "#/definitions/uuid"
-        }
+        "tool_name": { "type": "string" },
+        "inputs": { "type": "object" },
+        "outputs": { "type": "object" },
+        "memory_id": { "type": "string" },
+        "partition": { "type": "string" },
+        "vote_id": { "type": "string" },
+        "vote_result": { "type": "string" },
+        "risk_level": { "type": "string" },
+        "patterns_found": { "type": "array", "items": { "type": "string" } },
+        "error_message": { "type": "string" },
+        "config_key": { "type": "string" },
+        "old_value": {},
+        "new_value": {}
       }
     },
     
-    "severity": {
-      "$ref": "#/definitions/severity",
-      "default": "info"
+    "permission_tier": {
+      "type": "string",
+      "enum": ["READ_ONLY", "WRITE_SAFE", "WRITE_DESTRUCTIVE", "ADMIN"],
+      "description": "Permission tier of the action"
+    },
+    
+    "approved_by": {
+      "type": ["string", "null"],
+      "description": "Who approved this action (if approval required)"
     },
     
     "context": {
       "type": "object",
       "properties": {
-        "request_id": {
-          "$ref": "#/definitions/uuid"
-        },
-        "parent_event_id": {
-          "$ref": "#/definitions/uuid"
-        },
-        "correlation_id": {
-          "$ref": "#/definitions/uuid"
-        },
-        "tags": {
+        "contexts_loaded": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Active contexts at time of event"
+        },
+        "trust_level": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
         }
       }
     },
     
-    "payload": {
-      "type": "object",
-      "description": "Event-specific payload data"
+    "rollback_available": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this action can be rolled back"
     },
     
-    "metadata": {
-      "type": "object",
+    "rollback_info": {
+      "type": ["object", "null"],
       "properties": {
-        "version": { "type": "string" },
-        "environment": { "type": "string" },
-        "processing_time_ms": { "type": "integer", "minimum": 0 },
-        "token_count": {
-          "type": "object",
-          "properties": {
-            "input": { "type": "integer", "minimum": 0 },
-            "output": { "type": "integer", "minimum": 0 }
-          }
-        }
-      }
+        "previous_state": { "type": "object" },
+        "rollback_deadline": { "type": "string", "format": "date-time" }
+      },
+      "description": "Information needed for rollback"
+    },
+    
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA256 hash of this event for integrity"
+    },
+    
+    "previous_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Hash of previous event in chain (tamper evidence)"
+    },
+    
+    "sequence_number": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Sequential event number for ordering"
     }
   },
   
-  "allOf": [
+  "additionalProperties": false,
+  
+  "examples": [
     {
-      "if": { "properties": { "type": { "const": "request" } } },
-      "then": {
-        "properties": {
-          "payload": {
-            "type": "object",
-            "required": ["content"],
-            "properties": {
-              "content": { "type": "string" },
-              "intent": { "type": "string" },
-              "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-              "routed_to": { "type": "string" },
-              "attachments": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "type": { "type": "string" },
-                    "name": { "type": "string" },
-                    "size": { "type": "integer" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": { "properties": { "type": { "const": "response" } } },
-      "then": {
-        "properties": {
-          "payload": {
-            "type": "object",
-            "required": ["content", "status"],
-            "properties": {
-              "content": { "type": "string" },
-              "status": { "type": "string", "enum": ["success", "partial", "error", "blocked"] },
-              "quality_score": { "type": "number", "minimum": 0, "maximum": 1 },
-              "reviewed_by": { "type": "string" },
-              "modifications": {
-                "type": "array",
-                "items": { "type": "string" }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": { "properties": { "type": { "const": "decision" } } },
-      "then": {
-        "properties": {
-          "payload": {
-            "type": "object",
-            "required": ["decision_type", "outcome"],
-            "properties": {
-              "decision_type": { 
-                "type": "string",
-                "enum": ["routing", "approval", "escalation", "governance", "security"]
-              },
-              "outcome": { "type": "string" },
-              "reasoning": { "type": "string" },
-              "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-              "alternatives_considered": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "option": { "type": "string" },
-                    "score": { "type": "number" }
-                  }
-                }
-              },
-              "approver": { "type": "string" }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": { "properties": { "type": { "const": "security_event" } } },
-      "then": {
-        "properties": {
-          "payload": {
-            "type": "object",
-            "required": ["security_type", "action_taken"],
-            "properties": {
-              "security_type": {
-                "type": "string",
-                "enum": ["injection_attempt", "trust_violation", "permission_denied", "rate_limit", "anomaly"]
-              },
-              "threat_level": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
-              "action_taken": { "type": "string" },
-              "details": { "type": "string" },
-              "blocked_content": { "type": "boolean" },
-              "escalated": { "type": "boolean" }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": { "properties": { "type": { "const": "governance_action" } } },
-      "then": {
-        "properties": {
-          "payload": {
-            "type": "object",
-            "required": ["action", "actor"],
-            "properties": {
-              "action": {
-                "type": "string",
-                "enum": ["vote_cast", "override", "escalation", "review", "approval", "rejection"]
-              },
-              "actor": { "type": "string" },
-              "target": { "type": "string" },
-              "justification": { "type": "string" },
-              "vote_details": {
-                "type": "object",
-                "properties": {
-                  "in_favor": { "type": "integer" },
-                  "against": { "type": "integer" },
-                  "abstain": { "type": "integer" },
-                  "threshold_met": { "type": "boolean" }
-                }
-              }
-            }
-          }
-        }
-      }
+      "event_id": "770e8400-e29b-41d4-a716-446655440000",
+      "timestamp": "2026-01-26T10:30:00Z",
+      "event_type": "TOOL_CALL",
+      "agent": "Executor",
+      "action": "web_search",
+      "status": "SUCCESS",
+      "request_id": "880e8400-e29b-41d4-a716-446655440001",
+      "plan_id": "990e8400-e29b-41d4-a716-446655440002",
+      "details": {
+        "tool_name": "web_search",
+        "inputs": { "query": "example search" },
+        "outputs": { "results_count": 10 }
+      },
+      "permission_tier": "READ_ONLY",
+      "approved_by": null,
+      "context": {
+        "contexts_loaded": ["career"],
+        "trust_level": 0
+      },
+      "rollback_available": false,
+      "rollback_info": null,
+      "hash": "b2c3d4e5f6789012345678901234567890123456789012345678901234bcde",
+      "previous_hash": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd",
+      "sequence_number": 1234
     }
   ]
 }
