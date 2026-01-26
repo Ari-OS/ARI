@@ -1,0 +1,72 @@
+{
+  "name": "ari-vnext",
+  "version": "1.0.0",
+  "description": "Constitutional Multi-Agent Personal Operating System",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "bin": {
+    "ari": "./dist/cli/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "pino": "^9.0.0",
+    "ws": "^8.17.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "keywords": [
+    "ai",
+    "assistant",
+    "agent",
+    "local-first",
+    "security"
+  ],
+  "author": "Pryce Hedrick",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PryceHedrick/ari-vnext"
+  },
+  "bugs": {
+    "url": "https://github.com/PryceHedrick/ari-vnext/issues"
+  },
+  "homepage": "https://github.com/PryceHedrick/ari-vnext#readme"
+}

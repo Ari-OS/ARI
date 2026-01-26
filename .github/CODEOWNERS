@@ -1,0 +1,7 @@
+# Global ownership
+* @PryceHedrick
+
+# Security-critical paths
+/src/security/ @PryceHedrick
+/src/audit/ @PryceHedrick
+/src/gateway/ @PryceHedrick

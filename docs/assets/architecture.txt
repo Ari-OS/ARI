@@ -1,0 +1,47 @@
+ARI vNext Phase 1 Architecture
+==============================
+
+                        External Clients
+                     (CLI, WebSocket Clients)
+                              |
+                              | WebSocket (ws://)
+                              v
+    ┌─────────────────────────────────────────────────────┐
+    |              GATEWAY (127.0.0.1:18789)               |
+    |                                                     |
+    |  ┌─────────────┐                                    |
+    |  |   Protocol  | Parse & validate JSON messages     |
+    |  |   Parser    |                                    |
+    |  └──────┬──────┘                                    |
+    |         |                                           |
+    |         v                                           |
+    |  ┌─────────────┐                                    |
+    |  |  Sanitizer  | 1. Rate limit (token bucket)       |
+    |  |  (Shadow    | 2. Encoding normalization           |
+    |  |   Watch)    | 3. Control char stripping           |
+    |  |             | 4. Size truncation                  |
+    |  |             | 5. Pattern detection (log only)     |
+    |  └──────┬──────┘                                    |
+    |         |                                           |
+    |    ┌────┴────┐                                      |
+    |    v         v                                      |
+    |  ┌──────┐ ┌──────────┐                              |
+    |  |Audit | |Event Bus |                              |
+    |  | Log  | |(Pub/Sub) |                              |
+    |  |JSONL | |          |                              |
+    |  |SHA256| |          |                              |
+    |  └──────┘ └────┬─────┘                              |
+    |                |                                    |
+    └────────────────┼────────────────────────────────────┘
+                     |
+          ┌──────────┼──────────┐
+          v          v          v
+     Subscribed    CLI       Future
+     Clients      Tools     Agents
+
+    Data Storage:
+    ~/.ari/
+      config.json      Configuration
+      audit.jsonl      Hash-chained audit trail
+      logs/            Application logs
+      ari.pid          Process ID file
