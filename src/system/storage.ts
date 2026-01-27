@@ -2,7 +2,6 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { CONFIG_DIR } from '../kernel/config.js';
 import { Context, ContextSchema, ActiveContext, ActiveContextSchema } from './types.js';
-import { z } from 'zod';
 
 /**
  * Context storage at ~/.ari/contexts/
