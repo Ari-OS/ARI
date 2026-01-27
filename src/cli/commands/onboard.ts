@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ensureConfigDir, saveConfig, DEFAULT_CONFIG } from '../../kernel/config.js';
 import { AuditLogger } from '../../kernel/audit.js';
+import { ensureContextsDir } from '../../system/storage.js';
 
 export function registerOnboardCommand(program: Command): void {
   const onboard = program
@@ -11,7 +12,7 @@ export function registerOnboardCommand(program: Command): void {
     .command('init')
     .description('Initialize ARI V12.0 system')
     .action(async () => {
-      console.log('Initializing ARI V12.0...\n');
+      console.log('Initializing ARI V12.0 (Aurora Protocol)...\n');
 
       try {
         // Step 1: Create config directory
@@ -22,16 +23,21 @@ export function registerOnboardCommand(program: Command): void {
         await saveConfig(DEFAULT_CONFIG);
         console.log('[✓] Saved default configuration');
 
-        // Step 3: Initialize audit log
+        // Step 3: Initialize contexts directory
+        await ensureContextsDir();
+        console.log('[✓] Initialized contexts directory');
+
+        // Step 4: Initialize audit log
         const logger = new AuditLogger();
         await logger.log('system_initialized', 'system', 'system', {
           version: '12.0.0',
+          protocol: 'aurora',
           timestamp: new Date().toISOString(),
         });
         console.log('[✓] Initialized audit log');
 
         // Success message
-        console.log('\nARI V12.0 initialization complete.');
+        console.log('\nARI V12.0 (Aurora Protocol) initialization complete.');
         console.log("Run 'ari doctor' to verify system health.");
       } catch (error) {
         console.error('\nInitialization failed:', error);

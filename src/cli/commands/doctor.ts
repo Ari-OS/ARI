@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { promises as fs } from 'fs';
 import { CONFIG_DIR, CONFIG_PATH, loadConfig } from '../../kernel/config.js';
 import { AuditLogger } from '../../kernel/audit.js';
+import { getContextsDir } from '../../system/storage.js';
 
 export function registerDoctorCommand(program: Command): void {
   program
@@ -71,7 +72,17 @@ export function registerDoctorCommand(program: Command): void {
         console.log(`[✗] Audit verification failed: ${errorMessage}`);
       }
 
-      // Check 5: Gateway reachable
+      // Check 5: Contexts directory exists
+      total++;
+      try {
+        await fs.access(getContextsDir());
+        console.log('[✓] Contexts directory exists');
+        passed++;
+      } catch {
+        console.log(`[✗] Contexts directory missing: ${getContextsDir()}`);
+      }
+
+      // Check 6: Gateway reachable
       total++;
       try {
         const response = await fetch('http://127.0.0.1:3141/health', {
