@@ -6,6 +6,7 @@ import { registerDoctorCommand } from './commands/doctor.js';
 import { registerOnboardCommand } from './commands/onboard.js';
 import { registerContextCommand } from './commands/context.js';
 import { registerGovernanceCommand } from './commands/governance.js';
+import { registerDaemonCommand } from './commands/daemon.js';
 
 const program = new Command();
 
@@ -20,5 +21,6 @@ registerDoctorCommand(program);
 registerOnboardCommand(program);
 registerContextCommand(program);
 registerGovernanceCommand(program);
+registerDaemonCommand(program);
 
 program.parse();

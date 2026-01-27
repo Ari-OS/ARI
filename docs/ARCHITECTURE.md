@@ -4,7 +4,9 @@ Version 12.0.0 — Aurora Protocol
 
 ## Overview
 
-ARI is a two-layer secure personal operating system with strict boundaries between kernel (pipeline enforcement) and system (context routing).
+ARI is a five-layer secure personal operating system with strict boundaries between kernel (pipeline enforcement), system (context routing), agents (coordination), governance (enforcement), and operations (infrastructure).
+
+All layers communicate through the EventBus — the single coupling point. No layer can bypass another.
 
 ## Layer Model
 
@@ -95,9 +97,100 @@ Integration: eventBus.on('message:accepted') → route → audit.log('system:rou
 - Mutate audit chain (append-only via kernel API)
 - Bind to network (no gateway access)
 
+### Agent Layer (src/agents/)
+
+**Autonomous decision-making components. Coordinate via EventBus.**
+
+Pipeline: Guardian assess → Router route → Planner plan → Executor execute
+
+**Components:**
+
+- **core.ts**: Master orchestrator
+  - Coordinates all agents through the full 5-step message pipeline
+  - Starts/stops all agents, reports system health
+  - Emits `message:accepted` for SystemRouter routing
+  - Delegates planning to Planner, execution to Executor
+  - Returns ProcessResult with execution metrics
+
+- **guardian.ts**: Real-time threat assessment
+  - 8 injection patterns (template, eval, exec, prototype pollution, path traversal, XSS, SQL, command injection)
+  - Behavioral anomaly detection (message length, timing, injection spike)
+  - Rate limiting (60 messages/min per source)
+  - Trust-weighted risk scoring: 50% injection + 30% anomaly + 20% trust penalty
+  - Auto-blocks on risk >= 0.8, escalates on >= 0.6
+
+- **planner.ts**: Task decomposition and dependency management
+  - Plan creation with task addition
+  - Circular dependency detection (DFS algorithm)
+  - Task status tracking (pending → in_progress → completed/failed)
+  - Priority levels (low, medium, high, critical)
+  - Next-available task resolution (dependencies met)
+
+- **executor.ts**: Tool execution with permission gating
+  - 3-layer permission checks: agent allowlist, trust level, permission tier
+  - Approval workflow for destructive operations (WRITE_DESTRUCTIVE, ADMIN)
+  - 4 built-in tools (file_read, file_write, file_delete, system_config)
+  - Concurrent execution limit (10 max), timeout enforcement (30s default)
+
+- **memory-manager.ts**: Provenance-tracked memory system
+  - 6 memory types: FACT, PREFERENCE, PATTERN, CONTEXT, DECISION, QUARANTINE
+  - 3 partitions: PUBLIC, INTERNAL, SENSITIVE with access control
+  - SHA-256 integrity hashing on all entries
+  - Trust decay (1% per day), poisoning detection
+  - Agent-based access control, 10K entry capacity
+
+**Agent responsibilities:**
+- Threat detection and risk scoring (Guardian)
+- Task decomposition and dependency management (Planner)
+- Tool execution with permission gating (Executor)
+- Memory storage with provenance tracking (Memory Manager)
+- Pipeline orchestration (Core)
+
+**Agents cannot:**
+- Bypass kernel sanitizer or audit chain
+- Emit kernel events directly (use EventBus subscription only)
+- Modify governance rules
+- Override constitutional constraints
+
+### Governance Layer (src/governance/)
+
+**Enforcement and decision-making. Cannot be overridden by agents.**
+
+**Components:**
+
+- **council.ts**: 13-member voting council
+  - Vote creation with deadline (default 60 minutes)
+  - 3 thresholds: MAJORITY (>50%), SUPERMAJORITY (>=66%), UNANIMOUS (100%)
+  - Quorum requirement: 50% of voters
+  - Early vote conclusion logic
+  - Event emission: vote:started, vote:cast, vote:completed
+
+- **arbiter.ts**: Constitutional enforcement
+  - 5 hard rules: loopback-only, content-not-command, audit-immutable, least-privilege, trust-required
+  - Action evaluation against constitutional rules
+  - Dispute resolution (refers to council if no violations)
+  - Security alert monitoring
+
+- **overseer.ts**: Quality gate enforcement
+  - 5 release gates: test coverage, audit integrity, security scan, build clean, documentation
+  - Gate evaluation with context validation
+  - Release approval decision (blocks if any gate fails)
+
+### Operations Layer (src/ops/)
+
+**Infrastructure management. Background services and daemon control.**
+
+**Components:**
+
+- **daemon.ts**: macOS launchd integration
+  - Creates LaunchAgent plist at ~/Library/LaunchAgents/com.ari.gateway.plist
+  - Auto-loads on login, configurable port (default 3141)
+  - Logging to ~/.ari/logs/gateway.log
+  - Install, uninstall, and status operations
+
 ### CLI Layer (src/cli/)
 
-**Commander-based CLI. Orchestrates kernel and system.**
+**Commander-based CLI. Orchestrates all layers.**
 
 **Commands:**
 
@@ -272,22 +365,33 @@ Integration: eventBus.on('message:accepted') → route → audit.log('system:rou
 - Context CRUD: `storage.create()`, `storage.read()`, `storage.update()`, `storage.delete()`, `storage.list()`
 - Active context: `storage.setActive()`, `storage.getActive()`
 
+## Phase Status
+
+Phase 1 (complete):
+- Kernel hardening (gateway, sanitizer, audit, event bus, config, types)
+- System layer (router, storage, context management)
+- CLI commands (onboard, doctor, gateway, audit, context, governance)
+- v12 specification restoration
+
+Phase 2 (complete):
+- Agent layer (Core orchestrator, Guardian threat detection, Planner task decomposition, Executor tool execution, Memory Manager provenance tracking)
+- Governance layer (Council voting, Arbiter constitutional enforcement, Overseer quality gates)
+- Operations layer (macOS launchd daemon integration)
+- Full pipeline: Guardian assess → Router route → Planner plan → Executor execute
+
 ## Future Phases
 
-Phase 2 (planned):
-- Agent executor (tool execution with permission gating)
-- Memory manager (provenance tracking, quarantine)
-- Guardian (active threat monitoring)
-
 Phase 3 (planned):
-- UI console for audit inspection
-- Context editor
-- Health monitoring dashboard
+- Domain agent implementation (broader Life OS agents)
+- Agent-to-agent communication patterns
+- Memory persistence and query optimization
+- UI console for audit inspection and context editing
 
 Phase 4 (planned):
 - Multi-venture isolation hardening
 - Automated test harness for v12 specs
-- Launchd integration for daemon mode
+- Proactive notifications and scheduling
+- Performance optimization and load testing
 
 ---
 

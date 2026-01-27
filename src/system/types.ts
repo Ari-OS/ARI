@@ -34,18 +34,7 @@ export const RouteResultSchema = z.object({
 });
 export type RouteResult = z.infer<typeof RouteResultSchema>;
 
-/**
- * Permission tiers grounded in v12 SYSTEM/EXECUTOR.md:
- * READ_ONLY, WRITE_SAFE, WRITE_DESTRUCTIVE, ADMIN
- * Phase 1: only READ_ONLY operations exist.
- */
-export const PermissionTierSchema = z.enum([
-  'READ_ONLY',
-  'WRITE_SAFE',
-  'WRITE_DESTRUCTIVE',
-  'ADMIN',
-]);
-export type PermissionTier = z.infer<typeof PermissionTierSchema>;
+// PermissionTier is now defined in kernel/types.ts (canonical location)
 
 /**
  * Active context state file (~/.ari/contexts/active.json)

@@ -1,19 +1,40 @@
-import type { Message, AuditEvent, SecurityEvent } from './types.js';
+import type { Message, AuditEvent, SecurityEvent, AgentId, Vote } from './types.js';
 
 /**
- * EventMap interface defining event name to payload mappings
+ * EventMap interface defining event name to payload mappings.
+ * The EventBus is the ONLY coupling between kernel and system/agent layers.
  */
 export interface EventMap {
+  // ── Kernel events ──────────────────────────────────────────────────────
   'message:received': Message;
   'message:accepted': Message;
   'message:processed': Message;
+  'message:rejected': { messageId: string; reason: string; riskScore: number };
   'audit:logged': AuditEvent;
   'security:detected': SecurityEvent;
-  'system:routed': { messageId: string; contextId?: string; route: string; timestamp: Date };
   'gateway:started': { port: number; host: string };
   'gateway:stopped': { reason: string };
   'system:ready': { version: string };
   'system:error': { error: Error; context: string };
+
+  // ── System events ──────────────────────────────────────────────────────
+  'system:routed': { messageId: string; contextId?: string; route: string; timestamp: Date };
+
+  // ── Agent events ───────────────────────────────────────────────────────
+  'security:alert': { type: string; source: string; data: Record<string, unknown> };
+  'agent:started': { agent: AgentId; timestamp: Date };
+  'agent:stopped': { agent: AgentId; reason: string };
+  'tool:executed': { toolId: string; callId: string; success: boolean; agent: AgentId };
+  'tool:approval_required': { toolId: string; callId: string; agent: AgentId; parameters: Record<string, unknown> };
+  'memory:stored': { memoryId: string; type: string; partition: string; agent: AgentId };
+  'memory:quarantined': { memoryId: string; reason: string; agent: AgentId };
+
+  // ── Governance events ──────────────────────────────────────────────────
+  'vote:started': { voteId: string; topic: string; threshold: string; deadline: string };
+  'vote:cast': { voteId: string; agent: AgentId; option: string };
+  'vote:completed': { voteId: string; status: string; result: Record<string, unknown> };
+  'arbiter:ruling': { ruleId: string; type: string; decision: string };
+  'overseer:gate': { gateId: string; passed: boolean; reason: string };
 }
 
 /**

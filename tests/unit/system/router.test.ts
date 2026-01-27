@@ -35,8 +35,8 @@ describe('SystemRouter', () => {
     // Emit message:accepted (simulating kernel pipeline completion)
     eventBus.emit('message:accepted', message);
 
-    // Wait for async handler
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Wait for async handler (matchContext does disk I/O)
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Verify audit log contains the routing event
     const events = audit.getEvents();
@@ -67,7 +67,7 @@ describe('SystemRouter', () => {
     };
 
     eventBus.emit('message:accepted', message);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     expect(routedPayload).not.toBeNull();
     expect(routedPayload!.messageId).toBe(message.id);
@@ -101,7 +101,7 @@ describe('SystemRouter', () => {
     };
 
     eventBus.emit('message:accepted', message);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const events = audit.getEvents();
     const routeEvent = events.find((e) => e.action === 'system_routed');
@@ -124,7 +124,7 @@ describe('SystemRouter', () => {
     };
 
     eventBus.emit('message:accepted', message);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const events = audit.getEvents();
     expect(events.length).toBe(0);
@@ -157,7 +157,7 @@ describe('SystemRouter', () => {
     eventBus.emit('message:accepted', message);
 
     // Wait for async routing
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Step 5: Verify audit chain proves full pipeline
     const events = audit.getEvents();

@@ -5,9 +5,49 @@ All notable changes to ARI (Artificial Reasoning Intelligence) will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [12.0.0] — 2026-01-27 — Aurora Protocol Restoration
+## [12.0.0] — 2026-01-27 — Aurora Protocol (Phase 2 Complete)
 
 ### Added
+
+**Agent Layer (src/agents/) — NEW**
+- Core orchestrator (core.ts): Full 5-step message pipeline (Guardian assess → Router route → Planner plan → Executor execute → Audit log), system health reporting, agent start/stop lifecycle
+- Guardian agent (guardian.ts): Real-time threat assessment with 8 injection patterns, behavioral anomaly detection, rate limiting (60/min), trust-weighted risk scoring (50% injection + 30% anomaly + 20% trust), auto-block at risk >= 0.8
+- Planner agent (planner.ts): Task decomposition with dependency DAG, circular dependency detection (DFS), task status tracking, priority levels, next-available task resolution
+- Executor agent (executor.ts): Tool execution with 3-layer permission gating (agent allowlist, trust level, permission tier), approval workflow for destructive operations, 4 built-in tools, concurrent execution limit (10), timeout enforcement (30s)
+- Memory Manager agent (memory-manager.ts): Provenance-tracked memory with 6 types (FACT, PREFERENCE, PATTERN, CONTEXT, DECISION, QUARANTINE), 3 partitions (PUBLIC, INTERNAL, SENSITIVE), SHA-256 integrity hashing, trust decay, poisoning detection, 10K capacity
+
+**Governance Layer (src/governance/) — NEW**
+- Council (council.ts): 13-member voting council with 3 thresholds (MAJORITY >50%, SUPERMAJORITY >=66%, UNANIMOUS 100%), quorum enforcement (50%), early vote conclusion, event emission
+- Arbiter (arbiter.ts): Constitutional enforcement with 5 hard rules (loopback-only, content-not-command, audit-immutable, least-privilege, trust-required), dispute resolution, security alert monitoring
+- Overseer (overseer.ts): Quality gate enforcement with 5 release gates (test coverage, audit integrity, security scan, build clean, documentation), gate evaluation, release approval
+
+**Operations Layer (src/ops/) — NEW**
+- Daemon (daemon.ts): macOS launchd integration with install/uninstall/status, auto-start on login, configurable port, logging to ~/.ari/logs/
+- CLI command: `ari daemon install|uninstall|status`
+
+**Kernel Types Expansion (src/kernel/types.ts)**
+- AgentId enum (16 agents: core, router, planner, executor, memory_manager, guardian, arbiter, overseer + domain agents)
+- SourceType enum (operator, agent, external, system)
+- PermissionTier enum with numeric PERMISSION_LEVELS
+- MemoryType, MemoryPartition, MemoryEntry schemas with provenance tracking
+- VoteOption, VoteThreshold, Vote schemas for governance
+- ToolDefinition schema for executor permission gating
+- VOTING_AGENTS constant (13 council-eligible agents)
+- TRUST_SCORES mapping for risk calculations
+
+**Event Bus Expansion (src/kernel/event-bus.ts)**
+- Agent events: agent:started, agent:stopped, security:alert
+- Tool events: tool:executed, tool:approval_required
+- Memory events: memory:stored, memory:quarantined
+- Governance events: vote:started, vote:cast, vote:completed, arbiter:ruling, overseer:gate
+
+**Tests — 120 passing (14 test files)**
+- Agent tests: core (9), guardian (10), executor (10), planner (8), memory-manager (12)
+- Governance tests: council (10), arbiter (10), overseer (8)
+- Kernel tests: event-bus (8), sanitizer (5), audit (3)
+- System tests: router (5)
+- Integration tests: pipeline (8)
+- Security tests: injection (14)
 
 **System Layer (src/system/)**
 - Context storage at ~/.ari/contexts/ with JSON persistence
@@ -144,28 +184,31 @@ All v3 kernel functionality preserved and passing tests:
 
 ### Notes
 
-**Phase 1 Scope**
+**Phase 1 + Phase 2 Scope**
 - Kernel hardening complete (v3 Kagemusha preserved)
 - System layer integration complete (event bus subscription, context routing)
+- Agent layer complete (Core orchestrator, Guardian, Planner, Executor, Memory Manager)
+- Governance layer complete (Council voting, Arbiter enforcement, Overseer quality gates)
+- Operations layer complete (macOS launchd daemon)
 - v12 specifications restored (reference documentation)
 - Documentation complete (architecture, security, operations, governance, principles)
 
 **Future Phases**
-- Phase 2: Executor (tool execution with permission gating), Memory Manager (provenance tracking, quarantine), Guardian (active threat monitoring)
-- Phase 3: UI Console (audit inspection, context editor, health dashboard)
-- Phase 4: Multi-venture isolation hardening, automated test harness for v12 specs, launchd integration
+- Phase 3: Domain agents (broader Life OS agents), agent-to-agent communication, memory persistence, UI console
+- Phase 4: Multi-venture isolation, automated test harness, proactive notifications, performance optimization
 
 **Test Status**
-- 27 tests passing (22 kernel + 5 system)
+- 120 tests passing (14 test files)
 - All v3 kernel tests preserved
-- New system integration tests added
+- Full agent, governance, integration, and security test coverage
 - No regressions
 
 **Governance Status**
 - v12 governance rules documented in docs/v12/GOVERNANCE/
-- Council vote simulated (COUNCIL_VOTE_V12.md — unanimous approval)
-- Arbiter signoff simulated (ARBITER_SIGNOFF_V12.md — production ready certification)
-- Governance not yet enforced in executable code (Phase 2+)
+- Council, Arbiter, and Overseer now implemented as executable code
+- Constitutional enforcement with 5 hard rules
+- 13-member voting council with 3 quorum thresholds
+- 5 quality gates for release certification
 
 ---
 

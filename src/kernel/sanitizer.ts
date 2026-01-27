@@ -167,9 +167,11 @@ const SEVERITY_WEIGHTS: Record<Severity, number> = {
  */
 const TRUST_MULTIPLIERS: Record<TrustLevel, number> = {
   system: 0.5,
+  operator: 0.6,
   verified: 0.75,
   standard: 1.0,
   untrusted: 1.5,
+  hostile: 2.0,
 };
 
 /**
