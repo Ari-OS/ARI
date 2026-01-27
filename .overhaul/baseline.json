@@ -1,0 +1,29 @@
+{
+  "captured": "2026-01-27T14:15:00Z",
+  "branch": "restore/v12-aurora-scope+v3-kagemusha-kernel",
+  "version": "12.0.0",
+  "node": ">=20.0.0",
+  "tests": {
+    "total": 120,
+    "passed": 120,
+    "failed": 0,
+    "testFiles": 14,
+    "duration": "10.56s"
+  },
+  "typecheck": {
+    "errors": 0,
+    "status": "clean"
+  },
+  "lint": {
+    "errors": 91,
+    "warnings": 94,
+    "status": "eslint not previously installed as devDependency - errors are pre-existing",
+    "note": "ESLint packages added to devDependencies during Phase 0"
+  },
+  "sourceFiles": 32,
+  "sourceLines": 4756,
+  "architecture": {
+    "layers": ["kernel", "system", "agents", "governance", "ops"],
+    "cliCommands": 8
+  }
+}
