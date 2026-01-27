@@ -2,6 +2,6 @@
 * @PryceHedrick
 
 # Security-critical paths
-/src/security/ @PryceHedrick
-/src/audit/ @PryceHedrick
-/src/gateway/ @PryceHedrick
+/src/kernel/ @PryceHedrick
+/src/governance/ @PryceHedrick
+/src/agents/guardian.ts @PryceHedrick

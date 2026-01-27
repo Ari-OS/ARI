@@ -14,11 +14,16 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
-    "lint": "eslint src --ext .ts",
+    "lint": "npx eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write src/",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "gateway:start": "node dist/cli/index.js gateway start",
-    "doctor": "node dist/cli/index.js doctor"
+    "doctor": "node dist/cli/index.js doctor",
+    "audit:verify": "node dist/cli/index.js audit verify",
+    "dashboard:dev": "cd dashboard && npm run dev",
+    "dashboard:build": "cd dashboard && npm run build"
   },
   "dependencies": {
     "chalk": "^5.3.0",

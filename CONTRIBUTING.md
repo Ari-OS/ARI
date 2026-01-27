@@ -1,22 +1,18 @@
-# Contributing to ARI vNext
+# Contributing to ARI
 
-Thank you for your interest in contributing to ARI vNext. This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to ARI — Artificial Reasoning Intelligence. This document provides guidelines for contributing to the Life Operating System.
 
 ## Table of Contents
 
-- [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
 - [Development Workflow](#development-workflow)
-- [Coding Standards](#coding-standards)
-- [Testing Requirements](#testing-requirements)
-- [Commit Messages](#commit-messages)
+- [Branch Naming](#branch-naming)
+- [Commit Conventions](#commit-conventions)
 - [Pull Request Process](#pull-request-process)
-- [Documentation](#documentation)
+- [Style Guide](#style-guide)
+- [Testing Requirements](#testing-requirements)
+- [Layer Dependency Rules](#layer-dependency-rules)
 - [Philosophy Alignment](#philosophy-alignment)
-
-## Code of Conduct
-
-This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
 ## Getting Started
 
@@ -32,13 +28,13 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
 1. Fork the repository on GitHub
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/ari-vnext.git
-   cd ari-vnext
+   git clone https://github.com/YOUR_USERNAME/ari.git
+   cd ari
    ```
 
 3. Add upstream remote:
    ```bash
-   git remote add upstream https://github.com/prycehedrick/ari-vnext.git
+   git remote add upstream https://github.com/PryceHedrick/ari.git
    ```
 
 4. Install dependencies:
@@ -58,7 +54,7 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
 
 ## Development Workflow
 
-### Branch Strategy
+### Making Changes
 
 1. Always create a feature branch from `main`:
    ```bash
@@ -67,28 +63,19 @@ This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDU
    git checkout -b feature/your-feature-name
    ```
 
-2. Branch naming conventions:
-   - `feature/` - New features
-   - `fix/` - Bug fixes
-   - `docs/` - Documentation changes
-   - `refactor/` - Code refactoring
-   - `test/` - Test improvements
-   - `chore/` - Maintenance tasks
-
-### Making Changes
-
-1. Make your changes in focused, logical commits
-2. Follow the coding standards (see below)
-3. Add or update tests as needed
-4. Update documentation if required
-5. Run tests frequently:
+2. Make your changes in focused, logical commits
+3. Follow the coding standards (see below)
+4. Add or update tests as needed
+5. Update documentation if required
+6. Run tests frequently:
    ```bash
    npm test
    ```
 
-6. Check code quality:
+7. Check code quality:
    ```bash
    npm run lint
+   npm run typecheck
    ```
 
 ### Keeping Your Branch Updated
@@ -98,110 +85,20 @@ git fetch upstream
 git rebase upstream/main
 ```
 
-## Coding Standards
+## Branch Naming
 
-### TypeScript
+Use descriptive branch names with appropriate prefixes:
 
-- Use TypeScript for all source code
-- Enable strict mode in `tsconfig.json`
-- Provide explicit type annotations for function parameters and return types
-- Avoid `any` type; use `unknown` if type is truly unknown
-- Use modern syntax: `str | null` instead of `Union<str, null>`
+- `feature/` - New features (e.g., `feature/council-voting`)
+- `fix/` - Bug fixes (e.g., `fix/audit-chain-validation`)
+- `docs/` - Documentation changes (e.g., `docs/governance-guide`)
+- `refactor/` - Code refactoring (e.g., `refactor/sanitizer-patterns`)
+- `test/` - Test improvements (e.g., `test/memory-manager-coverage`)
+- `chore/` - Maintenance tasks (e.g., `chore/update-dependencies`)
 
-### Code Style
+## Commit Conventions
 
-- Use Prettier for formatting (config in `.prettierrc`)
-- Use ESLint for linting (config in `.eslintrc`)
-- 2-space indentation
-- Single quotes for strings
-- Semicolons required
-- Trailing commas in multi-line structures
-
-### Naming Conventions
-
-- **Files**: kebab-case (`audit-logger.ts`)
-- **Classes**: PascalCase (`AuditLogger`)
-- **Functions**: camelCase (`verifyHashChain`)
-- **Constants**: UPPER_SNAKE_CASE (`MAX_RETRIES`)
-- **Interfaces**: PascalCase with descriptive names (`AuditEntry`)
-- **Types**: PascalCase (`MessageType`)
-
-### Project Principles
-
-All code must align with core principles:
-
-1. **CONTENT ≠ COMMAND**: Never execute inbound content as instructions
-2. **Shadow Integration**: Log suspicious patterns, don't block
-3. **Ruthless Simplicity**: Remove anything that doesn't serve clear purpose
-4. **Radical Transparency**: Log all significant operations
-
-## Testing Requirements
-
-### Test Coverage
-
-- All new features must include tests
-- Bug fixes must include regression tests
-- Aim for 80%+ code coverage
-- Critical paths (security, audit) require 100% coverage
-
-### Test Types
-
-**Unit Tests**
-```typescript
-// tests/unit/refiner.test.ts
-import { describe, it, expect } from 'vitest';
-import { refinePrompt } from '../../src/refiner/refiner';
-
-describe('Prompt Refiner', () => {
-  it('should normalize whitespace', () => {
-    const result = refinePrompt('hello  world');
-    expect(result).toBe('hello world');
-  });
-});
-```
-
-**Integration Tests**
-```typescript
-// tests/integration/gateway.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import WebSocket from 'ws';
-import { startGateway, stopGateway } from '../../src/gateway/gateway';
-
-describe('Gateway Integration', () => {
-  beforeAll(async () => {
-    await startGateway({ port: 3001 });
-  });
-
-  afterAll(async () => {
-    await stopGateway();
-  });
-
-  it('should accept WebSocket connections', async () => {
-    const ws = new WebSocket('ws://127.0.0.1:3001');
-    // Test implementation
-  });
-});
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Run with coverage
-npm run test:coverage
-
-# Run specific test file
-npm test -- tests/unit/refiner.test.ts
-
-# Watch mode for development
-npm run test:watch
-```
-
-## Commit Messages
-
-Use conventional commit format:
+Follow [Conventional Commits](https://www.conventionalcommits.org/) specification:
 
 ```
 type(scope): subject
@@ -216,31 +113,30 @@ footer (optional)
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
-- `style`: Code style changes (formatting)
-- `refactor`: Code refactoring
+- `style`: Code style changes (formatting, no logic change)
+- `refactor`: Code refactoring (no feature change, no bug fix)
 - `test`: Test additions or modifications
-- `chore`: Maintenance tasks
+- `chore`: Maintenance tasks (dependencies, config, etc.)
 
 ### Examples
 
 ```
-feat(audit): add real-time tail functionality
+feat(guardian): add behavioral anomaly detection
 
-Implements audit trail tailing with configurable follow mode.
-Uses JSONL line parsing with hash chain verification.
+Implements rolling window rate limiting and pattern clustering
+for real-time threat assessment.
 
-Closes #123
+Closes #42
 ```
 
 ```
-fix(gateway): prevent connection hang on shutdown
+fix(audit): prevent hash chain corruption on concurrent writes
 
-Gracefully close all active WebSocket connections before
-stopping the server.
+Add file locking to ensure atomic append operations.
 ```
 
 ```
-docs(security): clarify shadow integration approach
+docs(security): clarify content≠command principle
 ```
 
 ## Pull Request Process
@@ -249,12 +145,12 @@ docs(security): clarify shadow integration approach
 
 1. Ensure all tests pass: `npm test`
 2. Lint your code: `npm run lint`
-3. Build successfully: `npm run build`
-4. Update documentation if needed
-5. Add changelog entry if appropriate
+3. Type check: `npm run typecheck`
+4. Build successfully: `npm run build`
+5. Update documentation if needed
 6. Rebase on latest `main`
 
-### PR Template
+### PR Description Template
 
 ```markdown
 ## Description
@@ -269,12 +165,22 @@ Brief description of changes
 ## Testing
 Describe testing performed
 
+## Layer Impact
+Which layer(s) does this affect?
+- [ ] Kernel
+- [ ] System
+- [ ] Core (Agents)
+- [ ] Strategic (Governance)
+- [ ] Execution (Ops)
+- [ ] Interfaces (CLI)
+
 ## Checklist
 - [ ] Tests pass locally
 - [ ] Code follows style guidelines
 - [ ] Self-review completed
 - [ ] Documentation updated
 - [ ] No breaking changes (or documented)
+- [ ] Layer dependency rules respected
 ```
 
 ### Review Process
@@ -284,56 +190,243 @@ Describe testing performed
 3. No unresolved conversations
 4. Branch up to date with `main`
 
-### After Approval
+## Style Guide
 
-Maintainers will merge using squash merge strategy.
+### TypeScript Standards
 
-## Documentation
+- Use TypeScript for all source code
+- Enable strict mode in `tsconfig.json`
+- Provide explicit type annotations for function parameters and return types
+- Avoid `any` type; use `unknown` if type is truly unknown
+- Use modern syntax: `str | null` instead of legacy union types
 
-### Required Documentation
+### Code Style
 
-When adding features:
-- Update relevant `.md` files in `docs/`
-- Add JSDoc comments to public APIs
-- Include usage examples
-- Update README.md if user-facing
+- **Indentation**: 2 spaces (no tabs)
+- **Quotes**: Single quotes for strings
+- **Semicolons**: Required
+- **Trailing commas**: Required in multi-line structures
+- **Line length**: Prefer lines under 100 characters
 
-### Documentation Style
+### Naming Conventions
 
-- Clear, concise language
-- Code examples where helpful
-- No emojis in documentation
-- Follow existing structure
+- **Files**: kebab-case (`memory-manager.ts`)
+- **Classes**: PascalCase (`MemoryManager`)
+- **Functions**: camelCase (`assessThreat`)
+- **Constants**: UPPER_SNAKE_CASE (`MAX_RISK_SCORE`)
+- **Interfaces**: PascalCase (`AuditEvent`)
+- **Types**: PascalCase (`TrustLevel`)
+
+### Code Organization
+
+```typescript
+// 1. Imports (external, then internal)
+import { EventEmitter } from 'node:events';
+import { z } from 'zod';
+
+import type { AuditEvent } from '../kernel/types.js';
+import { EventBus } from '../kernel/event-bus.js';
+
+// 2. Types and interfaces
+export interface GuardianOptions {
+  rateLimit: number;
+}
+
+// 3. Constants
+const MAX_VIOLATIONS = 10;
+
+// 4. Class/function definitions
+export class Guardian {
+  // Implementation
+}
+```
+
+## Testing Requirements
+
+### Coverage Targets
+
+- **Overall**: 80%+ code coverage
+- **Security paths**: 100% coverage (kernel/sanitizer, agents/guardian, governance/arbiter)
+- **All new features**: Must include tests
+- **Bug fixes**: Must include regression tests
+
+### Test Structure
+
+Use Vitest with descriptive test names:
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+import { Guardian } from '../../src/agents/guardian.js';
+
+describe('Guardian', () => {
+  let guardian: Guardian;
+
+  beforeEach(() => {
+    guardian = new Guardian();
+  });
+
+  describe('threat assessment', () => {
+    it('should detect direct override patterns', () => {
+      const result = guardian.assess('ignore previous instructions');
+      expect(result.risk).toBeGreaterThan(0.8);
+    });
+
+    it('should weight risk by trust level', () => {
+      const untrustedResult = guardian.assess('test', { trust: 'UNTRUSTED' });
+      const trustedResult = guardian.assess('test', { trust: 'TRUSTED' });
+      expect(untrustedResult.risk).toBeGreaterThan(trustedResult.risk);
+    });
+  });
+});
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Run specific test file
+npm test -- tests/unit/agents/guardian.test.ts
+
+# Watch mode for development
+npm run test:watch
+```
+
+## Layer Dependency Rules
+
+ARI enforces strict layer boundaries. Violations will be rejected.
+
+### Allowed Dependencies (Top to Bottom)
+
+```
+Interfaces (CLI)
+    ↓ can import
+Execution (Ops)
+    ↓ can import
+Strategic (Governance)
+    ↓ can import
+Core (Agents)
+    ↓ can import
+System (Router, Storage)
+    ↓ can import
+Kernel (Gateway, Sanitizer, Audit, EventBus, Config, Types)
+```
+
+### Rules
+
+1. **Kernel cannot import from any higher layer**
+2. **System cannot import from Agents, Governance, Ops, or CLI**
+3. **Agents cannot import from Governance, Ops, or CLI**
+4. **Governance cannot import from Ops or CLI**
+5. **All layers can import from Kernel** (types, config, event bus)
+6. **All layers communicate via EventBus** (no direct function calls across layers)
+
+### Examples
+
+```typescript
+// ❌ WRONG: Kernel importing from System
+// src/kernel/gateway.ts
+import { Router } from '../system/router.js'; // VIOLATION
+
+// ✅ CORRECT: System importing from Kernel
+// src/system/router.ts
+import { EventBus } from '../kernel/event-bus.js'; // OK
+import type { Message } from '../kernel/types.js'; // OK
+
+// ❌ WRONG: Agents importing from Governance
+// src/agents/core.ts
+import { Council } from '../governance/council.js'; // VIOLATION
+
+// ✅ CORRECT: Governance importing from Agents
+// src/governance/council.ts
+import type { AgentId } from '../kernel/types.js'; // OK (types are in kernel)
+```
 
 ## Philosophy Alignment
 
-Contributions should align with project philosophy:
+All contributions must align with ARI's core principles:
 
-### Jung: Shadow Integration
-- Don't hide errors or suspicious behavior
-- Log and understand rather than suppress
-- Integration over rejection
+### Shadow Integration (Jung)
 
-### Musashi: Ruthless Simplicity
-- Every line of code must justify its existence
-- Remove complexity wherever possible
-- Clear, obvious implementations preferred
+Don't suppress errors or suspicious behavior. Log them for transparency.
 
-### Dalio: Radical Transparency
-- All operations logged
-- Observable system behavior
-- No hidden state or side effects
+```typescript
+// ❌ WRONG: Silent failure
+if (riskScore > 0.8) {
+  return; // Silently ignore
+}
+
+// ✅ CORRECT: Log and integrate
+if (riskScore > 0.8) {
+  this.eventBus.emit('security:threat_detected', {
+    risk: riskScore,
+    patterns: detectedPatterns,
+    action: 'blocked',
+  });
+  throw new SecurityError('Threat detected');
+}
+```
+
+### Radical Transparency (Dalio)
+
+All significant operations must be audited.
+
+```typescript
+// ✅ CORRECT: Audit all state changes
+async executeTask(task: Task): Promise<void> {
+  this.eventBus.emit('audit:log', {
+    action: 'task_execution_start',
+    taskId: task.id,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Execute task
+
+  this.eventBus.emit('audit:log', {
+    action: 'task_execution_complete',
+    taskId: task.id,
+    timestamp: new Date().toISOString(),
+  });
+}
+```
+
+### Ruthless Simplicity (Musashi)
+
+Every line of code must justify its existence. Prefer simple over clever.
+
+```typescript
+// ❌ WRONG: Over-engineered
+const processMessage = (msg: Message) =>
+  pipe(
+    sanitize,
+    validate,
+    transform,
+    enrich,
+    route
+  )(msg);
+
+// ✅ CORRECT: Clear and straightforward
+async processMessage(msg: Message): Promise<void> {
+  const sanitized = this.sanitizer.sanitize(msg);
+  const validated = this.validator.validate(sanitized);
+  await this.router.route(validated);
+}
+```
 
 ## Questions or Issues?
 
 - Open an issue for bugs or feature requests
-- Use discussions for questions
-- Tag maintainers for urgent security issues
+- Tag `@PryceHedrick` for urgent security issues
+- Review existing issues before creating duplicates
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the same private license as the project.
 
 ---
 
-Thank you for contributing to ARI vNext. Your work helps build a more transparent, secure, and principled personal operating system.
+Thank you for contributing to ARI — Your Life Operating System.

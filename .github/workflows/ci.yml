@@ -10,14 +10,18 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        node-version: [20, 22]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Install dependencies
@@ -27,7 +31,7 @@ jobs:
         run: npm run typecheck
 
       - name: Lint
-        run: npm run lint
+        run: npx eslint src --ext .ts
 
       - name: Test
         run: npm test
