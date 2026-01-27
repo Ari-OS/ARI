@@ -118,6 +118,7 @@ export class Gateway {
       };
 
       this.eventBus.emit('message:received', message);
+      this.eventBus.emit('message:accepted', message);
 
       return {
         accepted: true,
@@ -162,9 +163,22 @@ export class Gateway {
 
   /**
    * Get the gateway address
-   * @returns The full HTTP address of the gateway
    */
   getAddress(): string {
     return `http://${this.HOST}:${this.port}`;
+  }
+
+  /**
+   * Get the event bus for system-layer subscription
+   */
+  getEventBus(): EventBus {
+    return this.eventBus;
+  }
+
+  /**
+   * Get the audit logger for system-layer logging (append-only)
+   */
+  getAuditLogger(): AuditLogger {
+    return this.audit;
   }
 }

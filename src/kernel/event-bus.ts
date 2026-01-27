@@ -5,9 +5,11 @@ import type { Message, AuditEvent, SecurityEvent } from './types.js';
  */
 export interface EventMap {
   'message:received': Message;
+  'message:accepted': Message;
   'message:processed': Message;
   'audit:logged': AuditEvent;
   'security:detected': SecurityEvent;
+  'system:routed': { messageId: string; contextId?: string; route: string; timestamp: Date };
   'gateway:started': { port: number; host: string };
   'gateway:stopped': { reason: string };
   'system:ready': { version: string };
