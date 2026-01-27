@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Memory events: memory:stored, memory:quarantined
 - Governance events: vote:started, vote:cast, vote:completed, arbiter:ruling, overseer:gate
 
-**Tests — 120 passing (14 test files)**
+**Tests — 187 passing (18 test files)**
 - Agent tests: core (9), guardian (10), executor (10), planner (8), memory-manager (12)
 - Governance tests: council (10), arbiter (10), overseer (8)
 - Kernel tests: event-bus (8), sanitizer (5), audit (3)
@@ -198,7 +198,7 @@ All v3 kernel functionality preserved and passing tests:
 - Phase 4: Multi-venture isolation, automated test harness, proactive notifications, performance optimization
 
 **Test Status**
-- 120 tests passing (14 test files)
+- 187 tests passing (18 test files)
 - All v3 kernel tests preserved
 - Full agent, governance, integration, and security test coverage
 - No regressions

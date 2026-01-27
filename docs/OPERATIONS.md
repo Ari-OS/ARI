@@ -64,7 +64,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-Expected: 27 tests passing (22 kernel + 5 system).
+Expected: 187 tests passing (18 test files).
 
 ## Running the Gateway
 
@@ -406,7 +406,7 @@ npx ari onboard init
    npm test
    ```
 
-**Expected:** All 27 tests pass. Audit chain preserved.
+**Expected:** All 187 tests pass. Audit chain preserved.
 
 ### From v12 Snapshots
 
@@ -561,7 +561,7 @@ npm run test:watch
 **Not yet implemented.** Requires governance process (v12 spec).
 
 Planned:
-1. Run full test suite (all 27+ tests passing)
+1. Run full test suite (all 187 tests passing)
 2. Update CHANGELOG.md
 3. Bump version in package.json
 4. Tag release
