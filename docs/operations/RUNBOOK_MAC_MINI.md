@@ -712,5 +712,5 @@ lsof -i :3141 | grep LISTEN
 ---
 
 **Last Updated**: 2026-01-27
-**Version**: 12.0.0
+**Version**: 2.0.0
 **Platform**: macOS 12.0+

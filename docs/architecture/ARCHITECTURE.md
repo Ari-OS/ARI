@@ -1,6 +1,6 @@
 # ARI Life OS Architecture
 
-Version 12.0.0 - Lock Architecture Documentation
+Version 2.0.0 - Lock Architecture Documentation
 
 ## Identity
 

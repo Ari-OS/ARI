@@ -165,5 +165,5 @@ Restoration is complete when:
 
 **Document Status:** Completed
 **Date:** 2026-01-27
-**Version:** 12.0.0
+**Version:** 2.0.0
 **Merge:** PR #3 merged to main (2026-01-27) — see docs/OVERHAUL_LOG.md for full implementation history

@@ -7,7 +7,7 @@
 Your Life Operating System
 
 [![CI](https://github.com/PryceHedrick/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/PryceHedrick/ARI/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-12.0.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue)](CHANGELOG.md)
 [![Node.js](https://img.shields.io/badge/node-20%2B-green)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/typescript-5.3-blue)](https://www.typescriptlang.org)
 [![Tests](https://img.shields.io/badge/tests-187-brightgreen)](tests/)
@@ -328,7 +328,7 @@ npm run lint:fix           # ESLint with auto-fix
 
 <div align="center">
 
-**ARI v12.0.0** · Life Operating System
+**ARI v2.0.0** · Life Operating System
 
 MIT License · [Pryce Hedrick](https://github.com/PryceHedrick)
 

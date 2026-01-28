@@ -1,6 +1,6 @@
 # ARI Security Model
 
-Version 12.0.0 - Phase 2 Lock
+Version 2.0.0 - Phase 2 Lock
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # ARI Security Model
 
-Version 12.0.0 — Aurora Protocol
+Version 2.0.0 — Aurora Protocol
 
 ## Core Principle: Content ≠ Command
 

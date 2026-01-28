@@ -51,7 +51,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       </nav>
 
       <div className="border-t border-gray-700 p-4 text-xs text-gray-500">
-        <p className="font-mono">v12.0.0</p>
+        <p className="font-mono">v2.0.0</p>
         <p className="mt-1">View-Only Dashboard</p>
       </div>
     </aside>

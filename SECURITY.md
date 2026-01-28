@@ -4,7 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 12.0.x  | :white_check_mark: |
+| 2.0.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
@@ -202,4 +202,4 @@ For security-related questions or concerns:
 ---
 
 **Last Updated**: 2026-01-27
-**Version**: 12.0.0
+**Version**: 2.0.0

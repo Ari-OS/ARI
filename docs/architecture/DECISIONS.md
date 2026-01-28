@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADRs)
 
-Version 12.0.0 - Phase 2 Lock
+Version 2.0.0 - Phase 2 Lock
 
 All ADRs in this document are **LOCKED** as of Phase 2 completion. These decisions form the constitutional foundation of ARI Life OS and cannot be modified without explicit governance approval through the council voting process.
 

@@ -176,19 +176,21 @@ All payloads MUST be Zod-validated at boundaries.
 
 ### Current Version
 
-**12.0.0** (per `package.json`)
+**2.0.0** (per `package.json`)
+
+*Note: Version was renormalized from 12.0.0 to 2.0.0 during Operation Clarity Protocol for cleaner semver progression (v0.1.0 → v1.0.0 → v2.0.0).*
 
 ### This Merge
 
-**Version remains 12.0.0**
-- Rationale: This merge restores v12's intended scope (system layer), not adding new scope
-- v12 specified the architecture; v3 implemented kernel only
-- Merge completes the v12 specification
+**Version completed at 2.0.0**
+- Rationale: This merge restored the v12 spec's intended scope (system layer)
+- v12 spec specified the architecture; v3 implemented kernel only
+- Merge completed the v12 specification implementation
 
 ### Future Versions
 
-- **12.1.0:** First system layer enhancements beyond v12 spec
-- **13.0.0:** Breaking changes to kernel/system contract
+- **2.1.0:** First system layer enhancements beyond spec
+- **3.0.0:** Breaking changes to kernel/system contract
 
 ---
 
@@ -242,5 +244,5 @@ Merge is complete when:
 
 **Document Status:** Completed
 **Date:** 2026-01-27
-**Version:** 12.0.0
+**Version:** 2.0.0
 **Implementation:** Merged via PR #3 (2026-01-27) — all acceptance criteria met. See docs/OVERHAUL_LOG.md for details.
