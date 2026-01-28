@@ -1,0 +1,48 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit:*.ts|Write:*.ts",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/prycehedrick/Work/ARI && npx tsc --noEmit 2>&1 | head -20",
+            "blocking": false
+          }
+        ]
+      },
+      {
+        "matcher": "Edit:*test*.ts|Write:*test*.ts",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/prycehedrick/Work/ARI && npm test -- --reporter=dot 2>&1 | tail -10",
+            "blocking": false
+          }
+        ]
+      },
+      {
+        "matcher": "Edit:src/kernel/*|Write:src/kernel/*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '⚠️  KERNEL LAYER MODIFIED - Security review required'",
+            "blocking": false
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/prycehedrick/Work/ARI && npm run typecheck 2>&1 | tail -5",
+            "blocking": true
+          }
+        ]
+      }
+    ]
+  }
+}
