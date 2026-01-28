@@ -35,8 +35,8 @@ These are immutable security and design principles. Never violate these:
    - No tool can bypass permission checks
 
 5. **Trust Required**
-   - All messages have trust level: SYSTEM, TRUSTED, or UNTRUSTED
-   - Risk scores weighted by trust (SYSTEM 0.5x, UNTRUSTED 1.5x)
+   - All messages have trust level: SYSTEM, OPERATOR, VERIFIED, STANDARD, UNTRUSTED, or HOSTILE
+   - Risk multipliers: SYSTEM 0.5x, OPERATOR 0.6x, VERIFIED 0.75x, STANDARD 1.0x, UNTRUSTED 1.5x, HOSTILE 2.0x
    - Auto-block at risk ≥ 0.8
 
 ## Locked Decisions (ADRs)

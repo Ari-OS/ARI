@@ -56,9 +56,12 @@ This principle is enforced through:
 Base risk score = number of patterns matched
 
 Trust level multiplier:
-- SYSTEM: 0.5x (trusted sources get lower risk)
-- TRUSTED: 1.0x
+- SYSTEM: 0.5x (internal components)
+- OPERATOR: 0.6x (authenticated operator)
+- VERIFIED: 0.75x (verified sources)
+- STANDARD: 1.0x (default)
 - UNTRUSTED: 1.5x (external sources get higher risk)
+- HOSTILE: 2.0x (known malicious sources)
 
 Final risk = base × multiplier
 
@@ -157,25 +160,25 @@ async verify(): Promise<VerifyResult> {
 ### Implementation: src/kernel/types.ts
 
 ```typescript
-export enum TrustLevel {
-  SYSTEM = 'system',      // Internal ARI components
-  TRUSTED = 'trusted',    // Operator-originated messages
-  UNTRUSTED = 'untrusted' // External sources (future: web, APIs)
-}
+export const TrustLevelSchema = z.enum([
+  'system',      // Internal ARI components
+  'operator',    // Authenticated operator
+  'verified',    // Verified external sources
+  'standard',    // Default trust level
+  'untrusted',   // Unverified external content
+  'hostile'      // Known malicious sources
+]);
 ```
 
-**Trust Enforcement:**
-- SYSTEM: Messages from kernel components (risk multiplier 0.5x)
-- TRUSTED: Operator direct input (risk multiplier 1.0x)
-- UNTRUSTED: External content (risk multiplier 1.5x)
+**Trust Enforcement (Risk Multipliers):**
+- SYSTEM: Internal components (risk multiplier 0.5x)
+- OPERATOR: Authenticated operator (risk multiplier 0.6x)
+- VERIFIED: Verified sources (risk multiplier 0.75x)
+- STANDARD: Default level (risk multiplier 1.0x)
+- UNTRUSTED: Unverified external content (risk multiplier 1.5x)
+- HOSTILE: Known malicious sources (risk multiplier 2.0x)
 
-**Future Extensions:**
-- WEB_SCRAPE: Content from web searches
-- API_RESPONSE: External API data
-- FILE_CONTENT: Loaded file data
-- EMAIL_BODY: Email ingest
-
-All external trust levels will use UNTRUSTED (1.5x risk) until proven safe.
+Auto-block threshold: risk ≥ 0.8
 
 ## Pipeline Enforcement
 

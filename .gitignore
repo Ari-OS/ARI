@@ -1,8 +1,37 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 dist/
 dashboard/dist/
+
+# Environment files
 .env
 .env.local
+.env.*
+
+# Logs
 *.log
+logs/
+
+# Coverage
 coverage/
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Development artifacts
+.overhaul/
+*.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp

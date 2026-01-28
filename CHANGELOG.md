@@ -172,15 +172,15 @@ All v3 kernel functionality preserved and passing tests:
 ### Documentation
 
 **New Files**
-- /Users/prycehedrick/ari/docs/ARCHITECTURE.md
-- /Users/prycehedrick/ari/docs/SECURITY.md
-- /Users/prycehedrick/ari/docs/OPERATIONS.md
-- /Users/prycehedrick/ari/docs/GOVERNANCE.md
-- /Users/prycehedrick/ari/docs/PRINCIPLES.md
-- /Users/prycehedrick/ari/CHANGELOG.md (this file)
+- docs/ARCHITECTURE.md
+- docs/SECURITY.md
+- docs/OPERATIONS.md
+- docs/GOVERNANCE.md
+- docs/PRINCIPLES.md
+- CHANGELOG.md (this file)
 
 **v12 Specs Restored**
-- /Users/prycehedrick/ari/docs/v12/ (full directory tree from Aurora Protocol)
+- docs/v12/ (full directory tree from Aurora Protocol)
 
 ### Notes
 

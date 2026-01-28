@@ -272,8 +272,8 @@ describe('Guardian', () => {
     });
 
     it('should weight risk by trust level', () => {
-      const untrustedResult = guardian.assess('test', { trust: 'UNTRUSTED' });
-      const trustedResult = guardian.assess('test', { trust: 'TRUSTED' });
+      const untrustedResult = guardian.assess('test', { trust: 'untrusted' });
+      const trustedResult = guardian.assess('test', { trust: 'operator' });
       expect(untrustedResult.risk).toBeGreaterThan(trustedResult.risk);
     });
   });

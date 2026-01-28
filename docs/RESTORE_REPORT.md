@@ -71,7 +71,7 @@ The following infrastructure was implemented in v3:
 
 - **Zod-validated types: TrustLevel, Message, AuditEvent, SecurityEvent, Config, SanitizeResult** [src/kernel/types.ts]
   - Runtime validation for all kernel boundaries
-  - Trust levels: 0 (Operator), 1 (System), 2 (Agent), 3 (External)
+  - Trust levels: system, operator, verified, standard, untrusted, hostile
 
 - **Injection sanitizer: 21 regex patterns across 6 categories, trust-weighted risk scoring** [src/kernel/sanitizer.ts]
   - Categories: Command injection, SQL injection, XSS, Path traversal, Code execution, SSRF
@@ -102,10 +102,9 @@ The following infrastructure was implemented in v3:
   - `ari doctor check`: Health diagnostics
   - `ari onboard init`: First-run setup
 
-- **22 passing vitest tests across 3 test files** [tests/]
-  - `tests/sanitizer.test.ts`: 11 tests (injection detection, trust scoring)
-  - `tests/audit.test.ts`: 7 tests (hash chain, integrity)
-  - `tests/event-bus.test.ts`: 4 tests (pub/sub, isolation)
+- **187 passing vitest tests across 18 test files** [tests/]
+  - Originally 22 kernel tests in v3; expanded to 187 during overhaul
+  - Coverage: unit (kernel, system, agents, governance), integration, security
 
 - **Pipeline enforced: inbound_message → sanitize → record_audit → publish_event** [src/kernel/gateway.ts]
   - POST /message handler enforces this sequence
@@ -113,45 +112,36 @@ The following infrastructure was implemented in v3:
 
 ---
 
-## Section 3: Regressions / Missing vs v12
+## Section 3: Resolved — Previously Missing (v3 → v12 Overhaul)
 
-The following v12-specified capabilities are not present in v3:
+The following v12-specified capabilities were missing in v3 and have been implemented:
 
-- [ ] **No governance layer** (v12 defines council voting, Arbiter, Overseer)
-  - v12 specifies: 9-member council, constitutional voting, Arbiter veto authority
-  - v3 status: Governance entirely absent
+- [x] **Governance layer** — Implemented: 13-member council voting, Arbiter (5 rules), Overseer (5 gates)
+  - src/governance/council.ts, arbiter.ts, overseer.ts, stop-the-line.ts
 
-- [ ] **No context system** (v12 defines dynamic context loading with ventures + life domains)
-  - v12 specifies: 7 life domains, venture-specific contexts, topic detection routing
-  - v3 status: No context loading or routing logic
+- [x] **Context system** — Implemented: context routing, storage, CLI commands
+  - src/system/router.ts, storage.ts, src/cli/commands/context.ts
 
-- [ ] **No SYSTEM/ prompts in repo** (v12 defines CORE, ROUTER, PLANNER, EXECUTOR, MEMORY_MANAGER, GUARDIAN)
-  - v12 specifies: 13 agent prompts with roles, responsibilities, constraints
-  - v3 status: No agent prompts present in src/
+- [x] **Agent layer** — Implemented: Core orchestrator, Guardian, Planner, Executor, Memory Manager
+  - src/agents/core.ts, guardian.ts, planner.ts, executor.ts, memory-manager.ts
 
-- [ ] **No schemas for memory entries or events beyond kernel types** (v12 defines JSON schemas)
-  - v12 specifies: Schemas for memories, contexts, governance events
-  - v3 status: Only kernel types (Message, AuditEvent) exist
+- [x] **Extended type schemas** — Implemented: full Zod schemas for all layers
+  - src/kernel/types.ts (232 types), src/system/types.ts
 
-- [ ] **No tool registry configuration** (v12 defines deny-by-default with 11 tools)
-  - v12 specifies: tool_registry.json with permissions, rate limits, blocked chains
-  - v3 status: No tool registry implementation
+- [x] **Tool registry** — Implemented: deny-by-default with permission gating
+  - docs/v12/CONFIG/tool_registry.json, src/agents/executor.ts
 
-- [ ] **No Life OS documentation** (README describes only kernel, not product vision)
-  - v12 specifies: Life OS vision, Five Pillars, constitutional framework
-  - v3 status: README documents kernel only
+- [x] **Life OS documentation** — Implemented: README, CLAUDE.md, comprehensive docs/
+  - README.md reflects Life OS identity, CLAUDE.md provides AI assistant context
 
-- [ ] **v12 test suite not wired** (70 tests defined in markdown, only 22 kernel tests executable)
-  - v12 specifies: TEST_SUITE.md with 70 security tests
-  - v3 status: Only kernel unit tests (22 tests) are executable
+- [x] **Test suite expanded** — 187 tests across 18 files (was 22 kernel-only)
+  - Unit: kernel, system, agents, governance; Integration: pipeline; Security: injection
 
-- [ ] **No context CLI commands** (v12 implies context management)
-  - v12 specifies: Context loading and routing as core capability
-  - v3 status: No `ari context` commands exist
+- [x] **Context CLI commands** — Implemented: init, list, create, select, show
+  - src/cli/commands/context.ts
 
-- [ ] **No governance CLI commands** (v12 defines governance as read-only reference)
-  - v12 specifies: Governance visibility for operator
-  - v3 status: No `ari governance` commands exist
+- [x] **Governance CLI commands** — Implemented: show, list
+  - src/cli/commands/governance.ts
 
 ---
 
@@ -159,20 +149,21 @@ The following v12-specified capabilities are not present in v3:
 
 Restoration is complete when:
 
-- [ ] v12 sources restored in docs/v12/
-- [ ] Forensic report generated
-- [ ] System layer skeleton exists (src/system/)
-- [ ] Context storage operational (~/.ari/contexts/)
-- [ ] System router subscribes to kernel events with audit proof
-- [ ] CLI: `ari context list` works
-- [ ] CLI: `ari governance show` works
-- [ ] All existing kernel tests pass (22/22)
-- [ ] New system layer tests pass
-- [ ] Documentation reflects merged truth (RESTORE_REPORT.md, MERGE_SPEC.md)
-- [ ] Git commits are logical and PR-ready
+- [x] v12 sources restored in docs/v12/
+- [x] Forensic report generated (docs/RESTORE_REPORT.generated.md)
+- [x] System layer skeleton exists (src/system/)
+- [x] Context storage operational (~/.ari/contexts/)
+- [x] System router subscribes to kernel events with audit proof
+- [x] CLI: `ari context list` works
+- [x] CLI: `ari governance show` works
+- [x] All tests pass (187/187)
+- [x] New system layer tests pass
+- [x] Documentation reflects merged truth
+- [x] Git commits are logical and PR-ready (merged via PR #3)
 
 ---
 
-**Document Status:** Draft
+**Document Status:** Completed
 **Date:** 2026-01-27
-**Version:** 12.0.0-restore
+**Version:** 12.0.0
+**Merge:** PR #3 merged to main (2026-01-27) — see docs/OVERHAUL_LOG.md for full implementation history

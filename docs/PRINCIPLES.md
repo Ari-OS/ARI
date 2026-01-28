@@ -111,7 +111,7 @@ export const ConfigSchema = z.object({
   gatewayPort: z.number().min(1024).max(65535),
   auditPath: z.string(),
   logLevel: z.enum(['debug', 'info', 'warn', 'error']),
-  trustLevel: z.enum(['system', 'trusted', 'untrusted'])
+  trustLevel: z.enum(['system', 'operator', 'verified', 'standard', 'untrusted', 'hostile'])
 });
 
 // Context schema (explicit structure)
@@ -182,7 +182,7 @@ test('router receives only clean messages', async () => {
 ```
 
 **Evidence:**
-- 27 tests passing (22 kernel + 5 system)
+- 187 tests passing across 18 test files
 - Tests verify security properties (injection blocked, audit chain intact)
 - Tests verify integration (system receives only sanitized messages)
 
@@ -282,7 +282,7 @@ eventBus.on('message:accepted', async (event) => {
 | Self-audit | Hash chain verify | src/kernel/audit.ts | `npx ari audit verify` |
 | Explicit invariants | Zod schemas | src/kernel/types.ts | Config validation |
 | Checklists | Doctor command | src/cli/commands/doctor.ts | Pass/fail checklist |
-| Verifiable claims | Test suite | tests/ | 27 tests passing |
+| Verifiable claims | Test suite | tests/ | 187 tests passing |
 | Minimal primitives | Kernel size | src/kernel/ | 6 modules, ~500 LOC |
 | No decoration | Content = data | src/kernel/gateway.ts | Data pipeline only |
 | Leverage | Event bus | src/kernel/event-bus.ts | System subscribes only |

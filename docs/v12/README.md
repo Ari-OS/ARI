@@ -1,11 +1,17 @@
-# 🖤 ARI V12.0 — Universal Life Operating System
+# ARI V12.0 — Universal Life Operating System
 
-> **Aurora Protocol Release**  
+> **Status: SPECIFICATION (Pre-Implementation Design)**
+>
+> This directory contains the original v12 architecture specifications written before the production overhaul.
+> For the current implementation status, see the root [README.md](../../README.md) and [OVERHAUL_LOG.md](../OVERHAUL_LOG.md).
+> The implemented system has 187 tests (exceeding the 70 specified here) and covers all layers documented below.
+
+> **Aurora Protocol Release**
 > Constitutional Multi-Agent OS with Security Hardening
 
 [![Version](https://img.shields.io/badge/version-12.0.0-blue.svg)]()
 [![Security](https://img.shields.io/badge/security-hardened-green.svg)]()
-[![Tests](https://img.shields.io/badge/tests-70%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-187%20implemented-brightgreen.svg)]()
 
 ---
 
@@ -36,8 +42,8 @@ ARI (Artificial Reasoning Intelligence) is a **constitutional multi-agent operat
 
 ```bash
 # Clone the repository
-git clone https://github.com/PryceHedrick/ari-v11.git
-cd ari-v11
+git clone https://github.com/PryceHedrick/ari.git
+cd ari
 
 # Checkout V12.0
 git checkout v12.0-aurora-protocol
@@ -357,7 +363,7 @@ Private repository. All rights reserved.
 ## Contact
 
 **Operator:** Pryce Hedrick  
-**Repository:** github.com/PryceHedrick/ari-v11
+**Repository:** github.com/PryceHedrick/ari
 
 ---
 

@@ -228,18 +228,19 @@ Placeholder comment in `src/system/integrations/re.ts` (if needed):
 
 Merge is complete when:
 
-- [ ] System router subscribes to `message:accepted` events
-- [ ] System router publishes `system:routed` audit events
-- [ ] Context storage exists at `~/.ari/contexts/`
-- [ ] CLI command `ari context list` works
-- [ ] CLI command `ari governance show` works
-- [ ] All kernel tests pass (22/22)
-- [ ] System layer tests pass (new tests for router, context loading)
-- [ ] Audit chain remains valid after system integration
-- [ ] Documentation reflects merged architecture
+- [x] System router subscribes to `message:accepted` events
+- [x] System router publishes `system:routed` audit events
+- [x] Context storage exists at `~/.ari/contexts/`
+- [x] CLI command `ari context list` works
+- [x] CLI command `ari governance show` works
+- [x] All tests pass (187/187 — expanded from 22 kernel-only)
+- [x] System layer tests pass (router, context-isolation)
+- [x] Audit chain remains valid after system integration
+- [x] Documentation reflects merged architecture
 
 ---
 
-**Document Status:** Specification
+**Document Status:** Completed
 **Date:** 2026-01-27
-**Version:** 12.0.0-merge
+**Version:** 12.0.0
+**Implementation:** Merged via PR #3 (2026-01-27) — all acceptance criteria met. See docs/OVERHAUL_LOG.md for details.

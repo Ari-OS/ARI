@@ -317,7 +317,7 @@ npm run build
 npm test
 ```
 
-All 120 tests should pass.
+All 187 tests should pass.
 
 ### 7. Verify Audit Chain
 

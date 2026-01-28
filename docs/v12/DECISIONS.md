@@ -320,7 +320,7 @@ ARI is designed to run as a Claude Project with knowledge base. Prompts are opti
 Primary deployment target is operator's Mac Mini. Scripts and setup instructions are macOS-focused.
 
 ## ASM-003: GitHub as Source Control
-Repository lives at github.com/PryceHedrick/ari-v11. All version control via Git.
+Repository lives at github.com/PryceHedrick/ari. All version control via Git.
 
 ## ASM-004: Operator is Technical
 Operator (Pryce) has technical background (CS degree, IT Specialist). Documentation assumes technical literacy.

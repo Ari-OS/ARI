@@ -45,7 +45,7 @@ The ARI gateway must be running at `http://127.0.0.1:3141` for the dashboard to 
 Start the gateway with:
 
 ```bash
-cd /Users/prycehedrick/ARI
+# From the ARI root directory
 npm run gateway:start
 ```
 

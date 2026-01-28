@@ -1,6 +1,6 @@
 # v12 Forensic Snapshot (Generated)
 
-Root: `/Users/prycehedrick/ari/docs/v12`
+Root: `docs/v12`
 
 ## Top Sources
 - CONTEXTS/README.md

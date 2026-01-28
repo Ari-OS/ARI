@@ -72,10 +72,16 @@ Every audit event is cryptographically chained to its predecessor.
 
 Risk scores are weighted by the trust level of the message source.
 
-- **SYSTEM**: 0.5x multiplier (trusted internal operations)
-- **TRUSTED**: 1.0x multiplier (authenticated known sources)
-- **UNTRUSTED**: 1.5x multiplier (external or unverified sources)
-- **Auto-block**: Messages with risk ≥ 0.8 are rejected
+| Level | Multiplier | Description |
+|-------|-----------|-------------|
+| `system` | 0.5x | Internal components |
+| `operator` | 0.6x | Authenticated operator |
+| `verified` | 0.75x | Verified sources |
+| `standard` | 1.0x | Default level |
+| `untrusted` | 1.5x | Unverified external |
+| `hostile` | 2.0x | Known malicious |
+
+Auto-block: Messages with risk ≥ 0.8 are rejected.
 
 ### 5. Least Privilege Tool Execution
 
