@@ -1,26 +1,59 @@
 ## Description
-Please include a summary of the changes and the related issue. Include relevant motivation and context.
+
+Brief description of changes.
 
 Fixes # (issue)
 
 ## Type of Change
+
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] Documentation update
 - [ ] Code refactoring
 - [ ] Performance improvement
-- [ ] Other (please describe):
+
+## Layer Impact
+
+Select all ARI layers affected by this change:
+
+- [ ] **Kernel** (security-critical: gateway, sanitizer, audit, eventbus)
+- [ ] **System** (router, storage)
+- [ ] **Agents** (core, guardian, planner, executor, memory)
+- [ ] **Governance** (council, arbiter, overseer)
+- [ ] **Ops** (daemon)
+- [ ] **CLI/API** (commands, routes)
+- [ ] **Dashboard** (React UI)
+- [ ] **Tests**
+- [ ] **Documentation**
+
+## Security Considerations
+
+- [ ] This change does NOT affect security invariants
+- [ ] This change affects security and has been reviewed for:
+  - [ ] Loopback-only gateway preservation
+  - [ ] Content ≠ Command principle
+  - [ ] Audit chain integrity
+  - [ ] Least privilege enforcement
+  - [ ] Trust level handling
 
 ## Checklist
-- [ ] My code follows the project's style guidelines
-- [ ] I have performed a self-review of my code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-- [ ] Any dependent changes have been merged and published
+
+- [ ] Tests pass locally (`npm test`)
+- [ ] Linting passes (`npm run lint`)
+- [ ] Type checking passes (`npm run typecheck`)
+- [ ] Build succeeds (`npm run build`)
+- [ ] Layer dependency rules respected
+- [ ] New tests added for new functionality
+- [ ] Documentation updated if needed
+- [ ] Commit messages follow conventional format
+
+## Testing Instructions
+
+1.
+2.
+3.
 
 ## Additional Notes
-Add any additional notes, screenshots, or context about the pull request here.
+
+Add any additional notes, screenshots, or context here.

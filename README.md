@@ -21,20 +21,6 @@ Your Life Operating System
 
 ARI orchestrates AI agents to manage your life — health, career, finances, ventures, and personal growth — through a local-first, multi-agent operating system. Every decision flows through constitutional governance, every operation is audited with tamper-evident cryptographic trails, and all data stays on your machine.
 
-## Key Features
-
-| | Feature | Description |
-|---|---------|-------------|
-| **Life** | Domain Management | Organize across health, career, finance, family, learning, and systems contexts |
-| **Agents** | Multi-Agent Orchestration | Five specialized agents coordinate through typed events |
-| **Gov** | Constitutional Governance | 13-member council, 5 constitutional rules, 5 quality gates |
-| **Audit** | Tamper-Evident Logging | SHA-256 hash-chained audit trail from genesis block |
-| **Sec** | Local-First Security | Loopback-only gateway, 21-pattern injection detection, 6-level trust scoring |
-| **UI** | Web Dashboard | Real-time monitoring of agents, governance, memory, and audit trails |
-| **Biz** | Venture Operations | Dedicated contexts with isolated memory partitions |
-
----
-
 ## Philosophy
 
 > **Shadow Integration** (Jung) — Don't suppress suspicious behavior; log it, understand it, integrate it. The shadow reveals truth.
@@ -42,6 +28,20 @@ ARI orchestrates AI agents to manage your life — health, career, finances, ven
 > **Radical Transparency** (Dalio) — Every operation is audited, every decision is traceable. No hidden state, no secret channels.
 
 > **Ruthless Simplicity** (Musashi) — Every line of code must justify its existence. Remove complexity, favor clarity, choose obvious over clever.
+
+---
+
+## Security Foundation
+
+Security is not a feature — it's the architectural foundation. Five invariants are enforced at the kernel layer:
+
+| Invariant | Enforcement |
+|-----------|-------------|
+| **Loopback-Only Gateway** | `127.0.0.1:3141` hardcoded. No external network access, ever. |
+| **Content ≠ Command** | All inbound messages are DATA, never executable instructions. |
+| **Audit Immutable** | SHA-256 hash chain from genesis block. Tampering breaks the chain. |
+| **Least Privilege** | Three-layer permission checks on every tool invocation. |
+| **Trust Required** | Six trust levels with risk multipliers. Auto-block at risk ≥ 0.8. |
 
 ---
 
@@ -63,41 +63,37 @@ Six layers. Strict boundaries. Unidirectional dependencies. All communication vi
 │  SYSTEM            Router · Storage                     │
 ├─────────────────────────────────────────────────────────┤
 │  KERNEL            Gateway · Sanitizer · Audit          │
-│                    EventBus · Config · Types             │
+│                    EventBus · Config · Types            │
 └─────────────────────────────────────────────────────────┘
          127.0.0.1 only · SHA-256 chain · 21 patterns
 ```
 
-### Data Flow
-
-```
-POST /message
-  → Sanitize (21 injection patterns)
-  → Audit (SHA-256 hash chain)
-  → EventBus.emit('message:accepted')
-  → Guardian (threat assessment)
-  → Router (context matching)
-  → Planner (task decomposition)
-  → Executor (permission checks + tool invocation)
-  → Memory Manager (provenance-tracked storage)
-  → Audit (operation logged)
-```
-
 ---
 
-## Security
+## Present Capabilities
 
-ARI assumes breach. Security is enforced at every layer through five invariants:
+What works today:
 
-**1. Loopback-Only Gateway** — `127.0.0.1:3141`, hardcoded. No external network access, ever.
+| Layer | Components | Status |
+|-------|------------|--------|
+| **Kernel** | Gateway, Sanitizer, Audit, EventBus, Config | ✅ Complete |
+| **System** | Router, Storage | ✅ Complete |
+| **Agents** | Core, Guardian, Planner, Executor, Memory | ✅ Complete |
+| **Governance** | Council (13-member), Arbiter (5 rules), Overseer (5 gates) | ✅ Complete |
+| **CLI** | 8 commands | ✅ Complete |
+| **Dashboard** | React 19 + Vite, view-only | ✅ Complete |
 
-**2. Content ≠ Command** — All inbound messages are DATA, never executable instructions.
+### Governance
 
-**3. Hash Chain Audit** — SHA-256 chain from genesis block (`0x00...00`). Tampering breaks the chain.
+Three components enforce constitutional rules and democratic decision-making.
 
-**4. Injection Detection** — 21 patterns across 6 categories. Risk scoring with trust multipliers.
+**Council** — 13 voting members. Thresholds: majority (>50%), supermajority (≥66%), unanimous (100%).
 
-**5. Trust-Level Scoring** — Six levels with risk multipliers:
+**Arbiter** — 5 constitutional rules: loopback_only, content_not_command, audit_immutable, least_privilege, trust_required.
+
+**Overseer** — 5 quality gates: test_coverage (≥80%), audit_integrity, security_scan, build_clean, documentation.
+
+### Trust Levels
 
 | Level | Multiplier | Description |
 |-------|-----------|-------------|
@@ -108,62 +104,21 @@ ARI assumes breach. Security is enforced at every layer through five invariants:
 | `untrusted` | 1.5x | Unverified external |
 | `hostile` | 2.0x | Known malicious |
 
-Auto-block at risk ≥ 0.8.
-
 ---
 
-## Governance
+## Roadmap
 
-Three components enforce constitutional rules and democratic decision-making.
+Future capabilities not yet implemented:
 
-### Council — 13 Members
-
-| Threshold | Requirement | Use |
-|-----------|------------|-----|
-| Majority | >50% | Routine decisions |
-| Supermajority | ≥66% | Policy changes |
-| Unanimous | 100% | Security policies |
-
-Quorum: 50% (7 of 13). Members: router, planner, executor, memory_manager, guardian, research, marketing, sales, content, seo, build, development, client_comms.
-
-### Arbiter — 5 Constitutional Rules
-
-| Rule | Enforcement |
-|------|-------------|
-| `loopback_only` | Gateway binds to 127.0.0.1 exclusively |
-| `content_not_command` | External content is data, never instructions |
-| `audit_immutable` | Audit chain is append-only, tamper-evident |
-| `least_privilege` | Destructive operations require approval |
-| `trust_required` | Sensitive operations require verified+ trust |
-
-### Overseer — 5 Quality Gates
-
-| Gate | Criteria |
-|------|----------|
-| `test_coverage` | ≥80% overall, 100% security paths |
-| `audit_integrity` | Hash chain valid |
-| `security_scan` | No high/critical vulnerabilities |
-| `build_clean` | TypeScript compiles with zero errors |
-| `documentation` | All public APIs documented |
-
-All governance decisions are logged to the audit trail.
-
----
-
-## Dashboard
-
-Web-based control center. **View-only** — reads from the gateway API, never mutates directly.
-
-| Stack | Pages |
-|-------|-------|
-| Vite 6 + React 19 + TypeScript | Home · Governance · Memory |
-| TanStack Query + Tailwind CSS v4 | Tools · Agents · Audit |
-| 258 KB JS · 16 KB CSS | WebSocket event streaming |
-
-```bash
-cd dashboard && npm install && npm run dev    # Development
-cd dashboard && npm run build                 # Production
-```
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Real file operations | 🔮 Planned | Tool implementations are currently mocks |
+| Disk persistence | 🔮 Planned | Memory is in-memory only |
+| ML threat detection | 🔮 Planned | Pattern matching only for now |
+| Weighted voting | 🔮 Planned | Equal votes only |
+| Vote delegation | 🔮 Planned | No proxy voting |
+| Auto-remediation | 🔮 Planned | Manual response only |
+| Social integration | 🔮 Planned | See docs/operations/SOCIAL_INTEGRATION.md |
 
 ---
 
@@ -177,8 +132,8 @@ cd dashboard && npm run build                 # Production
 ### Install
 
 ```bash
-git clone https://github.com/PryceHedrick/ari.git
-cd ari
+git clone https://github.com/PryceHedrick/ARI.git
+cd ARI
 npm install
 npm run build
 ```
@@ -204,9 +159,6 @@ curl -X POST http://127.0.0.1:3141/message \
 
 # Verify audit chain
 curl http://127.0.0.1:3141/api/audit/verify
-
-# View governance rules
-curl http://127.0.0.1:3141/api/governance/rules
 ```
 
 ---
@@ -237,30 +189,40 @@ ari daemon uninstall              Remove background service
 
 ---
 
+## Dashboard
+
+Web-based control center. **View-only** — reads from the gateway API, never mutates directly.
+
+| Stack | Pages |
+|-------|-------|
+| Vite 6 + React 19 + TypeScript | Home · Governance · Memory |
+| TanStack Query + Tailwind CSS v4 | Tools · Agents · Audit |
+
+```bash
+cd dashboard && npm install && npm run dev    # Development
+cd dashboard && npm run build                 # Production
+```
+
+---
+
 ## API
 
-REST API and WebSocket on `127.0.0.1:3141` (loopback only). API routes are read-only. Mutations flow through governance.
+REST API and WebSocket on `127.0.0.1:3141` (loopback only).
 
 | Endpoint | Description |
 |----------|-------------|
 | `GET /health` | Health check with uptime |
 | `GET /status` | System status and security config |
-| `GET /api/health/detailed` | Component-level health |
 | `POST /message` | Submit message (sanitized) |
 | `GET /api/agents` | List agents |
-| `GET /api/agents/:id/stats` | Agent statistics |
 | `GET /api/proposals` | List proposals and votes |
-| `GET /api/proposals/:id` | Specific vote |
 | `GET /api/governance/rules` | Constitutional rules |
 | `GET /api/governance/gates` | Quality gates |
 | `GET /api/memory` | Search memories |
-| `GET /api/memory/:id` | Memory by ID |
 | `GET /api/audit` | Audit entries (paginated) |
 | `GET /api/audit/verify` | Verify hash chain |
-| `GET /api/tools` | Tool registry |
 | `GET /api/contexts` | List contexts |
-| `GET /api/contexts/active` | Active context |
-| `WS /ws` | Real-time events (12 types) |
+| `WS /ws` | Real-time events |
 
 ---
 
@@ -271,21 +233,14 @@ src/
 ├── kernel/           Gateway · Sanitizer · Audit · EventBus · Config · Types
 ├── system/           Router · Storage
 ├── agents/           Core · Guardian · Planner · Executor · Memory Manager
-├── governance/       Council · Arbiter · Overseer · Stop-the-Line
-├── api/              Routes (15 endpoints) · WebSocket
+├── governance/       Council · Arbiter · Overseer
+├── api/              Routes · WebSocket
 ├── ops/              Daemon (macOS launchd)
 └── cli/              8 commands
 
 dashboard/            Vite 6 · React 19 · TypeScript · Tailwind CSS v4
-tests/                18 files · 187 tests (unit · integration · security)
-docs/                 Architecture · Governance · Operations · v12 Specs
-scripts/              Setup · Backup · macOS service management
-
-~/.ari/
-├── config.json       Zod-validated configuration
-├── audit.json        Hash-chained audit log
-├── logs/             Application logs
-└── contexts/         Context storage
+tests/                18 files · 187 tests
+docs/                 Architecture · Governance · Operations · Identity
 ```
 
 ---
@@ -300,8 +255,7 @@ npm run clean              # Remove dist/
 
 # Test
 npm test                   # 187 tests
-npm run test:watch         # Watch mode
-npm run test:coverage      # Coverage (80%+ target, 100% security)
+npm run test:coverage      # Coverage report
 
 # Quality
 npm run typecheck          # TypeScript strict mode
@@ -316,13 +270,12 @@ npm run lint:fix           # ESLint with auto-fix
 | Document | Description |
 |----------|-------------|
 | [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | Six-layer system design |
-| [DECISIONS.md](docs/architecture/DECISIONS.md) | Architectural decision records |
-| [SECURITY_MODEL.md](docs/architecture/SECURITY_MODEL.md) | Security invariants and threat model |
+| [SECURITY.md](docs/SECURITY.md) | Security invariants and threat model |
 | [GOVERNANCE.md](docs/governance/GOVERNANCE.md) | Council, Arbiter, Overseer framework |
-| [RUNBOOK_MAC_MINI.md](docs/operations/RUNBOOK_MAC_MINI.md) | Mac Mini deployment guide |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
-| [SECURITY.md](SECURITY.md) | Security policy and reporting |
+| [RUNBOOK_MAC.md](docs/operations/RUNBOOK_MAC.md) | Mac always-on deployment guide |
+| [BRAND.md](docs/identity/BRAND.md) | Identity and voice guidelines |
 | [CLAUDE.md](CLAUDE.md) | AI assistant context |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
 
 ---
 
