@@ -41,8 +41,10 @@ Start here to find what you're looking for.
 | Document | Purpose |
 |----------|---------|
 | [ARCHITECTURE.md](architecture/ARCHITECTURE.md) | 6-layer system design |
+| [AGENT_DESIGN.md](AGENT_DESIGN.md) | Agent architecture and patterns |
 | [DECISIONS.md](architecture/DECISIONS.md) | Architectural decision records |
 | [SECURITY_MODEL.md](architecture/SECURITY_MODEL.md) | Security invariants detail |
+| [HISTORY.md](HISTORY.md) | Project evolution and design rationale |
 
 ### Governance
 

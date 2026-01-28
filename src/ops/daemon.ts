@@ -20,6 +20,7 @@ export interface DaemonOptions {
   port?: number;
   logPath?: string;
   ariPath?: string;
+  production?: boolean;  // Enable production optimizations for Mac Mini M4
 }
 
 export interface DaemonStatus {
@@ -39,6 +40,7 @@ export async function installDaemon(options: DaemonOptions = {}): Promise<void> 
   const stdoutLog = join(logDir, 'gateway-stdout.log');
   const stderrLog = join(logDir, 'gateway-stderr.log');
   const ariPath = options.ariPath || process.cwd();
+  const isProduction = options.production || false;
 
   // Ensure directories exist
   await mkdir(LAUNCH_AGENTS_DIR, { recursive: true });
@@ -52,6 +54,31 @@ export async function installDaemon(options: DaemonOptions = {}): Promise<void> 
   } catch {
     throw new Error('Node.js not found in PATH');
   }
+
+  // Production-specific configurations for Mac Mini M4 (24GB RAM)
+  const resourceLimits = isProduction
+    ? `
+    <key>SoftResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>4096</integer>
+        <key>NumberOfProcesses</key>
+        <integer>2048</integer>
+    </dict>
+    <key>HardResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>8192</integer>
+    </dict>
+    <key>ExitTimeOut</key>
+    <integer>30</integer>`
+    : '';
+
+  const nodeOptions = isProduction
+    ? `
+        <key>NODE_OPTIONS</key>
+        <string>--max-old-space-size=4096</string>`
+    : '';
 
   const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -90,8 +117,8 @@ export async function installDaemon(options: DaemonOptions = {}): Promise<void> 
         <key>PATH</key>
         <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
         <key>NODE_ENV</key>
-        <string>production</string>
-    </dict>
+        <string>production</string>${nodeOptions}
+    </dict>${resourceLimits}
 </dict>
 </plist>`;
 

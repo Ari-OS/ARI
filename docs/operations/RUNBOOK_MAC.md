@@ -1,6 +1,6 @@
-# ARI Mac Always-On Runbook
+# ARI macOS Runbook
 
-**Version**: 1.0.0
+**Version**: 2.0.0
 **Platform**: macOS 13+ (Ventura or later)
 **Last Updated**: 2026-01-28
 
@@ -8,20 +8,56 @@
 
 ## Overview
 
-This runbook provides step-by-step instructions for running ARI as an always-on service on macOS. ARI uses `launchd` for daemon management, ensuring automatic startup and recovery.
+This runbook provides complete instructions for running ARI as an always-on service on macOS:
+
+- **Development (MacBook)**: Local testing and development
+- **Production (Mac Mini M4)**: 24GB RAM optimized deployment
+
+ARI uses `launchd` for daemon management with automatic startup and crash recovery.
 
 ---
 
-## Prerequisites
+## Quick Start
 
-### System Requirements
+### Development (MacBook)
+
+```bash
+cd ~/ARI
+npm install && npm run build
+npm run gateway:start  # Foreground mode
+```
+
+### Production (Mac Mini M4)
+
+```bash
+cd ~/ARI
+npm install && npm run build
+npx ari daemon install --production  # Optimized daemon
+```
+
+---
+
+## System Requirements
+
+### Development (MacBook)
 
 | Requirement | Minimum | Recommended |
 |-------------|---------|-------------|
 | macOS | 13.0 (Ventura) | 14.0+ (Sonoma) |
 | Node.js | 20.0.0 | 22.0.0 (LTS) |
-| RAM | 4 GB | 8 GB |
-| Disk | 500 MB | 2 GB |
+| RAM | 8 GB | 16 GB |
+| Disk | 1 GB | 5 GB |
+
+### Production (Mac Mini M4)
+
+| Requirement | Specification |
+|-------------|---------------|
+| Hardware | Mac Mini M4 |
+| RAM | 24 GB |
+| macOS | 14.0+ (Sonoma/Sequoia) |
+| Node.js | 22.x LTS |
+| Disk | 10 GB free |
+| Network | Always-on connection |
 
 ### Software Dependencies
 
@@ -90,13 +126,25 @@ Expected output:
 
 ### Install Service
 
+**Development (standard)**:
 ```bash
 npx ari daemon install
 ```
 
+**Production (Mac Mini M4 optimized)**:
+```bash
+npx ari daemon install --production
+```
+
+The `--production` flag enables:
+- Increased file descriptor limits (4096 soft, 8192 hard)
+- Increased process limits (2048)
+- Node.js heap size optimization (4GB max)
+- 30-second graceful shutdown timeout
+
 This creates a launchd plist at:
 ```
-~/Library/LaunchAgents/com.ari.daemon.plist
+~/Library/LaunchAgents/com.ari.gateway.plist
 ```
 
 ### Start Service
@@ -396,4 +444,103 @@ rm -rf ~/Work/ARI
 
 ---
 
+---
+
+## Mac Mini M4 Production Setup
+
+### Initial Deployment
+
+```bash
+# 1. Clone repository
+git clone https://github.com/PryceHedrick/ARI.git ~/ARI
+cd ~/ARI
+
+# 2. Install and build
+npm install
+npm run build
+npm test
+
+# 3. Install production daemon
+npx ari daemon install --production
+
+# 4. Verify
+npx ari daemon status
+curl http://127.0.0.1:3141/api/health
+```
+
+### Production Plist Features
+
+The `--production` flag generates optimized launchd configuration:
+
+```xml
+<!-- Resource limits for 24GB Mac Mini -->
+<key>SoftResourceLimits</key>
+<dict>
+    <key>NumberOfFiles</key>
+    <integer>4096</integer>
+    <key>NumberOfProcesses</key>
+    <integer>2048</integer>
+</dict>
+
+<!-- Node.js memory optimization -->
+<key>NODE_OPTIONS</key>
+<string>--max-old-space-size=4096</string>
+
+<!-- Graceful shutdown -->
+<key>ExitTimeOut</key>
+<integer>30</integer>
+```
+
+### Log Rotation Setup
+
+```bash
+# Install logrotate
+brew install logrotate
+
+# Create config
+cat > ~/.ari/logrotate.conf << 'EOF'
+~/.ari/logs/*.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+}
+EOF
+
+# Add to crontab
+(crontab -l 2>/dev/null; echo "0 0 * * * /opt/homebrew/bin/logrotate ~/.ari/logrotate.conf") | crontab -
+```
+
+### Health Monitoring
+
+```bash
+# Create monitoring script
+cat > ~/bin/ari-health.sh << 'EOF'
+#!/bin/bash
+HEALTH=$(curl -s http://127.0.0.1:3141/api/health)
+if echo "$HEALTH" | grep -q '"status":"healthy"'; then
+    exit 0
+else
+    echo "ARI unhealthy at $(date)" >> ~/.ari/logs/health-alerts.log
+    exit 1
+fi
+EOF
+chmod +x ~/bin/ari-health.sh
+
+# Add to crontab (every 5 minutes)
+(crontab -l 2>/dev/null; echo "*/5 * * * * ~/bin/ari-health.sh") | crontab -
+```
+
+### Automated Backup
+
+```bash
+# Daily backup at 2 AM
+(crontab -l 2>/dev/null; echo "0 2 * * * tar -czf ~/Backups/ari-\$(date +\%Y\%m\%d).tar.gz ~/.ari") | crontab -
+```
+
+---
+
 **Runbook prepared for ARI v2.0.0 on macOS.**
+**Production deployment target: Mac Mini M4 (24GB RAM)**

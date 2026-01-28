@@ -6,6 +6,7 @@ import { spawn } from 'child_process';
 
 interface DaemonInstallOptions {
   port: string;
+  production?: boolean;
 }
 
 interface DaemonLogsOptions {
@@ -22,6 +23,7 @@ export function registerDaemonCommand(program: Command): void {
     .command('install')
     .description('Install and start the ARI Gateway as a launchd daemon')
     .option('-p, --port <number>', 'Port to bind the gateway to', '3141')
+    .option('--production', 'Enable production optimizations for Mac Mini M4 (24GB RAM)')
     .action(async (options: DaemonInstallOptions) => {
       const port = parseInt(options.port, 10);
 
@@ -31,8 +33,11 @@ export function registerDaemonCommand(program: Command): void {
       }
 
       try {
-        await installDaemon({ port });
+        await installDaemon({ port, production: options.production });
         console.log(`Daemon installed successfully at port ${port}`);
+        if (options.production) {
+          console.log('Production mode enabled with optimized resource limits.');
+        }
         console.log('The gateway will start automatically on login.');
       } catch (error) {
         console.error('Failed to install daemon:', error);
