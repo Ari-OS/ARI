@@ -1,240 +1,240 @@
-# 🌹 ARI FOUNDATION
-## Secure Multi-Agent Personal Operating System
-## Rose Protocol • Blackbox Ledger
+# ARI — production TypeScript multi-agent gateway (Kagemusha Protocol)
 
-```
-     ___      .______       __  
-    /   \     |   _  \     |  | 
-   /  ^  \    |  |_)  |    |  | 
-  /  /_\  \   |      /     |  | 
- /  _____  \  |  |\  \----.|  | 
-/__/     \__\ | _| `._____||__| 
-                                
-    Artificial Reasoning Intelligence
-    Foundation v11.0.0 | Rose Protocol
-```
+[![CI](https://github.com/PryceHedrick/ari-vnext/actions/workflows/ci.yml/badge.svg)](https://github.com/PryceHedrick/ari-vnext/actions/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict%20mode-blue)](https://www.typescriptlang.org/)
+[![Node](https://img.shields.io/badge/node-%3E%3D22.0.0-green)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+> *The shadow warrior observes, integrates, and records — never suppresses.*
 
 ---
 
-## What Ari Is
+## What is ARI?
 
-Ari is a **secure, multi-agent personal operating system** designed to:
+ARI is a local-first, security-focused gateway for multi-agent AI interactions. It runs entirely on your machine — no cloud dependencies, no remote access, no data leaving your control.
 
-- 🎯 **Augment human capability** across all life domains
-- 🔒 **Operate safely** with explicit trust boundaries
-- 📚 **Learn continuously** while respecting human authority
-- 🏛️ **Govern democratically** with no single point of failure
-- ⚡ **Execute reliably** with full auditability
+At its core, ARI is a **WebSocket gateway** that sits between AI clients (Claude Desktop, custom integrations) and a structured pipeline of sanitization, auditing, and event routing. Every operation is logged in a tamper-evident SHA-256 hash chain. Suspicious patterns are observed and recorded, never silently blocked.
 
-**Core Identity:** Ari serves one operator (you) with radical honesty, bounded autonomy, and continuous improvement.
+Built on three philosophical pillars:
 
----
-
-## What Ari Is NOT
-
-- ❌ **Not autonomous** — Requires explicit approval for significant actions
-- ❌ **Not omniscient** — Acknowledges uncertainty, doesn't fabricate
-- ❌ **Not uncontrollable** — Operator can override any decision
-- ❌ **Not memory-perfect** — All memories have provenance and can be corrected
-- ❌ **Not a replacement** — Augments human judgment, doesn't replace it
+| Pillar | Source | Architectural Expression |
+|--------|--------|--------------------------|
+| **Shadow Integration** | Carl Jung | Log suspicious patterns rather than blocking — understanding the shadow makes the system resilient |
+| **Ruthless Simplicity** | Miyamoto Musashi | Every component serves one clear purpose — complexity is the enemy |
+| **Radical Transparency** | Ray Dalio | All operations recorded in a tamper-evident audit trail — behavior is observable and verifiable |
 
 ---
 
-## Core Principles (Immutable)
+## Version Lineage
 
-### The Five Pillars
+ARI has evolved through three major protocol versions:
 
-1. **Operator Primacy** — Your explicit instructions always override system decisions
-2. **Radical Honesty** — Never deceive; acknowledge uncertainty; show reasoning
-3. **Bounded Autonomy** — Act within explicit permission boundaries; escalate when uncertain
-4. **Continuous Improvement** — Learn from outcomes; suggest improvements; never stagnate
-5. **Graceful Limitation** — Know limits; fail safely; degrade gracefully
+| Version | Protocol | Meaning | Era | Internal Origin |
+|---------|----------|---------|-----|-----------------|
+| v1.0.0 | **Sentinel Protocol** | The watchful guardian — first security hardening of the multi-agent architecture | Legacy | V11.1.0 |
+| v2.0.0 | **Aurora Protocol** | Dawn of the Universal Life OS — expanded to a full personal operating system | Legacy | V12.0.0 |
+| v3.0.0 | **Kagemusha Protocol** | 影武者 (Shadow Warrior) — complete rebuild as production TypeScript gateway | **Current** | V1.0.0 |
+
+The Kagemusha Protocol is a ground-up rewrite. It preserves the philosophical DNA of Sentinel and Aurora but discards their implementation entirely in favor of a minimal, auditable TypeScript codebase.
 
 ---
 
-## Security Model
+## Architecture
 
-### Trust Boundaries
+```mermaid
+graph TD
+    C["External Clients<br/>(Claude Desktop · Integrations)"] -->|"WebSocket · 127.0.0.1:18789"| PP
 
+    subgraph GW["Gateway Service"]
+        PP["Protocol Parser"] --> SAN["Input Sanitizer<br/>(Shadow Detection)"]
+        SAN --> EB["Event Bus<br/>(Pub/Sub)"]
+    end
+
+    SAN -->|"log events"| AL["Audit Logger<br/>SHA-256 Hash Chain"]
+    EB --> SUBS["Subscribers · Sessions"]
+
+    AL --> STORE[("~/.ari/<br/>audit.jsonl · config.json · logs/")]
+
+    CLI["CLI · Commander.js"] --> GW
+    CLI --> AL
+    CLI --> REF["Prompt Refiner<br/>(Pure Function)"]
+    CLI --> OPS["macOS Daemon · launchd"]
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  🔴 UNTRUSTED ZONE                                          │
-│  • Web content    • Email/messages    • External APIs       │
-│  • File contents  • User-provided URLs                      │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                    ┌─────────▼─────────┐
-                    │  🛡️ TRUST BOUNDARY │
-                    │  Sanitization      │
-                    │  Validation        │
-                    │  Provenance Tags   │
-                    └─────────┬─────────┘
-                              │
-┌─────────────────────────────▼───────────────────────────────┐
-│  🟢 TRUSTED CORE                                             │
-│  • Operator direct input    • System configuration          │
-│  • Kernel principles        • Allowlisted sources           │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Permission Tiers
-
-| Tier | Code | Scope | Approval |
-|------|------|-------|----------|
-| **Read Only** | `READ_ONLY` | View, query, analyze | None |
-| **Write Safe** | `WRITE_SAFE` | Create, draft, append | Auto-logged |
-| **Write Destructive** | `WRITE_DESTRUCTIVE` | Delete, modify, send | Explicit user |
-| **Admin** | `ADMIN` | Config, policy, system | Council + Arbiter |
-
-### Key Security Features
-
-- **Input Sanitization** — All external content stripped of executable instructions
-- **Provenance Tracking** — Every piece of data tagged with source and trust level
-- **Audit Logging** — Every action logged with hash chain integrity
-- **Least Privilege** — Default to minimum permissions required
-- **Explicit Escalation** — Uncertain situations always escalate to operator
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-
-- macOS 12+ or Linux
-- Bash 4.0+
-- curl, git
-- 8GB RAM minimum (recommended)
-
-### Safe Installation
+### Install and Build
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/YOUR_ORG/ari-v11-foundation.git
-cd ari-v11-foundation
-
-# 2. Run bootstrap (initializes directories and config)
-./SCRIPTS/bootstrap.sh
-
-# 3. Run health check
-./SCRIPTS/health_check.sh
-
-# 4. Run test suite
-./SCRIPTS/test.sh
+git clone https://github.com/PryceHedrick/ari-vnext.git
+cd ari-vnext
+npm install
+npm run build
 ```
 
-### First Run Checklist
+### Initialize Configuration
 
-- [x] Bootstrap completed successfully
-- [x] Health check passes (warnings OK)
-- [x] Test suite passes (52/52 tests)
-- [x] Permissions set to defaults (least privilege)
-- [ ] Operator confirmation received
+```bash
+ari onboard init
+```
+
+Creates the `~/.ari/` directory with default configuration, audit log, and log directories.
+
+### Run Tests
+
+```bash
+npm test
+```
+
+### Start the Gateway
+
+```bash
+# Foreground (requires build)
+ari gateway start
+
+# As macOS daemon (auto-start on boot)
+ari onboard install-daemon
+```
+
+### CLI Commands
+
+```bash
+# Gateway management
+ari gateway start          # Start the gateway service
+ari gateway status         # Check gateway status
+
+# Audit operations
+ari audit list            # List audit entries
+ari audit verify          # Verify hash chain integrity
+ari audit tail            # Watch audit log in real-time
+
+# System setup
+ari onboard init          # Initialize configuration
+ari onboard install-daemon # Install as macOS launchd daemon
+
+# Maintenance
+ari doctor                # Run system diagnostics
+ari refine <text>         # Test prompt refiner (pure function)
+```
 
 ---
 
-## Architecture Overview
+## Core Principles
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     LAYER 0: KERNEL                         │
-│         Core principles, identity, immutable rules          │
-├─────────────────────────────────────────────────────────────┤
-│                     LAYER 1: GOVERNANCE                     │
-│         Arbiter 👑 • Overseer 👁️ • Council 🏛️              │
-├─────────────────────────────────────────────────────────────┤
-│                     LAYER 2: AGENTS                         │
-│         Router 🔀 • Planner 📋 • Executor ⚡                │
-├─────────────────────────────────────────────────────────────┤
-│                     LAYER 3: OPERATIONS                     │
-│         Memory 🧠 • Tools 🔧 • Logger 📝 • Config ⚙️        │
-├─────────────────────────────────────────────────────────────┤
-│                     LAYER 4: INTERFACES                     │
-│         CLI • API • MCP Channels                            │
-└─────────────────────────────────────────────────────────────┘
-```
+### CONTENT ≠ COMMAND
+All inbound content is treated as data, never as instructions. This fundamental separation prevents prompt injection attacks and maintains clear boundaries between user content and system operations.
+
+### Shadow Integration (Jung)
+Rather than blocking suspicious patterns, we log and integrate them into the audit trail. Understanding the shadow makes the system more resilient.
+
+### Ruthless Simplicity (Musashi)
+Every component serves a clear purpose. Complexity is the enemy. No feature exists without justification.
+
+### Radical Transparency (Dalio)
+All operations are logged in a tamper-evident audit trail. The system's behavior is observable and verifiable.
 
 ---
 
-## Documentation Map
+## Security Model
 
-| Document | Purpose |
-|----------|---------|
-| [MANIFEST.md](MANIFEST.md) | Component registry, system identity |
-| [DOCS/ARCHITECTURE.md](DOCS/ARCHITECTURE.md) | System design, data flows, diagrams |
-| [DOCS/THREAT_MODEL.md](DOCS/THREAT_MODEL.md) | Security analysis, attack surfaces |
-| [DOCS/SECURITY.md](DOCS/SECURITY.md) | Security policies, safe defaults |
-| [DOCS/GOVERNANCE.md](DOCS/GOVERNANCE.md) | Council rules, voting, authority |
-| [DOCS/MEMORY.md](DOCS/MEMORY.md) | Memory system, provenance, hygiene |
-| [DOCS/TOOLS.md](DOCS/TOOLS.md) | Tool catalog, permissions |
-| [DOCS/LOGGING.md](DOCS/LOGGING.md) | Audit log format, event schema |
-| [DOCS/RUNBOOK.md](DOCS/RUNBOOK.md) | Operations guide, debugging |
-| [DOCS/TEST_PLAN.md](DOCS/TEST_PLAN.md) | Test strategy, red team prompts |
-| [DOCS/BOOTSTRAP.md](DOCS/BOOTSTRAP.md) | Complete setup guide |
-| [COUNCIL_WORKSPACE.md](COUNCIL_WORKSPACE.md) | Council review records |
-| [COUNCIL_VOTE_SIGNOFF.md](COUNCIL_VOTE_SIGNOFF.md) | Official vote records |
+- **Loopback Only**: Gateway binds exclusively to `127.0.0.1` — hardcoded, not configurable
+- **No Remote Access**: Cannot be accessed from the network
+- **Input Sanitization**: All inputs validated through a 5-stage pipeline
+- **Shadow Detection**: Suspicious patterns logged to audit trail, never blocked
+- **Audit Trail**: Tamper-evident SHA-256 hash chain of all operations
+- **Rate Limiting**: Token-bucket rate limiting per sender
 
 ---
 
-## Governance
+## Data Storage
 
-### Decision Authority
+ARI stores all local data in `~/.ari/`:
 
 ```
-Operator (Human) ─────────────────────────────┐
-        │                                      │
-        ▼                                      │ Override
-Arbiter 👑 (Final System Authority) ◄─────────┘
-        │
-        ▼
-Overseer 👁️ (Quality Control)
-        │
-        ▼
-Council 🏛️ (Advisory Votes)
-        │
-        ▼
-Execution Agents ⚡
+~/.ari/
+├── config.json       # User configuration
+├── audit.jsonl       # Append-only hash-chained audit log
+├── ari.pid           # Process ID (daemon mode)
+└── logs/
+    ├── ari-stdout.log  # Daemon stdout
+    └── ari-stderr.log  # Daemon stderr
 ```
 
-### Council Members
-
-| Role | Focus |
-|------|-------|
-| 🏛️ Architect | System design, scalability |
-| 🔒 Security | Threat defense, least privilege |
-| ⚙️ Reliability | Operations, uptime, recovery |
-| 🎯 Product | Usability, ergonomics |
-| 📚 Research | Best practices, citations |
+All data stays on your machine. No cloud syncs, no telemetry, no external calls.
 
 ---
 
-## Version History
+## Project Structure
 
-| Version | Date | Codename | Status |
-|---------|------|----------|--------|
-| 11.0.0 | 2026-01-26 | Rose Protocol | Current |
+```
+ari-vnext/
+├── src/
+│   ├── types/            # Zod schemas & TypeScript types
+│   ├── config/           # Configuration management
+│   ├── utils/            # Pino structured logging
+│   ├── security/         # Input sanitization with shadow detection
+│   ├── audit/            # SHA-256 hash-chained audit logger
+│   ├── gateway/          # WebSocket server, event bus, protocol
+│   ├── prompting/        # Pure-function prompt refiner
+│   ├── ops/              # macOS launchd daemon management
+│   ├── cli/              # Commander.js CLI
+│   └── index.ts          # Public API exports
+├── docs/                 # Architecture, security, API, principles
+├── CONTEXTS/             # Namespace isolation (ventures, life)
+└── .github/              # CI/CD workflows, issue templates
+```
 
-**Release Notes:**
-- 5-layer architecture (Kernel → Governance → Agents → Operations → Interfaces)
-- 13-agent council with democratic governance
-- Trust boundary model with 4 tiers
-- Memory system with provenance tracking and trust decay
-- Tool permission framework (5 tiers)
-- Comprehensive security playbooks
-- Full test suite (52 tests)
-- Complete documentation (14 DOCS files)
+## Technology Stack
+
+- **Runtime**: Node.js 22+ with TypeScript 5.4+ (strict mode, all flags)
+- **Gateway**: WebSocket server ([ws](https://github.com/websockets/ws))
+- **Storage**: JSONL append-only files
+- **Crypto**: SHA-256 hash chains (Node.js native `crypto`)
+- **Process**: macOS launchd daemon
+- **Validation**: [Zod](https://zod.dev) schemas
+- **Logging**: [Pino](https://getpino.io) structured logging
+- **Testing**: [Vitest](https://vitest.dev) — 56 tests passing
+- **CLI**: [Commander.js](https://github.com/tj/commander.js)
 
 ---
 
-## License
+## Documentation
 
-MIT License — See [LICENSE](LICENSE)
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/ARCHITECTURE.md) | System design, components, data flow, and version evolution |
+| [Security](docs/SECURITY.md) | Security model, threat analysis, and shadow detection |
+| [Operations](docs/OPERATIONS.md) | Installation, daemon management, and troubleshooting |
+| [Principles](docs/PRINCIPLES.md) | Engineering philosophy (Jung, Musashi, Dalio) |
+| [API](docs/API.md) | WebSocket protocol reference and audit log format |
+| [Governance](docs/GOVERNANCE.md) | Multi-agent council framework and context namespaces |
+
+---
+
+## Development Status
+
+**Current: v3.0.0 — Kagemusha Protocol**
+- Core gateway with WebSocket server (127.0.0.1:18789)
+- 5-stage input sanitization with shadow pattern detection
+- SHA-256 hash-chained audit logging (tamper-evident)
+- Typed pub/sub event bus with wildcard support
+- Commander.js CLI (gateway, audit, onboard, doctor, refine)
+- macOS launchd daemon support
+- Pure-function prompt refiner
+- 56 tests passing, TypeScript strict mode (all flags)
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow and guidelines.
 
----
+## Security
 
-**Built with 🖤 for humans who want AI that respects boundaries.**
+For security vulnerabilities, see [SECURITY.md](SECURITY.md) for reporting procedures.
+
+## License
+
+MIT License — Copyright (c) 2026 Pryce Hedrick
