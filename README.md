@@ -7,6 +7,7 @@
 Your Life Operating System
 
 [![CI](https://github.com/PryceHedrick/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/PryceHedrick/ARI/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/PryceHedrick/ARI/graph/badge.svg)](https://codecov.io/gh/PryceHedrick/ARI)
 [![Version](https://img.shields.io/badge/version-2.0.0-blue)](CHANGELOG.md)
 [![Node.js](https://img.shields.io/badge/node-20%2B-green)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/typescript-5.3-blue)](https://www.typescriptlang.org)
