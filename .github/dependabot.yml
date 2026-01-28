@@ -1,0 +1,71 @@
+# Dependabot Configuration
+# Automated dependency updates for ARI
+
+version: 2
+updates:
+  # npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "build(deps)"
+    reviewers:
+      - "PryceHedrick"
+    groups:
+      production:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@types/*"
+          - "vitest*"
+          - "eslint*"
+          - "@commitlint/*"
+          - "husky"
+      development:
+        dependency-type: "development"
+        patterns:
+          - "@types/*"
+          - "vitest*"
+          - "eslint*"
+          - "@commitlint/*"
+          - "husky"
+
+  # Dashboard dependencies
+  - package-ecosystem: "npm"
+    directory: "/dashboard"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "dashboard"
+      - "automated"
+    commit-message:
+      prefix: "build(deps)"
+    reviewers:
+      - "PryceHedrick"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "ci"
+      - "automated"
+    commit-message:
+      prefix: "ci(deps)"
+    reviewers:
+      - "PryceHedrick"
