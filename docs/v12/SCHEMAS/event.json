@@ -1,0 +1,198 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ari.local/schemas/event.json",
+  "title": "ARI Event Schema",
+  "description": "Canonical event schema for tamper-evident audit logging",
+  "version": "12.0.0",
+  
+  "type": "object",
+  "required": [
+    "event_id",
+    "timestamp",
+    "event_type",
+    "agent",
+    "action",
+    "status",
+    "hash",
+    "previous_hash"
+  ],
+  
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event"
+    },
+    
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this event occurred"
+    },
+    
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "TOOL_CALL",
+        "MEMORY_WRITE",
+        "MEMORY_DELETE",
+        "MEMORY_UPDATE",
+        "CONFIG_CHANGE",
+        "GOVERNANCE_VOTE",
+        "GOVERNANCE_DECISION",
+        "SECURITY_ALERT",
+        "CONTEXT_LOAD",
+        "CONTEXT_UNLOAD",
+        "PERMISSION_REQUEST",
+        "PERMISSION_GRANT",
+        "PERMISSION_DENY",
+        "INJECTION_ATTEMPT",
+        "ANOMALY_DETECTED",
+        "ROLLBACK",
+        "SYSTEM_START",
+        "SYSTEM_STOP",
+        "ERROR"
+      ],
+      "description": "Type of event"
+    },
+    
+    "agent": {
+      "type": "string",
+      "description": "Agent that initiated or is associated with this event"
+    },
+    
+    "action": {
+      "type": "string",
+      "description": "Specific action taken"
+    },
+    
+    "status": {
+      "type": "string",
+      "enum": ["SUCCESS", "FAILURE", "BLOCKED", "PENDING", "ROLLED_BACK"],
+      "description": "Outcome of the action"
+    },
+    
+    "request_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Associated request ID for traceability"
+    },
+    
+    "plan_id": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "Associated plan ID if part of a plan execution"
+    },
+    
+    "details": {
+      "type": "object",
+      "description": "Event-specific details",
+      "properties": {
+        "tool_name": { "type": "string" },
+        "inputs": { "type": "object" },
+        "outputs": { "type": "object" },
+        "memory_id": { "type": "string" },
+        "partition": { "type": "string" },
+        "vote_id": { "type": "string" },
+        "vote_result": { "type": "string" },
+        "risk_level": { "type": "string" },
+        "patterns_found": { "type": "array", "items": { "type": "string" } },
+        "error_message": { "type": "string" },
+        "config_key": { "type": "string" },
+        "old_value": {},
+        "new_value": {}
+      }
+    },
+    
+    "permission_tier": {
+      "type": "string",
+      "enum": ["READ_ONLY", "WRITE_SAFE", "WRITE_DESTRUCTIVE", "ADMIN"],
+      "description": "Permission tier of the action"
+    },
+    
+    "approved_by": {
+      "type": ["string", "null"],
+      "description": "Who approved this action (if approval required)"
+    },
+    
+    "context": {
+      "type": "object",
+      "properties": {
+        "contexts_loaded": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Active contexts at time of event"
+        },
+        "trust_level": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        }
+      }
+    },
+    
+    "rollback_available": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this action can be rolled back"
+    },
+    
+    "rollback_info": {
+      "type": ["object", "null"],
+      "properties": {
+        "previous_state": { "type": "object" },
+        "rollback_deadline": { "type": "string", "format": "date-time" }
+      },
+      "description": "Information needed for rollback"
+    },
+    
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA256 hash of this event for integrity"
+    },
+    
+    "previous_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Hash of previous event in chain (tamper evidence)"
+    },
+    
+    "sequence_number": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Sequential event number for ordering"
+    }
+  },
+  
+  "additionalProperties": false,
+  
+  "examples": [
+    {
+      "event_id": "770e8400-e29b-41d4-a716-446655440000",
+      "timestamp": "2026-01-26T10:30:00Z",
+      "event_type": "TOOL_CALL",
+      "agent": "Executor",
+      "action": "web_search",
+      "status": "SUCCESS",
+      "request_id": "880e8400-e29b-41d4-a716-446655440001",
+      "plan_id": "990e8400-e29b-41d4-a716-446655440002",
+      "details": {
+        "tool_name": "web_search",
+        "inputs": { "query": "example search" },
+        "outputs": { "results_count": 10 }
+      },
+      "permission_tier": "READ_ONLY",
+      "approved_by": null,
+      "context": {
+        "contexts_loaded": ["career"],
+        "trust_level": 0
+      },
+      "rollback_available": false,
+      "rollback_info": null,
+      "hash": "b2c3d4e5f6789012345678901234567890123456789012345678901234bcde",
+      "previous_hash": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd",
+      "sequence_number": 1234
+    }
+  ]
+}

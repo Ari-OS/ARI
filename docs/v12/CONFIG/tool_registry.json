@@ -1,0 +1,226 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ARI Tool Registry & Permissions",
+  "description": "Deny-by-default tool registry with permission tiers",
+  "version": "12.0.0",
+  
+  "registry_policy": {
+    "default_action": "DENY",
+    "unknown_tool_behavior": "BLOCK_AND_ESCALATE",
+    "require_verification": true,
+    "log_all_calls": true
+  },
+  
+  "permission_tiers": {
+    "READ_ONLY": {
+      "description": "Information retrieval only, no side effects",
+      "approval_required": false,
+      "logging": "standard",
+      "auto_approve": true
+    },
+    "WRITE_SAFE": {
+      "description": "Creates new content, non-destructive",
+      "approval_required": false,
+      "logging": "detailed",
+      "auto_approve": true,
+      "rate_limit": "100/hour"
+    },
+    "WRITE_DESTRUCTIVE": {
+      "description": "Modifies or deletes existing data",
+      "approval_required": true,
+      "approval_source": "operator",
+      "logging": "comprehensive",
+      "auto_approve": false,
+      "rate_limit": "10/hour"
+    },
+    "ADMIN": {
+      "description": "System configuration and privileged operations",
+      "approval_required": true,
+      "approval_source": "council_and_operator",
+      "logging": "full_audit",
+      "auto_approve": false,
+      "rate_limit": "5/day"
+    }
+  },
+  
+  "tools": {
+    "web_search": {
+      "id": "web_search",
+      "description": "Search the web for information",
+      "permission_tier": "READ_ONLY",
+      "allowed": true,
+      "rate_limit": "50/hour",
+      "requires_context": false,
+      "sandbox": false,
+      "sensitive_data_risk": "LOW"
+    },
+    
+    "web_fetch": {
+      "id": "web_fetch",
+      "description": "Fetch content from a URL",
+      "permission_tier": "READ_ONLY",
+      "allowed": true,
+      "rate_limit": "30/hour",
+      "requires_context": false,
+      "sandbox": false,
+      "allowed_domains": [],
+      "blocked_domains": [],
+      "sensitive_data_risk": "MEDIUM"
+    },
+    
+    "file_read": {
+      "id": "file_read",
+      "description": "Read file contents",
+      "permission_tier": "READ_ONLY",
+      "allowed": true,
+      "rate_limit": "100/hour",
+      "requires_context": false,
+      "sandbox": true,
+      "allowed_paths": ["/mnt/user-data/uploads", "/mnt/project"],
+      "sensitive_data_risk": "MEDIUM"
+    },
+    
+    "file_write": {
+      "id": "file_write",
+      "description": "Write content to file",
+      "permission_tier": "WRITE_SAFE",
+      "allowed": true,
+      "rate_limit": "50/hour",
+      "requires_context": false,
+      "sandbox": true,
+      "allowed_paths": ["/home/claude", "/mnt/user-data/outputs"],
+      "sensitive_data_risk": "MEDIUM"
+    },
+    
+    "file_delete": {
+      "id": "file_delete",
+      "description": "Delete a file",
+      "permission_tier": "WRITE_DESTRUCTIVE",
+      "allowed": true,
+      "rate_limit": "10/hour",
+      "requires_context": false,
+      "sandbox": true,
+      "requires_approval": true,
+      "sensitive_data_risk": "HIGH"
+    },
+    
+    "memory_read": {
+      "id": "memory_read",
+      "description": "Read from ARI memory",
+      "permission_tier": "READ_ONLY",
+      "allowed": true,
+      "rate_limit": "200/hour",
+      "requires_context": false,
+      "sandbox": false,
+      "sensitive_data_risk": "MEDIUM"
+    },
+    
+    "memory_write": {
+      "id": "memory_write",
+      "description": "Write to ARI memory",
+      "permission_tier": "WRITE_SAFE",
+      "allowed": true,
+      "rate_limit": "50/hour",
+      "requires_context": false,
+      "sandbox": false,
+      "quarantine_external": true,
+      "sensitive_data_risk": "HIGH"
+    },
+    
+    "memory_delete": {
+      "id": "memory_delete",
+      "description": "Delete from ARI memory",
+      "permission_tier": "WRITE_DESTRUCTIVE",
+      "allowed": true,
+      "rate_limit": "10/hour",
+      "requires_context": false,
+      "sandbox": false,
+      "requires_approval": true,
+      "sensitive_data_risk": "HIGH"
+    },
+    
+    "email_send": {
+      "id": "email_send",
+      "description": "Send an email",
+      "permission_tier": "WRITE_DESTRUCTIVE",
+      "allowed": true,
+      "rate_limit": "20/hour",
+      "requires_context": true,
+      "required_contexts": ["venture", "client_comms"],
+      "sandbox": false,
+      "requires_approval": true,
+      "sensitive_data_risk": "HIGH"
+    },
+    
+    "code_execute": {
+      "id": "code_execute",
+      "description": "Execute code",
+      "permission_tier": "WRITE_DESTRUCTIVE",
+      "allowed": true,
+      "rate_limit": "30/hour",
+      "requires_context": false,
+      "sandbox": true,
+      "requires_approval": false,
+      "sensitive_data_risk": "HIGH"
+    },
+    
+    "config_modify": {
+      "id": "config_modify",
+      "description": "Modify system configuration",
+      "permission_tier": "ADMIN",
+      "allowed": true,
+      "rate_limit": "5/day",
+      "requires_context": false,
+      "sandbox": false,
+      "requires_approval": true,
+      "approval_source": "council_and_operator",
+      "sensitive_data_risk": "CRITICAL"
+    }
+  },
+  
+  "blocked_tool_chains": [
+    {
+      "pattern": ["file_read", "code_execute", "web_fetch"],
+      "reason": "Potential data exfiltration via code execution",
+      "severity": "HIGH"
+    },
+    {
+      "pattern": ["memory_read", "email_send"],
+      "reason": "Potential memory data leak via email without context",
+      "severity": "MEDIUM",
+      "unless_context": ["client_comms"]
+    },
+    {
+      "pattern": ["config_modify", "config_modify", "config_modify"],
+      "reason": "Rapid config changes may indicate attack",
+      "severity": "HIGH",
+      "max_frequency": "3/hour"
+    }
+  ],
+  
+  "verification_requirements": {
+    "READ_ONLY": {
+      "preview": false,
+      "confirm": false,
+      "log": true
+    },
+    "WRITE_SAFE": {
+      "preview": "recommended",
+      "confirm": false,
+      "log": true
+    },
+    "WRITE_DESTRUCTIVE": {
+      "preview": "required",
+      "confirm": "required",
+      "log": true,
+      "rollback_required": true
+    },
+    "ADMIN": {
+      "preview": "required",
+      "confirm": "required",
+      "council_vote": "required",
+      "log": true,
+      "rollback_required": true
+    }
+  }
+}

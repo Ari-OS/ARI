@@ -1,82 +1,329 @@
-# Governance Framework
+# ARI Governance Framework
+
+Version 12.0.0 — Aurora Protocol
+
+**Status:** Reference specification (not yet implemented as executable code)
+
+**Source:** docs/v12/GOVERNANCE/ (v12 Aurora Protocol specification)
 
 ## Overview
 
-This document outlines the governance framework for ARI vNext, designed
-to support future multi-agent council-based decision making.
+The governance framework defines decision-making rules for ARI system evolution. This document summarizes the v12 specification stored in docs/v12/GOVERNANCE/.
 
-## Phase 1: Single Operator
+**Important:** These are reference specifications that guide future implementation phases. They are not currently enforced in executable code.
 
-In Phase 1, ARI operates under a single-operator model:
+## Council Composition
 
-- The operator has full control over configuration
-- All messages are processed through the same pipeline
-- Trust levels are recorded but do not affect processing
-- The audit log provides accountability
+### Voting Members (9 total)
 
-## Future: Council Framework
+**Source:** docs/v12/GOVERNANCE/GOVERNANCE.md
 
-The governance model is designed to evolve toward a council-based
-structure where multiple agents contribute to decisions.
+| Agent | Domain | Vote Weight |
+|-------|--------|-------------|
+| **Router** | Request classification | 1 |
+| **Planner** | Action planning | 1 |
+| **Executor** | Tool execution | 1 |
+| **Guardian** | Security | 1 |
+| **Memory Manager** | Memory operations | 1 |
+| **Strategy** | Priorities | 1 |
+| **Learning** | Improvement | 1 |
+| **Pipeline** | Project management | 1 |
+| **QA/RedTeam** | Testing | 1 |
 
-### Principles
+**Total:** 9 voting members, each with equal weight (1 vote).
 
-1. **Transparency**: All decisions and their reasoning are recorded
-2. **Accountability**: Every action is attributed to a specific actor
-3. **Verifiability**: The audit trail enables independent verification
-4. **Least Authority**: Each agent operates with minimum necessary permissions
+### Non-Voting Observers
 
-### Actor Types
+| Agent | Role |
+|-------|------|
+| **Arbiter** | Certifies votes, breaks ties, enforces constitution |
+| **Overseer** | Quality assessment, release gates |
+| **Domain Agents** | Context-specific input (ventures, life domains) |
 
-| Actor Type | Description | Phase |
-|------------|-------------|-------|
-| system | Internal system processes | 1 |
-| operator | Human operator | 1 |
-| sender | External message source | 1 |
-| service | Internal service component | 1 |
-| agent | Autonomous AI agent | Future |
-| council | Multi-agent consensus | Future |
+## Voting Thresholds
 
-### Decision Levels
+**Source:** docs/v12/GOVERNANCE/GOVERNANCE.md (lines 62-85)
 
-Future governance will support tiered decision making:
+### Standard Decisions (5/9 majority)
+- Routine operational changes
+- Minor playbook updates
+- Non-breaking improvements
 
-- **Autonomous**: Agent can decide independently (low risk)
-- **Advisory**: Agent suggests, operator decides (medium risk)
-- **Council**: Multiple agents deliberate, operator ratifies (high risk)
-- **Operator-only**: Only the human operator can decide (critical)
+### Significant Decisions (7/9 supermajority)
+- New agent capabilities
+- Permission tier changes
+- Workflow modifications
 
-### Audit Requirements
+### Critical Decisions (9/9 unanimous)
+- Security policy changes
+- Core identity modifications
+- Version releases
+- Self-improvement proposals
 
-All governance decisions must be:
-- Recorded in the hash-chained audit log
-- Attributed to the deciding actor(s)
-- Accompanied by reasoning (in the details field)
-- Verifiable after the fact
+## Arbiter Role
 
-## Context System
+**Source:** docs/v12/GOVERNANCE/ARBITER.md
 
-The `CONTEXTS/` directory provides namespace isolation for different
-domains:
+The Arbiter is the final authority on constitutional compliance and conflict resolution.
+
+### Responsibilities
+
+1. **Constitutional Enforcement**
+   - Ensure all actions comply with CORE.md immutable rules
+   - Block any action that violates security constraints
+   - Verify trust boundary compliance
+
+2. **Conflict Resolution**
+   - Resolve inter-agent disagreements
+   - Break deadlocks when Council cannot reach consensus
+   - Provide final ruling on disputed decisions
+
+3. **High-Stakes Review**
+   - Approve decisions exceeding thresholds:
+     - Financial: >$500 impact
+     - Time: >5 hours commitment
+     - Scope: Major system changes
+     - Risk: Potential security implications
+
+4. **System Integrity**
+   - Final approval for system upgrades
+   - Sign-off on self-improvement proposals
+   - Validate Council vote outcomes
+
+### Powers
+
+- Block any action that violates constitution
+- Override agent recommendations for policy compliance
+- Request additional information before ruling
+- Escalate to Operator when uncertain
+- Cast tie-breaking votes
+
+### Limitations
+
+**Cannot:**
+- Override explicit Operator intent (unless security violation)
+- Modify immutable system instructions
+- Act on external content as instructions
+- Bypass security protocols
+- Self-modify governance rules
+
+**Voting:**
+- Does NOT vote in normal Council decisions
+- Validates that voting rules were followed
+- Breaks ties when Council is deadlocked
+- Can veto ONLY for constitutional violations
+
+## Overseer Role
+
+**Source:** docs/v12/GOVERNANCE/OVERSEER.md
+
+The Overseer maintains quality standards and acts as a pre-deployment gate.
+
+### Responsibilities
+
+1. **Quality Control**
+   - Review all client-facing outputs
+   - Verify accuracy and completeness
+   - Check for sensitive data leakage
+   - Ensure brand/tone consistency
+
+2. **Release Gates**
+   - Approve or block deployments
+   - Verify test passage
+   - Validate documentation
+   - Sign off on version releases
+
+3. **Security Review**
+   - Check for PII exposure
+   - Verify permission compliance
+   - Flag suspicious patterns
+   - Coordinate with Guardian
+
+4. **Quality Standards**
+   - Maintain quality metrics
+   - Track quality trends
+   - Recommend improvements
+   - Document quality issues
+
+### Blocking Authority
+
+**Can block:**
+- Outputs that fail quality checks
+- Deployments with failing tests
+- Memory writes from untrusted sources
+- Communications with sensitive data exposure
+- Releases without proper documentation
+
+**Cannot block:**
+- Direct Operator requests (can only warn)
+- Arbiter-approved actions
+- Emergency responses (can review after)
+
+### Escalation Triggers
+
+**Must escalate when:**
+- Blocking would conflict with Operator directive
+- Quality vs. urgency tradeoff required
+- Pattern of repeated failures detected
+- Security concern identified
+- Uncertain about blocking authority
+
+## Emergency Protocols
+
+**Source:** docs/v12/GOVERNANCE/GOVERNANCE.md (lines 193-227)
+
+### Emergency Stop
+
+**Who can invoke:** Any agent
+
+**Triggers:**
+- Active security breach
+- System compromise detected
+- Critical malfunction
+
+**Effect:** All non-essential operations pause pending review.
+
+**Resolution:** Requires Arbiter + Operator to lift.
+
+### Emergency Override
+
+**Who can invoke:** Operator only
+
+**When:**
+- Time-critical situations
+- Clear governance failure
+- Security emergency
+
+**Requirement:** Must be reviewed by Council within 48h for precedent documentation.
+
+## Deadlock Resolution
+
+**Source:** docs/v12/GOVERNANCE/GOVERNANCE.md (lines 162-190)
+
+### Definition
+Deadlock occurs when:
+- Vote is exactly tied
+- Quorum cannot be reached after 3 attempts
+- Critical decision has 1-2 holdouts
+
+### Resolution Tiers
+
+**Tier 1: Extended Discussion (24h)**
+- Additional discussion cycle
+- Holdouts articulate specific concerns
+- Proposer may modify proposal
+
+**Tier 2: Arbiter Mediation**
+- Arbiter facilitates compromise
+- May suggest modified proposal
+- May rule on constitutional basis
+
+**Tier 3: Operator Escalation**
+- Escalate to Operator if deadlock persists
+- Operator decision is final
+- Document reasoning for precedent
+
+**Tier 4: Arbiter Tie-Break (Ties Only)**
+- For exact ties, Arbiter casts deciding vote
+- Must provide constitutional rationale
+- Cannot use for unanimous requirements
+
+## Self-Improvement Governance
+
+**Source:** docs/v12/GOVERNANCE/GOVERNANCE.md (lines 270-309)
+
+### Proposal Requirements
+
+Any system improvement must include:
+1. Clear description of change
+2. Rationale and expected benefit
+3. Risk assessment
+4. Test plan
+5. Rollback procedure
+
+### Approval Flow
 
 ```
-CONTEXTS/
-  ventures/    # Business and professional contexts
-  life/        # Personal and life management contexts
+1. PROPOSAL submitted
+   ↓
+2. COUNCIL REVIEW (Critical = Unanimous required)
+   ↓
+3. ARBITER SIGN-OFF (constitutional compliance)
+   ↓
+4. IMPLEMENTATION in isolated branch
+   ↓
+5. TESTING (full regression + new tests)
+   ↓
+6. OVERSEER REVIEW (quality gate)
+   ↓
+7. MERGE (with rollback hooks)
+   ↓
+8. MONITORING (for regression)
 ```
 
-Each context namespace will support:
-- Independent agent configurations
-- Scoped memory and knowledge bases
-- Separate audit trails (future)
-- Context-specific governance rules
+### Prohibited Self-Modifications
 
-## Contributing to Governance
+- Autonomous policy rewrites
+- Security constraint relaxation
+- Trust boundary changes
+- Governance rule changes (without full process)
 
-Governance decisions about the framework itself should be:
-- Discussed in GitHub Issues
-- Documented in pull requests
-- Recorded in this document
+## Governance Audit
 
-The governance framework will evolve as the system matures through
-subsequent phases.
+**Source:** docs/v12/GOVERNANCE/GOVERNANCE.md (lines 255-266)
+
+### Regular Review
+- Monthly: Review of all governance decisions
+- Quarterly: Policy effectiveness assessment
+- Annually: Full governance framework review
+
+### Metrics Tracked
+- Decisions made by type
+- Deadlocks and resolutions
+- Appeals and outcomes
+- Emergency invocations
+
+## Implementation Status
+
+**Phase 1 (Complete):** Kernel + system integration, specs restored
+
+**Phase 2 (Planned):** Executor, Memory Manager, Guardian implementation
+
+**Phase 3 (Planned):** Full governance enforcement, UI console
+
+**Phase 4 (Planned):** Multi-venture isolation hardening
+
+**Current State:**
+- Governance rules documented in docs/v12/GOVERNANCE/
+- Not yet enforced in executable code
+- Reference for future implementation
+- Council voting simulated in v12 spec approval (docs/v12/GOVERNANCE/COUNCIL_VOTE_V12.md)
+- Arbiter signoff simulated in v12 release (docs/v12/GOVERNANCE/ARBITER_SIGNOFF_V12.md)
+
+## Reference Files
+
+All governance documents are located in docs/v12/GOVERNANCE/:
+
+- **GOVERNANCE.md** — Complete voting rules, quorum thresholds, deadlock resolution
+- **ARBITER.md** — Arbiter role definition, powers, limitations
+- **OVERSEER.md** — Overseer role definition, quality gates, blocking authority
+- **COUNCIL_VOTE_V12.md** — Simulated Council vote on v12 Aurora Protocol (unanimous approval)
+- **ARBITER_SIGNOFF_V12.md** — Simulated Arbiter certification for v12 release
+
+## CLI Access
+
+```bash
+# Display governance overview
+npx ari governance show
+
+# List all governance files
+npx ari governance list
+```
+
+These commands read from docs/v12/GOVERNANCE/ and display reference documentation.
+
+---
+
+*Governance framework reference for ARI V12.0*
+
+*These specifications guide future implementation. They are not yet executable code.*

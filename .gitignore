@@ -1,35 +1,7 @@
-# Dependencies
 node_modules/
-
-# Build output
 dist/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Environment
 .env
-.env.*
-!.env.example
-
-# Logs
+.env.local
 *.log
-logs/
-
-# Coverage
 coverage/
-
-# ARI data (local runtime)
-.ari/
-
-# Temp files
-*.tmp
-*.bak
+.DS_Store

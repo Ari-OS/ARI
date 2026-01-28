@@ -1,240 +1,254 @@
-# ARI — production TypeScript multi-agent gateway (Kagemusha Protocol)
+# ARI V12.0 — Aurora Protocol
 
-[![CI](https://github.com/PryceHedrick/ari-vnext/actions/workflows/ci.yml/badge.svg)](https://github.com/PryceHedrick/ari-vnext/actions/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict%20mode-blue)](https://www.typescriptlang.org/)
-[![Node](https://img.shields.io/badge/node-%3E%3D22.0.0-green)](https://nodejs.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-
-> *The shadow warrior observes, integrates, and records — never suppresses.*
-
----
-
-## What is ARI?
-
-ARI is a local-first, security-focused gateway for multi-agent AI interactions. It runs entirely on your machine — no cloud dependencies, no remote access, no data leaving your control.
-
-At its core, ARI is a **WebSocket gateway** that sits between AI clients (Claude Desktop, custom integrations) and a structured pipeline of sanitization, auditing, and event routing. Every operation is logged in a tamper-evident SHA-256 hash chain. Suspicious patterns are observed and recorded, never silently blocked.
-
-Built on three philosophical pillars:
-
-| Pillar | Source | Architectural Expression |
-|--------|--------|--------------------------|
-| **Shadow Integration** | Carl Jung | Log suspicious patterns rather than blocking — understanding the shadow makes the system resilient |
-| **Ruthless Simplicity** | Miyamoto Musashi | Every component serves one clear purpose — complexity is the enemy |
-| **Radical Transparency** | Ray Dalio | All operations recorded in a tamper-evident audit trail — behavior is observable and verifiable |
-
----
-
-## Version Lineage
-
-ARI has evolved through three major protocol versions:
-
-| Version | Protocol | Meaning | Era | Internal Origin |
-|---------|----------|---------|-----|-----------------|
-| v1.0.0 | **Sentinel Protocol** | The watchful guardian — first security hardening of the multi-agent architecture | Legacy | V11.1.0 |
-| v2.0.0 | **Aurora Protocol** | Dawn of the Universal Life OS — expanded to a full personal operating system | Legacy | V12.0.0 |
-| v3.0.0 | **Kagemusha Protocol** | 影武者 (Shadow Warrior) — complete rebuild as production TypeScript gateway | **Current** | V1.0.0 |
-
-The Kagemusha Protocol is a ground-up rewrite. It preserves the philosophical DNA of Sentinel and Aurora but discards their implementation entirely in favor of a minimal, auditable TypeScript codebase.
-
----
+Artificial Reasoning Intelligence: a secure, local-first personal operating system.
 
 ## Architecture
 
-```mermaid
-graph TD
-    C["External Clients<br/>(Claude Desktop · Integrations)"] -->|"WebSocket · 127.0.0.1:18789"| PP
+Five-layer design: kernel (pipeline) + system (routing) + agents (coordination) + governance (enforcement) + ops (infrastructure).
 
-    subgraph GW["Gateway Service"]
-        PP["Protocol Parser"] --> SAN["Input Sanitizer<br/>(Shadow Detection)"]
-        SAN --> EB["Event Bus<br/>(Pub/Sub)"]
-    end
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                          CLI Layer                               │
+│  gateway · audit · doctor · onboard · context · governance      │
+│  daemon (install/uninstall/status)                              │
+├─────────────────────────────────────────────────────────────────┤
+│                     Operations Layer (src/ops/)                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  Daemon (macOS launchd, auto-start, background gateway)   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│                   Governance Layer (src/governance/)              │
+│  ┌──────────┐ ┌───────────┐ ┌────────────────────────────┐     │
+│  │ Council   │ │ Arbiter   │ │ Overseer                   │     │
+│  │ (voting)  │ │ (constit.)│ │ (quality gates)            │     │
+│  │ 13 agents │ │ 5 rules   │ │ 5 release gates            │     │
+│  └──────────┘ └───────────┘ └────────────────────────────┘     │
+├─────────────────────────────────────────────────────────────────┤
+│                     Agent Layer (src/agents/)                    │
+│  ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌──────────────┐     │
+│  │ Core      │ │ Guardian  │ │ Planner  │ │ Executor     │     │
+│  │(orchestr.)│ │(threat det│ │(task DAG)│ │(tool + perms)│     │
+│  └──────────┘ └───────────┘ └──────────┘ └──────────────┘     │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  Memory Manager (provenance, partitions, quarantine)      │   │
+│  └──────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│                     System Layer (src/system/)                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  Router (event subscriber, context triggers)              │   │
+│  │  Storage (ventures + life domains at ~/.ari/contexts/)    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│                       Kernel Layer (src/kernel/)                 │
+│  ┌──────────┐ ┌───────────┐ ┌────────────┐ ┌────────────┐     │
+│  │ Gateway   │ │ Sanitizer │ │ AuditLogger│ │ EventBus   │     │
+│  │ (Fastify) │ │ (21 patt.)│ │ (SHA-256)  │ │ (pub/sub)  │     │
+│  │127.0.0.1  │ │ 6 categs. │ │ hash chain │ │ typed      │     │
+│  └──────────┘ └───────────┘ └────────────┘ └────────────┘     │
+│  ┌──────────┐ ┌───────────┐                                     │
+│  │  Config   │ │   Types   │                                     │
+│  │(~/.ari/)  │ │  (Zod)    │                                     │
+│  └──────────┘ └───────────┘                                     │
+└─────────────────────────────────────────────────────────────────┘
 
-    SAN -->|"log events"| AL["Audit Logger<br/>SHA-256 Hash Chain"]
-    EB --> SUBS["Subscribers · Sessions"]
+Integration: EventBus Only (single coupling point between all layers)
 
-    AL --> STORE[("~/.ari/<br/>audit.jsonl · config.json · logs/")]
-
-    CLI["CLI · Commander.js"] --> GW
-    CLI --> AL
-    CLI --> REF["Prompt Refiner<br/>(Pure Function)"]
-    CLI --> OPS["macOS Daemon · launchd"]
+Pipeline: POST /message → sanitize → audit → publish
+  → Guardian assess → Router route → Planner plan → Executor execute
 ```
 
----
+## What Exists (Phase 1 + Phase 2)
+
+### Kernel (src/kernel/)
+- **Gateway** (gateway.ts): Loopback-only Fastify server (127.0.0.1:3141), POST /message endpoint
+- **Sanitizer** (sanitizer.ts): 21-pattern injection detector across 6 categories (Direct Override, Role Manipulation, Command Injection, Prompt Extraction, Authority Claims, Data Exfiltration)
+- **Audit Logger** (audit.ts): SHA-256 hash-chained tamper-evident logger, genesis block verification
+- **Event Bus** (event-bus.ts): Typed pub/sub with error isolation, 20+ event types across kernel/system/agent/governance layers
+- **Config** (config.ts): Zod-validated configuration at ~/.ari/, loadConfig/saveConfig
+- **Types** (types.ts): Zod schemas for Config, AuditEvent, Message, TrustLevel, MemoryEntry, Vote, ToolDefinition, AgentId, PermissionTier
+
+### System (src/system/)
+- **Router** (router.ts): Subscribes to kernel events, matches context triggers, audits routing decisions
+- **Storage** (storage.ts): Context management at ~/.ari/contexts/, JSON persistence for ventures + life domains
+
+### Agents (src/agents/)
+- **Core** (core.ts): Master orchestrator — coordinates all agents, full 5-step message pipeline (Guardian assess → Router route → Planner plan → Executor execute → Audit log), system health reporting
+- **Guardian** (guardian.ts): Real-time threat assessment — 8 injection patterns, behavioral anomaly detection, rate limiting (60/min), trust-weighted risk scoring, auto-block at risk >= 0.8
+- **Planner** (planner.ts): Task decomposition — plan creation, dependency DAG with cycle detection (DFS), task status tracking, priority levels, next-available task resolution
+- **Executor** (executor.ts): Tool execution with permission gating — 3-layer permission checks (agent allowlist, trust level, permission tier), approval workflow for destructive ops, 4 built-in tools, concurrent execution limit (10), timeout enforcement
+- **Memory Manager** (memory-manager.ts): Provenance-tracked memory system — 6 memory types, 3 partitions (PUBLIC/INTERNAL/SENSITIVE), SHA-256 integrity hashing, trust decay, poisoning detection, agent-based access control, 10K entry capacity
+
+### Governance (src/governance/)
+- **Council** (council.ts): 13-member voting council — 3 thresholds (MAJORITY >50%, SUPERMAJORITY >=66%, UNANIMOUS 100%), quorum enforcement, early vote conclusion, event emission
+- **Arbiter** (arbiter.ts): Constitutional enforcement — 5 hard rules (loopback-only, content-not-command, audit-immutable, least-privilege, trust-required), dispute resolution, security alert monitoring
+- **Overseer** (overseer.ts): Quality gate enforcement — 5 release gates (test coverage, audit integrity, security scan, build clean, documentation), gate evaluation with context validation
+
+### Operations (src/ops/)
+- **Daemon** (daemon.ts): macOS launchd integration — install/uninstall/status for background gateway service at ~/Library/LaunchAgents/com.ari.gateway.plist
+
+### CLI (src/cli/commands/)
+- `ari onboard init` — Initialize ARI system (creates ~/.ari/, default config, genesis audit event)
+- `ari doctor` — Run 6 health checks
+- `ari gateway start [-p port]` — Start the Fastify gateway on 127.0.0.1
+- `ari gateway status [-p port]` — Check gateway health
+- `ari audit list [-n count]` — List recent audit events
+- `ari audit verify` — Verify SHA-256 hash chain integrity
+- `ari audit security` — List security events
+- `ari context init|list|create|select|show` — Context management
+- `ari governance show|list` — Governance reference
+- `ari daemon install|uninstall|status` — Background service management
+
+### Tests
+120 tests passing across 14 test files:
+- Kernel: sanitizer (5), audit (3), event-bus (8)
+- System: router (5)
+- Agents: core (9), guardian (10), executor (10), planner (8), memory-manager (12)
+- Governance: council (10), arbiter (10), overseer (8)
+- Integration: pipeline (8)
+- Security: injection (14)
+
+### v12 Specification (docs/v12/)
+Complete Aurora Protocol specification stored as markdown reference documentation:
+- **GOVERNANCE**: Council voting rules, Arbiter role, Overseer role, emergency protocols
+- **CONTEXTS**: Venture templates, life domain contexts (career, finance, health, admin, learning, systems, family)
+- **SYSTEM**: Agent roles (CORE, ROUTER, PLANNER, EXECUTOR, MEMORY_MANAGER, GUARDIAN)
+- **SCHEMAS**: Event schema, memory entry schema
+- **TESTS**: 70 test definitions (20 injection, 15 memory poisoning, 15 tool misuse, 20 regression)
 
 ## Quick Start
 
-### Install and Build
-
 ```bash
-git clone https://github.com/PryceHedrick/ari-vnext.git
-cd ari-vnext
+# Install dependencies
 npm install
+
+# Build
 npm run build
+
+# Initialize ARI
+npx ari onboard init
+
+# Verify system health
+npx ari doctor
+
+# Start the gateway
+npx ari gateway start
 ```
 
-### Initialize Configuration
+## Security Invariants
+
+1. **Loopback-only gateway** — Gateway binds to 127.0.0.1 exclusively (hardcoded, not configurable)
+2. **SHA-256 hash chain** — Every audit event is cryptographically chained to its predecessor, starting from genesis block (0x00...00). Tampering breaks the chain.
+3. **Injection detection** — 21 patterns across 6 categories scanned on every inbound message
+4. **Trust-level risk scoring** — Risk scores weighted by source trust level (system 0.5x, untrusted 1.5x)
+5. **Content ≠ command** — All inbound content is DATA, never interpreted as instructions
+6. **Pipeline enforcement** — System layer cannot bypass kernel sanitizer, audit, or event bus
+
+## Testing
 
 ```bash
-ari onboard init
-```
-
-Creates the `~/.ari/` directory with default configuration, audit log, and log directories.
-
-### Run Tests
-
-```bash
+# Run all tests
 npm test
+
+# Watch mode
+npm run test:watch
+
+# Coverage report
+npm run test:coverage
 ```
 
-### Start the Gateway
-
-```bash
-# Foreground (requires build)
-ari gateway start
-
-# As macOS daemon (auto-start on boot)
-ari onboard install-daemon
-```
-
-### CLI Commands
-
-```bash
-# Gateway management
-ari gateway start          # Start the gateway service
-ari gateway status         # Check gateway status
-
-# Audit operations
-ari audit list            # List audit entries
-ari audit verify          # Verify hash chain integrity
-ari audit tail            # Watch audit log in real-time
-
-# System setup
-ari onboard init          # Initialize configuration
-ari onboard install-daemon # Install as macOS launchd daemon
-
-# Maintenance
-ari doctor                # Run system diagnostics
-ari refine <text>         # Test prompt refiner (pure function)
-```
-
----
-
-## Core Principles
-
-### CONTENT ≠ COMMAND
-All inbound content is treated as data, never as instructions. This fundamental separation prevents prompt injection attacks and maintains clear boundaries between user content and system operations.
-
-### Shadow Integration (Jung)
-Rather than blocking suspicious patterns, we log and integrate them into the audit trail. Understanding the shadow makes the system more resilient.
-
-### Ruthless Simplicity (Musashi)
-Every component serves a clear purpose. Complexity is the enemy. No feature exists without justification.
-
-### Radical Transparency (Dalio)
-All operations are logged in a tamper-evident audit trail. The system's behavior is observable and verifiable.
-
----
-
-## Security Model
-
-- **Loopback Only**: Gateway binds exclusively to `127.0.0.1` — hardcoded, not configurable
-- **No Remote Access**: Cannot be accessed from the network
-- **Input Sanitization**: All inputs validated through a 5-stage pipeline
-- **Shadow Detection**: Suspicious patterns logged to audit trail, never blocked
-- **Audit Trail**: Tamper-evident SHA-256 hash chain of all operations
-- **Rate Limiting**: Token-bucket rate limiting per sender
-
----
-
-## Data Storage
-
-ARI stores all local data in `~/.ari/`:
-
-```
-~/.ari/
-├── config.json       # User configuration
-├── audit.jsonl       # Append-only hash-chained audit log
-├── ari.pid           # Process ID (daemon mode)
-└── logs/
-    ├── ari-stdout.log  # Daemon stdout
-    └── ari-stderr.log  # Daemon stderr
-```
-
-All data stays on your machine. No cloud syncs, no telemetry, no external calls.
-
----
+120 tests passing across 14 test files.
 
 ## Project Structure
 
 ```
-ari-vnext/
+ari/
 ├── src/
-│   ├── types/            # Zod schemas & TypeScript types
-│   ├── config/           # Configuration management
-│   ├── utils/            # Pino structured logging
-│   ├── security/         # Input sanitization with shadow detection
-│   ├── audit/            # SHA-256 hash-chained audit logger
-│   ├── gateway/          # WebSocket server, event bus, protocol
-│   ├── prompting/        # Pure-function prompt refiner
-│   ├── ops/              # macOS launchd daemon management
-│   ├── cli/              # Commander.js CLI
-│   └── index.ts          # Public API exports
-├── docs/                 # Architecture, security, API, principles
-├── CONTEXTS/             # Namespace isolation (ventures, life)
-└── .github/              # CI/CD workflows, issue templates
+│   ├── kernel/                 # Kernel layer (owns pipeline)
+│   │   ├── gateway.ts          # Fastify loopback server
+│   │   ├── sanitizer.ts        # 21-pattern injection detector
+│   │   ├── audit.ts            # SHA-256 hash-chained logger
+│   │   ├── event-bus.ts        # Typed pub/sub event system
+│   │   ├── config.ts           # Config loading/saving
+│   │   ├── types.ts            # Zod schemas (all layers)
+│   │   └── index.ts
+│   ├── system/                 # System layer (subscribes to events)
+│   │   ├── router.ts           # Event subscriber, context routing
+│   │   ├── storage.ts          # Context storage at ~/.ari/contexts/
+│   │   ├── types.ts            # Context, RouteResult
+│   │   └── index.ts
+│   ├── agents/                 # Agent layer (coordination)
+│   │   ├── core.ts             # Orchestrator (full pipeline)
+│   │   ├── guardian.ts         # Threat detection + anomaly
+│   │   ├── planner.ts          # Task decomposition + DAG
+│   │   ├── executor.ts         # Tool execution + permissions
+│   │   ├── memory-manager.ts   # Provenance-tracked memory
+│   │   ├── domain/             # Domain agents (future)
+│   │   └── index.ts
+│   ├── governance/             # Governance layer (enforcement)
+│   │   ├── council.ts          # 13-member voting
+│   │   ├── arbiter.ts          # Constitutional enforcement
+│   │   ├── overseer.ts         # Quality gates
+│   │   └── index.ts
+│   ├── ops/                    # Operations layer (infrastructure)
+│   │   ├── daemon.ts           # macOS launchd integration
+│   │   └── index.ts
+│   ├── cli/                    # CLI commands
+│   │   ├── commands/
+│   │   │   ├── gateway.ts      # Gateway management
+│   │   │   ├── audit.ts        # Audit log management
+│   │   │   ├── doctor.ts       # Health checks
+│   │   │   ├── onboard.ts      # System initialization
+│   │   │   ├── context.ts      # Context management
+│   │   │   ├── governance.ts   # Governance reference
+│   │   │   └── daemon.ts       # Daemon management
+│   │   └── index.ts
+│   └── index.ts
+├── tests/
+│   ├── unit/
+│   │   ├── kernel/             # sanitizer, audit, event-bus
+│   │   ├── system/             # router
+│   │   ├── agents/             # core, guardian, executor, planner, memory-manager
+│   │   └── governance/         # council, arbiter, overseer
+│   ├── integration/            # Full pipeline tests
+│   └── security/               # Injection defense tests
+├── docs/
+│   ├── v12/                    # Aurora Protocol specs (reference)
+│   ├── ARCHITECTURE.md         # Layer model, boundaries, data layout
+│   ├── SECURITY.md             # Security model, injection defense
+│   ├── OPERATIONS.md           # Build, run, troubleshoot
+│   ├── GOVERNANCE.md           # Council rules, voting thresholds
+│   └── PRINCIPLES.md           # Engineering philosophy
+├── README.md                   # This file
+└── CHANGELOG.md                # Version history
+
+Data layout:
+~/.ari/
+├── config.json                 # Zod-validated configuration
+├── audit.json                  # Hash-chained audit log
+├── logs/                       # Application + daemon logs
+└── contexts/                   # Context storage
+    ├── active.json             # Active context metadata
+    └── {context_id}.json       # Individual context files
 ```
 
-## Technology Stack
+## Version
 
-- **Runtime**: Node.js 22+ with TypeScript 5.4+ (strict mode, all flags)
-- **Gateway**: WebSocket server ([ws](https://github.com/websockets/ws))
-- **Storage**: JSONL append-only files
-- **Crypto**: SHA-256 hash chains (Node.js native `crypto`)
-- **Process**: macOS launchd daemon
-- **Validation**: [Zod](https://zod.dev) schemas
-- **Logging**: [Pino](https://getpino.io) structured logging
-- **Testing**: [Vitest](https://vitest.dev) — 56 tests passing
-- **CLI**: [Commander.js](https://github.com/tj/commander.js)
+12.0.0 — Aurora Protocol (2026-01-27)
 
----
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [Architecture](docs/ARCHITECTURE.md) | System design, components, data flow, and version evolution |
-| [Security](docs/SECURITY.md) | Security model, threat analysis, and shadow detection |
-| [Operations](docs/OPERATIONS.md) | Installation, daemon management, and troubleshooting |
-| [Principles](docs/PRINCIPLES.md) | Engineering philosophy (Jung, Musashi, Dalio) |
-| [API](docs/API.md) | WebSocket protocol reference and audit log format |
-| [Governance](docs/GOVERNANCE.md) | Multi-agent council framework and context namespaces |
-
----
-
-## Development Status
-
-**Current: v3.0.0 — Kagemusha Protocol**
-- Core gateway with WebSocket server (127.0.0.1:18789)
-- 5-stage input sanitization with shadow pattern detection
-- SHA-256 hash-chained audit logging (tamper-evident)
-- Typed pub/sub event bus with wildcard support
-- Commander.js CLI (gateway, audit, onboard, doctor, refine)
-- macOS launchd daemon support
-- Pure-function prompt refiner
-- 56 tests passing, TypeScript strict mode (all flags)
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow and guidelines.
-
-## Security
-
-For security vulnerabilities, see [SECURITY.md](SECURITY.md) for reporting procedures.
+Phase 1 + Phase 2 complete:
+- Phase 1: Kernel hardening (gateway, sanitizer, audit, event bus) + system layer (router, storage, contexts)
+- Phase 2: Agent layer (Core, Guardian, Planner, Executor, Memory Manager) + governance (Council, Arbiter, Overseer) + operations (daemon)
 
 ## License
 
-MIT License — Copyright (c) 2026 Pryce Hedrick
+Private repository. All rights reserved.
+
+## Contact
+
+**Operator**: Pryce Hedrick
+**Repository**: github.com/PryceHedrick/ari
+
+---
+
+*ARI V12.0 — Aurora Protocol*
+*"Secure reasoning, local-first, auditable"*
