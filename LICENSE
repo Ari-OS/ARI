@@ -1,0 +1,60 @@
+MIT License
+
+Copyright (c) 2026 Pryce Hedrick / Pryceless Solutions
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+ADDITIONAL TERMS FOR ARI SYSTEM
+
+1. SAFETY DISCLAIMER
+   This software includes an AI agent system. Users are responsible for:
+   - Reviewing and approving all destructive actions
+   - Maintaining appropriate security measures
+   - Ensuring compliance with applicable laws
+   - Monitoring system behavior
+
+2. DATA HANDLING
+   Users retain full ownership of all data processed by the system.
+   The system is designed to operate locally; no data is transmitted
+   to external parties unless explicitly configured.
+
+3. NO WARRANTY OF AI BEHAVIOR
+   While the system includes safety measures, the authors make no
+   guarantees about AI behavior. Users should maintain human oversight
+   of all significant operations.
+
+4. CONTRIBUTION
+   Contributions are welcome under this same license. By contributing,
+   you agree to license your contributions under these terms.
+
+---
+
+License Choice Rationale (documented per DECISIONS.md):
+
+MIT License was chosen because:
+- Maximum flexibility for the operator
+- Simple and well-understood
+- Allows commercial use
+- Compatible with most other licenses
+- No copyleft requirements
+
+This decision was made by default as no specific license was requested.
+Can be changed to GPL, Apache 2.0, or other license if preferred.

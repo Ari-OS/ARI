@@ -1,0 +1,9 @@
+{
+  "system_id": "ari-v11-20260126044443-",
+  "version": "11.0.0",
+  "initialized_at": "2026-01-26T04:44:43Z",
+  "initialized_by": "root",
+  "host": "runsc",
+  "environment": "development",
+  "status": "initialized"
+}

@@ -1,0 +1,195 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ARI Default Configuration",
+  "description": "Default operational parameters for ARI system initialization",
+  "version": "11.0.0",
+  
+  "system": {
+    "name": "ARI",
+    "version": "11.0.0",
+    "mode": "production",
+    "log_level": "info",
+    "timezone": "UTC"
+  },
+  
+  "governance": {
+    "arbiter": {
+      "enabled": true,
+      "auto_escalation": true,
+      "decision_timeout_seconds": 300
+    },
+    "overseer": {
+      "enabled": true,
+      "quality_gates_enforced": true,
+      "review_all_outputs": false
+    },
+    "council": {
+      "enabled": true,
+      "quorum_threshold": 0.6,
+      "vote_timeout_seconds": 600,
+      "unanimous_required_for": ["security_policy", "core_modification"]
+    }
+  },
+  
+  "agents": {
+    "router": {
+      "enabled": true,
+      "fallback_agent": "planner",
+      "confidence_threshold": 0.7
+    },
+    "planner": {
+      "enabled": true,
+      "max_plan_depth": 5,
+      "parallel_planning": false
+    },
+    "executor": {
+      "enabled": true,
+      "max_retries": 3,
+      "retry_delay_seconds": 1
+    },
+    "guardian": {
+      "enabled": true,
+      "strict_mode": true,
+      "log_all_checks": true
+    },
+    "memory_manager": {
+      "enabled": true,
+      "auto_consolidation": true,
+      "consolidation_interval_hours": 24
+    }
+  },
+  
+  "trust": {
+    "default_trust_level": "operator",
+    "levels": {
+      "system": 1.0,
+      "operator": 0.95,
+      "verified": 0.8,
+      "standard": 0.6,
+      "untrusted": 0.3,
+      "hostile": 0.0
+    },
+    "thresholds": {
+      "memory_write": 0.7,
+      "tool_execution": 0.6,
+      "external_communication": 0.8,
+      "configuration_change": 0.9
+    }
+  },
+  
+  "memory": {
+    "short_term": {
+      "enabled": true,
+      "max_entries": 100,
+      "ttl_minutes": 60
+    },
+    "working": {
+      "enabled": true,
+      "max_entries": 50,
+      "persist": true
+    },
+    "long_term": {
+      "enabled": true,
+      "max_entries": 10000,
+      "require_verification": true
+    },
+    "consolidation": {
+      "enabled": true,
+      "min_confidence": 0.7,
+      "min_occurrences": 3
+    }
+  },
+  
+  "capacity": {
+    "daily_budget": {
+      "amount": 10.00,
+      "currency": "USD",
+      "hard_limit": true
+    },
+    "token_limits": {
+      "input_per_request": 8000,
+      "output_per_request": 4000,
+      "daily_total": 500000
+    },
+    "rate_limits": {
+      "requests_per_minute": 20,
+      "requests_per_hour": 500
+    }
+  },
+  
+  "tools": {
+    "enabled_categories": [
+      "file_operations",
+      "web_search",
+      "calendar",
+      "email_read"
+    ],
+    "disabled_categories": [
+      "email_send",
+      "financial",
+      "social_media"
+    ],
+    "require_approval": [
+      "file_delete",
+      "email_send",
+      "external_api"
+    ]
+  },
+  
+  "notifications": {
+    "enabled": true,
+    "channels": {
+      "console": {
+        "enabled": true,
+        "min_severity": "info"
+      },
+      "log_file": {
+        "enabled": true,
+        "min_severity": "debug"
+      }
+    },
+    "escalation": {
+      "sev1_immediate": true,
+      "sev2_delay_minutes": 5,
+      "sev3_delay_minutes": 30
+    }
+  },
+  
+  "integrations": {
+    "enabled": false,
+    "require_explicit_consent": true,
+    "available": {
+      "notion": { "enabled": false, "scope": "read" },
+      "google_calendar": { "enabled": false, "scope": "read" },
+      "gmail": { "enabled": false, "scope": "read" },
+      "slack": { "enabled": false, "scope": "read" }
+    }
+  },
+  
+  "security": {
+    "input_validation": {
+      "enabled": true,
+      "max_input_length": 50000,
+      "sanitize_html": true,
+      "block_injection_patterns": true
+    },
+    "output_filtering": {
+      "enabled": true,
+      "redact_secrets": true,
+      "limit_pii_exposure": true
+    },
+    "audit": {
+      "enabled": true,
+      "log_all_decisions": true,
+      "log_all_tool_calls": true,
+      "retention_days": 90
+    }
+  },
+  
+  "recovery": {
+    "auto_recovery": true,
+    "checkpoint_interval_minutes": 30,
+    "max_recovery_attempts": 3,
+    "fallback_to_safe_mode": true
+  }
+}

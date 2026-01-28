@@ -1,0 +1,285 @@
+{
+  "$schema": "./SCHEMAS/config.json",
+  "schema_version": "1.0.0",
+  "description": "ARI V11.0 Data Retention Policies",
+  "last_updated": "2026-01-25",
+  
+  "retention_categories": {
+    "ephemeral": {
+      "description": "Temporary data cleared after session",
+      "retention_period": "session",
+      "max_age_hours": 24,
+      "auto_delete": true,
+      "backup_eligible": false,
+      "applies_to": [
+        "working_context",
+        "intermediate_results",
+        "draft_outputs",
+        "session_state"
+      ]
+    },
+    
+    "short_term": {
+      "description": "Recent operational data",
+      "retention_period": "7_days",
+      "max_age_days": 7,
+      "auto_delete": true,
+      "backup_eligible": true,
+      "applies_to": [
+        "request_logs",
+        "tool_call_logs",
+        "performance_metrics",
+        "debug_traces"
+      ]
+    },
+    
+    "medium_term": {
+      "description": "Active business data",
+      "retention_period": "30_days",
+      "max_age_days": 30,
+      "auto_delete": true,
+      "backup_eligible": true,
+      "applies_to": [
+        "conversation_summaries",
+        "decision_records",
+        "pattern_observations",
+        "client_interactions"
+      ]
+    },
+    
+    "long_term": {
+      "description": "Persistent knowledge and history",
+      "retention_period": "1_year",
+      "max_age_days": 365,
+      "auto_delete": false,
+      "backup_eligible": true,
+      "requires_review_before_delete": true,
+      "applies_to": [
+        "confirmed_patterns",
+        "playbook_entries",
+        "client_history",
+        "project_records",
+        "lesson_learned"
+      ]
+    },
+    
+    "permanent": {
+      "description": "Core system data never deleted",
+      "retention_period": "permanent",
+      "max_age_days": null,
+      "auto_delete": false,
+      "backup_eligible": true,
+      "requires_operator_approval_to_delete": true,
+      "applies_to": [
+        "operator_profile",
+        "constitutional_principles",
+        "agent_definitions",
+        "security_policies",
+        "pricing_rules"
+      ]
+    }
+  },
+  
+  "data_type_retention": {
+    "memory_entries": {
+      "factual": "long_term",
+      "preference": "long_term",
+      "pattern": "long_term",
+      "procedure": "permanent",
+      "relationship": "long_term",
+      "context": "medium_term",
+      "observation": "short_term",
+      "hypothesis": "medium_term",
+      "decision": "long_term",
+      "feedback": "medium_term",
+      "system": "permanent"
+    },
+    
+    "events": {
+      "request_received": "short_term",
+      "request_completed": "short_term",
+      "agent_invoked": "short_term",
+      "tool_called": "short_term",
+      "decision_made": "long_term",
+      "memory_written": "medium_term",
+      "memory_read": "ephemeral",
+      "security_alert": "long_term",
+      "error_occurred": "medium_term",
+      "escalation_triggered": "long_term",
+      "pattern_detected": "long_term",
+      "capacity_warning": "medium_term",
+      "budget_alert": "long_term",
+      "health_check": "short_term",
+      "session_start": "short_term",
+      "session_end": "short_term",
+      "config_changed": "long_term",
+      "backup_created": "long_term",
+      "restore_completed": "long_term",
+      "deployment": "permanent",
+      "rollback": "permanent",
+      "audit_event": "long_term"
+    },
+    
+    "tool_calls": {
+      "file_system": "medium_term",
+      "web_search": "short_term",
+      "web_fetch": "short_term",
+      "api_call": "medium_term",
+      "code_execution": "medium_term",
+      "database": "medium_term",
+      "email": "long_term",
+      "calendar": "medium_term",
+      "communication": "long_term",
+      "analysis": "medium_term",
+      "generation": "short_term",
+      "validation": "short_term",
+      "internal": "ephemeral"
+    },
+    
+    "outputs": {
+      "proposals": "long_term",
+      "emails_sent": "long_term",
+      "code_generated": "medium_term",
+      "reports": "long_term",
+      "analyses": "medium_term",
+      "recommendations": "medium_term"
+    }
+  },
+  
+  "cleanup_policies": {
+    "schedule": {
+      "ephemeral_cleanup": "hourly",
+      "short_term_cleanup": "daily",
+      "medium_term_cleanup": "weekly",
+      "long_term_review": "monthly"
+    },
+    
+    "cleanup_rules": {
+      "max_entries_per_category": {
+        "ephemeral": 1000,
+        "short_term": 10000,
+        "medium_term": 50000,
+        "long_term": 100000
+      },
+      
+      "cleanup_order": [
+        "oldest_first",
+        "lowest_access_count",
+        "lowest_relevance_score"
+      ],
+      
+      "preserve_if": {
+        "has_active_references": true,
+        "marked_important": true,
+        "part_of_active_project": true,
+        "high_confidence_pattern": true
+      }
+    }
+  },
+  
+  "backup_policies": {
+    "automatic_backups": {
+      "enabled": true,
+      "frequency": "daily",
+      "time": "03:00",
+      "timezone": "UTC",
+      "retention_count": 30
+    },
+    
+    "backup_contents": {
+      "full_backup": {
+        "includes": [
+          "memory_entries",
+          "confirmed_patterns",
+          "playbooks",
+          "client_data",
+          "project_records",
+          "configuration"
+        ],
+        "frequency": "weekly"
+      },
+      
+      "incremental_backup": {
+        "includes": [
+          "new_memory_entries",
+          "updated_patterns",
+          "recent_decisions",
+          "config_changes"
+        ],
+        "frequency": "daily"
+      }
+    },
+    
+    "backup_retention": {
+      "daily_backups": "7_days",
+      "weekly_backups": "4_weeks",
+      "monthly_backups": "12_months",
+      "yearly_backups": "permanent"
+    }
+  },
+  
+  "archive_policies": {
+    "archive_triggers": {
+      "age_threshold_days": 180,
+      "access_inactivity_days": 90,
+      "project_completed": true,
+      "client_relationship_ended": true
+    },
+    
+    "archive_process": {
+      "compress": true,
+      "encrypt": true,
+      "verify_integrity": true,
+      "maintain_index": true
+    },
+    
+    "archive_retention": {
+      "client_data": "7_years",
+      "financial_records": "7_years",
+      "project_records": "5_years",
+      "general_archives": "3_years"
+    }
+  },
+  
+  "deletion_policies": {
+    "soft_delete": {
+      "enabled": true,
+      "retention_days": 30,
+      "recoverable": true
+    },
+    
+    "hard_delete": {
+      "requires_confirmation": true,
+      "audit_logged": true,
+      "categories_requiring_approval": [
+        "long_term",
+        "permanent"
+      ]
+    },
+    
+    "secure_deletion": {
+      "applies_to": [
+        "sensitive_data",
+        "pii",
+        "credentials",
+        "client_confidential"
+      ],
+      "method": "overwrite_and_delete",
+      "verification_required": true
+    }
+  },
+  
+  "compliance": {
+    "data_subject_requests": {
+      "export_within_days": 30,
+      "delete_within_days": 30,
+      "applies_to": "client_pii"
+    },
+    
+    "audit_requirements": {
+      "retention_of_audit_logs": "3_years",
+      "immutable_audit_trail": true,
+      "access_logging": true
+    }
+  }
+}

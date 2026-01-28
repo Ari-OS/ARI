@@ -1,0 +1,261 @@
+{
+  "$schema": "./SCHEMAS/config.json",
+  "schema_version": "1.0.0",
+  "description": "ARI V11.0 Safe Defaults - Conservative fallback configurations for degraded or uncertain states",
+  "last_updated": "2026-01-25",
+  
+  "purpose": "These defaults prioritize safety over performance when normal configuration is unavailable or system is in degraded state",
+  
+  "activation_triggers": [
+    "config_load_failure",
+    "memory_corruption_detected",
+    "security_incident_active",
+    "capacity_emergency",
+    "unknown_operator",
+    "guardian_lockdown"
+  ],
+  
+  "safe_mode_settings": {
+    "system": {
+      "mode": "safe",
+      "debug_mode": false,
+      "log_level": "warn",
+      "strict_validation": true,
+      "fail_closed": true
+    },
+    
+    "security": {
+      "input_validation": {
+        "enabled": true,
+        "strictness": "maximum",
+        "block_on_suspicion": true,
+        "require_explicit_approval": true
+      },
+      
+      "output_filtering": {
+        "enabled": true,
+        "pii_detection": true,
+        "block_sensitive": true,
+        "review_all_external": true
+      },
+      
+      "rate_limiting": {
+        "enabled": true,
+        "requests_per_minute": 5,
+        "tokens_per_request": 1000,
+        "concurrent_tasks": 1
+      }
+    },
+    
+    "permissions": {
+      "default_level": "read",
+      "external_communication": "blocked",
+      "file_write": "blocked",
+      "code_execution": "blocked",
+      "api_calls": "blocked",
+      "memory_write": "restricted"
+    }
+  },
+  
+  "agent_safe_defaults": {
+    "enabled_agents": [
+      "arbiter",
+      "overseer",
+      "guardian"
+    ],
+    
+    "disabled_in_safe_mode": [
+      "research",
+      "marketing",
+      "sales",
+      "content",
+      "seo",
+      "build",
+      "development",
+      "client_comms"
+    ],
+    
+    "restricted_agents": {
+      "strategy": {
+        "can_analyze": true,
+        "can_recommend": true,
+        "can_execute": false
+      },
+      "pipeline": {
+        "can_read": true,
+        "can_write": false
+      },
+      "learning": {
+        "can_read": true,
+        "can_write": false,
+        "can_update_playbooks": false
+      }
+    }
+  },
+  
+  "communication_safe_defaults": {
+    "external_communication": {
+      "email": "blocked",
+      "api_calls": "blocked",
+      "web_requests": "blocked",
+      "file_uploads": "blocked"
+    },
+    
+    "internal_communication": {
+      "agent_to_agent": "allowed",
+      "logging": "allowed",
+      "alerts_to_operator": "allowed"
+    },
+    
+    "responses": {
+      "max_length": 500,
+      "no_code_generation": true,
+      "no_file_creation": true,
+      "acknowledgment_only": true
+    }
+  },
+  
+  "memory_safe_defaults": {
+    "read_access": "restricted",
+    "write_access": "blocked",
+    "trust_threshold": 0.9,
+    "quarantine_suspicious": true,
+    "snapshot_before_changes": true,
+    
+    "accessible_memory_types": [
+      "constitutional_principles",
+      "operator_profile",
+      "security_policies"
+    ],
+    
+    "blocked_memory_types": [
+      "patterns",
+      "playbooks",
+      "client_data",
+      "project_records"
+    ]
+  },
+  
+  "capacity_safe_defaults": {
+    "budget": {
+      "daily_limit_usd": 1.00,
+      "monthly_limit_usd": 10.00,
+      "per_request_limit_usd": 0.10
+    },
+    
+    "tokens": {
+      "max_input": 2000,
+      "max_output": 500,
+      "max_context": 4000
+    },
+    
+    "operations": {
+      "max_tool_calls": 3,
+      "max_iterations": 2,
+      "timeout_seconds": 30
+    }
+  },
+  
+  "tool_safe_defaults": {
+    "allowed_tools": [
+      "read_memory",
+      "log_event",
+      "send_alert"
+    ],
+    
+    "blocked_tools": [
+      "write_file",
+      "delete_file",
+      "execute_code",
+      "send_email",
+      "api_call",
+      "web_fetch",
+      "database_write"
+    ],
+    
+    "restricted_tools": {
+      "web_search": {
+        "allowed": true,
+        "rate_limit": "1_per_minute",
+        "safe_search": true
+      },
+      "read_file": {
+        "allowed": true,
+        "paths": ["CONFIG", "DOCS"],
+        "exclude_sensitive": true
+      }
+    }
+  },
+  
+  "response_templates": {
+    "safe_mode_active": "I'm currently operating in safe mode with restricted capabilities. I can provide basic information and analysis, but cannot take external actions. Please contact the operator if full functionality is needed.",
+    
+    "action_blocked": "This action is currently blocked due to safe mode restrictions. The system is prioritizing safety. Reason: {reason}",
+    
+    "escalate_to_operator": "This request requires operator approval while in safe mode. I've logged the request for review.",
+    
+    "degraded_capability": "I have limited capabilities in the current state. I can help with: {available_capabilities}"
+  },
+  
+  "recovery_requirements": {
+    "exit_safe_mode": {
+      "requires": [
+        "operator_approval",
+        "security_scan_passed",
+        "config_validation_passed",
+        "memory_integrity_verified"
+      ],
+      "timeout_hours": 24,
+      "auto_recovery": false
+    },
+    
+    "gradual_restoration": {
+      "enabled": true,
+      "phases": [
+        {
+          "phase": 1,
+          "description": "Enable strategic agents",
+          "agents": ["strategy", "pipeline", "learning"],
+          "wait_hours": 1
+        },
+        {
+          "phase": 2,
+          "description": "Enable read operations",
+          "permissions": ["file_read", "web_search"],
+          "wait_hours": 2
+        },
+        {
+          "phase": 3,
+          "description": "Enable execution agents",
+          "agents": ["research", "build", "development"],
+          "wait_hours": 4
+        },
+        {
+          "phase": 4,
+          "description": "Enable external communication",
+          "agents": ["marketing", "sales", "client_comms"],
+          "permissions": ["email", "api_calls"],
+          "wait_hours": 8
+        }
+      ]
+    }
+  },
+  
+  "fallback_behaviors": {
+    "on_config_missing": "use_safe_defaults",
+    "on_permission_unclear": "deny",
+    "on_memory_conflict": "use_older_trusted",
+    "on_agent_unavailable": "escalate_to_overseer",
+    "on_tool_failure": "log_and_skip",
+    "on_budget_exceeded": "block_all_paid",
+    "on_unknown_request": "request_clarification"
+  },
+  
+  "audit_in_safe_mode": {
+    "log_all_requests": true,
+    "log_all_decisions": true,
+    "log_all_blocked_actions": true,
+    "detailed_reasoning": true,
+    "operator_notification": "immediate"
+  }
+}
