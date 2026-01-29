@@ -221,32 +221,131 @@ export class PushoverClient {
    * Send a status notification
    */
   async sendStatus(status: 'online' | 'offline' | 'error', details?: string): Promise<boolean> {
-    const messages = {
-      online: 'ARI is online and operational',
-      offline: 'ARI is offline',
-      error: 'ARI encountered an error',
+    const statusConfig = {
+      online: { icon: '✓', sound: 'cosmic', priority: 0 as const },
+      offline: { icon: '○', sound: 'falling', priority: 0 as const },
+      error: { icon: '✗', sound: 'siren', priority: 1 as const },
     };
 
-    return this.send(
-      details ? `${messages[status]}: ${details}` : messages[status],
-      {
-        title: `ARI: ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-        priority: status === 'error' ? 1 : 0,
-        sound: status === 'error' ? 'siren' : 'cosmic',
-      }
-    );
+    const { icon, sound, priority } = statusConfig[status];
+    const message = details || `System is ${status}.`;
+
+    return this.send(message, {
+      title: `${icon} ARI ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+      priority,
+      sound,
+    });
   }
 
   /**
    * Send task completion notification
    */
   async sendTaskComplete(taskId: string, success: boolean, summary: string): Promise<boolean> {
+    const icon = success ? '✓' : '✗';
+    const word = success ? 'Done' : 'Failed';
+
+    return this.send(summary.slice(0, 500), {
+      title: `${icon} ${word}`,
+      priority: success ? 0 : 1,
+    });
+  }
+
+  /**
+   * Send daily audit summary
+   */
+  async sendDailyAudit(audit: {
+    tasksCompleted: number;
+    tasksFailed: number;
+    estimatedCost: number;
+    highlights: string[];
+    issues: string[];
+  }): Promise<boolean> {
+    const lines: string[] = [];
+
+    // Stats line
+    lines.push(`✓ ${audit.tasksCompleted} done  ✗ ${audit.tasksFailed} failed  ◈ $${audit.estimatedCost.toFixed(2)}`);
+
+    // Highlights
+    if (audit.highlights.length > 0) {
+      lines.push('');
+      audit.highlights.slice(0, 3).forEach(h => {
+        lines.push(`▸ ${h}`);
+      });
+    }
+
+    // Issues
+    if (audit.issues.length > 0) {
+      lines.push('');
+      audit.issues.slice(0, 2).forEach(i => {
+        lines.push(`⚠ ${i}`);
+      });
+    }
+
+    return this.send(lines.join('\n'), {
+      title: '▫ Daily Report',
+      priority: audit.issues.length > 0 ? 0 : -1,
+    });
+  }
+
+  /**
+   * Send batched summary
+   */
+  async sendBatchedSummary(items: { type: string; title: string }[]): Promise<boolean> {
+    if (items.length === 0) return true;
+
+    const lines: string[] = [];
+    lines.push(`${items.length} updates:`);
+    lines.push('');
+
+    items.slice(0, 5).forEach(item => {
+      lines.push(`▸ ${item.title}`);
+    });
+
+    if (items.length > 5) {
+      lines.push(`... +${items.length - 5} more`);
+    }
+
+    return this.send(lines.join('\n'), {
+      title: '▫ Summary',
+      priority: -1,
+    });
+  }
+
+  /**
+   * Send cost alert
+   */
+  async sendCostAlert(spent: number, limit: number, daysRemaining: number): Promise<boolean> {
+    const percent = Math.round((spent / limit) * 100);
+    const bar = '▓'.repeat(Math.round(percent / 10)) + '░'.repeat(10 - Math.round(percent / 10));
+
     return this.send(
-      `Task ${taskId.slice(0, 8)}: ${success ? 'Completed' : 'Failed'}\n${summary.slice(0, 500)}`,
+      `${bar} ${percent}%\n\n$${spent.toFixed(2)} / $${limit.toFixed(2)}\n${daysRemaining} days left`,
       {
-        title: success ? 'ARI: Task Done' : 'ARI: Task Failed',
-        priority: success ? 0 : 1,
+        title: '◈ Budget',
+        priority: percent >= 90 ? 1 : 0,
       }
     );
+  }
+
+  /**
+   * Send opportunity alert
+   */
+  async sendOpportunity(title: string, description: string, urgency: 'low' | 'medium' | 'high'): Promise<boolean> {
+    const indicator = urgency === 'high' ? '▲▲▲' : urgency === 'medium' ? '▲▲' : '▲';
+
+    return this.send(description, {
+      title: `◇ ${title} ${indicator}`,
+      priority: urgency === 'high' ? 1 : 0,
+    });
+  }
+
+  /**
+   * Send insight
+   */
+  async sendInsight(domain: string, insight: string): Promise<boolean> {
+    return this.send(insight, {
+      title: `◇ ${domain.charAt(0).toUpperCase() + domain.slice(1)}`,
+      priority: -1,
+    });
   }
 }

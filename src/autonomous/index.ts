@@ -13,3 +13,4 @@ export * from './knowledge-sources.js';
 export * from './knowledge-fetcher.js';
 export * from './daily-audit.js';
 export * from './alert-system.js';
+export * from './message-formatter.js';
