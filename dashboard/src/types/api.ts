@@ -1,7 +1,7 @@
 // API Response Types for ARI Dashboard
 // These types mirror the backend API responses but are defined locally
 
-export type TrustLevel = 'SYSTEM' | 'TRUSTED' | 'UNTRUSTED';
+export type TrustLevel = 'SYSTEM' | 'OPERATOR' | 'VERIFIED' | 'STANDARD' | 'TRUSTED' | 'UNTRUSTED' | 'HOSTILE';
 export type MemoryType = 'FACT' | 'TASK' | 'GOAL' | 'INTERACTION';
 export type MemoryPartition = 'PUBLIC' | 'PRIVATE' | 'QUARANTINE';
 export type AgentType = 'GUARDIAN' | 'PLANNER' | 'EXECUTOR' | 'MEMORY_MANAGER' | 'CORE';
@@ -112,6 +112,7 @@ export interface MemoryEntry {
   timestamp: string;
   trustLevel: TrustLevel;
   source: string;
+  confidence?: number;
   provenance: {
     chain: string[];
     verifiedAt: string;

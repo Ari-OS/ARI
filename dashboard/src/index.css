@@ -6,16 +6,271 @@
   box-sizing: border-box;
 }
 
+:root {
+  --ari-purple: #8b5cf6;
+  --ari-purple-light: #a78bfa;
+  --ari-purple-dark: #6d28d9;
+  --ari-green: #10b981;
+  --ari-red: #ef4444;
+  --ari-yellow: #f59e0b;
+  --ari-blue: #3b82f6;
+  --ari-cyan: #06b6d4;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #030712;
 }
 
 code,
-pre {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code',
+pre,
+.font-mono {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code',
     'Fira Mono', 'Roboto Mono', monospace;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111827;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
+/* Glowing effects */
+.glow-green {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+.glow-yellow {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+/* Pulse animation */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Status dot animation */
+@keyframes status-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.status-dot-healthy {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.2s ease-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Gradient backgrounds */
+.gradient-dark {
+  background: linear-gradient(180deg, #111827 0%, #030712 100%);
+}
+
+.gradient-card {
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(3, 7, 18, 0.9) 100%);
+}
+
+/* Hash display */
+.hash-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  word-break: break-all;
+}
+
+/* Status indicator */
+.status-indicator {
+  position: relative;
+}
+
+.status-indicator::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 150%;
+  height: 150%;
+  border-radius: 50%;
+  opacity: 0.3;
+}
+
+.status-indicator.healthy::before {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, transparent 70%);
+}
+
+.status-indicator.warning::before {
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 70%);
+}
+
+.status-indicator.error::before {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.4) 0%, transparent 70%);
+}
+
+/* Audit chain visualization */
+.chain-link {
+  position: relative;
+}
+
+.chain-link::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -12px;
+  width: 2px;
+  height: 12px;
+  background: linear-gradient(180deg, transparent 0%, #374151 100%);
+}
+
+.chain-link:first-child::before {
+  display: none;
+}
+
+/* Number animations */
+@keyframes count-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-count {
+  animation: count-up 0.3s ease-out forwards;
+}
+
+/* Grid pattern background */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(55, 65, 81, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(55, 65, 81, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Agent status cards */
+.agent-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.agent-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.agent-card.active::after {
+  background: linear-gradient(180deg, var(--ari-green) 0%, transparent 100%);
+}
+
+.agent-card.idle::after {
+  background: linear-gradient(180deg, var(--ari-yellow) 0%, transparent 100%);
+}
+
+.agent-card.error::after {
+  background: linear-gradient(180deg, var(--ari-red) 0%, transparent 100%);
+}
+
+/* Table styles */
+.data-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.data-table th {
+  background: rgba(17, 24, 39, 0.8);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--ari-purple);
+  outline-offset: 2px;
+}
+
+/* Transitions */
+.transition-smooth {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(55, 65, 81, 0.3) 0%,
+    rgba(75, 85, 99, 0.5) 50%,
+    rgba(55, 65, 81, 0.3) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
