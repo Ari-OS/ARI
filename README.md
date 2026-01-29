@@ -261,4 +261,8 @@ npm run lint               # ESLint
 
 [GitHub](https://github.com/Ari-OS/ARI) · [Documentation](docs/) · [Issues](https://github.com/Ari-OS/ARI/issues)
 
+---
+
+🖤💜 Built by **Pryce**
+
 </div>
