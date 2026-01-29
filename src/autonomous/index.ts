@@ -11,3 +11,7 @@ export * from './claude-client.js';
 export * from './agent.js';
 export * from './knowledge-sources.js';
 export * from './knowledge-fetcher.js';
+
+// Domains coming in next release
+// export * from './domains/index.js';
+// export * from './notification-council.js';
