@@ -43,7 +43,10 @@ describe('API Routes', () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
-      expect(body.message).toBe('Core not initialized');
+      // New format returns dashboard-compatible detailed health
+      expect(body.gateway).toBeDefined();
+      expect(body.gateway.status).toBe('healthy');
+      expect(body.agents.activeCount).toBe(0);
     });
 
     it('should return detailed health with core status', async () => {
@@ -67,8 +70,10 @@ describe('API Routes', () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
-      expect(body.status).toBe('healthy');
-      expect(body.components).toBeDefined();
+      // New format returns dashboard-compatible detailed health
+      expect(body.gateway.status).toBe('healthy');
+      expect(body.agents.status).toBe('healthy');
+      expect(body.agents.activeCount).toBe(1);
     });
   });
 

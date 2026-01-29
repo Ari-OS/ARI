@@ -127,10 +127,8 @@ export class AutonomousAgent {
 
     await this.saveState();
 
-    // Notify startup
-    if (this.pushover) {
-      await this.pushover.sendStatus('online', 'Autonomous agent started');
-    }
+    // No notification on startup - saves tokens and reduces noise
+    // Only notify on errors or important events
 
     // Start polling loop
     void this.poll();
@@ -155,9 +153,7 @@ export class AutonomousAgent {
 
     await this.saveState();
 
-    if (this.pushover) {
-      await this.pushover.sendStatus('offline', 'Autonomous agent stopped');
-    }
+    // No notification on shutdown - saves tokens and reduces noise
 
     this.eventBus.emit('agent:stopped', {
       agent: 'autonomous',
