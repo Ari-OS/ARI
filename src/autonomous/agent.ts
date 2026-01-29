@@ -15,6 +15,9 @@ import { TaskQueue, taskQueue } from './task-queue.js';
 import { PushoverClient } from './pushover-client.js';
 import { ClaudeClient } from './claude-client.js';
 import { AutonomousConfig, Task, PushoverMessage } from './types.js';
+import { notificationManager } from './notification-manager.js';
+import { auditReporter } from './audit-reporter.js';
+import { dailyAudit } from './daily-audit.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -90,6 +93,9 @@ export class AutonomousAgent {
         deviceId: this.config.pushover.deviceId,
         secret: this.config.pushover.secret,
       });
+
+      // Initialize notification manager with Pushover
+      notificationManager.init(this.pushover);
     }
 
     // Initialize Claude if configured
@@ -177,6 +183,18 @@ export class AutonomousAgent {
       // Process pending tasks
       await this.processNextTask();
 
+      // Check thresholds (cost, errors, etc.) - runs every poll but has internal cooldowns
+      await auditReporter.checkThresholds();
+
+      // Check if daily report should be sent (8am or 9pm)
+      await auditReporter.maybeSendDailyReport();
+
+      // Send batched notifications if it's morning (8am)
+      const hour = new Date().getHours();
+      if (hour === 8 && notificationManager.getBatchCount() > 0) {
+        await notificationManager.sendBatchSummary();
+      }
+
       // Periodic cleanup
       if (Math.random() < 0.01) { // ~1% chance each poll
         await this.queue.cleanup(24);
@@ -188,9 +206,9 @@ export class AutonomousAgent {
       // eslint-disable-next-line no-console
       console.error('Poll error:', error);
 
-      // Notify on repeated errors
-      if (this.state.errors % 10 === 0 && this.pushover) {
-        await this.pushover.sendStatus('error', `${this.state.errors} errors`);
+      // Use notification manager for errors
+      if (this.state.errors % 10 === 0) {
+        await notificationManager.error('Agent Errors', `${this.state.errors} errors accumulated`);
       }
     }
 
@@ -251,6 +269,14 @@ export class AutonomousAgent {
 
     await this.queue.updateStatus(task.id, 'processing');
 
+    // Log task start to daily audit
+    await dailyAudit.logActivity(
+      'task_completed',
+      `Processing: ${task.content.slice(0, 50)}`,
+      task.content,
+      { outcome: 'pending' }
+    );
+
     try {
       if (!this.claude) {
         throw new Error('Claude API not configured');
@@ -263,13 +289,11 @@ export class AutonomousAgent {
       if (command.requiresConfirmation && this.config.security?.requireConfirmation) {
         // For now, auto-confirm queries, require manual confirm for executes
         if (command.type !== 'query' && command.type !== 'status' && command.type !== 'help') {
-          // Send confirmation request
-          if (this.pushover) {
-            await this.pushover.send(
-              `Confirm: ${command.content.slice(0, 200)}`,
-              { title: 'ARI: Confirm?', priority: 1 }
-            );
-          }
+          // Use notification manager for confirmation request
+          await notificationManager.question(
+            `Confirm action: ${command.content.slice(0, 200)}`,
+            ['Yes, proceed', 'No, cancel']
+          );
           // Mark as pending confirmation
           await this.queue.updateStatus(task.id, 'pending', 'Awaiting confirmation');
           return;
@@ -287,11 +311,24 @@ export class AutonomousAgent {
         response.success ? undefined : response.message
       );
 
-      // Notify completion
-      if (this.pushover) {
-        const summary = await this.claude.summarize(response.message, 400);
-        await this.pushover.sendTaskComplete(task.id, response.success, summary);
-      }
+      // Log to audit
+      await dailyAudit.logActivity(
+        response.success ? 'task_completed' : 'task_failed',
+        task.content.slice(0, 50),
+        response.message,
+        { outcome: response.success ? 'success' : 'failure' }
+      );
+
+      // Record task in session
+      dailyAudit.recordSessionTask();
+
+      // Notify completion using notification manager (it will decide if/when to send)
+      const summary = await this.claude.summarize(response.message, 400);
+      await notificationManager.taskComplete(
+        task.content.slice(0, 30),
+        response.success,
+        summary
+      );
 
       this.state.tasksProcessed++;
       await this.saveState();
@@ -301,12 +338,16 @@ export class AutonomousAgent {
 
       await this.queue.updateStatus(task.id, 'failed', undefined, errorMsg);
 
-      if (this.pushover) {
-        await this.pushover.send(
-          `Task failed: ${errorMsg.slice(0, 200)}`,
-          { title: 'ARI: Error', priority: 1 }
-        );
-      }
+      // Log error to audit
+      await dailyAudit.logActivity(
+        'error_occurred',
+        'Task Processing Error',
+        errorMsg,
+        { outcome: 'failure', details: { taskId: task.id } }
+      );
+
+      // Use notification manager for errors
+      await notificationManager.error('Task Failed', errorMsg.slice(0, 200));
 
       this.state.errors++;
       await this.saveState();

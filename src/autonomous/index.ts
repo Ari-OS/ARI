@@ -14,3 +14,5 @@ export * from './knowledge-fetcher.js';
 export * from './daily-audit.js';
 export * from './alert-system.js';
 export * from './message-formatter.js';
+export * from './notification-manager.js';
+export * from './audit-reporter.js';
