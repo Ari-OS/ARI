@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/ari-avatar.svg" alt="ARI" width="200" />
+<img src="docs/assets/aripfp.jpg" alt="ARI" width="200" />
 
 # ARI
 
