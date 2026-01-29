@@ -263,6 +263,6 @@ npm run lint               # ESLint
 
 ---
 
-Built with 🖤 by **Pryce**
+`>_ Pryce × ARI`
 
 </div>
