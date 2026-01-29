@@ -4,20 +4,23 @@ import {
   getGovernanceRules,
   getQualityGates,
 } from '../api/client';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorState } from '../components/ui/ErrorState';
+import { CardSkeleton, ProposalCardSkeleton } from '../components/ui/Skeleton';
 
 export function Governance() {
-  const { data: proposals, isLoading: proposalsLoading } = useQuery({
+  const { data: proposals, isLoading: proposalsLoading, isError: proposalsError, refetch: refetchProposals } = useQuery({
     queryKey: ['proposals'],
     queryFn: getProposals,
     refetchInterval: 15000,
   });
 
-  const { data: rules, isLoading: rulesLoading } = useQuery({
+  const { data: rules, isLoading: rulesLoading, isError: rulesError, refetch: refetchRules } = useQuery({
     queryKey: ['governance', 'rules'],
     queryFn: getGovernanceRules,
   });
 
-  const { data: gates, isLoading: gatesLoading } = useQuery({
+  const { data: gates, isLoading: gatesLoading, isError: gatesError, refetch: refetchGates } = useQuery({
     queryKey: ['governance', 'gates'],
     queryFn: getQualityGates,
   });
@@ -29,15 +32,36 @@ export function Governance() {
       {/* Proposals */}
       <section className="mb-8">
         <h2 className="mb-4 text-xl font-semibold">Active Proposals</h2>
-        {proposalsLoading ? (
-          <div className="text-gray-400">Loading proposals...</div>
-        ) : !proposals || proposals.length === 0 ? (
-          <div className="rounded border border-gray-700 bg-gray-800 p-6 text-center text-gray-400">
-            No active proposals
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {proposals.map((proposal) => (
+        {(() => {
+          const safeProposals = Array.isArray(proposals) ? proposals : [];
+
+          if (proposalsLoading) {
+            return (
+              <div className="space-y-4">
+                {[1, 2].map((i) => (
+                  <ProposalCardSkeleton key={i} />
+                ))}
+              </div>
+            );
+          }
+
+          if (proposalsError) {
+            return (
+              <ErrorState
+                title="Failed to load proposals"
+                message="Could not retrieve proposals. Please try again."
+                onRetry={() => refetchProposals()}
+              />
+            );
+          }
+
+          if (safeProposals.length === 0) {
+            return <EmptyState title="No active proposals" message="There are no proposals awaiting review" icon="○" />;
+          }
+
+          return (
+            <div className="space-y-4">
+              {safeProposals.map((proposal) => (
               <div
                 key={proposal.id}
                 className="rounded-lg border border-gray-700 bg-gray-800 p-6"
@@ -96,7 +120,7 @@ export function Governance() {
                   </div>
                 </div>
 
-                <div className="flex justify-between font-mono text-xs text-gray-500">
+                <div className="flex justify-between font-mono text-xs text-gray-400">
                   <span>
                     Created: {new Date(proposal.createdAt).toLocaleString()}
                   </span>
@@ -106,18 +130,44 @@ export function Governance() {
                 </div>
               </div>
             ))}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </section>
 
       {/* Constitutional Rules */}
       <section className="mb-8">
         <h2 className="mb-4 text-xl font-semibold">Constitutional Rules</h2>
-        {rulesLoading ? (
-          <div className="text-gray-400">Loading rules...</div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {rules?.map((rule) => (
+        {(() => {
+          const safeRules = Array.isArray(rules) ? rules : [];
+
+          if (rulesLoading) {
+            return (
+              <div className="grid gap-4 md:grid-cols-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <CardSkeleton key={i} />
+                ))}
+              </div>
+            );
+          }
+
+          if (rulesError) {
+            return (
+              <ErrorState
+                title="Failed to load rules"
+                message="Could not retrieve constitutional rules. Please try again."
+                onRetry={() => refetchRules()}
+              />
+            );
+          }
+
+          if (safeRules.length === 0) {
+            return <EmptyState title="No rules defined" message="No constitutional rules have been configured" icon="○" />;
+          }
+
+          return (
+            <div className="grid gap-4 md:grid-cols-2">
+              {safeRules.map((rule) => (
               <div
                 key={rule.id}
                 className="rounded-lg border border-gray-700 bg-gray-800 p-4"
@@ -137,23 +187,49 @@ export function Governance() {
                 <p className="mb-3 text-sm text-gray-400">
                   {rule.description}
                 </p>
-                <div className="font-mono text-xs text-gray-500">
+                <div className="font-mono text-xs text-gray-400">
                   Violations: {rule.violations}
                 </div>
               </div>
             ))}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </section>
 
       {/* Quality Gates */}
       <section>
         <h2 className="mb-4 text-xl font-semibold">Quality Gates</h2>
-        {gatesLoading ? (
-          <div className="text-gray-400">Loading gates...</div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {gates?.map((gate) => (
+        {(() => {
+          const safeGates = Array.isArray(gates) ? gates : [];
+
+          if (gatesLoading) {
+            return (
+              <div className="grid gap-4 md:grid-cols-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <CardSkeleton key={i} />
+                ))}
+              </div>
+            );
+          }
+
+          if (gatesError) {
+            return (
+              <ErrorState
+                title="Failed to load quality gates"
+                message="Could not retrieve quality gates. Please try again."
+                onRetry={() => refetchGates()}
+              />
+            );
+          }
+
+          if (safeGates.length === 0) {
+            return <EmptyState title="No quality gates" message="No quality gates have been configured" icon="○" />;
+          }
+
+          return (
+            <div className="grid gap-4 md:grid-cols-2">
+              {safeGates.map((gate) => (
               <div
                 key={gate.id}
                 className="rounded-lg border border-gray-700 bg-gray-800 p-4"
@@ -176,14 +252,15 @@ export function Governance() {
                 <div className="flex gap-4 font-mono text-xs">
                   <span className="text-green-400">Pass: {gate.passCount}</span>
                   <span className="text-red-400">Fail: {gate.failCount}</span>
-                  <span className="text-gray-500">
+                  <span className="text-gray-400">
                     Threshold: {gate.threshold}
                   </span>
                 </div>
               </div>
             ))}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </section>
     </div>
   );

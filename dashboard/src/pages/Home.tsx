@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useDetailedHealth } from '../hooks/useHealth';
 import { getAgents } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
+import { ErrorState } from '../components/ui/ErrorState';
+import { StatusCardSkeleton } from '../components/ui/Skeleton';
 
 export function Home() {
-  const { data: health, isLoading: healthLoading } = useDetailedHealth();
+  const { data: health, isLoading: healthLoading, isError: healthError, refetch: refetchHealth } = useDetailedHealth();
   const { data: agents, isLoading: agentsLoading } = useQuery({
     queryKey: ['agents'],
     queryFn: getAgents,
@@ -13,8 +15,26 @@ export function Home() {
 
   if (healthLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-gray-400">Loading system status...</div>
+      <div className="p-8">
+        <h1 className="mb-6 text-3xl font-bold">System Overview</h1>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <StatusCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (healthError) {
+    return (
+      <div className="p-8">
+        <h1 className="mb-6 text-3xl font-bold">System Overview</h1>
+        <ErrorState
+          title="Failed to load system status"
+          message="Could not retrieve health information. Please try again."
+          onRetry={() => refetchHealth()}
+        />
       </div>
     );
   }
@@ -107,7 +127,7 @@ export function Home() {
       )}
 
       {/* Agents Quick View */}
-      {!agentsLoading && agents && agents.length > 0 && (
+      {!agentsLoading && Array.isArray(agents) && agents.length > 0 && (
         <div className="rounded-lg border border-gray-700 bg-gray-800 p-6">
           <h2 className="mb-4 text-xl font-semibold">Active Agents</h2>
           <div className="space-y-3">
@@ -122,7 +142,7 @@ export function Home() {
                     {agent.type}
                   </span>
                 </div>
-                <div className="flex gap-6 font-mono text-xs text-gray-500">
+                <div className="flex gap-6 font-mono text-xs text-gray-400">
                   <span>Tasks: {agent.tasksCompleted}</span>
                   {agent.errorCount > 0 && (
                     <span className="text-red-400">

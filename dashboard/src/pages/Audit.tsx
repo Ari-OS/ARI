@@ -2,16 +2,22 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAuditLog, verifyAuditChain } from '../api/client';
 import { AuditEntry as AuditEntryComponent } from '../components/AuditEntry';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorState } from '../components/ui/ErrorState';
+import { AuditEntrySkeleton } from '../components/ui/Skeleton';
 
 export function Audit() {
   const [limit, setLimit] = useState(50);
   const [offset, setOffset] = useState(0);
 
-  const { data: entries, isLoading } = useQuery({
+  const { data: entries, isLoading, isError, refetch } = useQuery({
     queryKey: ['audit', limit, offset],
     queryFn: () => getAuditLog({ limit, offset }),
     refetchInterval: 10000,
   });
+
+  // Safe array check at top of component to use throughout
+  const safeEntries = Array.isArray(entries) ? entries : [];
 
   const { data: verification, isLoading: verifyLoading } = useQuery({
     queryKey: ['audit', 'verify'],
@@ -26,7 +32,7 @@ export function Audit() {
   };
 
   const handleNextPage = () => {
-    if (entries && entries.length === limit) {
+    if (safeEntries.length === limit) {
       setOffset(offset + limit);
     }
   };
@@ -64,13 +70,13 @@ export function Audit() {
               )}
             </div>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-4 font-mono text-xs text-gray-500">
+          <div className="mt-3 grid grid-cols-2 gap-4 font-mono text-xs text-gray-400">
             <div>
-              <span className="text-gray-400">Genesis: </span>
+              <span className="text-gray-300">Genesis: </span>
               {verification.genesisHash.slice(0, 16)}...
             </div>
             <div>
-              <span className="text-gray-400">Latest: </span>
+              <span className="text-gray-300">Latest: </span>
               {verification.lastHash.slice(0, 16)}...
             </div>
           </div>
@@ -88,7 +94,7 @@ export function Audit() {
                 setLimit(Number(e.target.value));
                 setOffset(0);
               }}
-              className="ml-2 rounded border border-gray-700 bg-gray-800 px-3 py-1 text-gray-300"
+              className="ml-2 rounded border border-gray-700 bg-gray-800 px-3 py-1 text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950"
             >
               <option value="25">25</option>
               <option value="50">50</option>
@@ -101,14 +107,14 @@ export function Audit() {
           <button
             onClick={handlePrevPage}
             disabled={offset === 0}
-            className="rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"
+            className="rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950"
           >
             Previous
           </button>
           <button
             onClick={handleNextPage}
-            disabled={!entries || entries.length < limit}
-            className="rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700"
+            disabled={safeEntries.length < limit}
+            className="rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950"
           >
             Next
           </button>
@@ -116,23 +122,43 @@ export function Audit() {
       </div>
 
       {/* Audit Entries */}
-      {isLoading ? (
-        <div className="text-gray-400">Loading audit entries...</div>
-      ) : !entries || entries.length === 0 ? (
-        <div className="rounded border border-gray-700 bg-gray-800 p-6 text-center text-gray-400">
-          No audit entries found
-        </div>
-      ) : (
-        <div className="rounded-lg border border-gray-700 bg-gray-800">
-          {entries.map((entry) => (
-            <AuditEntryComponent key={entry.id} entry={entry} />
-          ))}
-        </div>
-      )}
+      {(() => {
+        if (isLoading) {
+          return (
+            <div className="rounded-lg border border-gray-700 bg-gray-800">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <AuditEntrySkeleton key={i} />
+              ))}
+            </div>
+          );
+        }
 
-      {entries && entries.length > 0 && (
-        <div className="mt-4 text-center font-mono text-sm text-gray-500">
-          Showing {offset + 1} - {offset + entries.length}
+        if (isError) {
+          return (
+            <ErrorState
+              title="Failed to load audit log"
+              message="Could not retrieve audit entries. Please try again."
+              onRetry={() => refetch()}
+            />
+          );
+        }
+
+        if (safeEntries.length === 0) {
+          return <EmptyState title="No audit entries" message="No audit entries found" icon="○" />;
+        }
+
+        return (
+          <div className="rounded-lg border border-gray-700 bg-gray-800">
+            {safeEntries.map((entry) => (
+              <AuditEntryComponent key={entry.id} entry={entry} />
+            ))}
+          </div>
+        );
+      })()}
+
+      {safeEntries.length > 0 && (
+        <div className="mt-4 text-center font-mono text-sm text-gray-400">
+          Showing {offset + 1} - {offset + safeEntries.length}
         </div>
       )}
     </div>

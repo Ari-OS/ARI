@@ -1,22 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
 import { getTools } from '../api/client';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorState } from '../components/ui/ErrorState';
+import { ToolCardSkeleton } from '../components/ui/Skeleton';
 
 export function Tools() {
-  const { data: tools, isLoading } = useQuery({
+  const { data: tools, isLoading, isError, refetch } = useQuery({
     queryKey: ['tools'],
     queryFn: getTools,
     refetchInterval: 30000,
   });
 
-  const groupedTools = tools?.reduce(
+  const safeTools = Array.isArray(tools) ? tools : [];
+
+  const groupedTools = safeTools.reduce(
     (acc, tool) => {
-      if (!acc[tool.category]) {
-        acc[tool.category] = [];
+      const category = tool.category || 'Uncategorized';
+      if (!acc[category]) {
+        acc[category] = [];
       }
-      acc[tool.category].push(tool);
+      acc[category].push(tool);
       return acc;
     },
-    {} as Record<string, typeof tools>,
+    {} as Record<string, typeof safeTools>,
   );
 
   return (
@@ -24,14 +30,27 @@ export function Tools() {
       <h1 className="mb-6 text-3xl font-bold">Tool Registry</h1>
 
       {isLoading ? (
-        <div className="text-gray-400">Loading tools...</div>
-      ) : !tools || tools.length === 0 ? (
-        <div className="rounded border border-gray-700 bg-gray-800 p-6 text-center text-gray-400">
-          No tools registered
+        <div className="space-y-8">
+          <section>
+            <div className="mb-4 h-7 w-32 animate-pulse rounded bg-gray-700" />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <ToolCardSkeleton key={i} />
+              ))}
+            </div>
+          </section>
         </div>
+      ) : isError ? (
+        <ErrorState
+          title="Failed to load tools"
+          message="Could not retrieve tool registry. Please try again."
+          onRetry={() => refetch()}
+        />
+      ) : safeTools.length === 0 ? (
+        <EmptyState title="No tools registered" message="No tools are currently registered in the system" icon="○" />
       ) : (
         <div className="space-y-8">
-          {Object.entries(groupedTools || {}).map(([category, categoryTools]) => (
+          {Object.entries(groupedTools).map(([category, categoryTools]) => (
             <section key={category}>
               <h2 className="mb-4 text-xl font-semibold capitalize">
                 {category}
@@ -60,7 +79,7 @@ export function Tools() {
                     </p>
 
                     <div className="mb-3 flex flex-wrap gap-2">
-                      <span className="rounded bg-blue-900/50 px-2 py-1 text-xs text-blue-300">
+                      <span className="rounded bg-purple-900/50 px-2 py-1 text-xs text-purple-300">
                         {tool.trustLevel}
                       </span>
                       <span
@@ -88,7 +107,7 @@ export function Tools() {
                     </div>
 
                     {tool.lastUsed && (
-                      <div className="mt-2 font-mono text-xs text-gray-500">
+                      <div className="mt-2 font-mono text-xs text-gray-400">
                         Last used: {new Date(tool.lastUsed).toLocaleString()}
                       </div>
                     )}

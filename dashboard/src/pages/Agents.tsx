@@ -1,27 +1,40 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAgents, getAgentStats } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ErrorState } from '../components/ui/ErrorState';
+import { AgentCardSkeleton } from '../components/ui/Skeleton';
 
 export function Agents() {
-  const { data: agents, isLoading } = useQuery({
+  const { data: agents, isLoading, isError, refetch } = useQuery({
     queryKey: ['agents'],
     queryFn: getAgents,
     refetchInterval: 10000,
   });
+
+  const safeAgents = Array.isArray(agents) ? agents : [];
 
   return (
     <div className="p-8">
       <h1 className="mb-6 text-3xl font-bold">Agent Status</h1>
 
       {isLoading ? (
-        <div className="text-gray-400">Loading agents...</div>
-      ) : !agents || agents.length === 0 ? (
-        <div className="rounded border border-gray-700 bg-gray-800 p-6 text-center text-gray-400">
-          No agents found
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <AgentCardSkeleton key={i} />
+          ))}
         </div>
+      ) : isError ? (
+        <ErrorState
+          title="Failed to load agents"
+          message="Could not retrieve agent status. Please try again."
+          onRetry={() => refetch()}
+        />
+      ) : safeAgents.length === 0 ? (
+        <EmptyState title="No agents found" message="No agents are currently registered" icon="○" />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {agents.map((agent) => (
+          {safeAgents.map((agent) => (
             <AgentCard key={agent.id} agentId={agent.id} />
           ))}
         </div>
@@ -38,20 +51,20 @@ function AgentCard({ agentId }: { agentId: string }) {
   });
 
   if (isLoading || !stats) {
-    return (
-      <div className="rounded-lg border border-gray-700 bg-gray-800 p-6">
-        <div className="text-gray-400">Loading...</div>
-      </div>
-    );
+    return <AgentCardSkeleton />;
   }
 
+  // Safe defaults for all stats properties to prevent crashes
+  const tasksCompleted = stats.tasksCompleted ?? 0;
+  const tasksFailed = stats.tasksFailed ?? 0;
+  const tasksInProgress = stats.tasksInProgress ?? 0;
+  const averageTaskDuration = stats.averageTaskDuration ?? 0;
+  const uptime = stats.uptime ?? 0;
+  const lastActive = stats.lastActive ?? new Date().toISOString();
+
   const successRate =
-    stats.tasksCompleted + stats.tasksFailed > 0
-      ? (
-          (stats.tasksCompleted /
-            (stats.tasksCompleted + stats.tasksFailed)) *
-          100
-        ).toFixed(1)
+    tasksCompleted + tasksFailed > 0
+      ? ((tasksCompleted / (tasksCompleted + tasksFailed)) * 100).toFixed(1)
       : '0';
 
   return (
@@ -59,13 +72,13 @@ function AgentCard({ agentId }: { agentId: string }) {
       <div className="mb-4 flex items-start justify-between">
         <div>
           <h3 className="text-lg font-semibold text-white">{stats.type}</h3>
-          <p className="mt-1 font-mono text-xs text-gray-500">{stats.agentId}</p>
+          <p className="mt-1 font-mono text-xs text-gray-400">{stats.agentId}</p>
         </div>
         <StatusBadge
           status={
-            stats.tasksInProgress > 0
+            tasksInProgress > 0
               ? 'active'
-              : stats.uptime > 0
+              : uptime > 0
                 ? 'idle'
                 : 'stopped'
           }
@@ -90,31 +103,31 @@ function AgentCard({ agentId }: { agentId: string }) {
         <div className="grid grid-cols-2 gap-3 font-mono text-sm">
           <div>
             <div className="text-gray-400">Completed</div>
-            <div className="text-green-400">{stats.tasksCompleted}</div>
+            <div className="text-green-400">{tasksCompleted}</div>
           </div>
           <div>
             <div className="text-gray-400">In Progress</div>
-            <div className="text-yellow-400">{stats.tasksInProgress}</div>
+            <div className="text-yellow-400">{tasksInProgress}</div>
           </div>
           <div>
             <div className="text-gray-400">Failed</div>
-            <div className="text-red-400">{stats.tasksFailed}</div>
+            <div className="text-red-400">{tasksFailed}</div>
           </div>
           <div>
             <div className="text-gray-400">Avg Duration</div>
             <div className="text-gray-300">
-              {stats.averageTaskDuration.toFixed(0)}ms
+              {averageTaskDuration.toFixed(0)}ms
             </div>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-gray-700 pt-3 font-mono text-xs text-gray-500">
+      <div className="border-t border-gray-700 pt-3 font-mono text-xs text-gray-400">
         <div className="mb-1">
-          Last active: {new Date(stats.lastActive).toLocaleString()}
+          Last active: {new Date(lastActive).toLocaleString()}
         </div>
         <div>
-          Uptime: {Math.floor(stats.uptime / 1000)}s
+          Uptime: {Math.floor(uptime / 1000)}s
         </div>
       </div>
     </div>
