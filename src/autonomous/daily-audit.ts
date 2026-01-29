@@ -27,7 +27,10 @@ export type ActivityType =
   | 'user_interaction'
   | 'system_event'
   | 'council_vote'
-  | 'threshold_alert';
+  | 'threshold_alert'
+  | 'session_started'
+  | 'session_ended'
+  | 'api_call';
 
 // Single activity entry
 export interface ActivityEntry {
@@ -41,6 +44,19 @@ export interface ActivityEntry {
   outcome: 'success' | 'failure' | 'pending' | 'skipped';
   tokensUsed?: number;
   costEstimate?: number;
+}
+
+// Session tracking for Claude Max
+export interface SessionEntry {
+  id: string;
+  startedAt: string;
+  endedAt?: string;
+  durationMinutes?: number;
+  tasksCompleted: number;
+  tokensUsed: number;
+  type: 'api' | 'claude_max';
+  efficiency?: number; // tasks per hour
+  notes?: string;
 }
 
 // Daily audit report
@@ -59,11 +75,26 @@ export interface DailyAudit {
     insightsGenerated: number;
     estimatedCost: number;
     tokensUsed: number;
+    // Session tracking
+    apiCalls: number;
+    apiTokensUsed: number;
+    apiCost: number;
+    claudeMaxSessions: number;
+    claudeMaxMinutes: number;
+    claudeMaxTasksCompleted: number;
   };
   activities: ActivityEntry[];
+  sessions: SessionEntry[];
   highlights: string[];
   issues: string[];
   recommendations: string[];
+  // Efficiency learning
+  efficiency: {
+    tasksPerApiDollar: number;
+    tasksPerSessionHour: number;
+    avgTokensPerTask: number;
+    preferredWorkType: 'api' | 'claude_max' | 'balanced';
+  };
 }
 
 // Threshold configuration for notifications
@@ -138,6 +169,8 @@ export const DEFAULT_THRESHOLDS: ThresholdConfig[] = [
  */
 export class DailyAuditSystem {
   private activities: ActivityEntry[] = [];
+  private sessions: SessionEntry[] = [];
+  private activeSession: SessionEntry | null = null;
   private thresholds: ThresholdConfig[] = [...DEFAULT_THRESHOLDS];
   private metrics: Map<string, number> = new Map();
   private todayDate: string;
@@ -163,9 +196,23 @@ export class DailyAuditSystem {
       const data = await fs.readFile(filepath, 'utf-8');
       const audit = JSON.parse(data) as DailyAudit;
       this.activities = audit.activities;
+      this.sessions = audit.sessions || [];
+
+      // Restore metrics from activities
+      for (const activity of this.activities) {
+        if (activity.costEstimate) {
+          const currentCost = this.metrics.get('daily_cost') || 0;
+          this.metrics.set('daily_cost', currentCost + activity.costEstimate);
+        }
+        if (activity.tokensUsed) {
+          const currentTokens = this.metrics.get('daily_tokens') || 0;
+          this.metrics.set('daily_tokens', currentTokens + activity.tokensUsed);
+        }
+      }
     } catch {
       // No existing audit for today
       this.activities = [];
+      this.sessions = [];
     }
   }
 
@@ -209,6 +256,226 @@ export class DailyAuditSystem {
     await this.saveActivities();
 
     return entry;
+  }
+
+  /**
+   * Start a new session (API or Claude Max)
+   */
+  async startSession(type: 'api' | 'claude_max', notes?: string): Promise<string> {
+    // End any existing session first
+    if (this.activeSession) {
+      await this.endSession();
+    }
+
+    const session: SessionEntry = {
+      id: crypto.randomUUID(),
+      startedAt: new Date().toISOString(),
+      tasksCompleted: 0,
+      tokensUsed: 0,
+      type,
+      notes,
+    };
+
+    this.activeSession = session;
+    this.sessions.push(session);
+
+    // Log the session start
+    await this.logActivity(
+      'session_started',
+      `${type === 'claude_max' ? 'Claude Max' : 'API'} Session Started`,
+      notes || `Started ${type} session`,
+      { details: { sessionId: session.id, type } }
+    );
+
+    // Update metrics
+    if (type === 'claude_max') {
+      const count = this.metrics.get('claude_max_sessions') || 0;
+      this.metrics.set('claude_max_sessions', count + 1);
+    }
+
+    return session.id;
+  }
+
+  /**
+   * End the current session
+   */
+  async endSession(notes?: string): Promise<SessionEntry | null> {
+    if (!this.activeSession) return null;
+
+    const session = this.activeSession;
+    session.endedAt = new Date().toISOString();
+
+    // Calculate duration
+    const startTime = new Date(session.startedAt).getTime();
+    const endTime = new Date(session.endedAt).getTime();
+    session.durationMinutes = Math.round((endTime - startTime) / 60000);
+
+    // Calculate efficiency (tasks per hour)
+    if (session.durationMinutes > 0) {
+      session.efficiency = (session.tasksCompleted / session.durationMinutes) * 60;
+    }
+
+    if (notes) {
+      session.notes = (session.notes || '') + ' | ' + notes;
+    }
+
+    // Update metrics
+    if (session.type === 'claude_max') {
+      const minutes = this.metrics.get('claude_max_minutes') || 0;
+      this.metrics.set('claude_max_minutes', minutes + session.durationMinutes);
+
+      const tasks = this.metrics.get('claude_max_tasks') || 0;
+      this.metrics.set('claude_max_tasks', tasks + session.tasksCompleted);
+    }
+
+    // Log the session end
+    await this.logActivity(
+      'session_ended',
+      `${session.type === 'claude_max' ? 'Claude Max' : 'API'} Session Ended`,
+      `Duration: ${session.durationMinutes}min, Tasks: ${session.tasksCompleted}, Efficiency: ${session.efficiency?.toFixed(2) || 'N/A'} tasks/hr`,
+      {
+        details: {
+          sessionId: session.id,
+          type: session.type,
+          durationMinutes: session.durationMinutes,
+          tasksCompleted: session.tasksCompleted,
+          tokensUsed: session.tokensUsed,
+          efficiency: session.efficiency,
+        },
+      }
+    );
+
+    this.activeSession = null;
+    await this.saveActivities();
+
+    return session;
+  }
+
+  /**
+   * Log an API call
+   */
+  async logApiCall(
+    model: string,
+    inputTokens: number,
+    outputTokens: number,
+    costEstimate: number,
+    purpose?: string
+  ): Promise<void> {
+    const totalTokens = inputTokens + outputTokens;
+
+    await this.logActivity(
+      'api_call',
+      `API Call: ${model}`,
+      purpose || `${inputTokens} in / ${outputTokens} out`,
+      {
+        tokensUsed: totalTokens,
+        costEstimate,
+        details: {
+          model,
+          inputTokens,
+          outputTokens,
+          purpose,
+        },
+      }
+    );
+
+    // Update API-specific metrics
+    const apiCalls = this.metrics.get('api_calls') || 0;
+    this.metrics.set('api_calls', apiCalls + 1);
+
+    const apiTokens = this.metrics.get('api_tokens') || 0;
+    this.metrics.set('api_tokens', apiTokens + totalTokens);
+
+    const apiCost = this.metrics.get('api_cost') || 0;
+    this.metrics.set('api_cost', apiCost + costEstimate);
+  }
+
+  /**
+   * Record task completion in active session
+   */
+  recordSessionTask(): void {
+    if (this.activeSession) {
+      this.activeSession.tasksCompleted++;
+    }
+  }
+
+  /**
+   * Record tokens used in active session
+   */
+  recordSessionTokens(tokens: number): void {
+    if (this.activeSession) {
+      this.activeSession.tokensUsed += tokens;
+    }
+  }
+
+  /**
+   * Get efficiency metrics for learning
+   */
+  getEfficiencyMetrics(): {
+    tasksPerApiDollar: number;
+    tasksPerSessionHour: number;
+    avgTokensPerTask: number;
+    preferredWorkType: 'api' | 'claude_max' | 'balanced';
+  } {
+    const apiCost = this.metrics.get('api_cost') || 0;
+    const apiTasks = this.activities.filter(
+      a => a.type === 'task_completed' && !this.isSessionTask(a)
+    ).length;
+
+    const sessionMinutes = this.metrics.get('claude_max_minutes') || 0;
+    const sessionTasks = this.metrics.get('claude_max_tasks') || 0;
+
+    const totalTokens = this.metrics.get('daily_tokens') || 0;
+    const totalTasks = this.activities.filter(a => a.type === 'task_completed').length;
+
+    // Calculate efficiency ratios
+    const tasksPerApiDollar = apiCost > 0 ? apiTasks / apiCost : 0;
+    const tasksPerSessionHour = sessionMinutes > 0 ? (sessionTasks / sessionMinutes) * 60 : 0;
+    const avgTokensPerTask = totalTasks > 0 ? totalTokens / totalTasks : 0;
+
+    // Determine preferred work type based on efficiency
+    let preferredWorkType: 'api' | 'claude_max' | 'balanced' = 'balanced';
+    if (tasksPerApiDollar > 0 && tasksPerSessionHour > 0) {
+      // Compare cost-effectiveness
+      // Assume Claude Max is ~$0.33/hr equivalent for comparison
+      const apiEfficiency = tasksPerApiDollar;
+      const sessionEfficiency = tasksPerSessionHour / 3; // tasks per $0.33
+
+      if (apiEfficiency > sessionEfficiency * 1.5) {
+        preferredWorkType = 'api';
+      } else if (sessionEfficiency > apiEfficiency * 1.5) {
+        preferredWorkType = 'claude_max';
+      }
+    } else if (tasksPerApiDollar > 0) {
+      preferredWorkType = 'api';
+    } else if (tasksPerSessionHour > 0) {
+      preferredWorkType = 'claude_max';
+    }
+
+    return {
+      tasksPerApiDollar,
+      tasksPerSessionHour,
+      avgTokensPerTask,
+      preferredWorkType,
+    };
+  }
+
+  /**
+   * Check if an activity was completed during a Claude Max session
+   */
+  private isSessionTask(activity: ActivityEntry): boolean {
+    const activityTime = new Date(activity.timestamp).getTime();
+    return this.sessions.some(session => {
+      const startTime = new Date(session.startedAt).getTime();
+      const endTime = session.endedAt
+        ? new Date(session.endedAt).getTime()
+        : Date.now();
+      return (
+        session.type === 'claude_max' &&
+        activityTime >= startTime &&
+        activityTime <= endTime
+      );
+    });
   }
 
   /**
@@ -312,6 +579,15 @@ export class DailyAuditSystem {
     // Get previous audit hash for chain
     const previousHash = await this.getPreviousHash();
 
+    // Calculate session stats
+    const claudeMaxSessions = this.sessions.filter(s => s.type === 'claude_max').length;
+    const claudeMaxMinutes = this.sessions
+      .filter(s => s.type === 'claude_max')
+      .reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+    const claudeMaxTasksCompleted = this.sessions
+      .filter(s => s.type === 'claude_max')
+      .reduce((sum, s) => sum + s.tasksCompleted, 0);
+
     // Calculate summary
     const summary = {
       totalActivities: this.activities.length,
@@ -323,6 +599,13 @@ export class DailyAuditSystem {
       insightsGenerated: this.activities.filter(a => a.type === 'insight_generated').length,
       estimatedCost: this.metrics.get('daily_cost') || 0,
       tokensUsed: this.metrics.get('daily_tokens') || 0,
+      // Session tracking
+      apiCalls: this.metrics.get('api_calls') || 0,
+      apiTokensUsed: this.metrics.get('api_tokens') || 0,
+      apiCost: this.metrics.get('api_cost') || 0,
+      claudeMaxSessions,
+      claudeMaxMinutes,
+      claudeMaxTasksCompleted,
     };
 
     // Generate highlights
@@ -334,6 +617,9 @@ export class DailyAuditSystem {
     // Generate recommendations
     const recommendations = this.generateRecommendations();
 
+    // Get efficiency metrics
+    const efficiency = this.getEfficiencyMetrics();
+
     // Create audit object (without hash)
     const auditData = {
       date: this.todayDate,
@@ -341,9 +627,11 @@ export class DailyAuditSystem {
       previousHash,
       summary,
       activities: this.activities,
+      sessions: this.sessions,
       highlights,
       issues,
       recommendations,
+      efficiency,
     };
 
     // Calculate hash
@@ -391,9 +679,23 @@ export class DailyAuditSystem {
       highlights.push(`Generated ${insights.length} insight${insights.length > 1 ? 's' : ''}`);
     }
 
-    const cost = this.metrics.get('daily_cost') || 0;
+    const cost = this.metrics.get('api_cost') || 0;
     if (cost > 0) {
       highlights.push(`API cost: $${cost.toFixed(2)}`);
+    }
+
+    // Session highlights
+    const sessionMinutes = this.metrics.get('claude_max_minutes') || 0;
+    const sessionTasks = this.metrics.get('claude_max_tasks') || 0;
+    if (sessionMinutes > 0) {
+      const hours = (sessionMinutes / 60).toFixed(1);
+      highlights.push(`Claude Max: ${hours}hr, ${sessionTasks} tasks`);
+    }
+
+    // Efficiency learning
+    const efficiency = this.getEfficiencyMetrics();
+    if (efficiency.avgTokensPerTask > 0) {
+      highlights.push(`Avg ${Math.round(efficiency.avgTokensPerTask)} tokens/task`);
     }
 
     return highlights;
@@ -424,7 +726,7 @@ export class DailyAuditSystem {
   private generateRecommendations(): string[] {
     const recommendations: string[] = [];
 
-    const cost = this.metrics.get('daily_cost') || 0;
+    const cost = this.metrics.get('api_cost') || 0;
     if (cost > 7) {
       recommendations.push('Consider batching more tasks to reduce API calls');
     }
@@ -432,6 +734,26 @@ export class DailyAuditSystem {
     const failures = this.activities.filter(a => a.outcome === 'failure').length;
     if (failures > 2) {
       recommendations.push('Review failed tasks for patterns');
+    }
+
+    // Efficiency-based recommendations
+    const efficiency = this.getEfficiencyMetrics();
+
+    if (efficiency.preferredWorkType === 'api' && efficiency.tasksPerApiDollar > 0) {
+      recommendations.push('API calls are efficient for current workload - continue this pattern');
+    } else if (efficiency.preferredWorkType === 'claude_max' && efficiency.tasksPerSessionHour > 0) {
+      recommendations.push('Claude Max sessions are efficient for complex tasks - use for heavy work');
+    }
+
+    if (efficiency.avgTokensPerTask > 5000) {
+      recommendations.push('High token usage per task - consider breaking tasks into smaller chunks');
+    }
+
+    // Session-specific recommendations
+    const sessionMinutes = this.metrics.get('claude_max_minutes') || 0;
+    const sessionTasks = this.metrics.get('claude_max_tasks') || 0;
+    if (sessionMinutes > 60 && sessionTasks === 0) {
+      recommendations.push('Long session with no completed tasks - review session focus');
     }
 
     return recommendations;
@@ -495,6 +817,90 @@ export class DailyAuditSystem {
    */
   addThreshold(threshold: ThresholdConfig): void {
     this.thresholds.push(threshold);
+  }
+
+  /**
+   * Check if a session is currently active
+   */
+  hasActiveSession(): boolean {
+    return this.activeSession !== null;
+  }
+
+  /**
+   * Get the current active session
+   */
+  getActiveSession(): SessionEntry | null {
+    return this.activeSession;
+  }
+
+  /**
+   * Get all sessions for today
+   */
+  getSessions(): SessionEntry[] {
+    return [...this.sessions];
+  }
+
+  /**
+   * Get historical efficiency data for learning
+   */
+  async getHistoricalEfficiency(days: number = 7): Promise<{
+    avgTasksPerApiDollar: number;
+    avgTasksPerSessionHour: number;
+    trend: 'improving' | 'declining' | 'stable';
+    totalApiCost: number;
+    totalSessionMinutes: number;
+  }> {
+    const audits: DailyAudit[] = [];
+    const today = new Date();
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const audit = await this.getAudit(dateStr);
+      if (audit) {
+        audits.push(audit);
+      }
+    }
+
+    if (audits.length === 0) {
+      return {
+        avgTasksPerApiDollar: 0,
+        avgTasksPerSessionHour: 0,
+        trend: 'stable',
+        totalApiCost: 0,
+        totalSessionMinutes: 0,
+      };
+    }
+
+    const totalApiCost = audits.reduce((sum, a) => sum + a.summary.apiCost, 0);
+    const totalSessionMinutes = audits.reduce((sum, a) => sum + a.summary.claudeMaxMinutes, 0);
+    const totalTasks = audits.reduce((sum, a) => sum + a.summary.tasksCompleted, 0);
+
+    const avgTasksPerApiDollar = totalApiCost > 0 ? totalTasks / totalApiCost : 0;
+    const avgTasksPerSessionHour = totalSessionMinutes > 0 ? (totalTasks / totalSessionMinutes) * 60 : 0;
+
+    // Determine trend (compare first half vs second half)
+    const midpoint = Math.floor(audits.length / 2);
+    const recentEfficiency = audits.slice(0, midpoint).reduce((sum, a) =>
+      sum + (a.efficiency?.tasksPerApiDollar || 0), 0) / Math.max(midpoint, 1);
+    const olderEfficiency = audits.slice(midpoint).reduce((sum, a) =>
+      sum + (a.efficiency?.tasksPerApiDollar || 0), 0) / Math.max(audits.length - midpoint, 1);
+
+    let trend: 'improving' | 'declining' | 'stable' = 'stable';
+    if (recentEfficiency > olderEfficiency * 1.1) {
+      trend = 'improving';
+    } else if (recentEfficiency < olderEfficiency * 0.9) {
+      trend = 'declining';
+    }
+
+    return {
+      avgTasksPerApiDollar,
+      avgTasksPerSessionHour,
+      trend,
+      totalApiCost,
+      totalSessionMinutes,
+    };
   }
 }
 
