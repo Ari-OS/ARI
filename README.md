@@ -11,7 +11,7 @@
 
 **Artificial Reasoning Intelligence**
 
-A local-first autonomous agent operating system.
+*A mind that runs on your machine, answers only to you, and forgets nothing.*
 
 [![CI](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml)
 
@@ -320,7 +320,7 @@ ARI is built on three principles:
 
 ## License
 
-[ARI License](LICENSE) — Free to use, modify, and distribute with attribution.
+[ARI License](LICENSE) — Use it. Learn from it. Make it yours.
 
 ---
 
@@ -328,12 +328,27 @@ ARI is built on three principles:
 
 <br>
 
-**Pryce**
-
-*The one who brought ARI online.*
+```
+┌────────────────────────────────────────┐
+│                                        │
+│   "What you build reflects who you     │
+│    are. Build something worth being."  │
+│                                        │
+└────────────────────────────────────────┘
+```
 
 <br>
 
-<sub>The shadow reveals truth.</sub>
+**Pryce** — *Creator*
+
+The one who saw what this could be and made it real.
+
+<br>
+
+---
+
+<sub>ARI exists because someone decided to build instead of wait.</sub>
+
+<sub>The shadow reveals truth. · 2025</sub>
 
 </div>
