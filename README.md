@@ -367,6 +367,4 @@ It logs them, learns from them, and moves forward.
 
 **[Pryce Hedrick](https://github.com/PryceHedrick)** — Creator
 
-**[Claude](https://claude.ai)** — Architect
-
 </div>
