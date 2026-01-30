@@ -176,7 +176,14 @@ class NotificationRouter {
 interface Config {
   pushover?: { userKey?: string; apiToken?: string };
   claude?: { apiKey?: string; model?: string };
-  notion?: { apiKey?: string; dailyLogsPageId?: string; tasksDbId?: string };
+  notion?: {
+    apiKey?: string;
+    dailyLogsPageId?: string;  // preferred
+    dailyLogParentId?: string; // alternate config key
+    tasksDbId?: string;
+    inboxDatabaseId?: string;  // alternate config key
+  };
+  sms?: { quietHoursStart?: number; quietHoursEnd?: number };
   quietHours?: { start?: string; end?: string };
 }
 
@@ -238,11 +245,13 @@ async function main(): Promise<void> {
   });
 
   let notion: NotionClient | null = null;
-  if (config.notion?.apiKey && config.notion.dailyLogsPageId) {
+  const notionPageId = config.notion?.dailyLogsPageId || config.notion?.dailyLogParentId;
+  const notionTasksDb = config.notion?.tasksDbId || config.notion?.inboxDatabaseId;
+  if (config.notion?.apiKey && notionPageId) {
     notion = new NotionClient({
       apiKey: config.notion.apiKey,
-      dailyLogsPageId: config.notion.dailyLogsPageId,
-      tasksDbId: config.notion.tasksDbId || config.notion.dailyLogsPageId,
+      dailyLogsPageId: notionPageId,
+      tasksDbId: notionTasksDb || notionPageId,
     });
     console.log('✓ Notion connected');
   } else {
