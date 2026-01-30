@@ -1,12 +1,10 @@
 <div align="center">
 
-<pre>
-     ▄▀▄ █▀▄ █
-     █▀█ █▀▄ █
-     ▀ ▀ ▀ ▀ ▀
-</pre>
+<img src="docs/assets/aripfp.jpg" alt="ARI" width="150" />
 
-### Artificial Reasoning Intelligence
+# ARI
+
+**Artificial Reasoning Intelligence**
 
 *A mind that runs on your machine, answers only to you, and forgets nothing.*
 
