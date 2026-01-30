@@ -2,3 +2,26 @@ export { ContextTypeSchema, ContextSchema, RouteResultSchema, ActiveContextSchem
 export type { ContextType, Context, RouteResult, ActiveContext } from './types.js';
 export { listContexts, getContext, saveContext, getActiveContext, setActiveContext, matchContext, ensureContextsDir, getContextsDir } from './storage.js';
 export { SystemRouter } from './router.js';
+
+// Sessions exports
+export {
+  SessionManager,
+  SessionStore,
+  SessionContextManager,
+  SessionLifecycleManager,
+  type Session,
+  type SessionStatus,
+  type SessionContext,
+  type SessionStats,
+  type SessionMetadata,
+  type CreateSessionInput,
+  type UpdateSessionInput,
+  type SessionQuery,
+  type SessionEvent,
+  type SessionLifecycleConfig,
+  SessionSchema,
+  SessionStatusSchema,
+  DEFAULT_SESSION_LIFECYCLE_CONFIG,
+  createSessionKey,
+  parseSessionKey,
+} from './sessions/index.js';

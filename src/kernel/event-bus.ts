@@ -1,4 +1,4 @@
-import type { Message, AuditEvent, SecurityEvent, AgentId } from './types.js';
+import type { Message, AuditEvent, SecurityEvent, AgentId, TrustLevel } from './types.js';
 
 /**
  * EventMap interface defining event name to payload mappings.
@@ -37,6 +37,28 @@ export interface EventMap {
   'vote:completed': { voteId: string; status: string; result: Record<string, unknown> };
   'arbiter:ruling': { ruleId: string; type: string; decision: string };
   'overseer:gate': { gateId: string; passed: boolean; reason: string };
+
+  // ── Control Plane events ───────────────────────────────────────────────
+  'controlplane:client:connected': { clientId: string; clientType: string; connectedAt: Date };
+  'controlplane:client:disconnected': { clientId: string; reason: string; disconnectedAt: Date };
+  'controlplane:client:authenticated': { clientId: string; capabilities: string[]; authenticatedAt: Date };
+
+  // ── Session events ─────────────────────────────────────────────────────
+  'session:started': { sessionId: string; channel: string; senderId: string; groupId?: string; trustLevel: TrustLevel; startedAt: Date };
+  'session:ended': { sessionId: string; reason: string; endedAt: Date };
+  'session:activity': { sessionId: string; timestamp: Date };
+
+  // ── Tool streaming events ──────────────────────────────────────────────
+  'tool:start': { callId: string; toolId: string; toolName: string; agent: AgentId; sessionId?: string; parameters: Record<string, unknown>; timestamp: Date };
+  'tool:update': { callId: string; toolId: string; progress?: number; status: string; message?: string; timestamp: Date };
+  'tool:end': { callId: string; toolId: string; success: boolean; result?: unknown; error?: string; duration: number; timestamp: Date };
+
+  // ── Channel events ─────────────────────────────────────────────────────
+  'channel:connected': { channelId: string; channelName: string; connectedAt: Date };
+  'channel:disconnected': { channelId: string; channelName: string; reason: string; disconnectedAt: Date };
+  'channel:status': { channelId: string; channelName: string; status: string; activeSessions: number; lastActivity?: Date };
+  'channel:message:inbound': { channelId: string; messageId: string; senderId: string; content: string; timestamp: Date };
+  'channel:message:outbound': { channelId: string; messageId: string; recipientId: string; content: string; timestamp: Date };
 }
 
 /**

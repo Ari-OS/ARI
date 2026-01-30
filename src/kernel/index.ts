@@ -18,3 +18,54 @@ export { EventBus } from './event-bus.js';
 export type { EventMap } from './event-bus.js';
 export { Gateway } from './gateway.js';
 export { loadConfig, saveConfig, ensureConfigDir, getConfigDir, getConfigPath, DEFAULT_CONFIG, CONFIG_DIR, CONFIG_PATH } from './config.js';
+
+// Control Plane exports
+export {
+  WebSocketControlPlane,
+  ClientManager,
+  MessageRouter,
+  type ControlPlaneConfig,
+  type ConnectedClient,
+  type ClientCapability,
+  type ClientStats,
+  type ControlPlaneMessage,
+  type MessageType,
+  type SessionStartPayload,
+  type SessionEndPayload,
+  type MessagePayload,
+  type ToolStartPayload,
+  type ToolUpdatePayload,
+  type ToolEndPayload,
+  type ChannelStatusPayload,
+  type HealthPayload,
+  type ErrorPayload,
+  ControlPlaneMessageSchema,
+  parseMessage,
+  safeParseMessage,
+  createMessage,
+  createErrorMessage,
+  MESSAGE_TYPES,
+  SUBSCRIBABLE_EVENTS,
+  eventMatches,
+} from './control-plane/index.js';
+
+// Auth exports
+export {
+  CredentialStore,
+  AuthProfileManager,
+  ExpiryMonitor,
+  type CredentialType,
+  type CredentialStatus,
+  type ProviderType,
+  type Credential,
+  type CredentialData,
+  type AuthProfile,
+  type CreateCredentialInput,
+  type CreateProfileInput,
+  type CredentialEvent,
+  type ExpiryAlert,
+  type ExpiryMonitorConfig,
+  CredentialSchema,
+  AuthProfileSchema,
+  PROVIDER_CONFIGS,
+} from './auth/index.js';

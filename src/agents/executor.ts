@@ -34,15 +34,20 @@ interface PendingApproval {
 }
 
 /**
- * Executor - Tool execution with permission gating
+ * Executor - Tool execution with permission gating and streaming events
  * Manages tool registration, permission checking, and execution with approval workflow
+ *
+ * Streaming Events:
+ * - tool:start - Emitted when tool execution begins
+ * - tool:update - Emitted for progress updates during long-running operations
+ * - tool:end - Emitted when tool execution completes (success or failure)
  */
 export class Executor {
   private readonly auditLogger: AuditLogger;
   private readonly eventBus: EventBus;
   private tools = new Map<string, ToolDefinition>();
   private pendingApprovals = new Map<string, PendingApproval>();
-  private activeExecutions = new Set<string>();
+  private activeExecutions = new Map<string, { startTime: number; sessionId?: string }>();
 
   private readonly MAX_CONCURRENT_EXECUTIONS = 10;
   private readonly DEFAULT_TIMEOUT_MS = 30000;
@@ -227,12 +232,37 @@ export class Executor {
   }
 
   /**
-   * Execute tool with approval workflow
+   * Execute tool with approval workflow and streaming events
    */
-  private async executeWithApproval(call: ToolCall, tool: ToolDefinition): Promise<ExecutionResult> {
+  private async executeWithApproval(call: ToolCall, tool: ToolDefinition, sessionId?: string): Promise<ExecutionResult> {
+    // Emit tool:start event for approval workflow
+    this.eventBus.emit('tool:start', {
+      callId: call.id,
+      toolId: tool.id,
+      toolName: tool.name,
+      agent: call.requesting_agent,
+      sessionId,
+      parameters: call.parameters,
+      timestamp: new Date(),
+    });
+
+    // Emit waiting_approval update
+    this.emitToolUpdate(call.id, tool.id, 'waiting_approval', undefined, 'Awaiting approval');
+
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pendingApprovals.delete(call.id);
+
+        // Emit tool:end event for timeout
+        this.eventBus.emit('tool:end', {
+          callId: call.id,
+          toolId: tool.id,
+          success: false,
+          error: 'Approval timeout',
+          duration: tool.timeout_ms || this.DEFAULT_TIMEOUT_MS,
+          timestamp: new Date(),
+        });
+
         reject(new Error('Approval timeout'));
       }, tool.timeout_ms || this.DEFAULT_TIMEOUT_MS);
 
@@ -254,22 +284,38 @@ export class Executor {
   }
 
   /**
-   * Internal tool execution
+   * Internal tool execution with streaming events
    */
-  private async executeInternal(call: ToolCall, tool: ToolDefinition): Promise<ExecutionResult> {
+  private async executeInternal(call: ToolCall, tool: ToolDefinition, sessionId?: string): Promise<ExecutionResult> {
     const startTime = Date.now();
-    this.activeExecutions.add(call.id);
+    this.activeExecutions.set(call.id, { startTime, sessionId });
+
+    // Emit tool:start event
+    this.eventBus.emit('tool:start', {
+      callId: call.id,
+      toolId: tool.id,
+      toolName: tool.name,
+      agent: call.requesting_agent,
+      sessionId,
+      parameters: call.parameters,
+      timestamp: new Date(),
+    });
 
     try {
+      // Emit initial update
+      this.emitToolUpdate(call.id, tool.id, 'running', 0, 'Starting execution');
+
       // Execute tool with timeout
       const timeout = tool.timeout_ms || this.DEFAULT_TIMEOUT_MS;
       const output = await this.executeWithTimeout(call, tool, timeout);
+
+      const duration = Date.now() - startTime;
 
       const result: ExecutionResult = {
         success: true,
         tool_call_id: call.id,
         output,
-        duration_ms: Date.now() - startTime,
+        duration_ms: duration,
       };
 
       await this.auditLogger.log('tool:execute', call.requesting_agent, call.trust_level, {
@@ -279,6 +325,17 @@ export class Executor {
         success: true,
       });
 
+      // Emit tool:end event (success)
+      this.eventBus.emit('tool:end', {
+        callId: call.id,
+        toolId: tool.id,
+        success: true,
+        result: output,
+        duration,
+        timestamp: new Date(),
+      });
+
+      // Also emit legacy event for backwards compatibility
       this.eventBus.emit('tool:executed', {
         toolId: tool.id,
         callId: call.id,
@@ -288,11 +345,14 @@ export class Executor {
 
       return result;
     } catch (error) {
+      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
       const result: ExecutionResult = {
         success: false,
         tool_call_id: call.id,
-        error: error instanceof Error ? error.message : String(error),
-        duration_ms: Date.now() - startTime,
+        error: errorMessage,
+        duration_ms: duration,
       };
 
       await this.auditLogger.log('tool:execute', call.requesting_agent, call.trust_level, {
@@ -303,6 +363,17 @@ export class Executor {
         error: result.error,
       });
 
+      // Emit tool:end event (failure)
+      this.eventBus.emit('tool:end', {
+        callId: call.id,
+        toolId: tool.id,
+        success: false,
+        error: errorMessage,
+        duration,
+        timestamp: new Date(),
+      });
+
+      // Also emit legacy event for backwards compatibility
       this.eventBus.emit('tool:executed', {
         toolId: tool.id,
         callId: call.id,
@@ -314,6 +385,36 @@ export class Executor {
     } finally {
       this.activeExecutions.delete(call.id);
     }
+  }
+
+  /**
+   * Emit a tool update event
+   */
+  private emitToolUpdate(
+    callId: string,
+    toolId: string,
+    status: 'running' | 'waiting_approval' | 'processing',
+    progress?: number,
+    message?: string
+  ): void {
+    this.eventBus.emit('tool:update', {
+      callId,
+      toolId,
+      status,
+      progress,
+      message,
+      timestamp: new Date(),
+    });
+  }
+
+  /**
+   * Get active execution info
+   */
+  getActiveExecutions(): Array<{ callId: string; startTime: number; sessionId?: string }> {
+    return Array.from(this.activeExecutions.entries()).map(([callId, data]) => ({
+      callId,
+      ...data,
+    }));
   }
 
   /**
