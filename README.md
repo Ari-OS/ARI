@@ -1,15 +1,17 @@
 <div align="center">
 
 ```
-   ▄▀█ █▀█ █
-   █▀█ █▀▄ █
+    ░█████╗░██████╗░██╗
+    ██╔══██╗██╔══██╗██║
+    ███████║██████╔╝██║
+    ██╔══██║██╔══██╗██║
+    ██║░░██║██║░░██║██║
+    ╚═╝░░╚═╝╚═╝░░╚═╝╚═╝
 ```
 
-**Artificial Reasoning Intelligence**
+**The system that watches while you sleep.**
 
-The system that watches while you sleep.
-
-<sub>No cloud. No subscriptions. No trust required.</sub>
+[![CI](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml)
 
 </div>
 
