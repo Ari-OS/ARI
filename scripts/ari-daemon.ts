@@ -151,16 +151,25 @@ async function main(): Promise<void> {
       context.messages.push({ role: 'assistant', content: response });
       console.log(`📤 ${response.slice(0, 80)}...`);
 
-      await pushover.notify(response.slice(0, 500), 'ARI');
+      // Determine priority based on results
+      const hasErrors = actionResults.some(r => !r.success);
+      const hasActions = actionResults.length > 0;
 
-      // Log to Notion if available
+      // Only send Pushover for errors or important actions (P1-P2)
+      // Regular conversation goes to Notion only (P3-P4)
+      if (hasErrors) {
+        await pushover.alert(response.slice(0, 500), 'ARI Error');
+      }
+      // Don't spam Pushover for every chat - just log to Notion
+
+      // Log everything to Notion
       if (notion) {
         try {
           await notion.addLogEntry({
-            title: `Command: ${message.slice(0, 50)}`,
+            title: `${hasActions ? 'Action' : 'Chat'}: ${message.slice(0, 50)}`,
             content: response.slice(0, 500),
-            category: 'action',
-            priority: 'P3',
+            category: hasErrors ? 'error' : 'action',
+            priority: hasErrors ? 'P1' : (hasActions ? 'P3' : 'P4'),
           });
         } catch (e) {
           console.log('⚠ Notion log failed:', e instanceof Error ? e.message : 'unknown');
