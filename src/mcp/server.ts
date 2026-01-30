@@ -22,6 +22,7 @@ import { EventBus } from '../kernel/event-bus.js';
 import { loadConfig } from '../kernel/config.js';
 import { MemoryManager } from '../agents/memory-manager.js';
 import { Council } from '../governance/council.js';
+import { getCoworkBridge, pluginGenerator } from '../integrations/cowork/index.js';
 import type { TrustLevel } from '../kernel/types.js';
 
 // MCP Trust Level: operator (Claude Code runs as authenticated user)
@@ -196,6 +197,58 @@ const TOOLS: Tool[] = [
       },
     },
   },
+
+  // Cowork Plugin Tools
+  {
+    name: 'ari_plugin_import',
+    description: 'Import a Cowork plugin from file path. Converts plugin components to ARI skills/tools.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        source: { type: 'string', description: 'Path to plugin.json file' },
+      },
+      required: ['source'],
+    },
+  },
+  {
+    name: 'ari_plugin_export',
+    description: 'Export ARI capabilities as a Cowork plugin for distribution.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Plugin ID (lowercase, hyphenated)' },
+        name: { type: 'string', description: 'Plugin display name' },
+        description: { type: 'string', description: 'Plugin description' },
+        skills: { type: 'array', items: { type: 'string' }, description: 'Skill names to include' },
+        agents: { type: 'array', items: { type: 'string' }, description: 'Agent IDs to include' },
+        outputPath: { type: 'string', description: 'Output directory path' },
+      },
+      required: ['id', 'name', 'description'],
+    },
+  },
+  {
+    name: 'ari_plugin_generate',
+    description: 'Generate a new Cowork plugin from natural language description. Creates domain-specific plugins for sales, marketing, finance, legal, support, or development.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Plugin name' },
+        description: { type: 'string', description: 'What the plugin should do' },
+        domains: { type: 'array', items: { type: 'string' }, description: 'Target domains: sales, marketing, finance, legal, support, development' },
+        outputPath: { type: 'string', description: 'Output directory (optional)' },
+      },
+      required: ['name', 'description', 'domains'],
+    },
+  },
+  {
+    name: 'ari_plugin_list',
+    description: 'List all imported Cowork plugins and their components.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 export class ARIMCPServer {
@@ -298,6 +351,16 @@ export class ARIMCPServer {
         return this.systemHealth();
       case 'ari_config_get':
         return this.configGet(args);
+
+      // Cowork Plugin Tools
+      case 'ari_plugin_import':
+        return this.pluginImport(args);
+      case 'ari_plugin_export':
+        return this.pluginExport(args);
+      case 'ari_plugin_generate':
+        return this.pluginGenerate(args);
+      case 'ari_plugin_list':
+        return this.pluginList();
 
       default:
         throw new Error(`Unknown tool: ${name}`);
@@ -475,6 +538,110 @@ export class ARIMCPServer {
       return { [key]: safeConfig[key] };
     }
     return safeConfig;
+  }
+
+  // Cowork Plugin implementations
+  private async pluginImport(args: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const source = typeof args.source === 'string' ? args.source : '';
+    if (!source) {
+      throw new Error('Plugin source path is required');
+    }
+
+    const bridge = getCoworkBridge();
+    const result = await bridge.importPlugin(source);
+
+    void this.audit.log(
+      'cowork:plugin_imported',
+      'MCP_SERVER',
+      MCP_TRUST_LEVEL,
+      { pluginId: result.pluginId, success: result.success }
+    );
+
+    return result;
+  }
+
+  private async pluginExport(args: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const id = typeof args.id === 'string' ? args.id : '';
+    const name = typeof args.name === 'string' ? args.name : '';
+    const description = typeof args.description === 'string' ? args.description : '';
+    const outputPath = typeof args.outputPath === 'string' ? args.outputPath : undefined;
+
+    if (!id || !name || !description) {
+      throw new Error('Plugin id, name, and description are required');
+    }
+
+    const bridge = getCoworkBridge();
+    const result = await bridge.exportPlugin({
+      id,
+      name,
+      description,
+      outputPath,
+    });
+
+    void this.audit.log(
+      'cowork:plugin_exported',
+      'MCP_SERVER',
+      MCP_TRUST_LEVEL,
+      { pluginId: id, success: result.success }
+    );
+
+    return result;
+  }
+
+  private async pluginGenerate(args: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const name = typeof args.name === 'string' ? args.name : '';
+    const description = typeof args.description === 'string' ? args.description : '';
+    const domains = Array.isArray(args.domains) ? args.domains.map(String) : [];
+    const outputPath = typeof args.outputPath === 'string' ? args.outputPath : '~/.ari/plugins/generated';
+
+    if (!name || !description || domains.length === 0) {
+      throw new Error('Plugin name, description, and at least one domain are required');
+    }
+
+    const result = await pluginGenerator.generateAndSave(
+      { name, description, domains },
+      outputPath
+    );
+
+    void this.audit.log(
+      'cowork:plugin_generated',
+      'MCP_SERVER',
+      MCP_TRUST_LEVEL,
+      { pluginId: result.plugin.metadata.id, path: result.path }
+    );
+
+    return {
+      success: true,
+      pluginId: result.plugin.metadata.id,
+      path: result.path,
+      components: {
+        skills: result.plugin.components.skills.length,
+        connectors: result.plugin.components.connectors.length,
+        commands: result.plugin.components.commands.length,
+        agents: result.plugin.components.agents.length,
+      },
+    };
+  }
+
+  private pluginList(): Record<string, unknown> {
+    const bridge = getCoworkBridge();
+    const plugins = bridge.listPlugins();
+    const stats = bridge.getStats();
+
+    return {
+      plugins: plugins.map(p => ({
+        id: p.metadata.id,
+        name: p.metadata.name,
+        version: p.metadata.version,
+        components: {
+          skills: p.components.skills.length,
+          connectors: p.components.connectors.length,
+          commands: p.components.commands.length,
+          agents: p.components.agents.length,
+        },
+      })),
+      stats,
+    };
   }
 
   async run(): Promise<void> {
