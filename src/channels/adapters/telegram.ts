@@ -248,7 +248,8 @@ export class TelegramChannel extends BaseChannel {
       timeout: 30,
     });
 
-    if (!updates) return;
+    // Ensure updates is a valid array before iterating
+    if (!updates || !Array.isArray(updates)) return;
 
     for (const update of updates) {
       this.lastUpdateId = update.update_id;

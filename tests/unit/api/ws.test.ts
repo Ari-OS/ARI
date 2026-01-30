@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createServer, type Server } from 'http';
 import { WebSocket } from 'ws';
 import { WebSocketBroadcaster } from '../../../src/api/ws.js';
@@ -296,5 +296,315 @@ describe('WebSocketBroadcaster', () => {
     // Verify event bus listeners are removed
     expect(eventBus.listenerCount('message:accepted')).toBe(0);
     expect(eventBus.listenerCount('security:detected')).toBe(0);
+  });
+
+  it('should broadcast agent:stopped events', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      let messageCount = 0;
+
+      ws.on('message', (data: Buffer) => {
+        messageCount++;
+        const message = JSON.parse(data.toString());
+
+        if (messageCount === 1) {
+          eventBus.emit('agent:stopped', {
+            agent: 'guardian',
+            timestamp: new Date(),
+          });
+        } else if (messageCount === 2) {
+          expect(message.type).toBe('agent:stopped');
+          expect(message.payload.agent).toBe('guardian');
+          ws.close();
+          resolve();
+        }
+      });
+
+      ws.on('error', reject);
+    });
+  });
+
+  it('should broadcast message:rejected events', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      let messageCount = 0;
+
+      ws.on('message', (data: Buffer) => {
+        messageCount++;
+        const message = JSON.parse(data.toString());
+
+        if (messageCount === 1) {
+          eventBus.emit('message:rejected', {
+            id: 'reject-123',
+            reason: 'test rejection',
+            timestamp: new Date(),
+          });
+        } else if (messageCount === 2) {
+          expect(message.type).toBe('message:rejected');
+          expect(message.payload.id).toBe('reject-123');
+          expect(message.payload.reason).toBe('test rejection');
+          ws.close();
+          resolve();
+        }
+      });
+
+      ws.on('error', reject);
+    });
+  });
+
+  it('should broadcast vote:completed events', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      let messageCount = 0;
+
+      ws.on('message', (data: Buffer) => {
+        messageCount++;
+        const message = JSON.parse(data.toString());
+
+        if (messageCount === 1) {
+          eventBus.emit('vote:completed', {
+            voteId: 'vote-complete-123',
+            result: 'PASSED',
+            tally: { approve: 7, reject: 3, abstain: 3 },
+          });
+        } else if (messageCount === 2) {
+          expect(message.type).toBe('vote:completed');
+          expect(message.payload.voteId).toBe('vote-complete-123');
+          expect(message.payload.result).toBe('PASSED');
+          ws.close();
+          resolve();
+        }
+      });
+
+      ws.on('error', reject);
+    });
+  });
+
+  it('should broadcast arbiter:ruling events', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      let messageCount = 0;
+
+      ws.on('message', (data: Buffer) => {
+        messageCount++;
+        const message = JSON.parse(data.toString());
+
+        if (messageCount === 1) {
+          eventBus.emit('arbiter:ruling', {
+            ruleId: 'rule-1',
+            action: 'block',
+            reason: 'Security violation',
+            timestamp: new Date().toISOString(),
+          });
+        } else if (messageCount === 2) {
+          expect(message.type).toBe('arbiter:ruling');
+          expect(message.payload.ruleId).toBe('rule-1');
+          expect(message.payload.action).toBe('block');
+          ws.close();
+          resolve();
+        }
+      });
+
+      ws.on('error', reject);
+    });
+  });
+
+  it('should broadcast overseer:gate events', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      let messageCount = 0;
+
+      ws.on('message', (data: Buffer) => {
+        messageCount++;
+        const message = JSON.parse(data.toString());
+
+        if (messageCount === 1) {
+          eventBus.emit('overseer:gate', {
+            gateId: 'gate-1',
+            passed: true,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (messageCount === 2) {
+          expect(message.type).toBe('overseer:gate');
+          expect(message.payload.gateId).toBe('gate-1');
+          expect(message.payload.passed).toBe(true);
+          ws.close();
+          resolve();
+        }
+      });
+
+      ws.on('error', reject);
+    });
+  });
+
+  it('should broadcast memory:quarantined events', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      let messageCount = 0;
+
+      ws.on('message', (data: Buffer) => {
+        messageCount++;
+        const message = JSON.parse(data.toString());
+
+        if (messageCount === 1) {
+          eventBus.emit('memory:quarantined', {
+            memoryId: 'mem-quarantine-123',
+            reason: 'Suspicious content',
+            agent: 'guardian',
+          });
+        } else if (messageCount === 2) {
+          expect(message.type).toBe('memory:quarantined');
+          expect(message.payload.memoryId).toBe('mem-quarantine-123');
+          expect(message.payload.reason).toBe('Suspicious content');
+          ws.close();
+          resolve();
+        }
+      });
+
+      ws.on('error', reject);
+    });
+  });
+
+  it('should broadcast tool:executed events', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      let messageCount = 0;
+
+      ws.on('message', (data: Buffer) => {
+        messageCount++;
+        const message = JSON.parse(data.toString());
+
+        if (messageCount === 1) {
+          eventBus.emit('tool:executed', {
+            toolId: 'file_read',
+            success: true,
+            agent: 'executor',
+            timestamp: new Date().toISOString(),
+          });
+        } else if (messageCount === 2) {
+          expect(message.type).toBe('tool:executed');
+          expect(message.payload.toolId).toBe('file_read');
+          expect(message.payload.success).toBe(true);
+          ws.close();
+          resolve();
+        }
+      });
+
+      ws.on('error', reject);
+    });
+  });
+
+  it('should ignore malformed JSON messages', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      let messageCount = 0;
+
+      ws.on('message', (data: Buffer) => {
+        messageCount++;
+        const message = JSON.parse(data.toString());
+
+        if (messageCount === 1) {
+          // Send malformed JSON - should be silently ignored
+          ws.send('not valid json {{{');
+
+          // Send a valid ping to verify the connection still works
+          setTimeout(() => {
+            ws.send(JSON.stringify({ type: 'ping' }));
+          }, 50);
+        } else if (messageCount === 2) {
+          // Should still receive pong after malformed message
+          expect(message.type).toBe('pong');
+          ws.close();
+          resolve();
+        }
+      });
+
+      ws.on('error', reject);
+    });
+  });
+
+  it('should not broadcast to clients that are not OPEN', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+
+      ws.on('message', (data: Buffer) => {
+        const message = JSON.parse(data.toString());
+        if (message.type === 'connection:established') {
+          // Close the connection
+          ws.close();
+        }
+      });
+
+      ws.on('close', () => {
+        // Emit an event after the client is closed
+        // This should not throw and should be silently skipped
+        expect(() => {
+          eventBus.emit('message:accepted', {
+            id: 'after-close',
+            content: 'test',
+            source: 'untrusted',
+            timestamp: new Date(),
+          });
+        }).not.toThrow();
+        resolve();
+      });
+
+      ws.on('error', reject);
+    });
+  });
+
+  it('should handle non-ping messages without responding', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      let messageCount = 0;
+
+      ws.on('message', (data: Buffer) => {
+        messageCount++;
+        const message = JSON.parse(data.toString());
+
+        if (messageCount === 1) {
+          expect(message.type).toBe('connection:established');
+          // Send a non-ping message
+          ws.send(JSON.stringify({ type: 'other', data: 'test' }));
+          // Wait a bit to ensure no response comes
+          setTimeout(() => {
+            ws.close();
+          }, 100);
+        }
+      });
+
+      ws.on('close', () => {
+        // Only received welcome message, no response to non-ping
+        expect(messageCount).toBe(1);
+        resolve();
+      });
+
+      ws.on('error', reject);
+    });
+  });
+
+  it('should handle WebSocket client errors gracefully', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+
+      ws.on('open', () => {
+        // Simulate an error by terminating the underlying socket abruptly
+        // This triggers the error handler on the server side
+        ws.terminate();
+
+        // Give the server time to process the termination
+        setTimeout(() => {
+          resolve();
+        }, 100);
+      });
+
+      ws.on('error', () => {
+        // Client error is expected when we terminate
+      });
+    });
+
+    consoleSpy.mockRestore();
   });
 });
