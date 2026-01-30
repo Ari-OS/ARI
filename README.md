@@ -324,6 +324,8 @@ npm run lint:fix           # ESLint with auto-fix
 
 ---
 
+<div align="center">
+
 ## Documentation
 
 | Document | Description |
@@ -334,11 +336,17 @@ npm run lint:fix           # ESLint with auto-fix
 | [docs/guides/](docs/guides/README.md) | Setup and operations guides |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
 
+</div>
+
 ---
+
+<div align="center">
 
 ## License
 
 [ARI License](LICENSE)
+
+</div>
 
 ---
 
