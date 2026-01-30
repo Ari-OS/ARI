@@ -1,0 +1,153 @@
+{
+  "version": "2.0.0",
+  "enabled": true,
+
+  "pushover": {
+    "userKey": "${PUSHOVER_USER_KEY}",
+    "apiToken": "${PUSHOVER_API_TOKEN}",
+    "device": "ARI"
+  },
+
+  "claude": {
+    "apiKey": "${ANTHROPIC_API_KEY}",
+    "model": "claude-sonnet-4-20250514",
+    "maxTokens": 1024
+  },
+
+  "notion": {
+    "apiKey": "${NOTION_API_KEY}",
+    "dailyLogsPageId": "${NOTION_DAILY_LOGS_PAGE_ID}",
+    "tasksDbId": "${NOTION_TASKS_DB_ID}"
+  },
+
+  "sms": {
+    "enabled": true,
+    "carrier": "verizon",
+    "phoneNumber": "${SMS_PHONE_NUMBER}",
+    "email": {
+      "user": "${GMAIL_USER}",
+      "pass": "${GMAIL_APP_PASSWORD}"
+    }
+  },
+
+  "priorities": {
+    "P0": {
+      "name": "Critical",
+      "description": "System down, security breach, data loss risk",
+      "channels": ["pushover", "sms"],
+      "sound": "alien",
+      "retry": 60,
+      "expire": 3600,
+      "bypassQuietHours": true,
+      "requiresAck": true
+    },
+    "P1": {
+      "name": "High",
+      "description": "Important alerts, task completions, errors",
+      "channels": ["pushover", "notion"],
+      "sound": "siren",
+      "escalateAfter": 3,
+      "escalateTo": "P0",
+      "delayDuringQuietHours": true
+    },
+    "P2": {
+      "name": "Normal",
+      "description": "Standard notifications, updates",
+      "channels": ["pushover", "notion"],
+      "sound": "pushover",
+      "delayDuringQuietHours": true
+    },
+    "P3": {
+      "name": "Low",
+      "description": "Informational, nice to know",
+      "channels": ["notion"],
+      "batchInterval": 30,
+      "batchDuringQuietHours": true
+    },
+    "P4": {
+      "name": "Minimal",
+      "description": "Logs, debug info, background activity",
+      "channels": ["notion"],
+      "batchInterval": 60,
+      "batchDuringQuietHours": true
+    }
+  },
+
+  "quietHours": {
+    "enabled": true,
+    "start": "22:00",
+    "end": "07:00",
+    "timezone": "America/Indiana/Indianapolis",
+    "exceptP0": true
+  },
+
+  "rateLimits": {
+    "sms": {
+      "maxPerHour": 5,
+      "exceptP0": true
+    },
+    "pushover": {
+      "maxPerHour": 30,
+      "exceptP0": true
+    },
+    "deduplication": {
+      "windowMinutes": 5,
+      "enabled": true
+    }
+  },
+
+  "briefings": {
+    "morning": {
+      "enabled": true,
+      "time": "07:00",
+      "channels": ["notion", "pushover"],
+      "includeWeather": true,
+      "includeCalendar": true,
+      "includeTasks": true
+    },
+    "evening": {
+      "enabled": true,
+      "time": "21:00",
+      "channels": ["notion"],
+      "includeSummary": true,
+      "includeTomorrow": true
+    },
+    "weekly": {
+      "enabled": true,
+      "dayOfWeek": 0,
+      "time": "18:00",
+      "channels": ["notion"]
+    }
+  },
+
+  "security": {
+    "allowedCommands": [
+      "git status", "git log", "git branch", "git diff",
+      "npm ls", "npm outdated", "npm test", "npm run build",
+      "ls", "pwd", "date", "uptime", "whoami", "hostname",
+      "df", "ps", "cat", "head", "tail", "grep", "find"
+    ],
+    "blockedPatterns": [
+      "rm -rf",
+      "mkfs",
+      "dd if=",
+      "> /dev/",
+      "chmod 777",
+      "curl.*|.*sh",
+      "wget.*|.*sh"
+    ],
+    "requireConfirmation": ["npm publish", "git push", "rm"]
+  },
+
+  "webInterface": {
+    "enabled": true,
+    "port": 3142,
+    "host": "0.0.0.0"
+  },
+
+  "daemon": {
+    "pollInterval": 5000,
+    "healthCheckInterval": 60000,
+    "logLevel": "info"
+  }
+}
