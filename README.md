@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/aripfp.png" alt="ARI" width="150" />
+<img src="docs/assets/aripfp.png" alt="ARI" width="180" />
 
 # ARI
 
@@ -9,6 +9,8 @@
 *A mind that runs on your machine, answers only to you, and forgets nothing.*
 
 [![CI](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-708%20passing-brightgreen)](https://github.com/ARI-OS/ARI)
+[![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)](https://github.com/ARI-OS/ARI)
 
 </div>
 
@@ -22,6 +24,27 @@ ARI is a multi-agent system that runs entirely on your machine. It processes req
 - **Local-first** — All data stays on your machine. No cloud dependencies.
 - **Auditable** — Every decision is logged in a tamper-evident hash chain.
 - **Secure by design** — Loopback-only gateway. No external network access.
+
+---
+
+## Philosophy
+
+ARI is built on three principles drawn from Jung, Dalio, and Musashi:
+
+### Shadow Integration
+> *"What you suppress controls you. What you observe, you can understand. What you understand, you can master."*
+
+Suspicious behavior is logged and analyzed, not suppressed. ARI doesn't hide failures—it records them, learns from them, and evolves. The shadow reveals truth.
+
+### Radical Transparency
+> *"Every operation is audited. Every decision is traceable. No hidden state."*
+
+Inspired by Bridgewater's principles. No black boxes. The audit trail is immutable. If you can't explain a decision, you shouldn't make it.
+
+### Ruthless Simplicity
+> *"Every line of code must justify its existence."*
+
+From Musashi's Book of Five Rings: cut away everything unnecessary. Clarity over cleverness. If it doesn't serve the mission, it doesn't belong.
 
 ---
 
@@ -290,18 +313,6 @@ npm run lint:fix           # ESLint with auto-fix
 
 ---
 
-## Design Principles
-
-ARI is built on three principles:
-
-**Shadow Integration** — Suspicious behavior is logged and analyzed, not suppressed. Transparency reveals truth.
-
-**Radical Transparency** — Every operation is audited. Every decision is traceable. No hidden state.
-
-**Ruthless Simplicity** — Every line of code must justify its existence. Clarity over cleverness.
-
----
-
 ## Documentation
 
 | Document | Description |
@@ -324,24 +335,24 @@ ARI is built on three principles:
 
 <br>
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                                                            │
-│   "The shadow reveals truth."                              │
-│                                                            │
-│   What you suppress controls you.                          │
-│   What you observe, you can understand.                    │
-│   What you understand, you can master.                     │
-│                                                            │
-│   ARI doesn't hide its failures.                           │
-│   It logs them, learns from them, and moves forward.       │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+<table>
+<tr>
+<td align="center">
+
+***"The shadow reveals truth."***
+
+What you suppress controls you.<br>
+What you observe, you can understand.<br>
+What you understand, you can master.
+
+ARI doesn't hide its failures.<br>
+It logs them, learns from them, and moves forward.
+
+</td>
+</tr>
+</table>
 
 <br>
-
-🖤
 
 **[Pryce Hedrick](https://github.com/PryceHedrick)** — Creator
 
