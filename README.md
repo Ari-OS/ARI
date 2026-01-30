@@ -1,173 +1,185 @@
 <div align="center">
 
 ```
-                    ░█████╗░██████╗░██╗
-                    ██╔══██╗██╔══██╗██║
-                    ███████║██████╔╝██║
-                    ██╔══██║██╔══██╗██║
-                    ██║  ██║██║  ██║██║
-                    ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
+        ██████╗ ██████╗ ██╗
+       ██╔══██╗██╔══██╗██║
+       ███████║██████╔╝██║
+       ██╔══██║██╔══██╗██║
+       ██║  ██║██║  ██║██║
+       ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
 ```
 
-### Artificial Reasoning Intelligence
+### 🖤 Artificial Reasoning Intelligence
 
-*The system that watches while you sleep.*
+**The system that watches while you sleep.**
 
 <br>
 
 [![CI](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-black?logo=typescript)](https://www.typescriptlang.org)
-[![Node](https://img.shields.io/badge/Node-20+-black?logo=node.js)](https://nodejs.org)
-[![License](https://img.shields.io/badge/License-MIT-black)](LICENSE)
+![TypeScript](https://img.shields.io/badge/TypeScript-000?logo=typescript&logoColor=3178C6)
+![Node](https://img.shields.io/badge/Node.js_20+-000?logo=node.js&logoColor=5FA04E)
+[![License](https://img.shields.io/badge/License-ARI_License-000)](LICENSE)
+
+---
+
+*No cloud. No subscriptions. No trust required.*
 
 </div>
 
 <br>
 
-## What is ARI?
+## 🔮 What is this?
 
-ARI is a local-first autonomous agent that manages your digital life. It runs on your machine, answers only to you, and keeps a cryptographic record of every decision it makes.
+ARI is your personal autonomous agent. It runs locally, makes decisions on your behalf, and keeps a tamper-proof record of everything it does.
 
-No cloud. No subscriptions. No trust required.
+Think of it as an AI assistant that actually works *for* you—not for some company harvesting your data.
 
 ```
-127.0.0.1:3141 — the only address that matters.
+📍 127.0.0.1:3141 — the only address that matters
 ```
 
 <br>
 
-## Philosophy
+## 🧠 Philosophy
 
-ARI is built on three principles stolen from smarter people:
+Three principles, stolen from people smarter than me:
 
 | | |
-|---|---|
-| **Shadow Integration** | Don't suppress what's suspicious—log it, understand it, integrate it. The shadow reveals truth. *(Jung)* |
-| **Radical Transparency** | Every operation audited. Every decision traceable. No hidden state. *(Dalio)* |
-| **Ruthless Simplicity** | Every line must justify its existence. Obvious over clever. *(Musashi)* |
+|:---:|---|
+| 🌑 | **Shadow Integration** *(Jung)* — Don't suppress what's suspicious. Log it. Understand it. The shadow reveals truth. |
+| 👁️ | **Radical Transparency** *(Dalio)* — Every operation audited. Every decision traceable. No hidden state. |
+| ⚔️ | **Ruthless Simplicity** *(Musashi)* — Every line must justify its existence. Obvious over clever. Always. |
 
 <br>
 
-## Architecture
+## 🏗️ Architecture
 
-Six layers. Strict boundaries. All roads lead through the kernel.
+Six layers. Strict boundaries. Everything flows through the kernel.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  INTERFACES         CLI · Dashboard · SMS · Pushover        │
-├─────────────────────────────────────────────────────────────┤
-│  EXECUTION          Daemon (macOS launchd)                  │
-├─────────────────────────────────────────────────────────────┤
-│  STRATEGIC          Council (13) · Arbiter (5) · Overseer   │
-├─────────────────────────────────────────────────────────────┤
-│  CORE               Guardian · Planner · Executor · Memory  │
-├─────────────────────────────────────────────────────────────┤
-│  SYSTEM             Router · Storage                        │
-├─────────────────────────────────────────────────────────────┤
-│  KERNEL             Gateway · Sanitizer · Audit · EventBus  │
-└─────────────────────────────────────────────────────────────┘
-                    ↑ everything passes through here
+┌─────────────────────────────────────────────────────────────────┐
+│  🖥️  INTERFACES      CLI · Dashboard · SMS · Pushover          │
+├─────────────────────────────────────────────────────────────────┤
+│  ⚙️  EXECUTION       Daemon (macOS launchd)                     │
+├─────────────────────────────────────────────────────────────────┤
+│  ⚖️  STRATEGIC       Council (13) · Arbiter (5) · Overseer      │
+├─────────────────────────────────────────────────────────────────┤
+│  🤖 CORE             Guardian · Planner · Executor · Memory     │
+├─────────────────────────────────────────────────────────────────┤
+│  🔀 SYSTEM           Router · Storage                           │
+├─────────────────────────────────────────────────────────────────┤
+│  🔐 KERNEL           Gateway · Sanitizer · Audit · EventBus     │
+└─────────────────────────────────────────────────────────────────┘
+                         ↑ trust no one above this line
 ```
 
 <br>
 
-## Security
+## 🛡️ Security
 
-Security isn't a feature. It's the foundation.
+Not a feature. The foundation.
 
-| Invariant | What it means |
-|-----------|---------------|
-| **Loopback Only** | Gateway binds to `127.0.0.1`. Period. |
-| **Content ≠ Command** | Your messages are data, never instructions. |
-| **Immutable Audit** | SHA-256 hash chain. Tampering breaks everything. |
-| **Least Privilege** | Three checks before any tool runs. |
-| **Trust Levels** | Six tiers. Hostile sources get 2x risk multiplier. |
+| | Invariant | Reality |
+|:---:|---|---|
+| 🔒 | **Loopback Only** | Gateway binds to `127.0.0.1`. No exceptions. Ever. |
+| 📝 | **Content ≠ Command** | Your messages are data. Never instructions. |
+| ⛓️ | **Immutable Audit** | SHA-256 hash chain. Tamper = break everything. |
+| 🚫 | **Least Privilege** | Three checks before any tool executes. |
+| 👤 | **Trust Levels** | Six tiers. Hostile sources get 2x risk multiplier. |
 
 <br>
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
+# Clone it
 git clone https://github.com/ARI-OS/ARI.git
-cd ARI && npm install && npm run build
+cd ARI
 
-npx ari onboard init     # Initialize
-npx ari doctor           # Health check
-npx ari gateway start    # Start (127.0.0.1:3141)
+# Build it
+npm install && npm run build
+
+# Initialize
+npx ari onboard init     # 🏠 Create ~/.ari/
+npx ari doctor           # 🩺 Health check
+npx ari gateway start    # 🚀 Launch (127.0.0.1:3141)
 ```
 
 <br>
 
-## Talk to ARI
+## 💬 Talk to ARI
 
 ```bash
-# Check pulse
+# 💓 Check pulse
 curl http://127.0.0.1:3141/health
 
-# Send a message
+# 📨 Send a message
 curl -X POST http://127.0.0.1:3141/message \
   -H "Content-Type: application/json" \
   -d '{"content": "What needs my attention?", "source": "operator"}'
 
-# Verify nothing was tampered with
+# 🔍 Verify nothing was tampered with
 curl http://127.0.0.1:3141/api/audit/verify
 ```
 
 <br>
 
-## Notifications
+## 📱 Notifications
 
-ARI can reach you through multiple channels, prioritized by urgency:
+ARI reaches you through multiple channels based on urgency:
 
-| Priority | Channels | When |
-|----------|----------|------|
-| **P0** Critical | Pushover + SMS | Always. Even at 3am. |
-| **P1** High | Pushover | Errors, failures |
-| **P2** Normal | Pushover | During waking hours |
-| **P3** Low | Notion | Logged quietly |
-| **P4** Minimal | Notion (batched) | Background noise |
+| Priority | Channels | Behavior |
+|:---:|---|---|
+| 🔴 **P0** Critical | Pushover + SMS | Always. Even at 3am. |
+| 🟠 **P1** High | Pushover | Errors, failures, things breaking |
+| 🟡 **P2** Normal | Pushover | During waking hours only |
+| 🟢 **P3** Low | Notion | Logged quietly |
+| ⚪ **P4** Minimal | Notion (batched) | Background noise, batched every 30min |
 
-Quiet hours respected. Rate limits enforced. Your sleep matters.
+> 😴 Quiet hours: 10 PM – 7 AM (configurable)
+> 🚦 Rate limited: 10 pushes/hour max
+> 💤 Your sleep matters.
 
 <br>
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 src/
-├── kernel/         Security boundary. Gateway, Sanitizer, Audit.
-├── system/         Message routing and storage.
-├── agents/         Guardian, Planner, Executor, Memory.
-├── governance/     Council, Arbiter, Overseer.
-├── integrations/   Pushover, Notion, SMS, Claude.
-├── ops/            macOS daemon.
-└── cli/            Command line interface.
+├── 🔐 kernel/         Security boundary. The foundation.
+├── 🔀 system/         Message routing and storage.
+├── 🤖 agents/         Guardian, Planner, Executor, Memory.
+├── ⚖️  governance/     Council, Arbiter, Overseer.
+├── 🔌 integrations/   Pushover, Notion, SMS, Claude.
+├── ⚙️  ops/            macOS daemon.
+└── 💻 cli/            Command line interface.
 
 scripts/
-└── ari-daemon.ts   The always-on brain.
+└── 🧠 ari-daemon.ts   The always-on brain.
 ```
 
 <br>
 
-## Development
+## 🛠️ Development
 
 ```bash
-npm run build          # Compile
-npm run dev            # Watch mode
-npm test               # 187 tests
-npm run lint           # Check style
+npm run build          # 🔨 Compile TypeScript
+npm run dev            # 👀 Watch mode
+npm test               # 🧪 187 tests
+npm run lint           # ✨ Check style
+npm run typecheck      # 📋 Type check
 ```
 
 <br>
 
-## Documentation
+## 📚 Docs
 
-| Doc | Purpose |
-|-----|---------|
-| [CLAUDE.md](CLAUDE.md) | Context for AI assistants |
-| [SECURITY.md](docs/SECURITY.md) | Threat model and invariants |
-| [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | System design |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to help |
+| | Doc | What's inside |
+|:---:|---|---|
+| 🤖 | [CLAUDE.md](CLAUDE.md) | Context for AI assistants working on ARI |
+| 🛡️ | [SECURITY.md](docs/SECURITY.md) | Threat model, invariants, paranoia |
+| 🏗️ | [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | How it all fits together |
+| 🤝 | [CONTRIBUTING.md](CONTRIBUTING.md) | Want to help? Start here |
 
 <br>
 
@@ -175,22 +187,36 @@ npm run lint           # Check style
 
 <div align="center">
 
+<br>
+
 ```
-        "The shadow reveals truth."
+        ┌──────────────────────────────────────┐
+        │                                      │
+        │    "The shadow reveals truth."       │
+        │                                      │
+        └──────────────────────────────────────┘
 ```
 
 <br>
+
+🖤
 
 **Created by [Pryce Hedrick](https://github.com/PryceHedrick)**
 
-Built with [Claude](https://anthropic.com) — an experiment in human-AI collaboration.
+*with [Claude](https://anthropic.com) — proving humans and AI can build something real together*
 
 <br>
 
-*One machine. One owner. Full autonomy.*
+```
+One machine. One owner. Full autonomy.
+```
 
 <br>
 
-[MIT License](LICENSE) · 2024-2026
+[ARI License](LICENSE) · 2024–2026
+
+<br>
+
+*Your life. Your rules. Fully auditable.* ✨
 
 </div>
