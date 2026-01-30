@@ -282,6 +282,17 @@ npm run lint:fix           # ESLint with auto-fix
 
 <div align="center">
 
+---
+
+```
+    █████╗ ██████╗ ██╗
+   ██╔══██╗██╔══██╗██║
+   ███████║██████╔╝██║
+   ██╔══██║██╔══██╗██║
+   ██║  ██║██║  ██║██║
+   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
+```
+
 🖤 **ARI v2.0.0** · Aurora Protocol 🖤
 
 *Life Operating System*
@@ -289,6 +300,14 @@ npm run lint:fix           # ESLint with auto-fix
 ```
 The shadow reveals truth. Every decision audited. No hidden state.
 ```
+
+---
+
+**Created by [Pryce Hedrick](https://github.com/PryceHedrick)**
+
+Built with 🧠 by [Claude](https://anthropic.com) × Human collaboration
+
+---
 
 MIT License · [ARI-OS](https://github.com/ARI-OS)
 
