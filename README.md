@@ -1,12 +1,23 @@
 <div align="center">
 
-<img src="docs/assets/aripfp.png" alt="ARI" width="180" />
+<img src="docs/assets/aripfp-sm.png" alt="ARI" width="180" />
 
-# ARI
+<br>
+
+```
+ █████╗ ██████╗ ██╗
+██╔══██╗██╔══██╗██║
+███████║██████╔╝██║
+██╔══██║██╔══██╗██║
+██║  ██║██║  ██║██║
+╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
+```
 
 **Artificial Reasoning Intelligence**
 
-*A mind that runs on your machine, answers only to you, and forgets nothing.*
+*Your Life Operating System*
+
+<br>
 
 [![CI](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-708%20passing-brightgreen)](https://github.com/ARI-OS/ARI)
