@@ -23,6 +23,8 @@
 import { NotificationManager } from './notification-manager.js';
 import { NotionInbox } from '../integrations/notion/inbox.js';
 import { dailyAudit, type DailyAudit } from './daily-audit.js';
+import { ChangelogGenerator } from './changelog-generator.js';
+import { EventBus } from '../kernel/event-bus.js';
 import type { NotionConfig } from './types.js';
 
 export interface BriefingContent {
@@ -44,10 +46,14 @@ export interface BriefingResult {
 export class BriefingGenerator {
   private notificationManager: NotificationManager;
   private notion: NotionInbox | null = null;
+  private changelogGenerator: ChangelogGenerator | null = null;
   private timezone = 'America/Indiana/Indianapolis';
 
-  constructor(notificationManager: NotificationManager) {
+  constructor(notificationManager: NotificationManager, eventBus?: EventBus) {
     this.notificationManager = notificationManager;
+    if (eventBus) {
+      this.changelogGenerator = new ChangelogGenerator(eventBus, process.cwd());
+    }
   }
 
   /**
@@ -135,7 +141,7 @@ export class BriefingGenerator {
 
     const content: BriefingContent = {
       type: 'evening',
-      summary: this.buildEveningSummary(auditData),
+      summary: await this.buildEveningSummary(auditData),
       highlights: this.extractHighlights(auditData),
       issues: this.extractIssues(auditData),
       metrics: this.buildDayMetrics(auditData),
@@ -261,23 +267,37 @@ export class BriefingGenerator {
     return lines.join('\n');
   }
 
-  private buildEveningSummary(auditData: DailyAudit | null): string {
+  private async buildEveningSummary(auditData: DailyAudit | null): Promise<string> {
+    const lines: string[] = [];
+
     if (!auditData) {
-      return 'No audit data available for today.';
+      lines.push('No audit data available for today.');
+    } else {
+      const completed = auditData.activities.filter((a) => a.outcome === 'success').length;
+      const failed = auditData.activities.filter((a) => a.outcome === 'failure').length;
+
+      lines.push(`Today's wrap-up: ${completed} completed, ${failed} failed.`);
+
+      if (auditData.highlights && auditData.highlights.length > 0) {
+        lines.push('');
+        lines.push('Key accomplishments:');
+        auditData.highlights.slice(0, 3).forEach((h) => {
+          lines.push(`• ${h}`);
+        });
+      }
     }
 
-    const completed = auditData.activities.filter((a) => a.outcome === 'success').length;
-    const failed = auditData.activities.filter((a) => a.outcome === 'failure').length;
-
-    const lines: string[] = [];
-    lines.push(`Today's wrap-up: ${completed} completed, ${failed} failed.`);
-
-    if (auditData.highlights && auditData.highlights.length > 0) {
-      lines.push('');
-      lines.push('Key accomplishments:');
-      auditData.highlights.slice(0, 3).forEach((h) => {
-        lines.push(`• ${h}`);
-      });
+    // Add changelog summary
+    if (this.changelogGenerator) {
+      try {
+        const changelogSummary = await this.changelogGenerator.getSummaryForBriefing();
+        if (changelogSummary) {
+          lines.push('');
+          lines.push(changelogSummary);
+        }
+      } catch {
+        // Skip changelog if it fails
+      }
     }
 
     return lines.join('\n');

@@ -260,10 +260,12 @@ describe('AutonomousAgent', () => {
       mockReadFile.mockResolvedValue(JSON.stringify({ enabled: true }));
 
       await agent.start();
+      const callsAfterFirstStart = mockWriteFile.mock.calls.length;
+
       await agent.start(); // Second call
 
-      // Should only write state once for start
-      expect(mockWriteFile).toHaveBeenCalledTimes(1);
+      // Second start should not write additional state
+      expect(mockWriteFile.mock.calls.length).toBe(callsAfterFirstStart);
     });
 
     it('should save state on start', async () => {

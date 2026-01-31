@@ -71,6 +71,22 @@ export interface EventMap {
   'channel:status': { channelId: string; channelName: string; status: string; activeSessions: number; lastActivity?: Date };
   'channel:message:inbound': { channelId: string; messageId: string; senderId: string; content: string; timestamp: Date };
   'channel:message:outbound': { channelId: string; messageId: string; recipientId: string; content: string; timestamp: Date };
+
+  // ── Scheduler events ─────────────────────────────────────────────────────
+  'scheduler:task_run': { taskId: string; startedAt: Date };
+  'scheduler:task_complete': { taskId: string; duration: number; success: boolean };
+
+  // ── Knowledge events ─────────────────────────────────────────────────────
+  'knowledge:indexed': { documentCount: number; duration: number };
+  'knowledge:searched': { query: string; resultCount: number };
+
+  // ── Subagent events ──────────────────────────────────────────────────────
+  'subagent:spawned': { taskId: string; agentId: AgentId; worktree: string };
+  'subagent:progress': { taskId: string; progress: number; message: string };
+  'subagent:completed': { taskId: string; success: boolean; result?: unknown };
+
+  // ── Context events ───────────────────────────────────────────────────────
+  'context:loaded': { path: string; depth: number; skills: string[] };
 }
 
 /**

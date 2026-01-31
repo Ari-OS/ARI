@@ -18,6 +18,11 @@ import { AutonomousConfig, Task, PushoverMessage } from './types.js';
 import { notificationManager } from './notification-manager.js';
 import { auditReporter } from './audit-reporter.js';
 import { dailyAudit } from './daily-audit.js';
+import { Scheduler } from './scheduler.js';
+import { KnowledgeIndex } from './knowledge-index.js';
+import { ChangelogGenerator } from './changelog-generator.js';
+import { AgentSpawner } from './agent-spawner.js';
+import { BriefingGenerator } from './briefings.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -41,6 +46,11 @@ export class AutonomousAgent {
   private state: AgentState;
   private running = false;
   private pollTimer: NodeJS.Timeout | null = null;
+  private scheduler: Scheduler;
+  private knowledgeIndex: KnowledgeIndex;
+  private changelogGenerator: ChangelogGenerator;
+  private agentSpawner: AgentSpawner;
+  private briefingGenerator: BriefingGenerator | null = null;
 
   constructor(eventBus: EventBus, config?: Partial<AutonomousConfig>) {
     this.eventBus = eventBus;
@@ -58,6 +68,12 @@ export class AutonomousAgent {
       lastActivity: null,
       errors: 0,
     };
+
+    // Initialize scheduler and autonomous components
+    this.scheduler = new Scheduler(eventBus);
+    this.knowledgeIndex = new KnowledgeIndex(eventBus);
+    this.changelogGenerator = new ChangelogGenerator(eventBus, process.cwd());
+    this.agentSpawner = new AgentSpawner(eventBus, process.cwd());
   }
 
   /**
@@ -84,6 +100,16 @@ export class AutonomousAgent {
 
     // Initialize queue
     await this.queue.init();
+
+    // Initialize scheduler and register handlers
+    await this.scheduler.init();
+    this.registerSchedulerHandlers();
+
+    // Initialize knowledge index
+    await this.knowledgeIndex.init();
+
+    // Initialize agent spawner
+    await this.agentSpawner.init();
 
     // Initialize Pushover if configured
     if (this.config.pushover?.userKey && this.config.pushover?.apiToken) {
@@ -133,6 +159,9 @@ export class AutonomousAgent {
 
     await this.saveState();
 
+    // Start scheduler
+    this.scheduler.start();
+
     // No notification on startup - saves tokens and reduces noise
     // Only notify on errors or important events
 
@@ -151,6 +180,9 @@ export class AutonomousAgent {
 
     this.running = false;
     this.state.running = false;
+
+    // Stop scheduler
+    this.scheduler.stop();
 
     if (this.pollTimer) {
       clearTimeout(this.pollTimer);
@@ -177,6 +209,9 @@ export class AutonomousAgent {
     if (!this.running) return;
 
     try {
+      // Check scheduled tasks first
+      await this.scheduler.checkAndRun();
+
       // Check for Pushover messages
       await this.checkPushoverMessages();
 
@@ -198,6 +233,7 @@ export class AutonomousAgent {
       // Periodic cleanup
       if (Math.random() < 0.01) { // ~1% chance each poll
         await this.queue.cleanup(24);
+        await this.agentSpawner.cleanupOld(24);
       }
 
       this.state.lastActivity = new Date().toISOString();
@@ -378,6 +414,64 @@ export class AutonomousAgent {
     const dir = path.dirname(STATE_PATH);
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(STATE_PATH, JSON.stringify(this.state, null, 2));
+  }
+
+  /**
+   * Register handlers for scheduled tasks
+   */
+  private registerSchedulerHandlers(): void {
+    // Morning briefing at 7am
+    this.scheduler.registerHandler('morning_briefing', async () => {
+      if (this.briefingGenerator) {
+        await this.briefingGenerator.morningBriefing();
+      }
+      // eslint-disable-next-line no-console
+      console.log('[Scheduler] Morning briefing completed');
+    });
+
+    // Evening summary at 9pm
+    this.scheduler.registerHandler('evening_summary', async () => {
+      if (this.briefingGenerator) {
+        await this.briefingGenerator.eveningSummary();
+      }
+      // eslint-disable-next-line no-console
+      console.log('[Scheduler] Evening summary completed');
+    });
+
+    // Weekly review on Sunday 6pm
+    this.scheduler.registerHandler('weekly_review', async () => {
+      if (this.briefingGenerator) {
+        await this.briefingGenerator.weeklyReview();
+      }
+      // eslint-disable-next-line no-console
+      console.log('[Scheduler] Weekly review completed');
+    });
+
+    // Knowledge indexing 3x daily
+    this.scheduler.registerHandler('knowledge_index', async () => {
+      await this.knowledgeIndex.reindexAll();
+      // eslint-disable-next-line no-console
+      console.log('[Scheduler] Knowledge index updated');
+    });
+
+    // Changelog generation at 7pm
+    this.scheduler.registerHandler('changelog_generate', async () => {
+      const result = await this.changelogGenerator.generateDaily();
+      if (result.savedPath) {
+        // eslint-disable-next-line no-console
+        console.log(`[Scheduler] Changelog generated: ${result.savedPath}`);
+      }
+    });
+
+    // Agent health check every 15 minutes
+    this.scheduler.registerHandler('agent_health_check', async () => {
+      await this.agentSpawner.checkAgents();
+      const running = this.agentSpawner.getAgentsByStatus('running');
+      if (running.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log(`[Scheduler] ${running.length} agents still running`);
+      }
+    });
   }
 
   /**

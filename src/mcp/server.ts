@@ -63,6 +63,23 @@ const TOOLS: Tool[] = [
     },
   },
 
+  // Memory Time Search Tool
+  {
+    name: 'ari_memory_time_search',
+    description: 'Search memory entries within a time window. Useful for research queries like "what did we learn last week" or "decisions from last 30 days".',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        startDate: { type: 'string', description: 'ISO date string for start of time window (e.g., "2024-01-01")' },
+        endDate: { type: 'string', description: 'ISO date string for end of time window. Defaults to now if not provided.' },
+        domain: { type: 'string', description: 'Filter by content domain (e.g., "patterns", "decisions", "fixes")' },
+        minConfidence: { type: 'number', description: 'Minimum confidence level 0-1 (default: 0)' },
+        limit: { type: 'number', description: 'Maximum results to return (default: 50)' },
+      },
+      required: ['startDate'],
+    },
+  },
+
   // Memory Tools
   {
     name: 'ari_memory_store',
@@ -329,6 +346,8 @@ export class ARIMCPServer {
         return this.memoryRetrieve(args);
       case 'ari_memory_search':
         return this.memorySearch(args);
+      case 'ari_memory_time_search':
+        return this.memoryTimeSearch(args);
 
       // Agent Tools
       case 'ari_agent_status':
@@ -419,6 +438,28 @@ export class ARIMCPServer {
   private async memorySearch(args: Record<string, unknown>): Promise<unknown[]> {
     const limit = typeof args.limit === 'number' ? args.limit : 20;
     return this.memoryManager.query({ limit }, 'executor');
+  }
+
+  private async memoryTimeSearch(args: Record<string, unknown>): Promise<unknown[]> {
+    const startDateStr = typeof args.startDate === 'string' ? args.startDate : '';
+    if (!startDateStr) {
+      throw new Error('startDate is required');
+    }
+
+    const startDate = new Date(startDateStr);
+    if (isNaN(startDate.getTime())) {
+      throw new Error('Invalid startDate format');
+    }
+
+    const endDate = typeof args.endDate === 'string' ? new Date(args.endDate) : new Date();
+    const domains = typeof args.domain === 'string' ? [args.domain] : undefined;
+    const minConfidence = typeof args.minConfidence === 'number' ? args.minConfidence : 0;
+    const limit = typeof args.limit === 'number' ? args.limit : 50;
+
+    return this.memoryManager.queryTimeWindow(
+      { startDate, endDate, domains, minConfidence, limit },
+      'executor'
+    );
   }
 
   // Agent implementations

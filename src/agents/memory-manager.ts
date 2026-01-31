@@ -289,6 +289,77 @@ export class MemoryManager {
   }
 
   /**
+   * Query memories within a time window
+   * Useful for research skills like /last30days, /lastweek
+   */
+  async queryTimeWindow(
+    params: {
+      startDate: Date;
+      endDate?: Date;
+      domains?: string[];
+      minConfidence?: number;
+      limit?: number;
+    },
+    requestingAgent: AgentId
+  ): Promise<MemoryEntry[]> {
+    const {
+      startDate,
+      endDate = new Date(),
+      domains,
+      minConfidence = 0,
+      limit = 50,
+    } = params;
+
+    let results: MemoryEntry[] = Array.from(this.memories.values());
+
+    // Filter by access permission
+    results = results.filter((entry) => this.hasAccess(requestingAgent, entry));
+
+    // Filter by time window
+    results = results.filter((entry) => {
+      const createdAt = new Date(entry.created_at);
+      return createdAt >= startDate && createdAt <= endDate;
+    });
+
+    // Filter by domains (if provided and entry has domain in content or provenance)
+    if (domains && domains.length > 0) {
+      results = results.filter((entry) => {
+        // Check if content mentions any domain
+        const contentLower = entry.content.toLowerCase();
+        return domains.some((d) => contentLower.includes(d.toLowerCase()));
+      });
+    }
+
+    // Apply trust decay
+    results = results.map((entry) => this.applyTrustDecay(entry));
+
+    // Filter by minimum confidence (after decay)
+    if (minConfidence > 0) {
+      results = results.filter((entry) => entry.confidence >= minConfidence);
+    }
+
+    // Sort by creation date descending (newest first)
+    results.sort((a, b) => {
+      const aTime = new Date(a.created_at).getTime();
+      const bTime = new Date(b.created_at).getTime();
+      return bTime - aTime;
+    });
+
+    // Apply limit
+    results = results.slice(0, limit);
+
+    await this.auditLogger.log('memory:query_time_window', requestingAgent, 'standard', {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      domains,
+      minConfidence,
+      result_count: results.length,
+    });
+
+    return results;
+  }
+
+  /**
    * Get memory statistics
    */
   getStats(): MemoryStats {
