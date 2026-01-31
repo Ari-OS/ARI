@@ -13,10 +13,17 @@ interface CreateVoteRequest {
 }
 
 /**
- * Multi-agent voting council with 13 members.
+ * The Consilium - ARI's Governance Council
+ *
+ * A 13-member deliberative body implementing constitutional governance.
+ * "Consilium" (Latin: council, plan, deliberation) reflects the thoughtful,
+ * transparent decision-making process at the heart of ARI's governance.
+ *
  * Implements quorum requirements, threshold calculations, and early vote conclusion.
+ *
+ * @see docs/constitution/ARI-CONSTITUTION-v1.0.md - Section 2: Legislative Branch
  */
-export class Council {
+export class Consilium {
   private votes: Map<string, Vote> = new Map();
   private readonly QUORUM_PERCENTAGE = 0.5; // 50% of voters must participate
   private readonly THRESHOLD_VALUES: Record<VoteThreshold, number> = {
@@ -318,3 +325,9 @@ export class Council {
     return expired;
   }
 }
+
+// Backwards compatibility: Council is an alias for Consilium
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+const Council = Consilium;
+type Council = Consilium;
+export { Council };

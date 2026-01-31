@@ -230,3 +230,114 @@ export const ToolDefinitionSchema = z.object({
   })),
 });
 export type ToolDefinition = z.infer<typeof ToolDefinitionSchema>;
+
+// ── Execution Layer Types ────────────────────────────────────────────────────
+
+/**
+ * Cryptographically signed authorization token for tool execution.
+ * Issued by PolicyEngine, verified by ToolExecutor.
+ * Single-use, time-bound, parameter-bound.
+ */
+export const ToolCallTokenSchema = z.object({
+  token_id: z.string().uuid(),
+  tool_id: z.string(),
+  agent_id: AgentIdSchema,
+  parameters: z.record(z.unknown()),
+  parameters_hash: z.string(), // SHA-256 of parameters
+  permission_tier: PermissionTierSchema,
+  trust_level: TrustLevelSchema,
+  approved_by: AgentIdSchema.nullable(), // null for auto-approved
+  approval_reasoning: z.string().nullable(),
+  issued_at: z.string(), // ISO timestamp
+  expires_at: z.string(), // ISO timestamp (5 min TTL default)
+  signature: z.string(), // HMAC-SHA256 signature
+  used: z.boolean().default(false),
+});
+export type ToolCallToken = z.infer<typeof ToolCallTokenSchema>;
+
+/**
+ * Status of a permission request in the approval workflow.
+ */
+export const ApprovalStatusSchema = z.enum([
+  'PENDING',
+  'APPROVED',
+  'REJECTED',
+  'EXPIRED',
+  'AUTO_APPROVED',
+]);
+export type ApprovalStatus = z.infer<typeof ApprovalStatusSchema>;
+
+/**
+ * Request for tool execution permission.
+ */
+export const PermissionRequestSchema = z.object({
+  request_id: z.string().uuid(),
+  tool_id: z.string(),
+  agent_id: AgentIdSchema,
+  parameters: z.record(z.unknown()),
+  trust_level: TrustLevelSchema,
+  requested_at: z.string(),
+  status: ApprovalStatusSchema,
+  resolved_at: z.string().nullable(),
+  resolved_by: AgentIdSchema.nullable(),
+  rejection_reason: z.string().nullable(),
+});
+export type PermissionRequest = z.infer<typeof PermissionRequestSchema>;
+
+/**
+ * Result of a PolicyEngine permission check.
+ */
+export const PermissionCheckResultSchema = z.object({
+  allowed: z.boolean(),
+  requires_approval: z.boolean(),
+  reason: z.string(),
+  risk_score: z.number().min(0).max(1),
+  violations: z.array(z.string()),
+});
+export type PermissionCheckResult = z.infer<typeof PermissionCheckResultSchema>;
+
+/**
+ * Result of tool execution by ToolExecutor.
+ */
+export const ExecutionResultSchema = z.object({
+  success: z.boolean(),
+  tool_call_id: z.string(),
+  token_id: z.string().nullable(),
+  output: z.unknown().optional(),
+  error: z.string().optional(),
+  duration_ms: z.number(),
+  executed_at: z.string(),
+});
+export type ExecutionResult = z.infer<typeof ExecutionResultSchema>;
+
+/**
+ * Tool capability definition for ToolRegistry (stripped of policy).
+ * Contains only technical details, no permission logic.
+ */
+export const ToolCapabilitySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  timeout_ms: z.number(),
+  sandboxed: z.boolean(),
+  parameters: z.record(z.object({
+    type: z.string(),
+    required: z.boolean(),
+    description: z.string(),
+  })),
+  handler: z.string().optional(), // Reference to handler function
+});
+export type ToolCapability = z.infer<typeof ToolCapabilitySchema>;
+
+/**
+ * Tool policy definition for PolicyEngine.
+ * Contains only permission requirements.
+ */
+export const ToolPolicySchema = z.object({
+  tool_id: z.string(),
+  permission_tier: PermissionTierSchema,
+  required_trust_level: TrustLevelSchema,
+  allowed_agents: z.array(AgentIdSchema),
+  rate_limit: z.number().optional(), // Max calls per hour
+});
+export type ToolPolicy = z.infer<typeof ToolPolicySchema>;

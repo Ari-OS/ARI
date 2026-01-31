@@ -38,6 +38,18 @@ export interface EventMap {
   'arbiter:ruling': { ruleId: string; type: string; decision: string };
   'overseer:gate': { gateId: string; passed: boolean; reason: string };
 
+  // ── PolicyEngine events (Separation of Powers) ───────────────────────────
+  'permission:granted': { requestId: string; toolId: string; agentId: AgentId; tokenId: string; autoApproved: boolean };
+  'permission:denied': { requestId: string; toolId: string; agentId: AgentId; reason: string; violations: string[] };
+  'permission:approval_required': { requestId: string; toolId: string; agentId: AgentId; parameters: Record<string, unknown>; permissionTier: string };
+  'permission:approved': { requestId: string; toolId: string; agentId: AgentId; tokenId: string; approver: AgentId };
+  'permission:rejected': { requestId: string; toolId: string; agentId: AgentId; rejector: AgentId; reason: string };
+  'permission:expired': { requestId: string; toolId: string; agentId: AgentId };
+
+  // ── ToolRegistry events ──────────────────────────────────────────────────
+  'tool:registered': { toolId: string; toolName: string };
+  'tool:unregistered': { toolId: string };
+
   // ── Control Plane events ───────────────────────────────────────────────
   'controlplane:client:connected': { clientId: string; clientType: string; connectedAt: Date };
   'controlplane:client:disconnected': { clientId: string; reason: string; disconnectedAt: Date };

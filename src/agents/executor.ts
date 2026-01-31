@@ -4,8 +4,26 @@ import type {
   AgentId,
   TrustLevel,
   ToolDefinition,
+  PermissionCheckResult,
 } from '../kernel/types.js';
 import { TRUST_SCORES } from '../kernel/types.js';
+import { PolicyEngine } from '../governance/policy-engine.js';
+import { ToolRegistry } from '../execution/tool-registry.js';
+import type { ToolHandler } from '../execution/types.js';
+
+/**
+ * Feature flag for new PolicyEngine system.
+ * When true, uses the new separated PolicyEngine for permission decisions.
+ * When false, uses the legacy inline permission checking.
+ */
+const USE_NEW_POLICY_ENGINE = process.env.USE_NEW_POLICY_ENGINE === 'true';
+
+/**
+ * Feature flag for dual-write mode.
+ * When true, runs both systems and compares results (for testing).
+ * USE_NEW_POLICY_ENGINE determines which result is actually used.
+ */
+const DUAL_WRITE_MODE = process.env.ARI_DUAL_WRITE_MODE === 'true';
 
 interface ToolCall {
   id: string;
@@ -34,6 +52,19 @@ interface PendingApproval {
 }
 
 /**
+ * Comparison result between old and new permission systems.
+ */
+interface PermissionComparison {
+  oldAllowed: boolean;
+  newAllowed: boolean;
+  oldReason?: string;
+  newReason?: string;
+  divergent: boolean;
+  requiresApprovalOld: boolean;
+  requiresApprovalNew: boolean;
+}
+
+/**
  * Executor - Tool execution with permission gating and streaming events
  * Manages tool registration, permission checking, and execution with approval workflow
  *
@@ -41,6 +72,10 @@ interface PendingApproval {
  * - tool:start - Emitted when tool execution begins
  * - tool:update - Emitted for progress updates during long-running operations
  * - tool:end - Emitted when tool execution completes (success or failure)
+ *
+ * Dual-Write Mode:
+ * When ARI_DUAL_WRITE_MODE=true, runs both old and new permission systems
+ * and logs any divergence for comparison testing.
  */
 export class Executor {
   private readonly auditLogger: AuditLogger;
@@ -49,6 +84,19 @@ export class Executor {
   private pendingApprovals = new Map<string, PendingApproval>();
   private activeExecutions = new Map<string, { startTime: number; sessionId?: string }>();
 
+  /** New PolicyEngine for separated permission decisions */
+  private readonly policyEngine: PolicyEngine;
+
+  /** New ToolRegistry for separated capability catalog */
+  private readonly toolRegistry: ToolRegistry;
+
+  /** Statistics for dual-write comparison */
+  private dualWriteStats = {
+    totalChecks: 0,
+    divergentChecks: 0,
+    lastDivergence: null as PermissionComparison | null,
+  };
+
   private readonly MAX_CONCURRENT_EXECUTIONS = 10;
   private readonly DEFAULT_TIMEOUT_MS = 30000;
 
@@ -56,8 +104,47 @@ export class Executor {
     this.auditLogger = auditLogger;
     this.eventBus = eventBus;
 
-    // Register built-in tools
+    // Initialize new separated systems
+    this.policyEngine = new PolicyEngine(auditLogger, eventBus);
+    this.toolRegistry = new ToolRegistry(auditLogger, eventBus);
+
+    // Register built-in tools (both old and new systems)
     this.registerBuiltInTools();
+  }
+
+  /**
+   * Check if new PolicyEngine is enabled.
+   */
+  isNewPolicyEngineEnabled(): boolean {
+    return USE_NEW_POLICY_ENGINE;
+  }
+
+  /**
+   * Check if dual-write mode is enabled.
+   */
+  isDualWriteEnabled(): boolean {
+    return DUAL_WRITE_MODE;
+  }
+
+  /**
+   * Get dual-write statistics.
+   */
+  getDualWriteStats(): typeof this.dualWriteStats {
+    return { ...this.dualWriteStats };
+  }
+
+  /**
+   * Get the PolicyEngine instance (for testing/integration).
+   */
+  getPolicyEngine(): PolicyEngine {
+    return this.policyEngine;
+  }
+
+  /**
+   * Get the ToolRegistry instance (for testing/integration).
+   */
+  getToolRegistry(): ToolRegistry {
+    return this.toolRegistry;
   }
 
   /**
@@ -101,12 +188,21 @@ export class Executor {
       };
     }
 
-    // 3-layer permission check
-    const permissionCheck = this.checkPermissions(call, tool);
+    // Run dual-write comparison if enabled
+    if (DUAL_WRITE_MODE) {
+      await this.runDualWriteComparison(call, tool);
+    }
+
+    // 3-layer permission check (using old or new system based on flag)
+    const permissionCheck = USE_NEW_POLICY_ENGINE
+      ? this.checkPermissionsNew(call, tool)
+      : this.checkPermissions(call, tool);
+
     if (!permissionCheck.allowed) {
       await this.auditLogger.log('tool:permission_denied', call.requesting_agent, call.trust_level, {
         tool_id: call.tool_id,
         reason: permissionCheck.reason,
+        policy_engine: USE_NEW_POLICY_ENGINE ? 'new' : 'legacy',
       });
 
       return {
@@ -118,12 +214,81 @@ export class Executor {
     }
 
     // Check if approval is required
-    if (this.requiresApproval(tool)) {
+    const requiresApproval = USE_NEW_POLICY_ENGINE
+      ? permissionCheck.requires_approval ?? false
+      : this.requiresApproval(tool);
+
+    if (requiresApproval) {
       return await this.executeWithApproval(call, tool);
     }
 
     // Execute directly
     return await this.executeInternal(call, tool);
+  }
+
+  /**
+   * Run both permission systems and compare results for dual-write mode.
+   */
+  private async runDualWriteComparison(call: ToolCall, tool: ToolDefinition): Promise<void> {
+    // Get old system decision
+    const oldCheck = this.checkPermissions(call, tool);
+    const oldRequiresApproval = this.requiresApproval(tool);
+
+    // Get new system decision
+    const newCheck = this.checkPermissionsNew(call, tool);
+    const newRequiresApproval = newCheck.requires_approval ?? false;
+
+    // Compare results
+    const comparison: PermissionComparison = {
+      oldAllowed: oldCheck.allowed,
+      newAllowed: newCheck.allowed,
+      oldReason: oldCheck.reason,
+      newReason: newCheck.reason,
+      divergent: oldCheck.allowed !== newCheck.allowed || oldRequiresApproval !== newRequiresApproval,
+      requiresApprovalOld: oldRequiresApproval,
+      requiresApprovalNew: newRequiresApproval,
+    };
+
+    // Update statistics
+    this.dualWriteStats.totalChecks++;
+    if (comparison.divergent) {
+      this.dualWriteStats.divergentChecks++;
+      this.dualWriteStats.lastDivergence = comparison;
+
+      // Log divergence
+      await this.auditLogger.log('dual_write:divergence', 'executor', 'system', {
+        tool_id: call.tool_id,
+        agent_id: call.requesting_agent,
+        trust_level: call.trust_level,
+        comparison,
+      });
+
+      // Emit divergence event
+      this.eventBus.emit('system:error', {
+        error: new Error('Dual-write permission divergence detected'),
+        context: `tool=${call.tool_id}, agent=${call.requesting_agent}`,
+      });
+    }
+  }
+
+  /**
+   * Check permissions using the new PolicyEngine.
+   */
+  private checkPermissionsNew(
+    call: ToolCall,
+    tool: ToolDefinition
+  ): { allowed: boolean; reason?: string; requires_approval?: boolean } {
+    const policy = this.policyEngine.getPolicy(tool.id);
+    if (!policy) {
+      return { allowed: false, reason: `No policy found for tool ${tool.id}` };
+    }
+
+    const result = this.policyEngine.checkPermissions(call.requesting_agent, call.trust_level, policy);
+    return {
+      allowed: result.allowed,
+      reason: result.reason,
+      requires_approval: result.requires_approval,
+    };
   }
 
   /**
@@ -196,12 +361,12 @@ export class Executor {
   }
 
   /**
-   * Check all permission layers
+   * Check all permission layers (legacy system)
    */
   private checkPermissions(
     call: ToolCall,
     tool: ToolDefinition
-  ): { allowed: boolean; reason?: string } {
+  ): { allowed: boolean; reason?: string; requires_approval?: boolean } {
     // Layer 1: Agent allowlist
     if (tool.allowed_agents.length > 0 && !tool.allowed_agents.includes(call.requesting_agent)) {
       return {
@@ -220,12 +385,13 @@ export class Executor {
       };
     }
 
-    // Layer 3: Permission tier (implicit check - handled by approval workflow)
-    return { allowed: true };
+    // Layer 3: Permission tier - determine if approval is required
+    const requiresApproval = tool.permission_tier === 'WRITE_DESTRUCTIVE' || tool.permission_tier === 'ADMIN';
+    return { allowed: true, requires_approval: requiresApproval };
   }
 
   /**
-   * Check if tool requires approval
+   * Check if tool requires approval (legacy helper)
    */
   private requiresApproval(tool: ToolDefinition): boolean {
     return tool.permission_tier === 'WRITE_DESTRUCTIVE' || tool.permission_tier === 'ADMIN';
@@ -456,66 +622,103 @@ export class Executor {
    * Register built-in tools
    */
   private registerBuiltInTools(): void {
-    // File read - READ_ONLY
-    this.registerTool({
-      id: 'file_read',
-      name: 'Read File',
-      description: 'Read contents of a file',
-      permission_tier: 'READ_ONLY',
-      required_trust_level: 'standard',
-      allowed_agents: [],
-      timeout_ms: 5000,
-      sandboxed: true,
-      parameters: {
-        path: { type: 'string', required: true, description: 'File path to read' },
+    // Define built-in tools with their handlers
+    const builtInTools: Array<{
+      definition: ToolDefinition;
+      handler: ToolHandler;
+    }> = [
+      {
+        definition: {
+          id: 'file_read',
+          name: 'Read File',
+          description: 'Read contents of a file',
+          permission_tier: 'READ_ONLY',
+          required_trust_level: 'standard',
+          allowed_agents: [],
+          timeout_ms: 5000,
+          sandboxed: true,
+          parameters: {
+            path: { type: 'string', required: true, description: 'File path to read' },
+          },
+        },
+        handler: async (params) => ({ content: `Mock file content for ${String(params.path)}` }),
       },
-    });
+      {
+        definition: {
+          id: 'file_write',
+          name: 'Write File',
+          description: 'Write contents to a file',
+          permission_tier: 'WRITE_SAFE',
+          required_trust_level: 'verified',
+          allowed_agents: [],
+          timeout_ms: 10000,
+          sandboxed: true,
+          parameters: {
+            path: { type: 'string', required: true, description: 'File path to write' },
+            content: { type: 'string', required: true, description: 'Content to write' },
+          },
+        },
+        handler: async (params) => ({ written: true, path: params.path }),
+      },
+      {
+        definition: {
+          id: 'file_delete',
+          name: 'Delete File',
+          description: 'Delete a file',
+          permission_tier: 'WRITE_DESTRUCTIVE',
+          required_trust_level: 'operator',
+          allowed_agents: [],
+          timeout_ms: 5000,
+          sandboxed: true,
+          parameters: {
+            path: { type: 'string', required: true, description: 'File path to delete' },
+          },
+        },
+        handler: async (params) => ({ deleted: true, path: params.path }),
+      },
+      {
+        definition: {
+          id: 'system_config',
+          name: 'System Configuration',
+          description: 'Modify system configuration',
+          permission_tier: 'ADMIN',
+          required_trust_level: 'system',
+          allowed_agents: ['core', 'overseer'],
+          timeout_ms: 3000,
+          sandboxed: false,
+          parameters: {
+            key: { type: 'string', required: true, description: 'Configuration key' },
+            value: { type: 'string', required: true, description: 'Configuration value' },
+          },
+        },
+        handler: async () => ({ config: 'mock_config_value' }),
+      },
+    ];
 
-    // File write - WRITE_SAFE
-    this.registerTool({
-      id: 'file_write',
-      name: 'Write File',
-      description: 'Write contents to a file',
-      permission_tier: 'WRITE_SAFE',
-      required_trust_level: 'verified',
-      allowed_agents: [],
-      timeout_ms: 10000,
-      sandboxed: true,
-      parameters: {
-        path: { type: 'string', required: true, description: 'File path to write' },
-        content: { type: 'string', required: true, description: 'Content to write' },
-      },
-    });
+    // Register in both old and new systems
+    for (const { definition, handler } of builtInTools) {
+      // Old system: register tool definition
+      this.registerTool(definition);
 
-    // File delete - WRITE_DESTRUCTIVE
-    this.registerTool({
-      id: 'file_delete',
-      name: 'Delete File',
-      description: 'Delete a file',
-      permission_tier: 'WRITE_DESTRUCTIVE',
-      required_trust_level: 'operator',
-      allowed_agents: [],
-      timeout_ms: 5000,
-      sandboxed: true,
-      parameters: {
-        path: { type: 'string', required: true, description: 'File path to delete' },
-      },
-    });
+      // New system: register capability and policy
+      this.toolRegistry.register(
+        {
+          id: definition.id,
+          name: definition.name,
+          description: definition.description,
+          timeout_ms: definition.timeout_ms,
+          sandboxed: definition.sandboxed,
+          parameters: definition.parameters,
+        },
+        handler
+      );
 
-    // System config - ADMIN
-    this.registerTool({
-      id: 'system_config',
-      name: 'System Configuration',
-      description: 'Modify system configuration',
-      permission_tier: 'ADMIN',
-      required_trust_level: 'system',
-      allowed_agents: ['core', 'overseer'],
-      timeout_ms: 3000,
-      sandboxed: false,
-      parameters: {
-        key: { type: 'string', required: true, description: 'Configuration key' },
-        value: { type: 'string', required: true, description: 'Configuration value' },
-      },
-    });
+      this.policyEngine.registerPolicy({
+        tool_id: definition.id,
+        permission_tier: definition.permission_tier,
+        required_trust_level: definition.required_trust_level,
+        allowed_agents: definition.allowed_agents,
+      });
+    }
   }
 }

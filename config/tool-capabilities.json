@@ -1,0 +1,73 @@
+{
+  "$schema": "./schemas/tool-capabilities.schema.json",
+  "version": "1.0.0",
+  "description": "Tool capability definitions for ARI's ToolRegistry. Contains technical details only, no permission logic.",
+  "tools": [
+    {
+      "id": "file_read",
+      "name": "Read File",
+      "description": "Read contents of a file from the filesystem",
+      "timeout_ms": 5000,
+      "sandboxed": true,
+      "parameters": {
+        "path": {
+          "type": "string",
+          "required": true,
+          "description": "Absolute file path to read"
+        }
+      }
+    },
+    {
+      "id": "file_write",
+      "name": "Write File",
+      "description": "Write contents to a file on the filesystem",
+      "timeout_ms": 10000,
+      "sandboxed": true,
+      "parameters": {
+        "path": {
+          "type": "string",
+          "required": true,
+          "description": "Absolute file path to write"
+        },
+        "content": {
+          "type": "string",
+          "required": true,
+          "description": "Content to write to the file"
+        }
+      }
+    },
+    {
+      "id": "file_delete",
+      "name": "Delete File",
+      "description": "Delete a file from the filesystem (destructive operation)",
+      "timeout_ms": 5000,
+      "sandboxed": true,
+      "parameters": {
+        "path": {
+          "type": "string",
+          "required": true,
+          "description": "Absolute file path to delete"
+        }
+      }
+    },
+    {
+      "id": "system_config",
+      "name": "System Configuration",
+      "description": "Modify ARI system configuration (administrative operation)",
+      "timeout_ms": 3000,
+      "sandboxed": false,
+      "parameters": {
+        "key": {
+          "type": "string",
+          "required": true,
+          "description": "Configuration key to modify"
+        },
+        "value": {
+          "type": "string",
+          "required": true,
+          "description": "New value for the configuration key"
+        }
+      }
+    }
+  ]
+}

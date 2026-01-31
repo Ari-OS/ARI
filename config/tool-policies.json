@@ -1,0 +1,39 @@
+{
+  "$schema": "./schemas/tool-policies.schema.json",
+  "version": "1.0.0",
+  "description": "Tool permission policies for ARI's PolicyEngine. Defines who can use each tool and under what conditions.",
+  "policies": [
+    {
+      "tool_id": "file_read",
+      "permission_tier": "READ_ONLY",
+      "required_trust_level": "standard",
+      "allowed_agents": [],
+      "rate_limit": 200,
+      "description": "Low-risk read operation, available to all agents with standard trust"
+    },
+    {
+      "tool_id": "file_write",
+      "permission_tier": "WRITE_SAFE",
+      "required_trust_level": "verified",
+      "allowed_agents": [],
+      "rate_limit": 100,
+      "description": "Creates new content, requires verified trust level"
+    },
+    {
+      "tool_id": "file_delete",
+      "permission_tier": "WRITE_DESTRUCTIVE",
+      "required_trust_level": "operator",
+      "allowed_agents": [],
+      "rate_limit": 10,
+      "description": "Destructive operation requiring operator trust and explicit approval"
+    },
+    {
+      "tool_id": "system_config",
+      "permission_tier": "ADMIN",
+      "required_trust_level": "system",
+      "allowed_agents": ["core", "overseer"],
+      "rate_limit": 5,
+      "description": "Administrative operation restricted to core and overseer agents only"
+    }
+  ]
+}
