@@ -69,3 +69,27 @@ export {
   AuthProfileSchema,
   PROVIDER_CONFIGS,
 } from './auth/index.js';
+
+// Constitutional Invariants - Immutable core rules
+export {
+  CREATOR,
+  IDENTITY,
+  RULE_LOOPBACK_ONLY,
+  RULE_CONTENT_NOT_COMMAND,
+  RULE_AUDIT_IMMUTABLE,
+  RULE_LEAST_PRIVILEGE,
+  RULE_TRUST_REQUIRED,
+  RULE_CREATOR_PRIMACY,
+  CONSTITUTIONAL_RULES,
+  CONSILIUM,
+  SEPARATION_OF_POWERS,
+  TRUST_MODEL,
+  PERMISSION_MODEL,
+  AGENT_OATH,
+  CONSTITUTION_VERSION,
+  validateLoopbackOnly,
+  checkConstitutionalCompliance,
+  getAllConstitutionalRules,
+  getCreator,
+  type ConstitutionalViolation,
+} from './constitutional-invariants.js';
