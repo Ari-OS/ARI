@@ -11,12 +11,10 @@
 import { EventEmitter } from 'events';
 import fs from 'fs/promises';
 import path from 'path';
-import { z } from 'zod';
 import {
   CoworkPlugin,
   CoworkPluginSchema,
   CoworkSkill,
-  CoworkConnector,
   CoworkSlashCommand,
   CoworkSubAgent,
   PluginImportResult,
@@ -31,7 +29,7 @@ import {
   SkillTrustRequirement,
   computeSkillHash,
 } from '../../skills/types.js';
-import { TrustLevel, AgentId } from '../../kernel/types.js';
+import { AgentId } from '../../kernel/types.js';
 
 // ── Bridge Configuration ─────────────────────────────────────────────────────
 
@@ -116,7 +114,7 @@ export class CoworkBridge extends EventEmitter {
       }
 
       // Convert components to ARI format
-      const skills = await this.convertSkillsToARI(plugin.components.skills, plugin);
+      const skills = this.convertSkillsToARI(plugin.components.skills, plugin);
       const commands = this.convertCommandsToTriggers(plugin.components.commands);
 
       // Store plugin
@@ -196,10 +194,10 @@ export class CoworkBridge extends EventEmitter {
   /**
    * Convert Cowork skills to ARI skill definitions
    */
-  private async convertSkillsToARI(
+  private convertSkillsToARI(
     skills: CoworkSkill[],
     plugin: CoworkPlugin
-  ): Promise<SkillDefinition[]> {
+  ): SkillDefinition[] {
     return skills.map(skill => {
       const metadata: SkillMetadata = {
         name: `cowork-${plugin.metadata.id}-${skill.id}`,

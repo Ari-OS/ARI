@@ -8,7 +8,6 @@
  */
 
 import { z } from 'zod';
-import { TrustLevelSchema, AgentIdSchema, PermissionTierSchema } from '../../kernel/types.js';
 import { SkillPermissionSchema, SkillTrustRequirementSchema } from '../../skills/types.js';
 
 // ── Cowork Plugin Components ─────────────────────────────────────────────────

@@ -23,14 +23,14 @@ import type { AgentId, VoteThreshold, RiskLevel } from '../kernel/types.js';
 
 // ── Verified Sources ─────────────────────────────────────────────────────────
 
-const VERIFIED_SOURCES = {
+export const VERIFIED_SOURCES = {
   news: 'https://www.anthropic.com/news',
   blog: 'https://claude.com/blog',
   releases: 'https://api.github.com/repos/anthropics/claude-code/releases',
   research: 'https://www.anthropic.com/research',
 } as const;
 
-type SourceKey = keyof typeof VERIFIED_SOURCES;
+export type SourceKey = keyof typeof VERIFIED_SOURCES;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -138,8 +138,8 @@ export class AnthropicMonitor extends EventEmitter {
   async loadState(): Promise<void> {
     try {
       const content = await fs.readFile(this.stateFile, 'utf-8');
-      const state = JSON.parse(content);
-      this.seenHashes = new Set(state.seenHashes || []);
+      const state = JSON.parse(content) as { seenHashes?: string[]; lastCheck?: string };
+      this.seenHashes = new Set(state.seenHashes ?? []);
       this.lastCheck = state.lastCheck ? new Date(state.lastCheck) : null;
     } catch {
       this.seenHashes = new Set();
@@ -848,7 +848,7 @@ Default action (if no response): ${r.operatorAction.defaultAction}
     return Array.from(this.pendingReports.values());
   }
 
-  async processOperatorDecision(reportId: string, action: 'approve' | 'reject' | 'defer' | 'modify'): Promise<void> {
+  processOperatorDecision(reportId: string, action: 'approve' | 'reject' | 'defer' | 'modify'): void {
     const report = this.pendingReports.get(reportId);
     if (!report) {
       throw new Error(`Report ${reportId} not found`);

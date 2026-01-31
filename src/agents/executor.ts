@@ -512,7 +512,7 @@ export class Executor {
             path: { type: 'string', required: true, description: 'File path to read' },
           },
         },
-        handler: async (params) => ({ content: `Mock file content for ${String(params.path)}` }),
+        handler: (params) => Promise.resolve({ content: `Mock file content for ${String(params.path)}` }),
       },
       {
         definition: {
@@ -529,7 +529,7 @@ export class Executor {
             content: { type: 'string', required: true, description: 'Content to write' },
           },
         },
-        handler: async (params) => ({ written: true, path: params.path }),
+        handler: (params) => Promise.resolve({ written: true, path: params.path }),
       },
       {
         definition: {
@@ -545,7 +545,7 @@ export class Executor {
             path: { type: 'string', required: true, description: 'File path to delete' },
           },
         },
-        handler: async (params) => ({ deleted: true, path: params.path }),
+        handler: (params) => Promise.resolve({ deleted: true, path: params.path }),
       },
       {
         definition: {
@@ -562,7 +562,7 @@ export class Executor {
             value: { type: 'string', required: true, description: 'Configuration value' },
           },
         },
-        handler: async () => ({ config: 'mock_config_value' }),
+        handler: () => Promise.resolve({ config: 'mock_config_value' }),
       },
     ];
 

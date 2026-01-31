@@ -281,7 +281,7 @@ export class PluginGenerator {
   /**
    * Generate a Cowork plugin from natural language description
    */
-  async generate(input: PluginGeneratorInput): Promise<CoworkPlugin> {
+  generate(input: PluginGeneratorInput): CoworkPlugin {
     const id = this.generatePluginId(input.name);
 
     // Get template components for matching domains
@@ -352,7 +352,7 @@ export class PluginGenerator {
     input: PluginGeneratorInput,
     outputDir: string
   ): Promise<{ plugin: CoworkPlugin; path: string }> {
-    const plugin = await this.generate(input);
+    const plugin = this.generate(input);
 
     const resolvedDir = outputDir.startsWith('~')
       ? outputDir.replace('~', process.env.HOME || '')
@@ -479,8 +479,8 @@ export class PluginGenerator {
   }
 
   private inferPermissions(skills: CoworkSkill[]): ('read_files' | 'write_files' | 'execute_bash' | 'network_access' | 'memory_read' | 'memory_write' | 'session_access' | 'channel_send' | 'tool_execute' | 'governance_vote')[] {
-    const validPerms = ['read_files', 'write_files', 'execute_bash', 'network_access', 'memory_read', 'memory_write', 'session_access', 'channel_send', 'tool_execute', 'governance_vote'] as const;
-    const perms = new Set<typeof validPerms[number]>();
+    type ValidPerm = 'read_files' | 'write_files' | 'execute_bash' | 'network_access' | 'memory_read' | 'memory_write' | 'session_access' | 'channel_send' | 'tool_execute' | 'governance_vote';
+    const perms = new Set<ValidPerm>();
     for (const skill of skills) {
       for (const cap of skill.capabilities) {
         // Map Cowork capabilities to ARI permissions

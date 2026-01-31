@@ -298,8 +298,8 @@ export class ToolRegistry {
    * Used for capabilities loaded from config before handlers are attached.
    */
   private createPlaceholderHandler(toolId: string): ToolHandler {
-    return async () => {
-      throw new Error(`No handler registered for tool: ${toolId}`);
+    return () => {
+      return Promise.reject(new Error(`No handler registered for tool: ${toolId}`));
     };
   }
 }
