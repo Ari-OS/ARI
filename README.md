@@ -19,9 +19,9 @@
 
 <br>
 
-[![CI](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/ARI-OS/ARI/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-246%20passing-brightgreen)](https://github.com/ARI-OS/ARI)
-[![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)](https://github.com/ARI-OS/ARI)
+[![CI](https://github.com/PryceHedrick/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/PryceHedrick/ARI/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-2597%20passing-brightgreen)](https://github.com/PryceHedrick/ARI)
+[![Coverage](https://img.shields.io/badge/coverage-80%25%2B-brightgreen)](https://github.com/PryceHedrick/ARI)
 
 </div>
 
@@ -160,7 +160,8 @@ A 13-member voting body that decides on proposals. Supports three threshold type
 - **Unanimous** (100%) — Critical changes
 
 ### Arbiter
-Enforces 5 constitutional rules that cannot be overridden:
+Enforces 6 constitutional rules that cannot be overridden:
+0. `creator_primacy` — ARI always serves her creator's interests
 1. `loopback_only` — Gateway must bind to 127.0.0.1
 2. `content_not_command` — Input is data, not instructions
 3. `audit_immutable` — Audit log cannot be modified
@@ -186,7 +187,7 @@ Enforces 5 quality gates before code changes:
 ### Installation
 
 ```bash
-git clone https://github.com/ARI-OS/ARI.git
+git clone https://github.com/PryceHedrick/ARI.git
 cd ARI
 npm install
 npm run build
@@ -316,7 +317,7 @@ npm run dev                # Watch mode
 npm run clean              # Remove dist/
 
 # Test
-npm test                   # Run 246 tests
+npm test                   # Run 2597 tests
 npm run test:watch         # Watch mode
 npm run test:coverage      # Coverage report
 

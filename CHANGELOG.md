@@ -11,6 +11,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] — 2026-01-31 — Constitutional Separation
+
+> *Council ≠ Tools. Governance separated from execution.*
+
+### Added
+
+#### Constitutional Framework
+- **ARI Constitution v1.0** — Comprehensive governance document
+  - Preamble, 14 Articles, 2 Appendices
+  - Separation of Powers (Legislative, Judicial, Executive)
+  - Creator Primacy Clause (Pryce Hedrick)
+  - 6 Immutable Constitutional Rules
+- **Constitutional Invariants Module** (`src/kernel/constitutional-invariants.ts`)
+  - Immutable rules baked into kernel layer
+  - Cannot be changed at runtime
+  - Enforced by Arbiter
+
+#### Governance Separation
+- **PolicyEngine** (`src/governance/policy-engine.ts`)
+  - Central permission authority (Governance Layer 4)
+  - 3-layer permission checks
+  - ToolCallToken generation and verification
+  - Approval workflow management
+- **ToolRegistry** (`src/execution/tool-registry.ts`)
+  - Pure capability catalog (System Layer 2)
+  - No permission logic
+  - JSON configuration support
+- **ToolExecutor** (`src/execution/tool-executor.ts`)
+  - Token-validated execution engine
+  - Cannot approve its own requests
+  - Sandbox and timeout enforcement
+
+#### Council Renamed
+- **The Consilium** — New name for governance council
+  - Latin: "council, plan, deliberation"
+  - Backwards-compatible export (`Council` still works)
+
+### Changed
+
+- **Executor** refactored to delegate permissions to PolicyEngine
+  - Removed legacy inline permission checking
+  - Removed dual-write mode (0% divergence achieved)
+  - Simplified to orchestration role only
+- **Arbiter** now enforces Creator Primacy as foundational rule
+- Test count increased from 2214 to 2597
+
+### Security
+
+- Creator Primacy: ARI cannot act against her creator's interests
+- Constitutional violations logged as critical security events
+- New event type: `constitutional_violation`
+
+### Documentation
+
+- `docs/constitution/ARI-CONSTITUTION-v1.0.md` — Full constitution
+- Updated README with 6 constitutional rules
+- Updated architecture docs with separation of powers
+
+---
+
 ## [2.0.0] — 2026-01-28 — Aurora Protocol
 
 > *The dawn of a new era. Your life, your rules, fully auditable.*

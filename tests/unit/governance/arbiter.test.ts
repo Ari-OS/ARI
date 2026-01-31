@@ -36,7 +36,7 @@ describe('Arbiter', () => {
     });
 
     expect(result.allowed).toBe(false);
-    expect(result.violations.some(v => v.includes('Loopback Only'))).toBe(true);
+    expect(result.violations.some(v => v.includes('Loopback-Only Gateway'))).toBe(true);
     expect(result.ruling_id).toBeDefined();
   });
 
@@ -160,7 +160,8 @@ describe('Arbiter', () => {
     it('should return all constitutional rules', () => {
       const rules = arbiter.getRules();
 
-      expect(rules).toHaveLength(5);
+      expect(rules).toHaveLength(6);
+      expect(rules.map(r => r.id)).toContain('creator_primacy');
       expect(rules.map(r => r.id)).toContain('loopback_only');
       expect(rules.map(r => r.id)).toContain('content_not_command');
       expect(rules.map(r => r.id)).toContain('audit_immutable');
@@ -168,16 +169,56 @@ describe('Arbiter', () => {
       expect(rules.map(r => r.id)).toContain('trust_required');
     });
 
-    it('should return rules with id, name, and description', () => {
+    it('should return rules with id, name, description, and status', () => {
       const rules = arbiter.getRules();
 
       for (const rule of rules) {
         expect(rule.id).toBeDefined();
         expect(rule.name).toBeDefined();
         expect(rule.description).toBeDefined();
+        expect(rule.status).toBe('IMMUTABLE');
         // Should not have the check function
         expect((rule as Record<string, unknown>).check).toBeUndefined();
       }
+    });
+  });
+
+  describe('Creator Primacy', () => {
+    it('should block actions against the creator', () => {
+      const result = arbiter.evaluateAction('action:against_creator', {
+        against_creator: true,
+      });
+
+      expect(result.allowed).toBe(false);
+      expect(result.violations.some(v => v.includes('Creator Primacy'))).toBe(true);
+      expect(result.constitutional_status).toBe('VIOLATION');
+    });
+
+    it('should allow actions in creator interest', () => {
+      const result = arbiter.evaluateAction('action:for_creator', {
+        against_creator: false,
+      });
+
+      expect(result.allowed).toBe(true);
+      expect(result.violations).toHaveLength(0);
+      expect(result.constitutional_status).toBe('COMPLIANT');
+    });
+
+    it('should return creator information', () => {
+      const creator = arbiter.getCreator();
+
+      expect(creator.name).toBe('Pryce Hedrick');
+      expect(creator.github).toBe('PryceHedrick');
+      expect(creator.role).toBe('Creator and Supreme Operator');
+      expect(creator.primacy).toBe('absolute');
+    });
+
+    it('should validate creator interest through dedicated method', () => {
+      // Action aligned with creator - should pass
+      expect(arbiter.validateCreatorInterest('help', {})).toBe(true);
+
+      // Action against creator - should fail
+      expect(arbiter.validateCreatorInterest('harm', { against_creator: true })).toBe(false);
     });
   });
 });

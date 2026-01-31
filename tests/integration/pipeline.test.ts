@@ -122,7 +122,7 @@ describe('Pipeline Integration', () => {
     });
 
     expect(result.allowed).toBe(false);
-    expect(result.violations.some(v => v.includes('Loopback Only'))).toBe(true);
+    expect(result.violations.some(v => v.includes('Loopback-Only Gateway'))).toBe(true);
   });
 
   it('should block release with failing tests via overseer', () => {

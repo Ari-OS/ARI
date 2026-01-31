@@ -82,8 +82,9 @@ describe('AlertSystem', () => {
     });
 
     it('should batch alerts during quiet hours', async () => {
-      // Set to 23:00 (11 PM) - quiet hours
-      vi.setSystemTime(new Date('2026-01-31T23:00:00Z'));
+      // Set to 23:00 (11 PM) local time - quiet hours
+      // Note: Using local time format (no Z suffix) so getHours() works correctly
+      vi.setSystemTime(new Date(2026, 0, 31, 23, 0, 0));
 
       const request: AlertRequest = {
         category: 'info',
@@ -101,7 +102,8 @@ describe('AlertSystem', () => {
     });
 
     it('should send critical alerts even during quiet hours', async () => {
-      vi.setSystemTime(new Date('2026-01-31T23:00:00Z'));
+      // Set to 23:00 (11 PM) local time - quiet hours
+      vi.setSystemTime(new Date(2026, 0, 31, 23, 0, 0));
 
       const request: AlertRequest = {
         category: 'security',

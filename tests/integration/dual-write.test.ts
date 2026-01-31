@@ -307,8 +307,8 @@ describe('Dual-Write Consistency', () => {
     });
 
     it('should report feature flag status', () => {
-      // Default is false (off)
-      expect(executor.isNewPolicyEngineEnabled()).toBe(false);
+      // Default is now true (new system is primary after Phase 4 cutover)
+      expect(executor.isNewPolicyEngineEnabled()).toBe(true);
       expect(executor.isDualWriteEnabled()).toBe(false);
     });
   });

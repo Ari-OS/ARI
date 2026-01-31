@@ -459,42 +459,6 @@ Before making changes, read these files:
 6. **CONTRIBUTING.md** - Contribution guidelines
 7. **SECURITY.md** - Security model and invariants
 
-## Mac Mini Deployment
-
-ARI runs on a Mac Mini accessible via Tailscale.
-
-### Connection Details
-- **Host**: Get IP via `tailscale status` (look for ARIs-Mac-mini)
-- **Username**: `ari` (NOT `pryce`)
-- **SSH**: `ssh ari@<TAILSCALE_IP>`
-- **Dashboard**: `http://<TAILSCALE_IP>:3142`
-
-### Deployment Commands
-```bash
-# Get the Mac Mini's Tailscale IP
-tailscale status | grep -i ari
-
-# SSH into Mac Mini (replace IP)
-ssh ari@<TAILSCALE_IP>
-
-# Pull, build, restart
-cd ~/Work/ARI && git pull && npm run build
-launchctl kickstart -k gui/$(id -u)/com.ari.daemon
-
-# Check daemon status
-curl http://localhost:3142/health
-```
-
-### Daemon Management
-- **Service**: `com.ari.daemon` (launchd)
-- **Logs**: `~/.ari/logs/ari-daemon.log`
-- **Config**: `~/.ari/autonomous.json`
-
-### If Daemon Won't Start
-1. Check logs: `tail -50 ~/.ari/logs/ari-daemon.log`
-2. Run manually: `cd ~/Work/ARI && npx tsx scripts/ari-daemon.ts`
-3. Look for errors in output
-
 ## Getting Help
 
 - **Architecture questions**: Review CONTRIBUTING.md layer rules

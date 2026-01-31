@@ -200,7 +200,7 @@ describe('Executor', () => {
   });
 
   it('should enforce maximum concurrent executions', async () => {
-    // Register a slow tool
+    // Register a slow tool in both old and new systems
     const slowTool: ToolDefinition = {
       id: 'slow_tool',
       name: 'slow_tool',
@@ -214,6 +214,15 @@ describe('Executor', () => {
     };
 
     executor.registerTool(slowTool);
+
+    // Also register in PolicyEngine (required since new system is default)
+    const policyEngine = executor.getPolicyEngine();
+    policyEngine.registerPolicy({
+      tool_id: 'slow_tool',
+      permission_tier: 'READ_ONLY',
+      required_trust_level: 'standard',
+      allowed_agents: ['planner', 'executor'],
+    });
 
     // Try to execute many calls at once
     const promises = Array.from({ length: 20 }, (_, i) =>

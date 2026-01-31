@@ -1,29 +1,9 @@
 import type { AuditLogger } from '../kernel/audit.js';
 import type { EventBus } from '../kernel/event-bus.js';
-import type {
-  AgentId,
-  TrustLevel,
-  ToolDefinition,
-  PermissionCheckResult,
-} from '../kernel/types.js';
-import { TRUST_SCORES } from '../kernel/types.js';
+import type { AgentId, TrustLevel, ToolDefinition } from '../kernel/types.js';
 import { PolicyEngine } from '../governance/policy-engine.js';
 import { ToolRegistry } from '../execution/tool-registry.js';
 import type { ToolHandler } from '../execution/types.js';
-
-/**
- * Feature flag for new PolicyEngine system.
- * When true, uses the new separated PolicyEngine for permission decisions.
- * When false, uses the legacy inline permission checking.
- */
-const USE_NEW_POLICY_ENGINE = process.env.USE_NEW_POLICY_ENGINE === 'true';
-
-/**
- * Feature flag for dual-write mode.
- * When true, runs both systems and compares results (for testing).
- * USE_NEW_POLICY_ENGINE determines which result is actually used.
- */
-const DUAL_WRITE_MODE = process.env.ARI_DUAL_WRITE_MODE === 'true';
 
 interface ToolCall {
   id: string;
@@ -52,50 +32,42 @@ interface PendingApproval {
 }
 
 /**
- * Comparison result between old and new permission systems.
- */
-interface PermissionComparison {
-  oldAllowed: boolean;
-  newAllowed: boolean;
-  oldReason?: string;
-  newReason?: string;
-  divergent: boolean;
-  requiresApprovalOld: boolean;
-  requiresApprovalNew: boolean;
-}
-
-/**
  * Executor - Tool execution with permission gating and streaming events
- * Manages tool registration, permission checking, and execution with approval workflow
+ *
+ * Manages tool registration, permission checking, and execution with approval workflow.
+ * Permission decisions are delegated to the PolicyEngine (governance layer) per
+ * Constitutional separation of powers.
+ *
+ * Architecture:
+ * - PolicyEngine: Determines WHAT is allowed (permission authority)
+ * - ToolRegistry: Defines WHAT exists (capability catalog)
+ * - Executor: Performs WHAT is permitted (execution engine)
  *
  * Streaming Events:
  * - tool:start - Emitted when tool execution begins
  * - tool:update - Emitted for progress updates during long-running operations
  * - tool:end - Emitted when tool execution completes (success or failure)
  *
- * Dual-Write Mode:
- * When ARI_DUAL_WRITE_MODE=true, runs both old and new permission systems
- * and logs any divergence for comparison testing.
+ * @see docs/constitution/ARI-CONSTITUTION-v1.0.md - Section 2.4
  */
 export class Executor {
   private readonly auditLogger: AuditLogger;
   private readonly eventBus: EventBus;
+
+  /** Legacy tool definitions (kept for backwards compatibility) */
   private tools = new Map<string, ToolDefinition>();
+
+  /** Pending approval workflow */
   private pendingApprovals = new Map<string, PendingApproval>();
+
+  /** Active executions for concurrency tracking */
   private activeExecutions = new Map<string, { startTime: number; sessionId?: string }>();
 
-  /** New PolicyEngine for separated permission decisions */
+  /** PolicyEngine for separated permission decisions (Constitutional) */
   private readonly policyEngine: PolicyEngine;
 
-  /** New ToolRegistry for separated capability catalog */
+  /** ToolRegistry for separated capability catalog */
   private readonly toolRegistry: ToolRegistry;
-
-  /** Statistics for dual-write comparison */
-  private dualWriteStats = {
-    totalChecks: 0,
-    divergentChecks: 0,
-    lastDivergence: null as PermissionComparison | null,
-  };
 
   private readonly MAX_CONCURRENT_EXECUTIONS = 10;
   private readonly DEFAULT_TIMEOUT_MS = 30000;
@@ -104,33 +76,12 @@ export class Executor {
     this.auditLogger = auditLogger;
     this.eventBus = eventBus;
 
-    // Initialize new separated systems
+    // Initialize constitutional governance components
     this.policyEngine = new PolicyEngine(auditLogger, eventBus);
     this.toolRegistry = new ToolRegistry(auditLogger, eventBus);
 
-    // Register built-in tools (both old and new systems)
+    // Register built-in tools
     this.registerBuiltInTools();
-  }
-
-  /**
-   * Check if new PolicyEngine is enabled.
-   */
-  isNewPolicyEngineEnabled(): boolean {
-    return USE_NEW_POLICY_ENGINE;
-  }
-
-  /**
-   * Check if dual-write mode is enabled.
-   */
-  isDualWriteEnabled(): boolean {
-    return DUAL_WRITE_MODE;
-  }
-
-  /**
-   * Get dual-write statistics.
-   */
-  getDualWriteStats(): typeof this.dualWriteStats {
-    return { ...this.dualWriteStats };
   }
 
   /**
@@ -148,7 +99,7 @@ export class Executor {
   }
 
   /**
-   * Register a new tool
+   * Register a new tool (legacy interface, kept for backwards compatibility)
    */
   registerTool(tool: ToolDefinition): void {
     this.tools.set(tool.id, tool);
@@ -188,21 +139,13 @@ export class Executor {
       };
     }
 
-    // Run dual-write comparison if enabled
-    if (DUAL_WRITE_MODE) {
-      await this.runDualWriteComparison(call, tool);
-    }
-
-    // 3-layer permission check (using old or new system based on flag)
-    const permissionCheck = USE_NEW_POLICY_ENGINE
-      ? this.checkPermissionsNew(call, tool)
-      : this.checkPermissions(call, tool);
+    // Permission check via PolicyEngine (Constitutional separation of powers)
+    const permissionCheck = this.checkPermissions(call, tool);
 
     if (!permissionCheck.allowed) {
       await this.auditLogger.log('tool:permission_denied', call.requesting_agent, call.trust_level, {
         tool_id: call.tool_id,
         reason: permissionCheck.reason,
-        policy_engine: USE_NEW_POLICY_ENGINE ? 'new' : 'legacy',
       });
 
       return {
@@ -214,11 +157,7 @@ export class Executor {
     }
 
     // Check if approval is required
-    const requiresApproval = USE_NEW_POLICY_ENGINE
-      ? permissionCheck.requires_approval ?? false
-      : this.requiresApproval(tool);
-
-    if (requiresApproval) {
+    if (permissionCheck.requires_approval) {
       return await this.executeWithApproval(call, tool);
     }
 
@@ -227,54 +166,10 @@ export class Executor {
   }
 
   /**
-   * Run both permission systems and compare results for dual-write mode.
+   * Check permissions using the PolicyEngine.
+   * Implements Constitutional Section 2.4.1 (Permission Authority).
    */
-  private async runDualWriteComparison(call: ToolCall, tool: ToolDefinition): Promise<void> {
-    // Get old system decision
-    const oldCheck = this.checkPermissions(call, tool);
-    const oldRequiresApproval = this.requiresApproval(tool);
-
-    // Get new system decision
-    const newCheck = this.checkPermissionsNew(call, tool);
-    const newRequiresApproval = newCheck.requires_approval ?? false;
-
-    // Compare results
-    const comparison: PermissionComparison = {
-      oldAllowed: oldCheck.allowed,
-      newAllowed: newCheck.allowed,
-      oldReason: oldCheck.reason,
-      newReason: newCheck.reason,
-      divergent: oldCheck.allowed !== newCheck.allowed || oldRequiresApproval !== newRequiresApproval,
-      requiresApprovalOld: oldRequiresApproval,
-      requiresApprovalNew: newRequiresApproval,
-    };
-
-    // Update statistics
-    this.dualWriteStats.totalChecks++;
-    if (comparison.divergent) {
-      this.dualWriteStats.divergentChecks++;
-      this.dualWriteStats.lastDivergence = comparison;
-
-      // Log divergence
-      await this.auditLogger.log('dual_write:divergence', 'executor', 'system', {
-        tool_id: call.tool_id,
-        agent_id: call.requesting_agent,
-        trust_level: call.trust_level,
-        comparison,
-      });
-
-      // Emit divergence event
-      this.eventBus.emit('system:error', {
-        error: new Error('Dual-write permission divergence detected'),
-        context: `tool=${call.tool_id}, agent=${call.requesting_agent}`,
-      });
-    }
-  }
-
-  /**
-   * Check permissions using the new PolicyEngine.
-   */
-  private checkPermissionsNew(
+  private checkPermissions(
     call: ToolCall,
     tool: ToolDefinition
   ): { allowed: boolean; reason?: string; requires_approval?: boolean } {
@@ -351,7 +246,12 @@ export class Executor {
   /**
    * Get pending approvals
    */
-  getPendingApprovals(): Array<{ callId: string; toolId: string; agent: AgentId; parameters: Record<string, unknown> }> {
+  getPendingApprovals(): Array<{
+    callId: string;
+    toolId: string;
+    agent: AgentId;
+    parameters: Record<string, unknown>;
+  }> {
     return Array.from(this.pendingApprovals.entries()).map(([callId, pending]) => ({
       callId,
       toolId: pending.call.tool_id,
@@ -361,46 +261,13 @@ export class Executor {
   }
 
   /**
-   * Check all permission layers (legacy system)
-   */
-  private checkPermissions(
-    call: ToolCall,
-    tool: ToolDefinition
-  ): { allowed: boolean; reason?: string; requires_approval?: boolean } {
-    // Layer 1: Agent allowlist
-    if (tool.allowed_agents.length > 0 && !tool.allowed_agents.includes(call.requesting_agent)) {
-      return {
-        allowed: false,
-        reason: `Agent ${call.requesting_agent} not in tool allowlist`,
-      };
-    }
-
-    // Layer 2: Trust level
-    const requiredTrustScore = TRUST_SCORES[tool.required_trust_level];
-    const actualTrustScore = TRUST_SCORES[call.trust_level];
-    if (actualTrustScore < requiredTrustScore) {
-      return {
-        allowed: false,
-        reason: `Trust level ${call.trust_level} insufficient (requires ${tool.required_trust_level})`,
-      };
-    }
-
-    // Layer 3: Permission tier - determine if approval is required
-    const requiresApproval = tool.permission_tier === 'WRITE_DESTRUCTIVE' || tool.permission_tier === 'ADMIN';
-    return { allowed: true, requires_approval: requiresApproval };
-  }
-
-  /**
-   * Check if tool requires approval (legacy helper)
-   */
-  private requiresApproval(tool: ToolDefinition): boolean {
-    return tool.permission_tier === 'WRITE_DESTRUCTIVE' || tool.permission_tier === 'ADMIN';
-  }
-
-  /**
    * Execute tool with approval workflow and streaming events
    */
-  private async executeWithApproval(call: ToolCall, tool: ToolDefinition, sessionId?: string): Promise<ExecutionResult> {
+  private async executeWithApproval(
+    call: ToolCall,
+    tool: ToolDefinition,
+    sessionId?: string
+  ): Promise<ExecutionResult> {
     // Emit tool:start event for approval workflow
     this.eventBus.emit('tool:start', {
       callId: call.id,
@@ -452,7 +319,11 @@ export class Executor {
   /**
    * Internal tool execution with streaming events
    */
-  private async executeInternal(call: ToolCall, tool: ToolDefinition, sessionId?: string): Promise<ExecutionResult> {
+  private async executeInternal(
+    call: ToolCall,
+    tool: ToolDefinition,
+    sessionId?: string
+  ): Promise<ExecutionResult> {
     const startTime = Date.now();
     this.activeExecutions.set(call.id, { startTime, sessionId });
 
@@ -619,7 +490,7 @@ export class Executor {
   }
 
   /**
-   * Register built-in tools
+   * Register built-in tools in both legacy and new systems
    */
   private registerBuiltInTools(): void {
     // Define built-in tools with their handlers
@@ -695,9 +566,9 @@ export class Executor {
       },
     ];
 
-    // Register in both old and new systems
+    // Register in both systems for backwards compatibility
     for (const { definition, handler } of builtInTools) {
-      // Old system: register tool definition
+      // Legacy system: register tool definition
       this.registerTool(definition);
 
       // New system: register capability and policy
@@ -720,5 +591,30 @@ export class Executor {
         allowed_agents: definition.allowed_agents,
       });
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BACKWARDS COMPATIBILITY METHODS (Deprecated - will be removed in v3.0)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * @deprecated Use PolicyEngine directly. This method exists for backwards compatibility.
+   */
+  isNewPolicyEngineEnabled(): boolean {
+    return true; // Always true after Phase 5
+  }
+
+  /**
+   * @deprecated Dual-write mode has been removed. This method exists for backwards compatibility.
+   */
+  isDualWriteEnabled(): boolean {
+    return false; // Dual-write removed after Phase 5
+  }
+
+  /**
+   * @deprecated Dual-write mode has been removed. This method exists for backwards compatibility.
+   */
+  getDualWriteStats(): { totalChecks: number; divergentChecks: number; lastDivergence: null } {
+    return { totalChecks: 0, divergentChecks: 0, lastDivergence: null };
   }
 }
