@@ -155,17 +155,16 @@ export const CONSTITUTIONAL_RULES = Object.freeze([
 ]);
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GOVERNANCE STRUCTURE - THE CONSILIUM
+// GOVERNANCE STRUCTURE - THE COUNCIL
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * The Consilium - ARI's 13-member governance council
+ * The Council - ARI's 13-member governance body
  *
- * "Consilium" (Latin: council, plan, deliberation)
+ * Handles voting on proposals, policy changes, and collective decisions.
  */
-export const CONSILIUM = Object.freeze({
-  name: 'The Consilium',
-  latinMeaning: 'council, plan, deliberation',
+export const COUNCIL = Object.freeze({
+  name: 'The Council',
   members: 13,
   votingAgents: Object.freeze([
     'router',
@@ -195,7 +194,7 @@ export const CONSILIUM = Object.freeze({
  */
 export const SEPARATION_OF_POWERS = Object.freeze({
   legislative: Object.freeze({
-    name: 'The Consilium',
+    name: 'The Council',
     role: 'Policy creation, proposal evaluation, democratic decision-making',
     component: 'src/governance/council.ts',
   }),

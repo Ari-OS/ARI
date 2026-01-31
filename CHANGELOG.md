@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Sandbox and timeout enforcement
 
 #### Council Renamed
-- **The Consilium** — New name for governance council
+- **The Council** — 13-member governance body
   - Latin: "council, plan, deliberation"
   - Backwards-compatible export (`Council` still works)
 
