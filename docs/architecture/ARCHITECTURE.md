@@ -1,64 +1,78 @@
 # ARI Life OS Architecture
 
-Version 2.0.0 - Lock Architecture Documentation
+Version 3.0.0 - Cognitive Layer Architecture (PROPOSED)
 
 ## Identity
 
-ARI is a **secure, multi-agent personal operating system** designed for autonomous coordination of life and business operations. Built on TypeScript and Node.js, ARI enforces strict security boundaries, constitutional governance, and provenance-tracked decision-making.
+ARI is a **cognitively-enhanced, secure, multi-agent personal operating system** designed for autonomous coordination of life and business operations. Built on TypeScript and Node.js, ARI enforces strict security boundaries, constitutional governance, provenance-tracked decision-making, and **deep cognitive frameworks** (LOGOS/ETHOS/PATHOS) that enable wise, emotionally-intelligent decisions.
 
 Core philosophy: **Content is never Command**. All external input is treated as data, never as instructions. Security is enforced through layered defense, not just perimeter protection.
 
 ## System Layers Model
 
-ARI implements a **6-layer architecture** with strict boundaries and unidirectional dependencies. Each layer has specific responsibilities and cannot bypass layers below it.
+ARI implements a **7-layer architecture** (proposed upgrade from 6) with strict boundaries and unidirectional dependencies. Each layer has specific responsibilities and cannot bypass layers below it.
+
+**NEW**: Layer 0 (Cognitive Foundation) provides algorithmic reasoning, emotional intelligence, and continuous learning frameworks to all higher layers. See [Cognitive Layer Documentation](../cognition/README.md) for details.
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│ Layer 5: INTERFACES                                            │
+│ Layer 6: INTERFACES                                            │
 │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
-│ CLI commands, REST API, dashboard (future)                     │
+│ CLI commands, REST API, dashboard                              │
 │ Location: src/cli/                                             │
 │ Responsibilities: User interaction, command orchestration      │
 └────────────────────────────────────────────────────────────────┘
                               ↓
 ┌────────────────────────────────────────────────────────────────┐
-│ Layer 4: EXECUTION                                             │
+│ Layer 5: EXECUTION                                             │
 │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
 │ Tool execution, permission gating, approval workflows          │
-│ Location: src/agents/executor.ts                               │
+│ Location: src/ops/, src/execution/                             │
 │ Responsibilities: Execute operations, enforce permission tiers │
 └────────────────────────────────────────────────────────────────┘
                               ↓
 ┌────────────────────────────────────────────────────────────────┐
-│ Layer 3: STRATEGIC                                             │
+│ Layer 4: STRATEGIC                                             │
 │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
-│ Planning, domain coordination, agent orchestration             │
-│ Location: src/agents/planner.ts, core.ts                       │
-│ Responsibilities: Task decomposition, dependency resolution    │
-└────────────────────────────────────────────────────────────────┘
-                              ↓
-┌────────────────────────────────────────────────────────────────┐
-│ Layer 2: GOVERNANCE                                            │
-│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
-│ Constitutional enforcement, voting council, quality gates      │
+│ Council (15 members), Arbiter, Overseer                        │
 │ Location: src/governance/                                      │
-│ Responsibilities: Enforce rules, manage votes, gate releases   │
+│ Responsibilities: Constitutional enforcement, voting, quality  │
 └────────────────────────────────────────────────────────────────┘
                               ↓
 ┌────────────────────────────────────────────────────────────────┐
-│ Layer 1: CORE                                                  │
+│ Layer 3: CORE AGENTS                                           │
 │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
-│ Memory system, context routing, storage, threat detection      │
-│ Location: src/system/, src/agents/memory-manager.ts           │
-│ Responsibilities: Context management, memory provenance        │
+│ Core, Guardian, Planner, Executor, Memory Manager              │
+│ Location: src/agents/                                          │
+│ Responsibilities: Agent coordination, orchestration            │
 └────────────────────────────────────────────────────────────────┘
                               ↓
 ┌────────────────────────────────────────────────────────────────┐
-│ Layer 0: KERNEL                                                │
+│ Layer 2: SYSTEM                                                │
 │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
-│ Ingest pipeline: gateway → sanitizer → audit → event bus      │
+│ Router, Storage, Context management                            │
+│ Location: src/system/                                          │
+│ Responsibilities: Event routing, context isolation, storage    │
+└────────────────────────────────────────────────────────────────┘
+                              ↓
+┌────────────────────────────────────────────────────────────────┐
+│ Layer 1: KERNEL                                                │
+│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│ Gateway, Sanitizer, Audit, EventBus, Config, Types             │
 │ Location: src/kernel/                                          │
-│ Responsibilities: Network binding, injection detection, audit  │
+│ Responsibilities: Security boundary, injection detection       │
+└────────────────────────────────────────────────────────────────┘
+                              ↓
+┌────────────────────────────────────────────────────────────────┐
+│ Layer 0: COGNITIVE (PROPOSED - See ADR-009)                    │
+│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│ LOGOS (Reason) + ETHOS (Character) + PATHOS (Growth)           │
+│ Location: src/cognition/                                       │
+│ Responsibilities: Algorithmic reasoning, emotional             │
+│ intelligence, continuous learning, wisdom integration          │
+│                                                                │
+│ Knowledge Streams: 87 curated sources (Bayesian, trading       │
+│ psychology, Stoicism, CBT/DBT/ACT, meta-learning, wisdom)      │
 └────────────────────────────────────────────────────────────────┘
 ```
 

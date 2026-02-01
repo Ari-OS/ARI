@@ -4,6 +4,7 @@ This is the main source directory for ARI. Quick navigation:
 
 | Layer | Directory | Purpose |
 |-------|-----------|---------|
+| 0. **Cognitive** | `cognition/` | **LOGOS/ETHOS/PATHOS (PROPOSED)** |
 | 1. Kernel | `kernel/` | Security boundary, types, event bus |
 | 2. System | `system/` | Routing, storage, context loading |
 | 3. Agents | `agents/` | Multi-agent coordination |
@@ -12,11 +13,13 @@ This is the main source directory for ARI. Quick navigation:
 | 6. CLI | `cli/` | User interface commands |
 
 Additional directories:
+- `cognition/` — **NEW (PROPOSED)** - Cognitive Layer 0 (LOGOS/ETHOS/PATHOS) - See [`docs/cognition/README.md`](../docs/cognition/README.md)
 - `autonomous/` — Proactive agent, scheduler, briefings
 - `execution/` — Tool registry and executor
 - `integrations/` — External services (Notion, SMS, Cowork)
 - `mcp/` — Model Context Protocol server
 - `prompts/` — Prompt building utilities
+- `observability/` — Metrics, alerts, execution history
 
 ## Quick Rules
 

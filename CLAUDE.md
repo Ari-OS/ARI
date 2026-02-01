@@ -6,9 +6,9 @@ This file provides essential context for AI assistants (like Claude) working on 
 
 **Name**: ARI — Artificial Reasoning Intelligence
 **Description**: Your Life Operating System
-**Version**: 2.0.0
+**Version**: 3.0.0 (PROPOSED - Cognitive Layer)
 **Technology**: TypeScript 5.3, Node.js 20+
-**Architecture**: Six-layer multi-agent system with strict layer boundaries
+**Architecture**: Seven-layer multi-agent system with cognitive foundation (LOGOS/ETHOS/PATHOS)
 
 ## Core Invariants
 
@@ -109,18 +109,23 @@ npx ari <command>    # Run ARI CLI commands
 ### Architecture Layers (Top to Bottom)
 
 ```
-6. Interfaces (CLI)
+6. Interfaces (CLI, Dashboard)
    ↓ can import
-5. Execution (Ops)
+5. Execution (Ops, Daemon)
    ↓ can import
-4. Strategic (Governance)
+4. Strategic (Governance: Council, Arbiter, Overseer)
    ↓ can import
-3. Core (Agents)
+3. Core Agents (Core, Guardian, Planner, Executor, Memory)
    ↓ can import
-2. System (Router, Storage)
+2. System (Router, Storage, Context)
    ↓ can import
 1. Kernel (Gateway, Sanitizer, Audit, EventBus, Config, Types)
+   ↓ can import
+0. Cognitive (PROPOSED - LOGOS/ETHOS/PATHOS) ← NEW
+   [Self-contained, no dependencies]
 ```
+
+**NEW Layer 0**: Provides cognitive frameworks (Bayesian reasoning, bias detection, CBT, Stoicism, etc.) to all higher layers. See [`docs/cognition/README.md`](docs/cognition/README.md).
 
 ### Rules
 
