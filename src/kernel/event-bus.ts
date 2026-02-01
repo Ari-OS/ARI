@@ -80,8 +80,8 @@ export interface EventMap {
   'channel:message:outbound': { channelId: string; messageId: string; recipientId: string; content: string; timestamp: Date };
 
   // ── Scheduler events ─────────────────────────────────────────────────────
-  'scheduler:task_run': { taskId: string; startedAt: Date };
-  'scheduler:task_complete': { taskId: string; duration: number; success: boolean };
+  'scheduler:task_run': { taskId: string; taskName: string; startedAt: Date; runId?: string };
+  'scheduler:task_complete': { taskId: string; taskName: string; duration: number; success: boolean; error?: string; runId?: string; triggeredBy?: 'scheduler' | 'manual' | 'api' | 'subagent' };
 
   // ── Knowledge events ─────────────────────────────────────────────────────
   'knowledge:indexed': { documentCount: number; duration: number };
@@ -94,6 +94,14 @@ export interface EventMap {
 
   // ── Context events ───────────────────────────────────────────────────────
   'context:loaded': { path: string; depth: number; skills: string[] };
+
+  // ── Alert events (Observability) ────────────────────────────────────────
+  'alert:created': { id: string; severity: string; title: string; message: string; source: string };
+  'alert:acknowledged': { id: string; acknowledgedBy: string; acknowledgedAt: string };
+  'alert:resolved': { id: string; resolvedBy: string; resolvedAt: string };
+
+  // ── Audit log event (for logging) ───────────────────────────────────────
+  'audit:log': { action: string; agent: string; trustLevel: TrustLevel; details: Record<string, unknown> };
 }
 
 /**
