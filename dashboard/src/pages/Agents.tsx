@@ -3,6 +3,8 @@ import { getAgents, getAgentStats } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
 import { ErrorState } from '../components/ui/ErrorState';
 import { AgentCardSkeleton } from '../components/ui/Skeleton';
+import type { ColorName } from '../utils/colors';
+import { circleIconClasses, textClasses } from '../utils/colors';
 
 // 6-Agent Council Design from audit (Phase 2 design)
 const AGENT_ROLES = {
@@ -190,17 +192,17 @@ export function Agents() {
           </h2>
           <div className="overflow-x-auto">
             <div className="flex items-center justify-between gap-2 min-w-[700px] py-4">
-              {[
-                { icon: '⚡', label: 'Event', sub: 'message.received', color: 'blue' },
-                { icon: '◇', label: 'Planner', sub: 'proposes action', color: 'purple' },
-                { icon: '⛨', label: 'Guardian', sub: 'safety check', color: 'red' },
-                { icon: '👤', label: 'Operator', sub: 'approves/rejects', color: 'amber' },
-                { icon: '⚙', label: 'Executor', sub: 'executes', color: 'emerald' },
-                { icon: '📋', label: 'Audit', sub: 'logged', color: 'cyan' },
-              ].map((step, i, arr) => (
+              {([
+                { icon: '⚡', label: 'Event', sub: 'message.received', color: 'blue' as ColorName },
+                { icon: '◇', label: 'Planner', sub: 'proposes action', color: 'purple' as ColorName },
+                { icon: '⛨', label: 'Guardian', sub: 'safety check', color: 'red' as ColorName },
+                { icon: '👤', label: 'Operator', sub: 'approves/rejects', color: 'amber' as ColorName },
+                { icon: '⚙', label: 'Executor', sub: 'executes', color: 'emerald' as ColorName },
+                { icon: '📋', label: 'Audit', sub: 'logged', color: 'cyan' as ColorName },
+              ]).map((step, i, arr) => (
                 <div key={step.label} className="flex items-center">
                   <div className="flex flex-col items-center">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-full bg-${step.color}-900/30 text-${step.color}-400 text-xl`}>
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-full text-xl ${circleIconClasses[step.color]}`}>
                       {step.icon}
                     </div>
                     <div className="mt-2 text-xs text-white">{step.label}</div>

@@ -23,7 +23,7 @@ const SYSTEM_AGENTS: readonly AgentId[] = [
   'core',
   'arbiter',
   'overseer',
-  'memory_manager',
+  'memory_keeper', // ECHO - the Archivist
 ] as const;
 
 /**

@@ -149,10 +149,10 @@ describe('ContextIsolation', () => {
       expect(result.reason).toBe('System agent can write to system namespace');
     });
 
-    it('should allow system agent (memory_manager) to write to system namespace', () => {
-      contextIsolation.setAgentNamespace('memory_manager' as AgentId, 'ventures');
+    it('should allow system agent (memory_keeper) to write to system namespace', () => {
+      contextIsolation.setAgentNamespace('memory_keeper' as AgentId, 'ventures');
 
-      const result = contextIsolation.checkAccess('memory_manager' as AgentId, 'system', true);
+      const result = contextIsolation.checkAccess('memory_keeper' as AgentId, 'system', true);
 
       expect(result.allowed).toBe(true);
       expect(result.reason).toBe('System agent can write to system namespace');
@@ -178,11 +178,11 @@ describe('ContextIsolation', () => {
       expect(result.reason).toBe('System agent has cross-namespace access');
     });
 
-    it('should allow system agent (memory_manager) to access all namespaces', () => {
-      contextIsolation.setAgentNamespace('memory_manager' as AgentId, 'system');
+    it('should allow system agent (memory_keeper) to access all namespaces', () => {
+      contextIsolation.setAgentNamespace('memory_keeper' as AgentId, 'system');
 
-      const lifeAccess = contextIsolation.checkAccess('memory_manager' as AgentId, 'life', true);
-      const venturesAccess = contextIsolation.checkAccess('memory_manager' as AgentId, 'ventures', true);
+      const lifeAccess = contextIsolation.checkAccess('memory_keeper' as AgentId, 'life', true);
+      const venturesAccess = contextIsolation.checkAccess('memory_keeper' as AgentId, 'ventures', true);
 
       expect(lifeAccess.allowed).toBe(true);
       expect(venturesAccess.allowed).toBe(true);
@@ -191,47 +191,48 @@ describe('ContextIsolation', () => {
 
   describe('unassigned agent access', () => {
     it('should deny access for agent with no namespace', () => {
-      const result = contextIsolation.checkAccess('marketing' as AgentId, 'ventures', false);
+      // Using 'wealth' (MINT) as a test agent - a valid 15-member Council agent
+      const result = contextIsolation.checkAccess('wealth' as AgentId, 'ventures', false);
 
       expect(result.allowed).toBe(false);
-      expect(result.reason).toBe('Agent marketing has no assigned namespace');
+      expect(result.reason).toBe('Agent wealth has no assigned namespace');
     });
 
     it('should deny write access for agent with no namespace', () => {
-      const result = contextIsolation.checkAccess('marketing' as AgentId, 'life', true);
+      const result = contextIsolation.checkAccess('wealth' as AgentId, 'life', true);
 
       expect(result.allowed).toBe(false);
-      expect(result.reason).toBe('Agent marketing has no assigned namespace');
+      expect(result.reason).toBe('Agent wealth has no assigned namespace');
     });
   });
 
   describe('memory access validation', () => {
     it('should return true for valid memory access', () => {
-      contextIsolation.setAgentNamespace('marketing' as AgentId, 'ventures');
+      contextIsolation.setAgentNamespace('wealth' as AgentId, 'ventures');
 
-      const result = contextIsolation.validateMemoryAccess('marketing' as AgentId, 'ventures', false);
+      const result = contextIsolation.validateMemoryAccess('wealth' as AgentId, 'ventures', false);
 
       expect(result).toBe(true);
     });
 
     it('should return false for invalid memory access', () => {
-      contextIsolation.setAgentNamespace('marketing' as AgentId, 'ventures');
+      contextIsolation.setAgentNamespace('wealth' as AgentId, 'ventures');
 
-      const result = contextIsolation.validateMemoryAccess('marketing' as AgentId, 'life', false);
+      const result = contextIsolation.validateMemoryAccess('wealth' as AgentId, 'life', false);
 
       expect(result).toBe(false);
     });
 
     it('should log denied access attempts to audit', () => {
-      contextIsolation.setAgentNamespace('marketing' as AgentId, 'ventures');
+      contextIsolation.setAgentNamespace('wealth' as AgentId, 'ventures');
 
-      contextIsolation.validateMemoryAccess('marketing' as AgentId, 'life', false);
+      contextIsolation.validateMemoryAccess('wealth' as AgentId, 'life', false);
 
       const events = auditLogger.getEvents();
       const deniedEvent = events.find(e => e.action === 'context:access_denied');
 
       expect(deniedEvent).toBeDefined();
-      expect(deniedEvent?.actor).toBe('marketing');
+      expect(deniedEvent?.actor).toBe('wealth');
       expect(deniedEvent?.details).toMatchObject({
         memory_namespace: 'life',
         agent_namespace: 'ventures',
@@ -240,10 +241,10 @@ describe('ContextIsolation', () => {
     });
 
     it('should validate write access correctly', () => {
-      contextIsolation.setAgentNamespace('marketing' as AgentId, 'ventures');
+      contextIsolation.setAgentNamespace('wealth' as AgentId, 'ventures');
 
-      const readResult = contextIsolation.validateMemoryAccess('marketing' as AgentId, 'system', false);
-      const writeResult = contextIsolation.validateMemoryAccess('marketing' as AgentId, 'system', true);
+      const readResult = contextIsolation.validateMemoryAccess('wealth' as AgentId, 'system', false);
+      const writeResult = contextIsolation.validateMemoryAccess('wealth' as AgentId, 'system', true);
 
       expect(readResult).toBe(true);
       expect(writeResult).toBe(false);

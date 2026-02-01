@@ -158,10 +158,11 @@ describe('Pipeline Integration', () => {
     expect(vote.vote_id).toBeTruthy();
     expect(vote.status).toBe('OPEN');
 
-    // Cast 7 approval votes from eligible VOTING_AGENTS (MAJORITY > 50% of 13)
+    // Cast 8 approval votes from eligible VOTING_AGENTS (MAJORITY > 50% of 15)
+    // Using the new 15-member Council agents
     const voters: AgentId[] = [
-      'router', 'planner', 'executor', 'memory_manager',
-      'guardian', 'research', 'marketing',
+      'router', 'planner', 'executor', 'memory_keeper',
+      'guardian', 'risk_assessor', 'scheduler', 'resource_manager',
     ];
 
     for (const voter of voters) {
@@ -176,7 +177,7 @@ describe('Pipeline Integration', () => {
     // Vote should be auto-closed as PASSED (early conclusion)
     const updatedVote = council.getVote(vote.vote_id);
     expect(updatedVote?.status).toBe('PASSED');
-    expect(updatedVote?.result?.approve).toBe(7);
+    expect(updatedVote?.result?.approve).toBe(8);
     expect(updatedVote?.result?.threshold_met).toBe(true);
   });
 

@@ -20,6 +20,7 @@ import { createHash, randomUUID } from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
 import type { AgentId, VoteThreshold, RiskLevel } from '../kernel/types.js';
+import { VOTING_AGENTS } from '../kernel/types.js';
 
 // ── Verified Sources ─────────────────────────────────────────────────────────
 
@@ -559,11 +560,8 @@ export class AnthropicMonitor extends EventEmitter {
     ariAnalysis: DecisionReport['ariAnalysis']
   ): CouncilDecision {
     const voteId = randomUUID();
-    const agents: AgentId[] = [
-      'router', 'planner', 'executor', 'memory_manager', 'guardian',
-      'research', 'marketing', 'sales', 'content', 'seo',
-      'build', 'development', 'client_comms',
-    ];
+    // Use the 15-member Council voting agents
+    const agents: AgentId[] = VOTING_AGENTS as unknown as AgentId[];
 
     // Determine threshold based on risk
     let threshold: VoteThreshold;
@@ -611,21 +609,35 @@ export class AnthropicMonitor extends EventEmitter {
     security: SecurityAssessment,
     ariAnalysis: DecisionReport['ariAnalysis']
   ): CouncilDecision['votes'][0] {
-    // Each agent has different priorities
-    const agentPriorities: Record<AgentId, { categories: string[]; riskTolerance: number }> = {
-      guardian: { categories: ['security'], riskTolerance: 0.3 },
-      executor: { categories: ['plugin', 'api'], riskTolerance: 0.6 },
-      planner: { categories: ['feature', 'api'], riskTolerance: 0.5 },
-      router: { categories: ['api', 'plugin'], riskTolerance: 0.5 },
-      memory_manager: { categories: ['feature'], riskTolerance: 0.4 },
-      research: { categories: ['research', 'model'], riskTolerance: 0.7 },
-      development: { categories: ['plugin', 'api', 'feature'], riskTolerance: 0.6 },
-      build: { categories: ['security', 'api'], riskTolerance: 0.4 },
-      marketing: { categories: ['feature'], riskTolerance: 0.6 },
-      sales: { categories: ['feature'], riskTolerance: 0.6 },
-      content: { categories: ['feature', 'model'], riskTolerance: 0.6 },
-      seo: { categories: ['feature'], riskTolerance: 0.5 },
-      client_comms: { categories: ['feature'], riskTolerance: 0.5 },
+    // Each Council member has different priorities based on their role
+    // The 15 voting members of the Council:
+    // Infrastructure: router (ATLAS), executor (BOLT), memory_keeper (ECHO)
+    // Protection: guardian (AEGIS), risk_assessor (SCOUT)
+    // Strategy: planner (TRUE), scheduler (TEMPO), resource_manager (OPAL)
+    // Domains: wellness (PULSE), relationships (EMBER), creative (PRISM), wealth (MINT), growth (BLOOM)
+    // Meta: ethics (VERA), integrator (NEXUS)
+    const agentPriorities: Partial<Record<AgentId, { categories: string[]; riskTolerance: number }>> = {
+      // Infrastructure pillar
+      router: { categories: ['api', 'plugin'], riskTolerance: 0.5 },       // ATLAS - guides
+      executor: { categories: ['plugin', 'api'], riskTolerance: 0.6 },     // BOLT - executes
+      memory_keeper: { categories: ['feature'], riskTolerance: 0.4 },      // ECHO - remembers
+      // Protection pillar
+      guardian: { categories: ['security'], riskTolerance: 0.3 },          // AEGIS - shields (cautious)
+      risk_assessor: { categories: ['security', 'api'], riskTolerance: 0.3 }, // SCOUT - spots risks (cautious)
+      // Strategy pillar
+      planner: { categories: ['feature', 'api'], riskTolerance: 0.6 },     // TRUE - plans (progressive)
+      scheduler: { categories: ['feature'], riskTolerance: 0.5 },          // TEMPO - schedules
+      resource_manager: { categories: ['feature'], riskTolerance: 0.5 },   // OPAL - resources
+      // Life domains pillar
+      wellness: { categories: ['feature'], riskTolerance: 0.5 },           // PULSE - health
+      relationships: { categories: ['feature'], riskTolerance: 0.5 },      // EMBER - connections
+      creative: { categories: ['feature', 'model'], riskTolerance: 0.7 },  // PRISM - creative (progressive)
+      wealth: { categories: ['feature', 'api'], riskTolerance: 0.4 },      // MINT - financial
+      growth: { categories: ['feature', 'research'], riskTolerance: 0.7 }, // BLOOM - growth (progressive)
+      // Meta pillar
+      ethics: { categories: ['security'], riskTolerance: 0.3 },            // VERA - truth (cautious)
+      integrator: { categories: ['api', 'feature'], riskTolerance: 0.5 },  // NEXUS - ties together
+      // System agents (non-voting but included for completeness)
       core: { categories: ['security', 'api'], riskTolerance: 0.5 },
       arbiter: { categories: ['security'], riskTolerance: 0.3 },
       overseer: { categories: ['security', 'api'], riskTolerance: 0.4 },

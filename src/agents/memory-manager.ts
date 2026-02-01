@@ -64,7 +64,7 @@ export class MemoryManager {
       'router',
       'planner',
       'executor',
-      'memory_manager',
+      'memory_keeper', // ECHO - the Archivist
       'guardian',
       'arbiter',
       'overseer',
@@ -517,7 +517,7 @@ export class MemoryManager {
       }
     }
 
-    await this.auditLogger.log('memory:consolidate', 'memory_manager', 'system', {
+    await this.auditLogger.log('memory:consolidate', 'memory_keeper', 'system', {
       final_count: this.memories.size,
     });
   }

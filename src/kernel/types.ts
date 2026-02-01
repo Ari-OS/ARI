@@ -23,20 +23,113 @@ export type SourceType = z.infer<typeof SourceTypeSchema>;
 
 // ── Agent Identity ───────────────────────────────────────────────────────────
 
+/**
+ * ARI Agent Identifiers
+ *
+ * The Council of Fifteen (voting members):
+ * - Infrastructure (3): router, executor, memory_keeper
+ * - Protection (2): guardian, risk_assessor
+ * - Strategy (3): planner, scheduler, resource_manager
+ * - Life Domains (5): wellness, relationships, creative, wealth, growth
+ * - Meta (2): ethics, integrator
+ *
+ * System (non-voting): core, arbiter, overseer, autonomous
+ */
 export const AgentIdSchema = z.enum([
-  'core', 'router', 'planner', 'executor', 'memory_manager', 'guardian',
-  'arbiter', 'overseer', 'autonomous',
-  'research', 'marketing', 'sales', 'content', 'seo',
-  'build', 'development', 'client_comms',
+  // System agents (non-voting, orchestration/oversight)
+  'core', 'arbiter', 'overseer', 'autonomous',
+
+  // === THE COUNCIL OF FIFTEEN ===
+
+  // Pillar 1: INFRASTRUCTURE — "The Foundation"
+  'router',          // 🧭 ATLAS — Guides messages, finds the path
+  'executor',        // ⚡ BOLT — Executes actions, lightning fast
+  'memory_keeper',   // 📚 ECHO — Remembers everything, echoes back
+
+  // Pillar 2: PROTECTION — "The Shield"
+  'guardian',        // 🛡️ AEGIS — Shields from threats, the protector
+  'risk_assessor',   // 📊 SCOUT — Scouts ahead, spots dangers
+
+  // Pillar 3: STRATEGY — "The Compass"
+  'planner',         // 🎯 TRUE — Finds true north, charts the course
+  'scheduler',       // ⏰ TEMPO — Keeps the beat, guards your time
+  'resource_manager', // 💎 OPAL — Protects the precious, guards resources
+
+  // Pillar 4: LIFE DOMAINS — "The Heart"
+  'wellness',        // 💚 PULSE — Monitors your pulse, guards health
+  'relationships',   // 🤝 EMBER — Keeps connections warm and glowing
+  'creative',        // ✨ PRISM — Splits light into possibilities
+  'wealth',          // 💰 MINT — Where value is made and kept
+  'growth',          // 🌱 BLOOM — Helps you flourish and grow
+
+  // Pillar 5: META — "The Balance"
+  'ethics',          // ⚖️ VERA — Speaks truth, ensures fairness
+  'integrator',      // 🔗 NEXUS — Connects everything, breaks ties
 ]);
 export type AgentId = z.infer<typeof AgentIdSchema>;
 
-/** Agents eligible to vote in council decisions */
+/**
+ * The 15 voting members of the Council.
+ * Ratified 2026-02-01 by UNANIMOUS vote.
+ * Modification requires: UNANIMOUS (15/15) + 34-day process + Operator approval.
+ */
 export const VOTING_AGENTS: readonly AgentId[] = [
-  'router', 'planner', 'executor', 'memory_manager', 'guardian',
-  'research', 'marketing', 'sales', 'content', 'seo',
-  'build', 'development', 'client_comms',
+  // Pillar 1: Infrastructure
+  'router', 'executor', 'memory_keeper',
+  // Pillar 2: Protection
+  'guardian', 'risk_assessor',
+  // Pillar 3: Strategy
+  'planner', 'scheduler', 'resource_manager',
+  // Pillar 4: Life Domains
+  'wellness', 'relationships', 'creative', 'wealth', 'growth',
+  // Pillar 5: Meta
+  'ethics', 'integrator',
 ] as const;
+
+// ── Veto Authority ───────────────────────────────────────────────────────────
+
+/**
+ * Domains where specific Council members hold veto authority.
+ * A veto in a domain immediately fails a vote related to that domain.
+ */
+export const VetoDomainSchema = z.enum([
+  'security',           // 🛡️ AEGIS can veto
+  'memory',             // 📚 ECHO can veto
+  'high_risk',          // 📊 SCOUT can veto
+  'time_conflict',      // ⏰ TEMPO can veto
+  'resource_depletion', // 💎 OPAL can veto
+  'health_harm',        // 💚 PULSE can veto
+  'major_financial',    // 💰 MINT can veto
+  'ethics_violation',   // ⚖️ VERA can veto
+]);
+export type VetoDomain = z.infer<typeof VetoDomainSchema>;
+
+/**
+ * Map of agents to their veto domains.
+ * Only 8 of 15 Council members have veto authority.
+ */
+export const VETO_AUTHORITY: Partial<Record<AgentId, VetoDomain[]>> = {
+  guardian: ['security'],
+  memory_keeper: ['memory'],
+  risk_assessor: ['high_risk'],
+  scheduler: ['time_conflict'],
+  resource_manager: ['resource_depletion'],
+  wellness: ['health_harm'],
+  wealth: ['major_financial'],
+  ethics: ['ethics_violation'],
+};
+
+// ── Council Pillars ──────────────────────────────────────────────────────────
+
+export type CouncilPillar = 'infrastructure' | 'protection' | 'strategy' | 'domains' | 'meta';
+
+export const PILLAR_MEMBERS: Record<CouncilPillar, readonly AgentId[]> = {
+  infrastructure: ['router', 'executor', 'memory_keeper'],
+  protection: ['guardian', 'risk_assessor'],
+  strategy: ['planner', 'scheduler', 'resource_manager'],
+  domains: ['wellness', 'relationships', 'creative', 'wealth', 'growth'],
+  meta: ['ethics', 'integrator'],
+};
 
 // ── Permissions ──────────────────────────────────────────────────────────────
 
@@ -150,6 +243,9 @@ export type VoteOption = z.infer<typeof VoteOptionSchema>;
 export const VoteThresholdSchema = z.enum(['MAJORITY', 'SUPERMAJORITY', 'UNANIMOUS']);
 export type VoteThreshold = z.infer<typeof VoteThresholdSchema>;
 
+export const VoteStatusSchema = z.enum(['OPEN', 'PASSED', 'FAILED', 'EXPIRED', 'VETOED']);
+export type VoteStatus = z.infer<typeof VoteStatusSchema>;
+
 export const VoteSchema = z.object({
   vote_id: z.string().uuid(),
   topic: z.string(),
@@ -162,7 +258,7 @@ export const VoteSchema = z.object({
     reasoning: z.string(),
     timestamp: z.string(),
   })),
-  status: z.enum(['OPEN', 'PASSED', 'FAILED', 'EXPIRED']),
+  status: VoteStatusSchema,
   result: z.object({
     approve: z.number(),
     reject: z.number(),

@@ -35,8 +35,15 @@ export interface EventMap {
   'vote:started': { voteId: string; topic: string; threshold: string; deadline: string };
   'vote:cast': { voteId: string; agent: AgentId; option: string };
   'vote:completed': { voteId: string; status: string; result: Record<string, unknown> };
+  'vote:vetoed': { voteId: string; vetoer: AgentId; domain: string; reason: string };
+  'vote:matrix_update': { voteId: string; matrix: Record<string, unknown> };
   'arbiter:ruling': { ruleId: string; type: string; decision: string };
   'overseer:gate': { gateId: string; passed: boolean; reason: string };
+
+  // ── Council Amendment events ────────────────────────────────────────────
+  'amendment:proposed': { amendmentId: string; type: string; proposedBy: string };
+  'amendment:voted': { amendmentId: string; status: string };
+  'amendment:ratified': { amendmentId: string; result: string };
 
   // ── PolicyEngine events (Separation of Powers) ───────────────────────────
   'permission:granted': { requestId: string; toolId: string; agentId: AgentId; tokenId: string; autoApproved: boolean };

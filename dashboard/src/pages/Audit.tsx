@@ -5,9 +5,11 @@ import { AuditEntry as AuditEntryComponent } from '../components/AuditEntry';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
 import { AuditEntrySkeleton } from '../components/ui/Skeleton';
+import type { ColorName } from '../utils/colors';
+import { cardClasses, textClasses, bg600Classes, borderClasses } from '../utils/colors';
 
-// Action categories from audit findings
-const ACTION_CATEGORIES = {
+// Action categories from audit findings with typed colors
+const ACTION_CATEGORIES: Record<string, { name: string; icon: string; color: ColorName; actions: string[] }> = {
   security: {
     name: 'Security',
     icon: '⛨',
@@ -234,7 +236,7 @@ export function Audit() {
                 onClick={() => setActionFilter(cat.name)}
                 className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   actionFilter === cat.name
-                    ? `bg-${cat.color}-600 text-white`
+                    ? `${bg600Classes[cat.color]} text-white`
                     : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                 }`}
               >
@@ -351,16 +353,16 @@ export function Audit() {
           </h2>
           <div className="overflow-x-auto">
             <div className="flex items-center gap-2 min-w-[600px] py-4">
-              {[
-                { label: 'Genesis', hash: '0x00...00', color: 'emerald' },
-                { label: 'Block 1', hash: 'a7b3...', color: 'purple' },
-                { label: 'Block 2', hash: 'f2c8...', color: 'purple' },
-                { label: '...', hash: '', color: 'gray' },
-                { label: `Block N`, hash: verification?.lastHash?.slice(0, 4) + '...' || 'xxxx...', color: 'cyan' },
-              ].map((block, i, arr) => (
+              {([
+                { label: 'Genesis', hash: '0x00...00', color: 'emerald' as ColorName },
+                { label: 'Block 1', hash: 'a7b3...', color: 'purple' as ColorName },
+                { label: 'Block 2', hash: 'f2c8...', color: 'purple' as ColorName },
+                { label: '...', hash: '', color: 'gray' as ColorName },
+                { label: `Block N`, hash: verification?.lastHash?.slice(0, 4) + '...' || 'xxxx...', color: 'cyan' as ColorName },
+              ]).map((block, i, arr) => (
                 <div key={block.label} className="flex items-center">
-                  <div className={`rounded-lg border border-${block.color}-800 bg-${block.color}-900/20 px-4 py-3 text-center`}>
-                    <div className={`text-xs font-medium text-${block.color}-400`}>{block.label}</div>
+                  <div className={`rounded-lg border px-4 py-3 text-center ${borderClasses[block.color]} ${cardClasses[block.color]}`}>
+                    <div className={`text-xs font-medium ${textClasses[block.color]}`}>{block.label}</div>
                     {block.hash && (
                       <div className="mt-1 font-mono text-[10px] text-gray-500">{block.hash}</div>
                     )}

@@ -3,6 +3,8 @@ import { getTools } from '../api/client';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
 import { ToolCardSkeleton } from '../components/ui/Skeleton';
+import type { ColorName } from '../utils/colors';
+import { cardClasses, textClasses, bgLightClasses, iconContainerClasses, borderClasses } from '../utils/colors';
 
 // Tool categories with icons and colors
 const TOOL_CATEGORIES = {
@@ -38,15 +40,15 @@ const TOOL_CATEGORIES = {
   },
 };
 
-// Permission tier definitions
-const PERMISSION_TIERS = [
+// Permission tier definitions with typed colors
+const PERMISSION_TIERS: Array<{ name: string; desc: string; color: ColorName; risk: string }> = [
   { name: 'READ', desc: 'Read-only access', color: 'emerald', risk: 'Low' },
   { name: 'WRITE', desc: 'Create and modify', color: 'amber', risk: 'Medium' },
   { name: 'EXECUTE', desc: 'Run operations', color: 'red', risk: 'High' },
 ];
 
-// Trust level requirements
-const TRUST_LEVELS = [
+// Trust level requirements with typed colors
+const TRUST_LEVELS: Array<{ name: string; multiplier: string; color: ColorName }> = [
   { name: 'SYSTEM', multiplier: '0.5x', color: 'purple' },
   { name: 'OPERATOR', multiplier: '0.6x', color: 'blue' },
   { name: 'VERIFIED', multiplier: '0.75x', color: 'emerald' },
@@ -126,15 +128,15 @@ export function Tools() {
             {PERMISSION_TIERS.map((tier) => (
               <div
                 key={tier.name}
-                className={`rounded-xl border border-${tier.color}-800 bg-${tier.color}-900/10 p-4`}
+                className={`rounded-xl border p-4 ${borderClasses[tier.color]} ${cardClasses[tier.color]}`}
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className={`text-lg font-bold text-${tier.color}-400`}>{tier.name}</div>
+                    <div className={`text-lg font-bold ${textClasses[tier.color]}`}>{tier.name}</div>
                     <div className="text-sm text-gray-500">{tier.desc}</div>
                   </div>
-                  <div className={`rounded-lg bg-${tier.color}-900/30 px-3 py-1`}>
-                    <span className={`text-xs font-medium text-${tier.color}-400`}>{tier.risk} Risk</span>
+                  <div className={`rounded-lg px-3 py-1 ${bgLightClasses[tier.color]}`}>
+                    <span className={`text-xs font-medium ${textClasses[tier.color]}`}>{tier.risk} Risk</span>
                   </div>
                 </div>
               </div>
@@ -150,7 +152,7 @@ export function Tools() {
           <div className="grid gap-4 md:grid-cols-4">
             {TRUST_LEVELS.map((level) => (
               <div key={level.name} className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-${level.color}-900/30 text-sm font-bold text-${level.color}-400`}>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold ${iconContainerClasses[level.color]}`}>
                   {level.multiplier}
                 </div>
                 <div>
@@ -317,17 +319,17 @@ export function Tools() {
             Three-Layer Permission Check
           </h2>
           <div className="flex items-center justify-between gap-4 overflow-x-auto py-4">
-            {[
-              { layer: '1', name: 'Agent Allowlist', desc: 'Tool in agent\'s allowed set', icon: '⬡', color: 'blue' },
-              { layer: '2', name: 'Trust Level', desc: 'Caller meets minimum trust', icon: '⛨', color: 'purple' },
-              { layer: '3', name: 'Permission Tier', desc: 'Action allowed for tier', icon: '⚙', color: 'emerald' },
-            ].map((check, i, arr) => (
+            {([
+              { layer: '1', name: 'Agent Allowlist', desc: 'Tool in agent\'s allowed set', icon: '⬡', color: 'blue' as ColorName },
+              { layer: '2', name: 'Trust Level', desc: 'Caller meets minimum trust', icon: '⛨', color: 'purple' as ColorName },
+              { layer: '3', name: 'Permission Tier', desc: 'Action allowed for tier', icon: '⚙', color: 'emerald' as ColorName },
+            ]).map((check, i, arr) => (
               <div key={check.layer} className="flex items-center">
-                <div className={`rounded-lg border border-${check.color}-800 bg-${check.color}-900/20 p-4 text-center min-w-[180px]`}>
-                  <div className={`mb-2 flex h-10 w-10 mx-auto items-center justify-center rounded-lg bg-${check.color}-900/30 text-${check.color}-400 text-xl`}>
+                <div className={`rounded-lg border p-4 text-center min-w-[180px] ${borderClasses[check.color]} ${cardClasses[check.color]}`}>
+                  <div className={`mb-2 flex h-10 w-10 mx-auto items-center justify-center rounded-lg text-xl ${iconContainerClasses[check.color]}`}>
                     {check.icon}
                   </div>
-                  <div className={`font-medium text-${check.color}-400`}>{check.name}</div>
+                  <div className={`font-medium ${textClasses[check.color]}`}>{check.name}</div>
                   <div className="mt-1 text-xs text-gray-500">{check.desc}</div>
                 </div>
                 {i < arr.length - 1 && (

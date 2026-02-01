@@ -48,8 +48,26 @@ export class WebSocketBroadcaster {
     );
 
     this.unsubscribers.push(
+      eventBus.on('vote:cast', (payload) => {
+        this.broadcast('vote:cast', payload);
+      })
+    );
+
+    this.unsubscribers.push(
       eventBus.on('vote:completed', (payload) => {
         this.broadcast('vote:completed', payload);
+      })
+    );
+
+    this.unsubscribers.push(
+      eventBus.on('vote:vetoed', (payload) => {
+        this.broadcast('vote:vetoed', payload);
+      })
+    );
+
+    this.unsubscribers.push(
+      eventBus.on('vote:matrix_update', (payload) => {
+        this.broadcast('vote:matrix_update', payload);
       })
     );
 
@@ -62,6 +80,70 @@ export class WebSocketBroadcaster {
     this.unsubscribers.push(
       eventBus.on('overseer:gate', (payload) => {
         this.broadcast('overseer:gate', payload);
+      })
+    );
+
+    // Council Amendment events
+    this.unsubscribers.push(
+      eventBus.on('amendment:proposed', (payload) => {
+        this.broadcast('amendment:proposed', payload);
+      })
+    );
+
+    this.unsubscribers.push(
+      eventBus.on('amendment:voted', (payload) => {
+        this.broadcast('amendment:voted', payload);
+      })
+    );
+
+    this.unsubscribers.push(
+      eventBus.on('amendment:ratified', (payload) => {
+        this.broadcast('amendment:ratified', payload);
+      })
+    );
+
+    // Scheduler events
+    this.unsubscribers.push(
+      eventBus.on('scheduler:task_run', (payload) => {
+        this.broadcast('scheduler:task_run', payload);
+      })
+    );
+
+    this.unsubscribers.push(
+      eventBus.on('scheduler:task_complete', (payload) => {
+        this.broadcast('scheduler:task_complete', payload);
+      })
+    );
+
+    // Subagent events
+    this.unsubscribers.push(
+      eventBus.on('subagent:spawned', (payload) => {
+        this.broadcast('subagent:spawned', payload);
+      })
+    );
+
+    this.unsubscribers.push(
+      eventBus.on('subagent:progress', (payload) => {
+        this.broadcast('subagent:progress', payload);
+      })
+    );
+
+    this.unsubscribers.push(
+      eventBus.on('subagent:completed', (payload) => {
+        this.broadcast('subagent:completed', payload);
+      })
+    );
+
+    // Permission events
+    this.unsubscribers.push(
+      eventBus.on('permission:granted', (payload) => {
+        this.broadcast('permission:granted', payload);
+      })
+    );
+
+    this.unsubscribers.push(
+      eventBus.on('permission:denied', (payload) => {
+        this.broadcast('permission:denied', payload);
       })
     );
 

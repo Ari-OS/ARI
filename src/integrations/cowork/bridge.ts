@@ -392,30 +392,12 @@ export class CoworkBridge extends EventEmitter {
    * Convert ARI agents to Cowork sub-agents
    */
   private convertARIAgentsToCowork(agentIds: AgentId[]): CoworkSubAgent[] {
-    const agentConfigs: Record<AgentId, Partial<CoworkSubAgent>> = {
+    // The 15-member Council with their named identities
+    const agentConfigs: Partial<Record<AgentId, Partial<CoworkSubAgent>>> = {
+      // System agents (non-voting)
       core: {
         role: 'Master orchestrator coordinating all operations',
         personality: { tone: 'professional', verbosity: 'balanced' },
-      },
-      guardian: {
-        role: 'Security specialist detecting threats and risks',
-        personality: { tone: 'technical', verbosity: 'concise' },
-      },
-      planner: {
-        role: 'Strategic planner decomposing tasks into execution plans',
-        personality: { tone: 'professional', verbosity: 'detailed' },
-      },
-      executor: {
-        role: 'Task executor running tools with permission gating',
-        personality: { tone: 'technical', verbosity: 'concise' },
-      },
-      memory_manager: {
-        role: 'Knowledge curator managing provenance-tracked memory',
-        personality: { tone: 'professional', verbosity: 'balanced' },
-      },
-      router: {
-        role: 'Message router directing events to appropriate handlers',
-        personality: { tone: 'technical', verbosity: 'concise' },
       },
       arbiter: {
         role: 'Constitutional enforcer validating against core rules',
@@ -429,36 +411,69 @@ export class CoworkBridge extends EventEmitter {
         role: 'Autonomous agent for scheduled background tasks',
         personality: { tone: 'professional', verbosity: 'concise' },
       },
-      research: {
-        role: 'Research specialist for deep investigation',
-        personality: { tone: 'technical', verbosity: 'detailed' },
-      },
-      marketing: {
-        role: 'Marketing strategist for campaigns and content',
-        personality: { tone: 'casual', verbosity: 'balanced' },
-      },
-      sales: {
-        role: 'Sales specialist for pipeline and outreach',
-        personality: { tone: 'friendly', verbosity: 'balanced' },
-      },
-      content: {
-        role: 'Content creator for blogs and documentation',
-        personality: { tone: 'casual', verbosity: 'detailed' },
-      },
-      seo: {
-        role: 'SEO specialist for search optimization',
-        personality: { tone: 'technical', verbosity: 'balanced' },
-      },
-      build: {
-        role: 'Build engineer for CI/CD and deployment',
+      // Pillar 1: Infrastructure — "The Foundation"
+      router: {
+        role: 'ATLAS - Navigator guiding messages and finding the path',
         personality: { tone: 'technical', verbosity: 'concise' },
       },
-      development: {
-        role: 'Software developer for code implementation',
-        personality: { tone: 'technical', verbosity: 'balanced' },
+      executor: {
+        role: 'BOLT - Executor running tools with lightning speed',
+        personality: { tone: 'technical', verbosity: 'concise' },
       },
-      client_comms: {
-        role: 'Client communications manager',
+      memory_keeper: {
+        role: 'ECHO - Archivist remembering everything, echoing back',
+        personality: { tone: 'professional', verbosity: 'balanced' },
+      },
+      // Pillar 2: Protection — "The Shield"
+      guardian: {
+        role: 'AEGIS - Guardian shielding from threats',
+        personality: { tone: 'technical', verbosity: 'concise' },
+      },
+      risk_assessor: {
+        role: 'SCOUT - Risk Scout spotting dangers ahead',
+        personality: { tone: 'technical', verbosity: 'detailed' },
+      },
+      // Pillar 3: Strategy — "The Compass"
+      planner: {
+        role: 'TRUE - Strategist finding true north and charting the course',
+        personality: { tone: 'professional', verbosity: 'detailed' },
+      },
+      scheduler: {
+        role: 'TEMPO - Timekeeper guarding your time and keeping the beat',
+        personality: { tone: 'professional', verbosity: 'balanced' },
+      },
+      resource_manager: {
+        role: 'OPAL - Resource Guardian protecting the precious',
+        personality: { tone: 'professional', verbosity: 'balanced' },
+      },
+      // Pillar 4: Life Domains — "The Heart"
+      wellness: {
+        role: 'PULSE - Health Guardian monitoring your pulse',
+        personality: { tone: 'friendly', verbosity: 'balanced' },
+      },
+      relationships: {
+        role: 'EMBER - Connection Keeper warming your bonds',
+        personality: { tone: 'friendly', verbosity: 'balanced' },
+      },
+      creative: {
+        role: 'PRISM - Creative Spark splitting light into possibilities',
+        personality: { tone: 'casual', verbosity: 'detailed' },
+      },
+      wealth: {
+        role: 'MINT - Wealth Guardian where value is made and kept',
+        personality: { tone: 'professional', verbosity: 'balanced' },
+      },
+      growth: {
+        role: 'BLOOM - Growth Guide helping you flourish',
+        personality: { tone: 'friendly', verbosity: 'detailed' },
+      },
+      // Pillar 5: Meta — "The Balance"
+      ethics: {
+        role: 'VERA - Truth Speaker ensuring fairness (vera = truth)',
+        personality: { tone: 'professional', verbosity: 'detailed' },
+      },
+      integrator: {
+        role: 'NEXUS - Integrator connecting everything, breaking ties',
         personality: { tone: 'professional', verbosity: 'balanced' },
       },
     };
