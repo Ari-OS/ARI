@@ -9,6 +9,12 @@ import type { Overseer } from '../governance/overseer.js';
 import type { MemoryManager } from '../agents/memory-manager.js';
 import type { Executor } from '../agents/executor.js';
 import type * as Storage from '../system/storage.js';
+import type { Scheduler } from '../autonomous/scheduler.js';
+import type { AgentSpawner } from '../autonomous/agent-spawner.js';
+import type { MetricsCollector } from '../observability/metrics-collector.js';
+import type { AlertManager } from '../observability/alert-manager.js';
+import type { ExecutionHistoryTracker } from '../observability/execution-history.js';
+import type { AlertSeverity, AlertStatus } from '../observability/types.js';
 
 export interface ApiDependencies {
   audit: AuditLogger;
@@ -20,6 +26,11 @@ export interface ApiDependencies {
   memoryManager?: MemoryManager;
   executor?: Executor;
   storage?: typeof Storage;
+  scheduler?: Scheduler;
+  agentSpawner?: AgentSpawner;
+  metricsCollector?: MetricsCollector;
+  alertManager?: AlertManager;
+  executionHistory?: ExecutionHistoryTracker;
 }
 
 export interface ApiRouteOptions extends FastifyPluginOptions {
@@ -582,4 +593,475 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
     await dailyAudit.init();
     return dailyAudit.getMetrics();
   });
+
+  // ── Scheduler endpoints ────────────────────────────────────────────────────
+
+  fastify.get('/api/scheduler/status', async () => {
+    if (!deps.scheduler) {
+      return {
+        running: false,
+        taskCount: 0,
+        enabledCount: 0,
+        nextTask: null,
+      };
+    }
+    const status = deps.scheduler.getStatus();
+    return {
+      ...status,
+      nextTask: status.nextTask
+        ? {
+            ...status.nextTask,
+            nextRun: status.nextTask.nextRun.toISOString(),
+          }
+        : null,
+    };
+  });
+
+  fastify.get('/api/scheduler/tasks', async () => {
+    if (!deps.scheduler) {
+      return [];
+    }
+    const tasks = deps.scheduler.getTasks();
+    return tasks.map((task) => ({
+      id: task.id,
+      name: task.name,
+      cron: task.cron,
+      handler: task.handler,
+      enabled: task.enabled,
+      lastRun: task.lastRun?.toISOString() ?? null,
+      nextRun: task.nextRun?.toISOString() ?? null,
+      metadata: task.metadata,
+    }));
+  });
+
+  fastify.post<{ Params: { id: string } }>(
+    '/api/scheduler/tasks/:id/trigger',
+    async (request, reply) => {
+      const { id } = request.params;
+
+      if (!deps.scheduler) {
+        reply.code(503);
+        return { error: 'Scheduler not initialized' };
+      }
+
+      const task = deps.scheduler.getTask(id);
+      if (!task) {
+        reply.code(404);
+        return { error: `Task ${id} not found` };
+      }
+
+      try {
+        const success = await deps.scheduler.triggerTask(id);
+        if (success) {
+          await deps.audit.log(
+            'scheduler:manual_trigger',
+            'API',
+            'operator',
+            { taskId: id, taskName: task.name }
+          );
+          return { success: true, message: `Task ${task.name} triggered` };
+        } else {
+          reply.code(500);
+          return { error: 'Failed to trigger task' };
+        }
+      } catch (error) {
+        reply.code(500);
+        return {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    }
+  );
+
+  fastify.post<{ Params: { id: string } }>(
+    '/api/scheduler/tasks/:id/toggle',
+    async (request, reply) => {
+      const { id } = request.params;
+
+      if (!deps.scheduler) {
+        reply.code(503);
+        return { error: 'Scheduler not initialized' };
+      }
+
+      const task = deps.scheduler.getTask(id);
+      if (!task) {
+        reply.code(404);
+        return { error: `Task ${id} not found` };
+      }
+
+      const newEnabled = !task.enabled;
+      deps.scheduler.setTaskEnabled(id, newEnabled);
+
+      await deps.audit.log(
+        'scheduler:task_toggled',
+        'API',
+        'operator',
+        { taskId: id, enabled: newEnabled }
+      );
+
+      return {
+        success: true,
+        taskId: id,
+        enabled: newEnabled,
+      };
+    }
+  );
+
+  // ── Subagent endpoints ─────────────────────────────────────────────────────
+
+  fastify.get('/api/subagents', async () => {
+    if (!deps.agentSpawner) {
+      return [];
+    }
+    const agents = deps.agentSpawner.getAgents();
+    return agents.map((agent) => ({
+      id: agent.id,
+      task: agent.task,
+      branch: agent.branch,
+      worktreePath: agent.worktreePath,
+      status: agent.status,
+      createdAt: agent.createdAt.toISOString(),
+      completedAt: agent.completedAt?.toISOString() ?? null,
+      progress: agent.progress ?? null,
+      lastMessage: agent.lastMessage ?? null,
+      error: agent.error ?? null,
+      tmuxSession: agent.tmuxSession ?? null,
+    }));
+  });
+
+  fastify.get('/api/subagents/stats', async () => {
+    if (!deps.agentSpawner) {
+      return {
+        total: 0,
+        running: 0,
+        completed: 0,
+        failed: 0,
+        spawning: 0,
+      };
+    }
+    const agents = deps.agentSpawner.getAgents();
+    return {
+      total: agents.length,
+      running: agents.filter((a) => a.status === 'running').length,
+      completed: agents.filter((a) => a.status === 'completed').length,
+      failed: agents.filter((a) => a.status === 'failed').length,
+      spawning: agents.filter((a) => a.status === 'spawning').length,
+    };
+  });
+
+  fastify.get<{ Params: { id: string } }>(
+    '/api/subagents/:id',
+    async (request, reply) => {
+      const { id } = request.params;
+
+      if (!deps.agentSpawner) {
+        reply.code(503);
+        return { error: 'Agent spawner not initialized' };
+      }
+
+      const agent = deps.agentSpawner.getAgent(id);
+      if (!agent) {
+        reply.code(404);
+        return { error: `Subagent ${id} not found` };
+      }
+
+      return {
+        id: agent.id,
+        task: agent.task,
+        branch: agent.branch,
+        worktreePath: agent.worktreePath,
+        status: agent.status,
+        createdAt: agent.createdAt.toISOString(),
+        completedAt: agent.completedAt?.toISOString() ?? null,
+        progress: agent.progress ?? null,
+        lastMessage: agent.lastMessage ?? null,
+        error: agent.error ?? null,
+        result: agent.result ?? null,
+        tmuxSession: agent.tmuxSession ?? null,
+      };
+    }
+  );
+
+  fastify.delete<{ Params: { id: string } }>(
+    '/api/subagents/:id',
+    async (request, reply) => {
+      const { id } = request.params;
+
+      if (!deps.agentSpawner) {
+        reply.code(503);
+        return { error: 'Agent spawner not initialized' };
+      }
+
+      const agent = deps.agentSpawner.getAgent(id);
+      if (!agent) {
+        reply.code(404);
+        return { error: `Subagent ${id} not found` };
+      }
+
+      if (agent.status === 'running' || agent.status === 'spawning') {
+        reply.code(400);
+        return { error: 'Cannot delete a running agent' };
+      }
+
+      try {
+        await deps.agentSpawner.cleanup(id, { deleteBranch: true });
+        return { success: true, message: `Subagent ${id} cleaned up` };
+      } catch (error) {
+        reply.code(500);
+        return {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    }
+  );
+
+  // ── System metrics endpoint ────────────────────────────────────────────────
+
+  fastify.get('/api/system/metrics', async () => {
+    const uptime = process.uptime();
+    const memory = process.memoryUsage();
+
+    return {
+      uptime,
+      uptimeFormatted: formatUptime(uptime),
+      memory: {
+        heapUsed: memory.heapUsed,
+        heapTotal: memory.heapTotal,
+        external: memory.external,
+        rss: memory.rss,
+        heapUsedMB: Math.round(memory.heapUsed / 1024 / 1024),
+        heapTotalMB: Math.round(memory.heapTotal / 1024 / 1024),
+        rssMB: Math.round(memory.rss / 1024 / 1024),
+      },
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      pid: process.pid,
+    };
+  });
+
+  // ── Observability: Metrics endpoints ─────────────────────────────────────
+
+  fastify.get('/api/metrics', async () => {
+    if (!deps.metricsCollector) {
+      return { timestamp: new Date().toISOString(), metrics: {} };
+    }
+    return deps.metricsCollector.getCurrent();
+  });
+
+  fastify.get('/api/metrics/all', async () => {
+    if (!deps.metricsCollector) {
+      return [];
+    }
+    return deps.metricsCollector.getDefinitions();
+  });
+
+  fastify.get<{ Params: { name: string }; Querystring: { minutes?: string } }>(
+    '/api/metrics/:name',
+    async (request, reply) => {
+      const { name } = request.params;
+      const minutes = request.query.minutes ? parseInt(request.query.minutes, 10) : 60;
+
+      if (!deps.metricsCollector) {
+        reply.code(503);
+        return { error: 'Metrics collector not initialized' };
+      }
+
+      const timeSeries = deps.metricsCollector.getTimeSeries(name, minutes);
+      if (!timeSeries) {
+        reply.code(404);
+        return { error: `Metric ${name} not found` };
+      }
+
+      return timeSeries;
+    }
+  );
+
+  fastify.get<{ Querystring: { minutes?: string } }>(
+    '/api/metrics/history',
+    async (request) => {
+      const minutes = request.query.minutes ? parseInt(request.query.minutes, 10) : 60;
+
+      if (!deps.metricsCollector) {
+        return { snapshots: [] };
+      }
+
+      return { snapshots: deps.metricsCollector.getSnapshots(minutes) };
+    }
+  );
+
+  // ── Observability: Alert endpoints ───────────────────────────────────────
+
+  fastify.get<{
+    Querystring: {
+      status?: AlertStatus;
+      severity?: AlertSeverity;
+      limit?: string;
+      offset?: string;
+    };
+  }>('/api/alerts', async (request) => {
+    if (!deps.alertManager) {
+      return { alerts: [], total: 0 };
+    }
+
+    const { status, severity, limit, offset } = request.query;
+    const alerts = deps.alertManager.getAlerts({
+      status,
+      severity,
+      limit: limit ? parseInt(limit, 10) : 50,
+      offset: offset ? parseInt(offset, 10) : 0,
+    });
+
+    return { alerts, total: alerts.length };
+  });
+
+  fastify.get('/api/alerts/summary', async () => {
+    if (!deps.alertManager) {
+      return {
+        total: 0,
+        active: 0,
+        acknowledged: 0,
+        resolved: 0,
+        bySeverity: { info: 0, warning: 0, critical: 0 },
+      };
+    }
+    return deps.alertManager.getSummary();
+  });
+
+  fastify.get<{ Params: { id: string } }>('/api/alerts/:id', async (request, reply) => {
+    const { id } = request.params;
+
+    if (!deps.alertManager) {
+      reply.code(503);
+      return { error: 'Alert manager not initialized' };
+    }
+
+    const alert = deps.alertManager.getAlert(id);
+    if (!alert) {
+      reply.code(404);
+      return { error: `Alert ${id} not found` };
+    }
+
+    return alert;
+  });
+
+  fastify.post<{ Params: { id: string } }>(
+    '/api/alerts/:id/acknowledge',
+    async (request, reply) => {
+      const { id } = request.params;
+
+      if (!deps.alertManager) {
+        reply.code(503);
+        return { error: 'Alert manager not initialized' };
+      }
+
+      const alert = await deps.alertManager.acknowledge(id, 'operator');
+      if (!alert) {
+        reply.code(404);
+        return { error: `Alert ${id} not found` };
+      }
+
+      await deps.audit.log('alert:acknowledged', 'API', 'operator', { alertId: id });
+      return { success: true, alert };
+    }
+  );
+
+  fastify.post<{ Params: { id: string } }>(
+    '/api/alerts/:id/resolve',
+    async (request, reply) => {
+      const { id } = request.params;
+
+      if (!deps.alertManager) {
+        reply.code(503);
+        return { error: 'Alert manager not initialized' };
+      }
+
+      const alert = await deps.alertManager.resolve(id, 'operator');
+      if (!alert) {
+        reply.code(404);
+        return { error: `Alert ${id} not found` };
+      }
+
+      await deps.audit.log('alert:resolved', 'API', 'operator', { alertId: id });
+      return { success: true, alert };
+    }
+  );
+
+  fastify.delete<{ Params: { id: string } }>(
+    '/api/alerts/:id',
+    async (request, reply) => {
+      const { id } = request.params;
+
+      if (!deps.alertManager) {
+        reply.code(503);
+        return { error: 'Alert manager not initialized' };
+      }
+
+      const deleted = await deps.alertManager.delete(id);
+      if (!deleted) {
+        reply.code(404);
+        return { error: `Alert ${id} not found` };
+      }
+
+      await deps.audit.log('alert:deleted', 'API', 'operator', { alertId: id });
+      return { success: true };
+    }
+  );
+
+  // ── Observability: Execution history endpoints ───────────────────────────
+
+  fastify.get<{ Params: { taskId: string }; Querystring: { limit?: string } }>(
+    '/api/scheduler/tasks/:taskId/history',
+    async (request, reply) => {
+      const { taskId } = request.params;
+      const limit = request.query.limit ? parseInt(request.query.limit, 10) : 50;
+
+      if (!deps.executionHistory) {
+        reply.code(503);
+        return { error: 'Execution history tracker not initialized' };
+      }
+
+      return {
+        taskId,
+        executions: deps.executionHistory.getTaskHistory(taskId, limit),
+        stats: deps.executionHistory.getTaskStats(taskId),
+      };
+    }
+  );
+
+  fastify.get<{ Querystring: { limit?: string } }>(
+    '/api/scheduler/executions/recent',
+    async (request) => {
+      const limit = request.query.limit ? parseInt(request.query.limit, 10) : 50;
+
+      if (!deps.executionHistory) {
+        return { executions: [] };
+      }
+
+      return { executions: deps.executionHistory.getRecentExecutions(limit) };
+    }
+  );
+
+  fastify.get('/api/scheduler/executions/stats', async () => {
+    if (!deps.executionHistory) {
+      return { stats: [] };
+    }
+
+    return { stats: deps.executionHistory.getAllTaskStats() };
+  });
 };
+
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+  return parts.join(' ');
+}

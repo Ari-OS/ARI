@@ -179,6 +179,25 @@ export class WebSocketBroadcaster {
         this.broadcast('agent:stopped', payload);
       })
     );
+
+    // Alert events (observability)
+    this.unsubscribers.push(
+      eventBus.on('alert:created', (payload) => {
+        this.broadcast('alert:created', payload);
+      })
+    );
+
+    this.unsubscribers.push(
+      eventBus.on('alert:acknowledged', (payload) => {
+        this.broadcast('alert:acknowledged', payload);
+      })
+    );
+
+    this.unsubscribers.push(
+      eventBus.on('alert:resolved', (payload) => {
+        this.broadcast('alert:resolved', payload);
+      })
+    );
   }
 
   /**
