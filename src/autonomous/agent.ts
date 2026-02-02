@@ -79,12 +79,19 @@ export class AutonomousAgent {
     this.agentSpawner = new AgentSpawner(eventBus, process.cwd());
 
     // Initialize initiative engine for proactive autonomy
-    this.initiativeEngine = new InitiativeEngine({
-      projectPath: process.cwd(),
-      scanIntervalMs: 30 * 60 * 1000, // 30 minutes between automatic scans
-      maxInitiativesPerScan: 10,
-      autoExecute: true, // Execute autonomous initiatives automatically
-    });
+    this.initiativeEngine = new InitiativeEngine(
+      {
+        projectPath: process.cwd(),
+        scanIntervalMs: 30 * 60 * 1000, // 30 minutes between automatic scans
+        maxInitiativesPerScan: 10,
+        autoExecute: true, // Execute autonomous initiatives automatically
+      },
+      {
+        eventBus,
+        agentSpawner: this.agentSpawner,
+        knowledgeIndex: this.knowledgeIndex,
+      }
+    );
   }
 
   /**
@@ -257,18 +264,8 @@ export class AutonomousAgent {
           // eslint-disable-next-line no-console
           console.log(`[Initiative] Discovered ${initiatives.length} new initiatives`);
 
-          // Execute high-priority autonomous initiatives immediately
-          const autonomous = initiatives.filter(i => i.autonomous && i.priority >= 70);
-          for (const initiative of autonomous.slice(0, 2)) { // Max 2 per cycle
-            try {
-              // eslint-disable-next-line no-console
-              console.log(`[Initiative] Executing: ${initiative.title}`);
-              await this.initiativeEngine.executeInitiative(initiative.id);
-            } catch (err) {
-              // eslint-disable-next-line no-console
-              console.error(`[Initiative] Failed to execute ${initiative.id}:`, err);
-            }
-          }
+          // NOTE: InitiativeEngine handles auto-execution internally based on config.
+          // We avoid duplicating that logic here to prevent inconsistent thresholds.
 
           // Queue user-facing initiatives as deliverables
           const forUser = initiatives.filter(i => i.forUser && !i.autonomous);
@@ -641,7 +638,7 @@ export class AutonomousAgent {
         const initiatives = await this.initiativeEngine.scan();
 
         // Execute all autonomous high-priority initiatives
-        const autonomous = initiatives.filter(i => i.autonomous && i.priority >= 60);
+        const autonomous = initiatives.filter(i => i.autonomous && (i.priority * 100) >= 60);
         let executed = 0;
         for (const initiative of autonomous.slice(0, 5)) { // Max 5 per day
           try {
@@ -724,7 +721,7 @@ export class AutonomousAgent {
         console.log(`[Initiative] Mid-day status: ${queued.length} queued, ${inProgress.length} in progress, ${completed.length} completed today`);
 
         // Execute any high-priority queued items that haven't been started
-        const urgent = queued.filter(i => i.autonomous && i.priority >= 80);
+        const urgent = queued.filter(i => i.autonomous && (i.priority * 100) >= 80);
         for (const initiative of urgent.slice(0, 2)) {
           try {
             await this.initiativeEngine.executeInitiative(initiative.id);
@@ -754,5 +751,19 @@ export class AutonomousAgent {
       await this.stop();
       await this.start();
     }
+  }
+
+  // ── Public accessors for API integration ─────────────────────────────────
+
+  getScheduler(): Scheduler {
+    return this.scheduler;
+  }
+
+  getAgentSpawner(): AgentSpawner {
+    return this.agentSpawner;
+  }
+
+  getInitiativeEngine(): InitiativeEngine {
+    return this.initiativeEngine;
   }
 }
