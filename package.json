@@ -8,9 +8,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/PryceHedrick/ARI.git"
+    "url": "https://github.com/Ari-OS/ARI.git"
   },
-  "homepage": "https://github.com/PryceHedrick/ARI",
+  "homepage": "https://github.com/Ari-OS/ARI",
   "type": "module",
   "main": "dist/index.js",
   "bin": {

@@ -9,6 +9,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Cognitive Layer 0 (LOGOS/ETHOS/PATHOS)
+- **LOGOS (Reason)** — Bayesian reasoning, Expected Value, Kelly Criterion, Decision Trees, Systems Thinking, Antifragility
+- **ETHOS (Character)** — Cognitive bias detection, Emotional state (VAD model), Fear/Greed cycle, Discipline checks
+- **PATHOS (Growth)** — CBT reframing, Stoic philosophy, Wisdom traditions, Meta-learning, Practice planning
+- **Knowledge System** — 87 curated sources, 5-stage validation pipeline, 15 Council cognitive profiles
+- **Learning Loop** — Performance review (daily), Gap analysis (weekly), Self-assessment (monthly)
+- **Visualization** — Insight formatter for Claude Code, Dashboard Cognition page
+
+#### CLI Commands
+- `ari cognitive status` — Cognitive health overview
+- `ari cognitive analyze` — Bias and distortion detection
+- `ari cognitive decide` — Full decision pipeline
+- `ari cognitive wisdom` — Query wisdom traditions
+- `ari cognitive kelly` — Position sizing calculator
+- `ari cognitive bayesian` — Belief probability updates
+- `ari cognitive profile` — Council member profiles
+
+#### EventBus Events
+- 18 cognitive events (belief_updated, bias_detected, thought_reframed, etc.)
+- 7 knowledge events (source_fetched, validated, gap_identified, etc.)
+- 7 learning events (performance_review, gap_analysis, self_assessment, etc.)
+
+#### Dashboard
+- Cognition page with three-pillar health visualization
+- Real-time cognitive activity feed
+- Learning loop progress tracker
+- Council cognitive profile grid
+- Framework usage charts
+
+#### Documentation
+- 9 new CLAUDE.md files for all source modules
+- Updated architecture to seven-layer (includes Layer 0)
+- 72 total documentation files
+
+### Changed
+- Test count increased from 2597 to 3194 (597 new cognitive tests)
+- Architecture updated from six-layer to seven-layer
+- CLI commands increased from 8 to 11
+- README updated with cognitive layer architecture
+
 ---
 
 ## [2.1.0] — 2026-01-31 — Constitutional Separation

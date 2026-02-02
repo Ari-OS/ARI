@@ -18,7 +18,7 @@
 
 ```bash
 # Clone
-git clone https://github.com/PryceHedrick/ARI.git
+git clone https://github.com/Ari-OS/ARI.git
 cd ARI
 
 # Install and build

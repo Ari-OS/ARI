@@ -288,7 +288,7 @@ export class CoworkBridge extends EventEmitter {
           version: '1.0.0',
           author: {
             name: 'ARI',
-            url: 'https://github.com/PryceHedrick/ARI',
+            url: 'https://github.com/Ari-OS/ARI',
           },
           license: 'MIT',
           tags: ['ari', 'ai-agent', 'automation'],

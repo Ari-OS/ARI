@@ -19,9 +19,9 @@
 
 <br>
 
-[![CI](https://github.com/PryceHedrick/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/PryceHedrick/ARI/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-3194%20passing-brightgreen)](https://github.com/PryceHedrick/ARI)
-[![Coverage](https://img.shields.io/badge/coverage-80%25%2B-brightgreen)](https://github.com/PryceHedrick/ARI)
+[![CI](https://github.com/Ari-OS/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/Ari-OS/ARI/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-3194%20passing-brightgreen)](https://github.com/Ari-OS/ARI)
+[![Coverage](https://img.shields.io/badge/coverage-80%25%2B-brightgreen)](https://github.com/Ari-OS/ARI)
 
 </div>
 
@@ -193,7 +193,7 @@ Enforces 5 quality gates before code changes:
 ### Installation
 
 ```bash
-git clone https://github.com/PryceHedrick/ARI.git
+git clone https://github.com/Ari-OS/ARI.git
 cd ARI
 npm install
 npm run build
