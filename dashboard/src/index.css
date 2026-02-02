@@ -7,14 +7,112 @@
 }
 
 :root {
-  --ari-purple: #8b5cf6;
-  --ari-purple-light: #a78bfa;
-  --ari-purple-dark: #6d28d9;
-  --ari-green: #10b981;
-  --ari-red: #ef4444;
-  --ari-yellow: #f59e0b;
-  --ari-blue: #3b82f6;
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * ARI DESIGN SYSTEM — Purple/Black Aesthetic
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Core ARI Purple Palette */
+  --ari-purple-50: #faf5ff;
+  --ari-purple-100: #f3e8ff;
+  --ari-purple-200: #e9d5ff;
+  --ari-purple-300: #d8b4fe;
+  --ari-purple-400: #c084fc;
+  --ari-purple: #a855f7;           /* Primary purple */
+  --ari-purple-600: #9333ea;
+  --ari-purple-700: #7e22ce;
+  --ari-purple-dark: #6b21a8;
+  --ari-purple-900: #581c87;
+  --ari-purple-950: #3b0764;
+
+  /* Purple with transparency */
+  --ari-purple-muted: rgba(168, 85, 247, 0.15);
+  --ari-purple-glow: rgba(168, 85, 247, 0.4);
+  --ari-purple-subtle: rgba(168, 85, 247, 0.08);
+
+  /* Semantic Colors */
+  --ari-success: #10b981;
+  --ari-success-muted: rgba(16, 185, 129, 0.15);
+  --ari-error: #ef4444;
+  --ari-error-muted: rgba(239, 68, 68, 0.15);
+  --ari-warning: #f59e0b;
+  --ari-warning-muted: rgba(245, 158, 11, 0.15);
+  --ari-info: #3b82f6;
+  --ari-info-muted: rgba(59, 130, 246, 0.15);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * COGNITIVE PILLAR COLORS — Harmonious Triad
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* LOGOS - Blue (Reason, Logic, Analysis) */
+  --pillar-logos: #60a5fa;
+  --pillar-logos-bright: #3b82f6;
+  --pillar-logos-muted: rgba(96, 165, 250, 0.15);
+  --pillar-logos-glow: rgba(96, 165, 250, 0.35);
+  --pillar-logos-border: rgba(96, 165, 250, 0.3);
+
+  /* ETHOS - Orange/Amber (Character, Discipline, Ethics) */
+  --pillar-ethos: #fb923c;
+  --pillar-ethos-bright: #f97316;
+  --pillar-ethos-muted: rgba(251, 146, 60, 0.15);
+  --pillar-ethos-glow: rgba(251, 146, 60, 0.35);
+  --pillar-ethos-border: rgba(251, 146, 60, 0.3);
+
+  /* PATHOS - Green/Emerald (Growth, Learning, Wisdom) */
+  --pillar-pathos: #4ade80;
+  --pillar-pathos-bright: #22c55e;
+  --pillar-pathos-muted: rgba(74, 222, 128, 0.15);
+  --pillar-pathos-glow: rgba(74, 222, 128, 0.35);
+  --pillar-pathos-border: rgba(74, 222, 128, 0.3);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * BACKGROUND SYSTEM — Deep Black with Purple Undertones
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  --bg-void: #000000;              /* Pure black */
+  --bg-primary: #030305;           /* Near-black with slight purple */
+  --bg-secondary: #0a0a0f;         /* Elevated surface */
+  --bg-tertiary: #111118;          /* Cards and panels */
+  --bg-elevated: #18181f;          /* Hover states, modals */
+  --bg-interactive: #1f1f28;       /* Buttons, inputs */
+
+  /* Cards with glassmorphism effect */
+  --bg-card: rgba(10, 10, 15, 0.8);
+  --bg-card-hover: rgba(18, 18, 25, 0.9);
+  --bg-card-glow: rgba(168, 85, 247, 0.05);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * BORDER SYSTEM
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-muted: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --border-purple: rgba(168, 85, 247, 0.3);
+  --border-purple-glow: rgba(168, 85, 247, 0.5);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * TEXT HIERARCHY
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --text-muted: #6b7280;
+  --text-disabled: #4b5563;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * LEGACY COMPATIBILITY (for existing code)
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  --ari-green: var(--ari-success);
+  --ari-red: var(--ari-error);
+  --ari-yellow: var(--ari-warning);
+  --ari-blue: var(--ari-info);
   --ari-cyan: #06b6d4;
+  --ari-purple-light: var(--ari-purple-400);
+  --border-primary: var(--border-default);
+  --border-secondary: var(--border-muted);
 }
 
 body {
@@ -23,7 +121,105 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #030712;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PURPLE/BLACK GRADIENT BACKGROUNDS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.bg-ari-gradient {
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
+}
+
+.bg-ari-radial {
+  background: radial-gradient(ellipse at top, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+              var(--bg-primary);
+}
+
+.bg-ari-glow {
+  background: radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.15) 0%, transparent 40%),
+              var(--bg-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PILLAR-SPECIFIC BACKGROUNDS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.bg-logos { background-color: var(--pillar-logos); }
+.bg-logos-muted { background-color: var(--pillar-logos-muted); }
+.bg-logos-glow { background: radial-gradient(circle, var(--pillar-logos-glow) 0%, transparent 70%); }
+
+.bg-ethos { background-color: var(--pillar-ethos); }
+.bg-ethos-muted { background-color: var(--pillar-ethos-muted); }
+.bg-ethos-glow { background: radial-gradient(circle, var(--pillar-ethos-glow) 0%, transparent 70%); }
+
+.bg-pathos { background-color: var(--pillar-pathos); }
+.bg-pathos-muted { background-color: var(--pillar-pathos-muted); }
+.bg-pathos-glow { background: radial-gradient(circle, var(--pillar-pathos-glow) 0%, transparent 70%); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PILLAR TEXT COLORS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.text-logos { color: var(--pillar-logos); }
+.text-ethos { color: var(--pillar-ethos); }
+.text-pathos { color: var(--pillar-pathos); }
+.text-ari-purple { color: var(--ari-purple); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PILLAR BORDERS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.border-logos { border-color: var(--pillar-logos-border); }
+.border-ethos { border-color: var(--pillar-ethos-border); }
+.border-pathos { border-color: var(--pillar-pathos-border); }
+.border-ari-purple { border-color: var(--border-purple); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CARD SYSTEM — Glassmorphism with Purple Accents
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.card-ari {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-muted);
+  border-radius: 12px;
+  transition: all 0.2s ease-out;
+}
+
+.card-ari:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-default);
+  box-shadow: 0 0 30px var(--bg-card-glow);
+}
+
+.card-ari-logos {
+  background: linear-gradient(135deg, var(--pillar-logos-muted) 0%, var(--bg-card) 30%);
+  border-color: var(--pillar-logos-border);
+}
+
+.card-ari-logos:hover {
+  box-shadow: 0 0 30px var(--pillar-logos-glow);
+}
+
+.card-ari-ethos {
+  background: linear-gradient(135deg, var(--pillar-ethos-muted) 0%, var(--bg-card) 30%);
+  border-color: var(--pillar-ethos-border);
+}
+
+.card-ari-ethos:hover {
+  box-shadow: 0 0 30px var(--pillar-ethos-glow);
+}
+
+.card-ari-pathos {
+  background: linear-gradient(135deg, var(--pillar-pathos-muted) 0%, var(--bg-card) 30%);
+  border-color: var(--pillar-pathos-border);
+}
+
+.card-ari-pathos:hover {
+  box-shadow: 0 0 30px var(--pillar-pathos-glow);
 }
 
 code,
@@ -33,49 +229,96 @@ pre,
     'Fira Mono', 'Roboto Mono', monospace;
 }
 
-/* Scrollbar */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SCROLLBAR — Minimal Purple Accent
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #111827;
+  background: var(--bg-secondary);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 4px;
+  background: rgba(168, 85, 247, 0.3);
+  border-radius: 3px;
+  transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  background: rgba(168, 85, 247, 0.5);
 }
 
-/* Glowing effects */
-.glow-green {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border-muted);
 }
 
-.glow-red {
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--border-default);
 }
 
-.glow-yellow {
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GLOW EFFECTS — Semantic Colors
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.glow-success {
+  box-shadow: 0 0 20px var(--ari-success-muted),
+              0 0 40px rgba(16, 185, 129, 0.1);
+}
+
+.glow-error {
+  box-shadow: 0 0 20px var(--ari-error-muted),
+              0 0 40px rgba(239, 68, 68, 0.1);
+}
+
+.glow-warning {
+  box-shadow: 0 0 20px var(--ari-warning-muted),
+              0 0 40px rgba(245, 158, 11, 0.1);
 }
 
 .glow-purple {
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 20px var(--ari-purple-muted),
+              0 0 40px rgba(168, 85, 247, 0.15);
 }
 
-/* Pulse animation */
+/* Pillar Glows */
+.glow-logos {
+  box-shadow: 0 0 20px var(--pillar-logos-glow),
+              0 0 40px rgba(96, 165, 250, 0.1);
+}
+
+.glow-ethos {
+  box-shadow: 0 0 20px var(--pillar-ethos-glow),
+              0 0 40px rgba(251, 146, 60, 0.1);
+}
+
+.glow-pathos {
+  box-shadow: 0 0 20px var(--pillar-pathos-glow),
+              0 0 40px rgba(74, 222, 128, 0.1);
+}
+
+/* Legacy compatibility */
+.glow-green { box-shadow: 0 0 20px var(--ari-success-muted); }
+.glow-red { box-shadow: 0 0 20px var(--ari-error-muted); }
+.glow-yellow { box-shadow: 0 0 20px var(--ari-warning-muted); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ANIMATIONS — Smooth & Sophisticated
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Subtle pulse for live indicators */
 @keyframes pulse-glow {
   0%, 100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.6;
+    transform: scale(1.05);
   }
 }
 
@@ -83,25 +326,83 @@ pre,
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Status dot animation */
+/* Status dot pulse with glow */
 @keyframes status-pulse {
-  0% {
+  0%, 100% {
     transform: scale(1);
-    opacity: 1;
+    box-shadow: 0 0 0 0 currentColor;
   }
   50% {
-    transform: scale(1.2);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
+    transform: scale(1.1);
+    box-shadow: 0 0 8px 2px currentColor;
   }
 }
 
 .status-dot-healthy {
   animation: status-pulse 2s ease-in-out infinite;
+  color: var(--ari-success);
 }
+
+/* Purple breathing effect */
+@keyframes breathe-purple {
+  0%, 100% {
+    box-shadow: 0 0 15px var(--ari-purple-muted);
+  }
+  50% {
+    box-shadow: 0 0 25px var(--ari-purple-glow);
+  }
+}
+
+.animate-breathe-purple {
+  animation: breathe-purple 3s ease-in-out infinite;
+}
+
+/* Pillar-specific pulse animations */
+@keyframes pulse-logos {
+  0%, 100% { box-shadow: 0 0 10px var(--pillar-logos-muted); }
+  50% { box-shadow: 0 0 20px var(--pillar-logos-glow); }
+}
+
+@keyframes pulse-ethos {
+  0%, 100% { box-shadow: 0 0 10px var(--pillar-ethos-muted); }
+  50% { box-shadow: 0 0 20px var(--pillar-ethos-glow); }
+}
+
+@keyframes pulse-pathos {
+  0%, 100% { box-shadow: 0 0 10px var(--pillar-pathos-muted); }
+  50% { box-shadow: 0 0 20px var(--pillar-pathos-glow); }
+}
+
+.animate-pulse-logos { animation: pulse-logos 2.5s ease-in-out infinite; }
+.animate-pulse-ethos { animation: pulse-ethos 2.5s ease-in-out infinite; }
+.animate-pulse-pathos { animation: pulse-pathos 2.5s ease-in-out infinite; }
+
+/* Entrance animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out forwards;
+}
+
+/* Staggered children animation */
+.stagger-children > * {
+  animation: fade-in-up 0.4s ease-out forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
 
 /* Card hover effects */
 .card-hover {
@@ -113,13 +414,54 @@ pre,
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* Gradient backgrounds */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GRADIENT BACKGROUNDS — Purple/Black Theme
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
 .gradient-dark {
-  background: linear-gradient(180deg, #111827 0%, #030712 100%);
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
 }
 
 .gradient-card {
-  background: linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(3, 7, 18, 0.9) 100%);
+  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+}
+
+/* Purple accent gradients */
+.gradient-purple-subtle {
+  background: linear-gradient(135deg,
+    rgba(168, 85, 247, 0.08) 0%,
+    transparent 50%,
+    rgba(168, 85, 247, 0.03) 100%);
+}
+
+.gradient-purple-radial {
+  background: radial-gradient(
+    ellipse at top center,
+    rgba(168, 85, 247, 0.12) 0%,
+    transparent 60%
+  );
+}
+
+/* Pillar gradients for headers/heroes */
+.gradient-logos {
+  background: linear-gradient(135deg,
+    var(--pillar-logos-bright) 0%,
+    rgba(96, 165, 250, 0.6) 50%,
+    var(--pillar-logos) 100%);
+}
+
+.gradient-ethos {
+  background: linear-gradient(135deg,
+    var(--pillar-ethos-bright) 0%,
+    rgba(251, 146, 60, 0.6) 50%,
+    var(--pillar-ethos) 100%);
+}
+
+.gradient-pathos {
+  background: linear-gradient(135deg,
+    var(--pillar-pathos-bright) 0%,
+    rgba(74, 222, 128, 0.6) 50%,
+    var(--pillar-pathos) 100%);
 }
 
 /* Hash display */
@@ -131,7 +473,10 @@ pre,
   word-break: break-all;
 }
 
-/* Status indicator */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * STATUS INDICATORS — Semantic with Glow
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
 .status-indicator {
   position: relative;
 }
@@ -142,22 +487,40 @@ pre,
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 150%;
-  height: 150%;
+  width: 180%;
+  height: 180%;
   border-radius: 50%;
-  opacity: 0.3;
+  opacity: 0.4;
+  transition: opacity 0.3s;
+}
+
+.status-indicator:hover::before {
+  opacity: 0.6;
 }
 
 .status-indicator.healthy::before {
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--ari-success) 0%, transparent 70%);
 }
 
 .status-indicator.warning::before {
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--ari-warning) 0%, transparent 70%);
 }
 
 .status-indicator.error::before {
-  background: radial-gradient(circle, rgba(239, 68, 68, 0.4) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--ari-error) 0%, transparent 70%);
+}
+
+/* Pillar-specific status indicators */
+.status-indicator.logos::before {
+  background: radial-gradient(circle, var(--pillar-logos) 0%, transparent 70%);
+}
+
+.status-indicator.ethos::before {
+  background: radial-gradient(circle, var(--pillar-ethos) 0%, transparent 70%);
+}
+
+.status-indicator.pathos::before {
+  background: radial-gradient(circle, var(--pillar-pathos) 0%, transparent 70%);
 }
 
 /* Audit chain visualization */
@@ -203,10 +566,22 @@ pre,
   background-size: 20px 20px;
 }
 
-/* Agent status cards */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * AGENT STATUS CARDS — Status Edge Indicators
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
 .agent-card {
   position: relative;
   overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-muted);
+  border-radius: 12px;
+  transition: all 0.2s ease-out;
+}
+
+.agent-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-default);
 }
 
 .agent-card::after {
@@ -214,47 +589,109 @@ pre,
   position: absolute;
   top: 0;
   right: 0;
-  width: 4px;
+  width: 3px;
   height: 100%;
+  border-radius: 0 12px 12px 0;
 }
 
 .agent-card.active::after {
-  background: linear-gradient(180deg, var(--ari-green) 0%, transparent 100%);
+  background: linear-gradient(180deg, var(--ari-success) 0%, transparent 100%);
 }
 
 .agent-card.idle::after {
-  background: linear-gradient(180deg, var(--ari-yellow) 0%, transparent 100%);
+  background: linear-gradient(180deg, var(--ari-warning) 0%, transparent 100%);
 }
 
 .agent-card.error::after {
-  background: linear-gradient(180deg, var(--ari-red) 0%, transparent 100%);
+  background: linear-gradient(180deg, var(--ari-error) 0%, transparent 100%);
 }
 
-/* Table styles */
+/* Pillar-specific agent cards */
+.agent-card.logos::after {
+  background: linear-gradient(180deg, var(--pillar-logos) 0%, transparent 100%);
+}
+
+.agent-card.ethos::after {
+  background: linear-gradient(180deg, var(--pillar-ethos) 0%, transparent 100%);
+}
+
+.agent-card.pathos::after {
+  background: linear-gradient(180deg, var(--pillar-pathos) 0%, transparent 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TABLE STYLES — Clean Dark Theme
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
 .data-table {
   border-collapse: separate;
   border-spacing: 0;
+  width: 100%;
 }
 
 .data-table th {
-  background: rgba(17, 24, 39, 0.8);
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
   position: sticky;
   top: 0;
   z-index: 10;
+  border-bottom: 1px solid var(--border-muted);
 }
 
-/* Focus styles */
+.data-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.data-table tr:hover td {
+  background: var(--bg-elevated);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FOCUS STYLES — Accessible Purple Ring
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
 *:focus-visible {
   outline: 2px solid var(--ari-purple);
   outline-offset: 2px;
 }
 
-/* Transitions */
+/* Interactive element focus */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--ari-purple);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--ari-purple-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TRANSITIONS — Smooth & Consistent
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
 .transition-smooth {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Loading shimmer */
+.transition-fast {
+  transition: all 0.15s ease-out;
+}
+
+.transition-slow {
+  transition: all 0.3s ease-in-out;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * LOADING STATES — Purple Shimmer
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -267,10 +704,184 @@ pre,
 .shimmer {
   background: linear-gradient(
     90deg,
-    rgba(55, 65, 81, 0.3) 0%,
-    rgba(75, 85, 99, 0.5) 50%,
-    rgba(55, 65, 81, 0.3) 100%
+    var(--bg-tertiary) 0%,
+    var(--bg-elevated) 50%,
+    var(--bg-tertiary) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Purple shimmer variant */
+.shimmer-purple {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 0%,
+    rgba(168, 85, 247, 0.1) 50%,
+    var(--bg-tertiary) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BUTTONS — Purple Primary, Pillar Variants
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.btn-primary {
+  background: var(--ari-purple);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease-out;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: var(--ari-purple-600);
+  box-shadow: 0 0 20px var(--ari-purple-muted);
+}
+
+.btn-secondary {
+  background: var(--bg-interactive);
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease-out;
+  border: 1px solid var(--border-muted);
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-tertiary);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease-out;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-interactive);
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BADGES & TAGS — Status Colors
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-success {
+  background: var(--ari-success-muted);
+  color: var(--ari-success);
+}
+
+.badge-error {
+  background: var(--ari-error-muted);
+  color: var(--ari-error);
+}
+
+.badge-warning {
+  background: var(--ari-warning-muted);
+  color: var(--ari-warning);
+}
+
+.badge-purple {
+  background: var(--ari-purple-muted);
+  color: var(--ari-purple);
+}
+
+.badge-logos {
+  background: var(--pillar-logos-muted);
+  color: var(--pillar-logos);
+}
+
+.badge-ethos {
+  background: var(--pillar-ethos-muted);
+  color: var(--pillar-ethos);
+}
+
+.badge-pathos {
+  background: var(--pillar-pathos-muted);
+  color: var(--pillar-pathos);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * INPUT STYLES — Dark Theme
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.input-ari {
+  background: var(--bg-interactive);
+  border: 1px solid var(--border-muted);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  color: var(--text-primary);
+  transition: all 0.2s ease-out;
+}
+
+.input-ari:hover {
+  border-color: var(--border-default);
+}
+
+.input-ari:focus {
+  border-color: var(--ari-purple);
+  box-shadow: 0 0 0 3px var(--ari-purple-muted);
+  outline: none;
+}
+
+.input-ari::placeholder {
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TOOLTIP — Purple Accent
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-muted);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease-out;
+  z-index: 100;
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-8px);
 }

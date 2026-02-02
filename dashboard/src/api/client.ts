@@ -166,6 +166,133 @@ export const deleteSubagent = async (agentId: string): Promise<{ success: boolea
 export const getSystemMetrics = (): Promise<SystemMetrics> =>
   fetchAPI('/system/metrics');
 
+// Cognitive Layer 0 Endpoints
+export interface CognitiveHealth {
+  overall: number;
+  pillars: Array<{
+    pillar: 'LOGOS' | 'ETHOS' | 'PATHOS';
+    health: number;
+    apisActive: number;
+    apisTotal: number;
+    lastActivity: string;
+    topFramework: string;
+    sourcesCount: number;
+  }>;
+  learningLoopActive: boolean;
+  knowledgeSources: number;
+}
+
+export interface LearningStatus {
+  currentStage: string;
+  lastReview: string;
+  lastGapAnalysis: string;
+  lastAssessment: string;
+  nextReview: string;
+  nextGapAnalysis: string;
+  nextAssessment: string;
+  recentInsightsCount: number;
+  improvementTrend: 'improving' | 'stable' | 'declining';
+}
+
+export interface CognitiveInsight {
+  id: string;
+  type: 'SUCCESS' | 'MISTAKE' | 'PATTERN' | 'PRINCIPLE' | 'ANTIPATTERN';
+  description: string;
+  confidence: number;
+  timestamp: string;
+  framework: string;
+}
+
+export interface FrameworkUsage {
+  framework: string;
+  pillar: 'LOGOS' | 'ETHOS' | 'PATHOS';
+  usageCount: number;
+  successRate: number;
+}
+
+export interface CouncilProfile {
+  memberId: string;
+  memberName: string;
+  memberAvatar: string;
+  primaryPillar: 'LOGOS' | 'ETHOS' | 'PATHOS';
+  pillarWeights: {
+    logos: number;
+    ethos: number;
+    pathos: number;
+  };
+  primaryFrameworks: Array<{
+    name: string;
+    domain: string;
+    application: string;
+    why: string;
+  }>;
+  knowledgeSources: string[];
+  expertiseAreas: string[];
+  consultedFor: string;
+  typicalAPIUsage: string[];
+  learningPlan: {
+    current: string;
+    next: string;
+    cadence: string;
+    quarterlyGoals: string[];
+  };
+  cognitiveBiasAwareness: {
+    naturalTendency: string;
+    compensationStrategy: string;
+    historicalPattern: string;
+    improvementGoal: string;
+  };
+  performanceMetrics: {
+    keyMetric: string;
+    baseline: number;
+    target: number;
+    secondaryMetric?: string;
+  };
+}
+
+export const getCognitiveHealth = (): Promise<CognitiveHealth> =>
+  fetchAPI('/cognition/health');
+
+export const getCognitivePillars = (): Promise<Array<{
+  pillar: string;
+  name: string;
+  icon: string;
+  description: string;
+  apis: string[];
+  sourcesCount: number;
+}>> => fetchAPI('/cognition/pillars');
+
+export const getCognitiveSources = (): Promise<{
+  total: number;
+  byTrustLevel: { verified: number; standard: number };
+  sources: Array<{
+    id: string;
+    name: string;
+    pillar: string;
+    trustLevel: string;
+    category: string;
+    frameworks: string[];
+  }>;
+}> => fetchAPI('/cognition/sources');
+
+export const getCouncilProfiles = (): Promise<CouncilProfile[]> =>
+  fetchAPI('/cognition/council-profiles');
+
+export const getCouncilProfile = (memberId: string): Promise<CouncilProfile> =>
+  fetchAPI(`/cognition/council-profiles/${memberId}`);
+
+export const getLearningStatus = (): Promise<LearningStatus> =>
+  fetchAPI('/cognition/learning/status');
+
+export const getFrameworkUsage = (): Promise<FrameworkUsage[]> =>
+  fetchAPI('/cognition/frameworks/usage');
+
+export const getCognitiveInsights = (limit?: number): Promise<CognitiveInsight[]> =>
+  fetchAPI(`/cognition/insights${limit ? `?limit=${limit}` : ''}`);
+
+// Export fetchAPI for direct use if needed
+export { fetchAPI };
+
 // WebSocket Connection
 export function connectWebSocket(
   onMessage: (event: MessageEvent) => void,

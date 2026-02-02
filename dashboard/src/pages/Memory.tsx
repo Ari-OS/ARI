@@ -12,25 +12,29 @@ const MEMORY_DOMAINS = {
     name: 'Patterns',
     icon: '◇',
     description: 'Learned coding patterns and solutions',
-    color: { bg: 'bg-purple-900/20', text: 'text-purple-400', border: 'border-purple-800' },
+    cssColor: 'var(--ari-purple)',
+    cssBg: 'var(--ari-purple-muted)',
   },
   fixes: {
     name: 'Fixes',
     icon: '⚙',
     description: 'Bug fixes and error resolutions',
-    color: { bg: 'bg-emerald-900/20', text: 'text-emerald-400', border: 'border-emerald-800' },
+    cssColor: 'var(--ari-success)',
+    cssBg: 'var(--ari-success-muted)',
   },
   decisions: {
     name: 'Decisions',
     icon: '⚖',
     description: 'Architectural and design decisions',
-    color: { bg: 'bg-blue-900/20', text: 'text-blue-400', border: 'border-blue-800' },
+    cssColor: 'var(--ari-info)',
+    cssBg: 'var(--ari-info-muted)',
   },
   context: {
     name: 'Context',
     icon: '◉',
     description: 'Session and project context',
-    color: { bg: 'bg-cyan-900/20', text: 'text-cyan-400', border: 'border-cyan-800' },
+    cssColor: 'var(--ari-cyan)',
+    cssBg: 'var(--ari-cyan-muted)',
   },
 };
 
@@ -41,6 +45,21 @@ const PROVENANCE_FEATURES = [
   { label: 'Tag System', desc: 'Semantic categorization for search', icon: '◇' },
   { label: 'Chain Linking', desc: 'Related memories form knowledge graphs', icon: '⬢' },
 ];
+
+// Type styles
+const TYPE_STYLES = {
+  FACT: { cssColor: 'var(--ari-purple)', cssBg: 'var(--ari-purple-muted)' },
+  TASK: { cssColor: 'var(--ari-info)', cssBg: 'var(--ari-info-muted)' },
+  GOAL: { cssColor: 'var(--ari-success)', cssBg: 'var(--ari-success-muted)' },
+  INTERACTION: { cssColor: 'var(--ari-warning)', cssBg: 'var(--ari-warning-muted)' },
+};
+
+// Partition styles
+const PARTITION_STYLES = {
+  PUBLIC: { cssColor: 'var(--ari-success)', cssBg: 'var(--ari-success-muted)' },
+  PRIVATE: { cssColor: 'var(--text-tertiary)', cssBg: 'var(--bg-tertiary)' },
+  QUARANTINE: { cssColor: 'var(--ari-error)', cssBg: 'var(--ari-error-muted)' },
+};
 
 export function Memory() {
   const [typeFilter, setTypeFilter] = useState<MemoryType | 'ALL'>('ALL');
@@ -84,26 +103,40 @@ export function Memory() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-950/80 px-8 py-6 backdrop-blur-sm">
+      <header
+        className="px-8 py-6 backdrop-blur-sm"
+        style={{
+          background: 'var(--bg-glass)',
+          borderBottom: '1px solid var(--border-muted)',
+        }}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Memory System</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              Memory System
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
               Provenance-tracked knowledge storage • Semantic search enabled
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-gray-900 px-4 py-2">
-              <div className="text-xs text-gray-500">Total Entries</div>
-              <div className="text-lg font-bold text-cyan-400">
+            <div
+              className="rounded-xl px-4 py-2"
+              style={{ background: 'var(--bg-tertiary)' }}
+            >
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Total Entries</div>
+              <div className="text-lg font-bold" style={{ color: 'var(--ari-cyan)' }}>
                 {isLoading ? '...' : safeMemories.length}
               </div>
             </div>
-            <div className="rounded-lg bg-gray-900 px-4 py-2">
-              <div className="text-xs text-gray-500">Domains</div>
-              <div className="text-lg font-bold text-purple-400">
+            <div
+              className="rounded-xl px-4 py-2"
+              style={{ background: 'var(--bg-tertiary)' }}
+            >
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Domains</div>
+              <div className="text-lg font-bold" style={{ color: 'var(--ari-purple)' }}>
                 {Object.keys(MEMORY_DOMAINS).length}
               </div>
             </div>
@@ -114,22 +147,39 @@ export function Memory() {
       <div className="p-8">
         {/* Memory Domains */}
         <div className="mb-8">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <h2
+            className="mb-4 text-sm font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)' }}
+          >
             Knowledge Domains
           </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 stagger-children">
             {Object.entries(MEMORY_DOMAINS).map(([key, domain]) => (
               <div
                 key={key}
-                className={`card-hover rounded-xl border ${domain.color.border} ${domain.color.bg} p-4`}
+                className="card-ari card-ari-hover rounded-xl p-4"
+                style={{
+                  background: domain.cssBg,
+                  border: `1px solid color-mix(in srgb, ${domain.cssColor} 30%, transparent)`,
+                }}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gray-900/50 text-xl ${domain.color.text}`}>
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-xl"
+                    style={{
+                      background: 'var(--bg-card)',
+                      color: domain.cssColor,
+                    }}
+                  >
                     {domain.icon}
                   </div>
                   <div>
-                    <div className="font-medium text-white">{domain.name}</div>
-                    <div className="text-xs text-gray-500">{domain.description}</div>
+                    <div className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {domain.name}
+                    </div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {domain.description}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -138,19 +188,38 @@ export function Memory() {
         </div>
 
         {/* Provenance Features */}
-        <div className="mb-8 rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+        <div
+          className="card-ari mb-8 rounded-xl p-6"
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-muted)',
+          }}
+        >
+          <h2
+            className="mb-4 text-sm font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)' }}
+          >
             Provenance Tracking
           </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {PROVENANCE_FEATURES.map((feature) => (
               <div key={feature.label} className="flex items-start gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded bg-purple-900/30 text-purple-400">
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-lg"
+                  style={{
+                    background: 'var(--ari-purple-muted)',
+                    color: 'var(--ari-purple)',
+                  }}
+                >
                   {feature.icon}
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-white">{feature.label}</div>
-                  <div className="text-xs text-gray-500">{feature.desc}</div>
+                  <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    {feature.label}
+                  </div>
+                  <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {feature.desc}
+                  </div>
                 </div>
               </div>
             ))}
@@ -160,80 +229,120 @@ export function Memory() {
         {/* Stats Grid */}
         <div className="mb-6 grid gap-4 md:grid-cols-2">
           {/* Type Distribution */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <div
+            className="card-ari rounded-xl p-6"
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-muted)',
+            }}
+          >
+            <h3
+              className="mb-4 text-sm font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--text-muted)' }}
+            >
               By Type
             </h3>
             <div className="space-y-3">
-              {Object.entries(typeCounts).map(([type, count]) => (
-                <div key={type} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${
-                      type === 'FACT' ? 'bg-purple-900/50 text-purple-300' :
-                      type === 'TASK' ? 'bg-blue-900/50 text-blue-300' :
-                      type === 'GOAL' ? 'bg-emerald-900/50 text-emerald-300' :
-                      'bg-amber-900/50 text-amber-300'
-                    }`}>
-                      {type}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-800">
-                      <div
-                        className={`h-full ${
-                          type === 'FACT' ? 'bg-purple-500' :
-                          type === 'TASK' ? 'bg-blue-500' :
-                          type === 'GOAL' ? 'bg-emerald-500' :
-                          'bg-amber-500'
-                        }`}
-                        style={{ width: `${safeMemories.length ? (count / safeMemories.length) * 100 : 0}%` }}
-                      />
+              {(Object.entries(typeCounts) as [keyof typeof TYPE_STYLES, number][]).map(([type, count]) => {
+                const style = TYPE_STYLES[type];
+                return (
+                  <div key={type} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="rounded px-2 py-0.5 text-xs font-medium"
+                        style={{ background: style.cssBg, color: style.cssColor }}
+                      >
+                        {type}
+                      </span>
                     </div>
-                    <span className="w-8 text-right font-mono text-sm text-gray-400">{count}</span>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-2 w-24 overflow-hidden rounded-full"
+                        style={{ background: 'var(--bg-tertiary)' }}
+                      >
+                        <div
+                          className="h-full"
+                          style={{
+                            background: style.cssColor,
+                            width: `${safeMemories.length ? (count / safeMemories.length) * 100 : 0}%`,
+                          }}
+                        />
+                      </div>
+                      <span
+                        className="w-8 text-right font-mono text-sm"
+                        style={{ color: 'var(--text-tertiary)' }}
+                      >
+                        {count}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Partition Distribution */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <div
+            className="card-ari rounded-xl p-6"
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-muted)',
+            }}
+          >
+            <h3
+              className="mb-4 text-sm font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--text-muted)' }}
+            >
               By Partition
             </h3>
             <div className="space-y-3">
-              {Object.entries(partitionCounts).map(([partition, count]) => (
-                <div key={partition} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${
-                      partition === 'PUBLIC' ? 'bg-emerald-900/50 text-emerald-300' :
-                      partition === 'PRIVATE' ? 'bg-gray-700 text-gray-300' :
-                      'bg-red-900/50 text-red-300'
-                    }`}>
-                      {partition}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-800">
-                      <div
-                        className={`h-full ${
-                          partition === 'PUBLIC' ? 'bg-emerald-500' :
-                          partition === 'PRIVATE' ? 'bg-gray-500' :
-                          'bg-red-500'
-                        }`}
-                        style={{ width: `${safeMemories.length ? (count / safeMemories.length) * 100 : 0}%` }}
-                      />
+              {(Object.entries(partitionCounts) as [keyof typeof PARTITION_STYLES, number][]).map(([partition, count]) => {
+                const style = PARTITION_STYLES[partition];
+                return (
+                  <div key={partition} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="rounded px-2 py-0.5 text-xs font-medium"
+                        style={{ background: style.cssBg, color: style.cssColor }}
+                      >
+                        {partition}
+                      </span>
                     </div>
-                    <span className="w-8 text-right font-mono text-sm text-gray-400">{count}</span>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-2 w-24 overflow-hidden rounded-full"
+                        style={{ background: 'var(--bg-tertiary)' }}
+                      >
+                        <div
+                          className="h-full"
+                          style={{
+                            background: style.cssColor,
+                            width: `${safeMemories.length ? (count / safeMemories.length) * 100 : 0}%`,
+                          }}
+                        />
+                      </div>
+                      <span
+                        className="w-8 text-right font-mono text-sm"
+                        style={{ color: 'var(--text-tertiary)' }}
+                      >
+                        {count}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
 
         {/* Search and Filters */}
-        <div className="mb-6 rounded-xl border border-gray-800 bg-gray-900/50 p-4">
+        <div
+          className="card-ari mb-6 rounded-xl p-4"
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-muted)',
+          }}
+        >
           <div className="flex flex-wrap items-center gap-4">
             {/* Search */}
             <div className="flex-1">
@@ -242,7 +351,13 @@ export function Memory() {
                 placeholder="Search memories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-gray-300 placeholder-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                className="w-full rounded-xl px-4 py-2 text-sm focus:outline-none focus-visible:ring-2"
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-muted)',
+                  color: 'var(--text-primary)',
+                  '--tw-ring-color': 'var(--ari-purple)',
+                } as React.CSSProperties}
               />
             </div>
 
@@ -251,7 +366,13 @@ export function Memory() {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value as MemoryType | 'ALL')}
-                className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                className="rounded-xl px-4 py-2 text-sm focus:outline-none focus-visible:ring-2"
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-muted)',
+                  color: 'var(--text-secondary)',
+                  '--tw-ring-color': 'var(--ari-purple)',
+                } as React.CSSProperties}
               >
                 <option value="ALL">All Types</option>
                 <option value="FACT">FACT</option>
@@ -266,7 +387,13 @@ export function Memory() {
               <select
                 value={partitionFilter}
                 onChange={(e) => setPartitionFilter(e.target.value as MemoryPartition | 'ALL')}
-                className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                className="rounded-xl px-4 py-2 text-sm focus:outline-none focus-visible:ring-2"
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-muted)',
+                  color: 'var(--text-secondary)',
+                  '--tw-ring-color': 'var(--ari-purple)',
+                } as React.CSSProperties}
               >
                 <option value="ALL">All Partitions</option>
                 <option value="PUBLIC">PUBLIC</option>
@@ -279,7 +406,10 @@ export function Memory() {
 
         {/* Memory List */}
         <div className="mb-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <h2
+            className="text-sm font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)' }}
+          >
             Memory Entries ({filteredMemories.length})
           </h2>
         </div>
@@ -316,97 +446,129 @@ export function Memory() {
           }
 
           return (
-            <div className="space-y-4">
-              {filteredMemories.map((memory) => (
-                <div
-                  key={memory.id}
-                  className="card-hover rounded-xl border border-gray-800 bg-gray-900/50 p-6"
-                >
-                  <div className="mb-3 flex items-start justify-between">
-                    <div className="flex flex-wrap gap-2">
-                      <span
-                        className={`rounded px-2 py-1 text-xs font-semibold ${
-                          memory.type === 'FACT'
-                            ? 'bg-purple-900/50 text-purple-300'
-                            : memory.type === 'TASK'
-                              ? 'bg-blue-900/50 text-blue-300'
-                              : memory.type === 'GOAL'
-                                ? 'bg-emerald-900/50 text-emerald-300'
-                                : 'bg-amber-900/50 text-amber-300'
-                        }`}
-                      >
-                        {memory.type}
-                      </span>
-                      <span
-                        className={`rounded px-2 py-1 text-xs font-semibold ${
-                          memory.partition === 'PUBLIC'
-                            ? 'bg-emerald-900/50 text-emerald-300'
-                            : memory.partition === 'PRIVATE'
-                              ? 'bg-gray-700 text-gray-300'
-                              : 'bg-red-900/50 text-red-300'
-                        }`}
-                      >
-                        {memory.partition}
-                      </span>
-                      <span className="rounded bg-gray-700 px-2 py-1 text-xs text-gray-300">
-                        {memory.trustLevel}
-                      </span>
-                    </div>
-                    {memory.confidence !== undefined && (
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500">Confidence</div>
-                        <div className={`font-mono text-sm ${
-                          memory.confidence >= 0.8 ? 'text-emerald-400' :
-                          memory.confidence >= 0.5 ? 'text-amber-400' :
-                          'text-red-400'
-                        }`}>
-                          {(memory.confidence * 100).toFixed(0)}%
-                        </div>
-                      </div>
-                    )}
-                  </div>
+            <div className="space-y-4 stagger-children">
+              {filteredMemories.map((memory) => {
+                const typeStyle = TYPE_STYLES[memory.type as keyof typeof TYPE_STYLES] || TYPE_STYLES.FACT;
+                const partitionStyle = PARTITION_STYLES[memory.partition as keyof typeof PARTITION_STYLES] || PARTITION_STYLES.PUBLIC;
 
-                  <p className="mb-3 text-sm text-gray-300">
-                    {memory.content}
-                  </p>
-
-                  {Array.isArray(memory.tags) && memory.tags.length > 0 && (
-                    <div className="mb-3 flex flex-wrap gap-2">
-                      {memory.tags.map((tag: string, idx: number) => (
+                return (
+                  <div
+                    key={memory.id}
+                    className="card-ari card-ari-hover rounded-xl p-6"
+                    style={{
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-muted)',
+                    }}
+                  >
+                    <div className="mb-3 flex items-start justify-between">
+                      <div className="flex flex-wrap gap-2">
                         <span
-                          key={idx}
-                          className="rounded-full bg-gray-800 px-3 py-1 text-xs text-purple-400"
+                          className="rounded px-2 py-1 text-xs font-semibold"
+                          style={{ background: typeStyle.cssBg, color: typeStyle.cssColor }}
                         >
-                          #{tag}
+                          {memory.type}
                         </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex justify-between border-t border-gray-800 pt-3 font-mono text-xs text-gray-500">
-                    <span>Source: {memory.source}</span>
-                    <span>
-                      {new Date(memory.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-
-                  {Array.isArray(memory.provenance?.chain) && memory.provenance.chain.length > 0 && (
-                    <details className="mt-3 border-t border-gray-800 pt-3">
-                      <summary className="cursor-pointer text-xs text-purple-400 hover:text-purple-300 focus:outline-none">
-                        View Provenance Chain ({memory.provenance.chain.length} links)
-                      </summary>
-                      <div className="mt-2 space-y-1 rounded-lg bg-gray-800/50 p-3 font-mono text-xs text-gray-400">
-                        {memory.provenance.chain.map((item: string, idx: number) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <span className="text-purple-400">→</span>
-                            <span>{item}</span>
+                        <span
+                          className="rounded px-2 py-1 text-xs font-semibold"
+                          style={{ background: partitionStyle.cssBg, color: partitionStyle.cssColor }}
+                        >
+                          {memory.partition}
+                        </span>
+                        <span
+                          className="rounded px-2 py-1 text-xs"
+                          style={{
+                            background: 'var(--bg-tertiary)',
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
+                          {memory.trustLevel}
+                        </span>
+                      </div>
+                      {memory.confidence !== undefined && (
+                        <div className="text-right">
+                          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            Confidence
                           </div>
+                          <div
+                            className="font-mono text-sm"
+                            style={{
+                              color: memory.confidence >= 0.8
+                                ? 'var(--ari-success)'
+                                : memory.confidence >= 0.5
+                                  ? 'var(--ari-warning)'
+                                  : 'var(--ari-error)',
+                            }}
+                          >
+                            {(memory.confidence * 100).toFixed(0)}%
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="mb-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      {memory.content}
+                    </p>
+
+                    {Array.isArray(memory.tags) && memory.tags.length > 0 && (
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {memory.tags.map((tag: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="rounded-full px-3 py-1 text-xs"
+                            style={{
+                              background: 'var(--bg-tertiary)',
+                              color: 'var(--ari-purple)',
+                            }}
+                          >
+                            #{tag}
+                          </span>
                         ))}
                       </div>
-                    </details>
-                  )}
-                </div>
-              ))}
+                    )}
+
+                    <div
+                      className="flex justify-between pt-3 font-mono text-xs"
+                      style={{
+                        borderTop: '1px solid var(--border-muted)',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      <span>Source: {memory.source}</span>
+                      <span>
+                        {new Date(memory.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+
+                    {Array.isArray(memory.provenance?.chain) && memory.provenance.chain.length > 0 && (
+                      <details
+                        className="mt-3 pt-3"
+                        style={{ borderTop: '1px solid var(--border-muted)' }}
+                      >
+                        <summary
+                          className="cursor-pointer text-xs focus:outline-none"
+                          style={{ color: 'var(--ari-purple)' }}
+                        >
+                          View Provenance Chain ({memory.provenance.chain.length} links)
+                        </summary>
+                        <div
+                          className="mt-2 space-y-1 rounded-xl p-3 font-mono text-xs"
+                          style={{
+                            background: 'var(--bg-tertiary)',
+                            color: 'var(--text-tertiary)',
+                          }}
+                        >
+                          {memory.provenance.chain.map((item: string, idx: number) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <span style={{ color: 'var(--ari-purple)' }}>→</span>
+                              <span>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           );
         })()}

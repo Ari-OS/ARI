@@ -13,6 +13,7 @@ import { Memory } from './pages/Memory';
 import { Tools } from './pages/Tools';
 import { Agents } from './pages/Agents';
 import { Audit } from './pages/Audit';
+import { Cognition } from './pages/Cognition';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +35,8 @@ function AppContent() {
         return <Health />;
       case 'autonomy':
         return <Autonomy />;
+      case 'cognition':
+        return <Cognition />;
       case 'governance':
         return <Governance />;
       case 'memory':

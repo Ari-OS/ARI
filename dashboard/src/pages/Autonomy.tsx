@@ -13,7 +13,54 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { Skeleton } from '../components/ui/Skeleton';
 import type { ScheduledTask, Subagent, SubagentStatus } from '../types/api';
 
-// Cron expression descriptions
+// ═══════════════════════════════════════════════════════════════════════════════
+// STATUS STYLES - CSS Variables for consistent theming
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const STATUS_STYLES: Record<SubagentStatus, {
+  cssColor: string;
+  cssBg: string;
+  cssBorder: string;
+  name: string;
+}> = {
+  running: {
+    cssColor: 'var(--ari-success)',
+    cssBg: 'var(--ari-success-muted)',
+    cssBorder: 'color-mix(in srgb, var(--ari-success) 40%, transparent)',
+    name: 'Running',
+  },
+  completed: {
+    cssColor: 'var(--ari-info)',
+    cssBg: 'var(--ari-info-muted)',
+    cssBorder: 'color-mix(in srgb, var(--ari-info) 40%, transparent)',
+    name: 'Completed',
+  },
+  failed: {
+    cssColor: 'var(--ari-error)',
+    cssBg: 'var(--ari-error-muted)',
+    cssBorder: 'color-mix(in srgb, var(--ari-error) 40%, transparent)',
+    name: 'Failed',
+  },
+  spawning: {
+    cssColor: 'var(--ari-warning)',
+    cssBg: 'var(--ari-warning-muted)',
+    cssBorder: 'color-mix(in srgb, var(--ari-warning) 40%, transparent)',
+    name: 'Spawning',
+  },
+};
+
+// Stat card color configurations
+const STAT_COLORS: Record<string, { cssColor: string; cssBg: string }> = {
+  running: { cssColor: 'var(--ari-success)', cssBg: 'var(--ari-success-muted)' },
+  completed: { cssColor: 'var(--ari-info)', cssBg: 'var(--ari-info-muted)' },
+  failed: { cssColor: 'var(--ari-error)', cssBg: 'var(--ari-error-muted)' },
+  spawning: { cssColor: 'var(--ari-warning)', cssBg: 'var(--ari-warning-muted)' },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CRON UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════════
+
 const CRON_DESCRIPTIONS: Record<string, string> = {
   '0 7 * * *': 'Daily at 7:00 AM',
   '0 8 * * *': 'Daily at 8:00 AM',
@@ -38,14 +85,12 @@ function formatRelativeTime(isoString: string | null): string {
   const diffHours = Math.round(diffMs / 3600000);
 
   if (diffMins < 0) {
-    // Past
     const absMins = Math.abs(diffMins);
     if (absMins < 60) return `${absMins}m ago`;
     const absHours = Math.abs(diffHours);
     if (absHours < 24) return `${absHours}h ago`;
     return date.toLocaleDateString();
   }
-  // Future
   if (diffMins < 60) return `in ${diffMins}m`;
   if (diffHours < 24) return `in ${diffHours}h`;
   return date.toLocaleDateString();
@@ -62,70 +107,29 @@ function formatDateTime(isoString: string | null): string {
   });
 }
 
-function getStatusColor(status: SubagentStatus): string {
-  switch (status) {
-    case 'running':
-      return 'bg-emerald-500';
-    case 'completed':
-      return 'bg-blue-500';
-    case 'failed':
-      return 'bg-red-500';
-    case 'spawning':
-      return 'bg-amber-500';
-    default:
-      return 'bg-gray-500';
-  }
-}
-
-function getStatusBgColor(status: SubagentStatus): string {
-  switch (status) {
-    case 'running':
-      return 'bg-emerald-900/20 border-emerald-800';
-    case 'completed':
-      return 'bg-blue-900/20 border-blue-800';
-    case 'failed':
-      return 'bg-red-900/20 border-red-800';
-    case 'spawning':
-      return 'bg-amber-900/20 border-amber-800';
-    default:
-      return 'bg-gray-900/20 border-gray-800';
-  }
-}
-
-function getStatusTextColor(status: SubagentStatus): string {
-  switch (status) {
-    case 'running':
-      return 'text-emerald-400';
-    case 'completed':
-      return 'text-blue-400';
-    case 'failed':
-      return 'text-red-400';
-    case 'spawning':
-      return 'text-amber-400';
-    default:
-      return 'text-gray-400';
-  }
-}
-
 // Task icons based on handler name
 function getTaskIcon(handler: string): string {
   switch (handler) {
     case 'morning_briefing':
-      return '\u2600'; // sun
+      return '☀';
     case 'evening_summary':
-      return '\u263E'; // moon
+      return '☾';
     case 'knowledge_index':
-      return '\uD83D\uDCDA'; // books
+      return '📚';
     case 'changelog_generate':
-      return '\uD83D\uDCDD'; // memo
+      return '📝';
     case 'agent_health_check':
-      return '\uD83D\uDC93'; // heartbeat
+      return '💓';
     case 'weekly_review':
-      return '\uD83D\uDCC5'; // calendar
+      return '📅';
     default:
-      return '\u2699'; // gear
+      return '⚙';
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export function Autonomy() {
   const queryClient = useQueryClient();
@@ -204,9 +208,11 @@ export function Autonomy() {
 
   if (statusError) {
     return (
-      <div className="min-h-screen bg-gray-950 p-8">
+      <div className="min-h-screen p-8" style={{ background: 'var(--bg-primary)' }}>
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Autonomous Operations</h1>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            Autonomous Operations
+          </h1>
         </div>
         <ErrorState
           title="Failed to load scheduler"
@@ -222,17 +228,30 @@ export function Autonomy() {
     subagents?.filter((a) => a.status === 'completed' || a.status === 'failed') || [];
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-950/80 px-8 py-6 backdrop-blur-sm">
+      <header
+        className="border-b px-8 py-6 backdrop-blur-sm"
+        style={{
+          borderColor: 'var(--border-primary)',
+          background: 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
+        }}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div
-              className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-                schedulerStatus?.running
-                  ? 'bg-emerald-900/30 text-emerald-400'
-                  : 'bg-gray-800 text-gray-500'
-              }`}
+              className="flex h-12 w-12 items-center justify-center rounded-xl transition-all"
+              style={{
+                background: schedulerStatus?.running
+                  ? 'var(--ari-success-muted)'
+                  : 'var(--bg-tertiary)',
+                color: schedulerStatus?.running
+                  ? 'var(--ari-success)'
+                  : 'var(--text-tertiary)',
+                boxShadow: schedulerStatus?.running
+                  ? '0 0 20px color-mix(in srgb, var(--ari-success) 30%, transparent)'
+                  : 'none',
+              }}
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -244,32 +263,56 @@ export function Autonomy() {
               </svg>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Autonomous Operations</h1>
-              <p className="mt-1 text-sm text-gray-500">
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                Autonomous Operations
+              </h1>
+              <p className="mt-1 text-sm" style={{ color: 'var(--text-tertiary)' }}>
                 Scheduler tasks and spawned subagents
               </p>
             </div>
           </div>
           <div className="flex items-center gap-6">
             {/* Scheduler Status */}
-            <div className="flex items-center gap-3 rounded-lg bg-gray-900 px-4 py-2">
+            <div
+              className="flex items-center gap-3 rounded-lg px-4 py-2"
+              style={{ background: 'var(--bg-secondary)' }}
+            >
               <div
-                className={`h-2.5 w-2.5 rounded-full ${
-                  schedulerStatus?.running ? 'bg-emerald-400 status-dot-healthy' : 'bg-gray-500'
-                }`}
+                className={`h-2.5 w-2.5 rounded-full ${schedulerStatus?.running ? 'status-dot-healthy' : ''}`}
+                style={{
+                  background: schedulerStatus?.running
+                    ? 'var(--ari-success)'
+                    : 'var(--text-tertiary)',
+                }}
               />
               <div>
-                <div className="text-xs text-gray-500">Scheduler</div>
-                <div className={`text-sm font-medium ${schedulerStatus?.running ? 'text-emerald-400' : 'text-gray-400'}`}>
+                <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  Scheduler
+                </div>
+                <div
+                  className="text-sm font-medium"
+                  style={{
+                    color: schedulerStatus?.running
+                      ? 'var(--ari-success)'
+                      : 'var(--text-secondary)',
+                  }}
+                >
                   {statusLoading ? '...' : schedulerStatus?.running ? 'Running' : 'Stopped'}
                 </div>
               </div>
             </div>
             {/* Task Count */}
-            <div className="rounded-lg bg-gray-900 px-4 py-2">
-              <div className="text-xs text-gray-500">Tasks</div>
-              <div className="text-lg font-bold text-white">
-                {statusLoading ? '...' : `${schedulerStatus?.enabledCount || 0}/${schedulerStatus?.taskCount || 0}`}
+            <div
+              className="rounded-lg px-4 py-2"
+              style={{ background: 'var(--bg-secondary)' }}
+            >
+              <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                Tasks
+              </div>
+              <div className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                {statusLoading
+                  ? '...'
+                  : `${schedulerStatus?.enabledCount || 0}/${schedulerStatus?.taskCount || 0}`}
               </div>
             </div>
           </div>
@@ -279,20 +322,42 @@ export function Autonomy() {
       <div className="p-8">
         {/* Next Task Banner */}
         {schedulerStatus?.nextTask && (
-          <div className="mb-8 rounded-xl border border-purple-800 bg-purple-900/20 p-4">
+          <div
+            className="card-ari mb-8 rounded-xl p-4"
+            style={{
+              background: 'var(--ari-purple-muted)',
+              border: '1px solid color-mix(in srgb, var(--ari-purple) 40%, transparent)',
+              boxShadow: '0 0 30px color-mix(in srgb, var(--ari-purple) 15%, transparent)',
+            }}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-900/50 text-purple-400 text-xl">
-                  \u23F0
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-xl"
+                  style={{
+                    background: 'color-mix(in srgb, var(--ari-purple) 30%, transparent)',
+                    color: 'var(--ari-purple)',
+                  }}
+                >
+                  ⏰
                 </div>
                 <div>
-                  <div className="text-xs text-purple-300">Next Scheduled Task</div>
-                  <div className="text-lg font-medium text-white">{schedulerStatus.nextTask.name}</div>
+                  <div className="text-xs" style={{ color: 'var(--ari-purple-light)' }}>
+                    Next Scheduled Task
+                  </div>
+                  <div className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>
+                    {schedulerStatus.nextTask.name}
+                  </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xs text-gray-500">Scheduled For</div>
-                <div className="font-mono text-lg text-purple-400">
+                <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  Scheduled For
+                </div>
+                <div
+                  className="font-mono text-lg"
+                  style={{ color: 'var(--ari-purple)' }}
+                >
                   {formatRelativeTime(schedulerStatus.nextTask.nextRun)}
                 </div>
               </div>
@@ -301,37 +366,46 @@ export function Autonomy() {
         )}
 
         {/* Subagent Stats Cards */}
-        <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4 stagger-children">
           <StatCard
             label="Running"
             value={subagentStats?.running ?? 0}
-            color="emerald"
+            colorKey="running"
             loading={subagentsLoading}
           />
           <StatCard
             label="Completed"
             value={subagentStats?.completed ?? 0}
-            color="blue"
+            colorKey="completed"
             loading={subagentsLoading}
           />
           <StatCard
             label="Failed"
             value={subagentStats?.failed ?? 0}
-            color="red"
+            colorKey="failed"
             loading={subagentsLoading}
           />
           <StatCard
             label="Spawning"
             value={subagentStats?.spawning ?? 0}
-            color="amber"
+            colorKey="spawning"
             loading={subagentsLoading}
           />
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Scheduled Tasks */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <div
+            className="card-ari rounded-xl p-6"
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-primary)',
+            }}
+          >
+            <h2
+              className="mb-4 text-sm font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               Scheduled Tasks
             </h2>
             {tasksLoading ? (
@@ -341,7 +415,7 @@ export function Autonomy() {
                 ))}
               </div>
             ) : schedulerTasks && schedulerTasks.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-2 stagger-children">
                 {schedulerTasks.map((task) => (
                   <TaskRow
                     key={task.id}
@@ -353,15 +427,29 @@ export function Autonomy() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-gray-800 p-8 text-center">
-                <div className="text-sm text-gray-500">No scheduled tasks</div>
+              <div
+                className="rounded-lg border border-dashed p-8 text-center"
+                style={{ borderColor: 'var(--border-primary)' }}
+              >
+                <div className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                  No scheduled tasks
+                </div>
               </div>
             )}
           </div>
 
           {/* Running Subagents */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <div
+            className="card-ari rounded-xl p-6"
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-primary)',
+            }}
+          >
+            <h2
+              className="mb-4 text-sm font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               Running Subagents
             </h2>
             {subagentsLoading ? (
@@ -371,16 +459,23 @@ export function Autonomy() {
                 ))}
               </div>
             ) : runningAgents.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-3 stagger-children">
                 {runningAgents.map((agent) => (
                   <SubagentCard key={agent.id} agent={agent} onDelete={handleDelete} />
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-gray-800 p-8 text-center">
-                <div className="mb-2 text-2xl text-gray-600">\u2728</div>
-                <div className="text-sm text-gray-500">No agents running</div>
-                <div className="mt-1 text-xs text-gray-600">
+              <div
+                className="rounded-lg border border-dashed p-8 text-center"
+                style={{ borderColor: 'var(--border-primary)' }}
+              >
+                <div className="mb-2 text-2xl" style={{ color: 'var(--text-tertiary)' }}>
+                  ✨
+                </div>
+                <div className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                  No agents running
+                </div>
+                <div className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                   Agents will appear here when spawned
                 </div>
               </div>
@@ -390,11 +485,20 @@ export function Autonomy() {
 
         {/* Completed/Failed Subagents */}
         {completedAgents.length > 0 && (
-          <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <div
+            className="card-ari mt-6 rounded-xl p-6"
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-primary)',
+            }}
+          >
+            <h2
+              className="mb-4 text-sm font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               Recent Completions
             </h2>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 stagger-children">
               {completedAgents.slice(0, 6).map((agent) => (
                 <SubagentCard key={agent.id} agent={agent} compact onDelete={handleDelete} />
               ))}
@@ -403,26 +507,63 @@ export function Autonomy() {
         )}
 
         {/* Cron Legend */}
-        <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+        <div
+          className="card-ari mt-6 rounded-xl p-6"
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-primary)',
+          }}
+        >
+          <h2
+            className="mb-4 text-sm font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             Schedule Reference
           </h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div className="rounded-lg bg-gray-950/50 p-3">
-              <div className="text-xs text-gray-500">Daily Briefings</div>
-              <div className="mt-1 text-sm text-white">7:00 AM / 9:00 PM</div>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 stagger-children">
+            <div
+              className="rounded-lg p-3"
+              style={{ background: 'var(--bg-tertiary)' }}
+            >
+              <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                Daily Briefings
+              </div>
+              <div className="mt-1 text-sm" style={{ color: 'var(--text-primary)' }}>
+                7:00 AM / 9:00 PM
+              </div>
             </div>
-            <div className="rounded-lg bg-gray-950/50 p-3">
-              <div className="text-xs text-gray-500">Knowledge Index</div>
-              <div className="mt-1 text-sm text-white">8 AM / 2 PM / 8 PM</div>
+            <div
+              className="rounded-lg p-3"
+              style={{ background: 'var(--bg-tertiary)' }}
+            >
+              <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                Knowledge Index
+              </div>
+              <div className="mt-1 text-sm" style={{ color: 'var(--text-primary)' }}>
+                8 AM / 2 PM / 8 PM
+              </div>
             </div>
-            <div className="rounded-lg bg-gray-950/50 p-3">
-              <div className="text-xs text-gray-500">Health Check</div>
-              <div className="mt-1 text-sm text-white">Every 15 minutes</div>
+            <div
+              className="rounded-lg p-3"
+              style={{ background: 'var(--bg-tertiary)' }}
+            >
+              <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                Health Check
+              </div>
+              <div className="mt-1 text-sm" style={{ color: 'var(--text-primary)' }}>
+                Every 15 minutes
+              </div>
             </div>
-            <div className="rounded-lg bg-gray-950/50 p-3">
-              <div className="text-xs text-gray-500">Weekly Review</div>
-              <div className="mt-1 text-sm text-white">Sunday 6:00 PM</div>
+            <div
+              className="rounded-lg p-3"
+              style={{ background: 'var(--bg-tertiary)' }}
+            >
+              <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                Weekly Review
+              </div>
+              <div className="mt-1 text-sm" style={{ color: 'var(--text-primary)' }}>
+                Sunday 6:00 PM
+              </div>
             </div>
           </div>
         </div>
@@ -430,6 +571,10 @@ export function Autonomy() {
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TASK ROW COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface TaskRowProps {
   task: ScheduledTask;
@@ -443,43 +588,70 @@ function TaskRow({ task, onTrigger, onToggle, isTriggering }: TaskRowProps) {
 
   return (
     <div
-      className={`rounded-lg border p-4 transition-colors ${
-        task.enabled
-          ? 'border-gray-800 bg-gray-950/50'
-          : 'border-gray-800/50 bg-gray-950/30 opacity-60'
-      }`}
+      className="rounded-lg border p-4 transition-all"
+      style={{
+        borderColor: task.enabled
+          ? 'var(--border-primary)'
+          : 'color-mix(in srgb, var(--border-primary) 50%, transparent)',
+        background: task.enabled
+          ? 'var(--bg-tertiary)'
+          : 'color-mix(in srgb, var(--bg-tertiary) 50%, transparent)',
+        opacity: task.enabled ? 1 : 0.6,
+      }}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-800 text-xl">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-xl"
+            style={{ background: 'var(--bg-secondary)' }}
+          >
             {icon}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-medium text-white">{task.name}</span>
+              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                {task.name}
+              </span>
               {!task.enabled && (
-                <span className="rounded bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">
+                <span
+                  className="rounded px-1.5 py-0.5 text-[10px]"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-tertiary)',
+                  }}
+                >
                   DISABLED
                 </span>
               )}
             </div>
-            <div className="text-xs text-gray-500">{formatCron(task.cron)}</div>
+            <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+              {formatCron(task.cron)}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="text-right mr-2">
-            <div className="text-[10px] text-gray-600">Next Run</div>
-            <div className="font-mono text-xs text-gray-400">
+          <div className="mr-2 text-right">
+            <div className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+              Next Run
+            </div>
+            <div
+              className="font-mono text-xs"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               {task.enabled ? formatRelativeTime(task.nextRun) : '-'}
             </div>
           </div>
           <button
             onClick={() => onToggle(task.id)}
-            className={`rounded px-2 py-1 text-xs transition-colors ${
-              task.enabled
-                ? 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                : 'bg-emerald-900/30 text-emerald-400 hover:bg-emerald-900/50'
-            }`}
+            className="rounded px-2 py-1 text-xs transition-colors"
+            style={{
+              background: task.enabled
+                ? 'var(--bg-secondary)'
+                : 'var(--ari-success-muted)',
+              color: task.enabled
+                ? 'var(--text-secondary)'
+                : 'var(--ari-success)',
+            }}
             title={task.enabled ? 'Disable task' : 'Enable task'}
           >
             {task.enabled ? 'Disable' : 'Enable'}
@@ -487,26 +659,43 @@ function TaskRow({ task, onTrigger, onToggle, isTriggering }: TaskRowProps) {
           <button
             onClick={() => onTrigger(task.id)}
             disabled={isTriggering || !task.enabled}
-            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-              isTriggering
-                ? 'bg-purple-900/50 text-purple-300'
+            className="rounded px-3 py-1 text-xs font-medium transition-colors"
+            style={{
+              background: isTriggering
+                ? 'color-mix(in srgb, var(--ari-purple) 30%, transparent)'
                 : task.enabled
-                  ? 'bg-purple-900/30 text-purple-400 hover:bg-purple-900/50'
-                  : 'bg-gray-800 text-gray-600 cursor-not-allowed'
-            }`}
+                  ? 'var(--ari-purple-muted)'
+                  : 'var(--bg-secondary)',
+              color: isTriggering
+                ? 'var(--ari-purple-light)'
+                : task.enabled
+                  ? 'var(--ari-purple)'
+                  : 'var(--text-tertiary)',
+              cursor: task.enabled ? 'pointer' : 'not-allowed',
+            }}
           >
             {isTriggering ? 'Running...' : 'Run Now'}
           </button>
         </div>
       </div>
       {task.lastRun && (
-        <div className="mt-2 border-t border-gray-800 pt-2 text-xs text-gray-600">
+        <div
+          className="mt-2 border-t pt-2 text-xs"
+          style={{
+            borderColor: 'var(--border-primary)',
+            color: 'var(--text-tertiary)',
+          }}
+        >
           Last run: {formatDateTime(task.lastRun)}
         </div>
       )}
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUBAGENT CARD COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface SubagentCardProps {
   agent: Subagent;
@@ -516,20 +705,34 @@ interface SubagentCardProps {
 
 function SubagentCard({ agent, compact, onDelete }: SubagentCardProps) {
   const canDelete = agent.status === 'completed' || agent.status === 'failed';
+  const statusStyle = STATUS_STYLES[agent.status] || STATUS_STYLES.completed;
 
   return (
     <div
-      className={`rounded-lg border ${getStatusBgColor(agent.status)} ${compact ? 'p-3' : 'p-4'}`}
+      className={`rounded-lg border ${compact ? 'p-3' : 'p-4'}`}
+      style={{
+        background: statusStyle.cssBg,
+        borderColor: statusStyle.cssBorder,
+      }}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className={`h-2.5 w-2.5 rounded-full ${getStatusColor(agent.status)} ${agent.status === 'running' ? 'status-dot-healthy' : ''}`} />
+          <div
+            className={`h-2.5 w-2.5 rounded-full ${agent.status === 'running' ? 'status-dot-healthy' : ''}`}
+            style={{ background: statusStyle.cssColor }}
+          />
           <div>
-            <div className={`font-mono text-sm ${getStatusTextColor(agent.status)}`}>
+            <div
+              className="font-mono text-sm"
+              style={{ color: statusStyle.cssColor }}
+            >
               {agent.status.toUpperCase()}
             </div>
             {!compact && (
-              <div className="text-xs text-gray-500 mt-0.5">
+              <div
+                className="mt-0.5 text-xs"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
                 {agent.id.slice(0, 20)}...
               </div>
             )}
@@ -538,36 +741,54 @@ function SubagentCard({ agent, compact, onDelete }: SubagentCardProps) {
         {canDelete && (
           <button
             onClick={() => onDelete(agent.id)}
-            className="text-gray-600 hover:text-red-400 transition-colors"
+            className="transition-colors"
+            style={{ color: 'var(--text-tertiary)' }}
             title="Delete subagent"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         )}
       </div>
 
       <div className={`${compact ? 'mt-2' : 'mt-3'}`}>
-        <div className={`${compact ? 'text-xs' : 'text-sm'} text-gray-300 ${compact ? 'truncate' : 'line-clamp-2'}`}>
+        <div
+          className={`${compact ? 'text-xs' : 'text-sm'} ${compact ? 'truncate' : 'line-clamp-2'}`}
+          style={{ color: 'var(--text-secondary)' }}
+        >
           {agent.task}
         </div>
       </div>
 
       {agent.progress !== null && agent.status === 'running' && (
         <div className="mt-3">
-          <div className="flex justify-between text-xs mb-1">
-            <span className="text-gray-500">Progress</span>
-            <span className="text-emerald-400">{agent.progress}%</span>
+          <div className="mb-1 flex justify-between text-xs">
+            <span style={{ color: 'var(--text-tertiary)' }}>Progress</span>
+            <span style={{ color: 'var(--ari-success)' }}>{agent.progress}%</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-gray-800">
+          <div
+            className="h-1.5 overflow-hidden rounded-full"
+            style={{ background: 'var(--bg-tertiary)' }}
+          >
             <div
-              className="h-full bg-emerald-500 transition-all duration-500"
-              style={{ width: `${agent.progress}%` }}
+              className="h-full transition-all duration-500"
+              style={{
+                width: `${agent.progress}%`,
+                background: 'var(--ari-success)',
+              }}
             />
           </div>
           {agent.lastMessage && (
-            <div className="mt-1 text-[10px] text-gray-600 truncate">
+            <div
+              className="mt-1 truncate text-[10px]"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
               {agent.lastMessage}
             </div>
           )}
@@ -575,20 +796,39 @@ function SubagentCard({ agent, compact, onDelete }: SubagentCardProps) {
       )}
 
       {agent.error && (
-        <div className="mt-2 rounded bg-red-900/20 px-2 py-1 text-xs text-red-400 truncate">
+        <div
+          className="mt-2 truncate rounded px-2 py-1 text-xs"
+          style={{
+            background: 'var(--ari-error-muted)',
+            color: 'var(--ari-error)',
+          }}
+        >
           {agent.error}
         </div>
       )}
 
       {!compact && (
-        <div className="mt-3 flex items-center gap-4 border-t border-gray-800 pt-3 text-xs text-gray-500">
+        <div
+          className="mt-3 flex items-center gap-4 border-t pt-3 text-xs"
+          style={{
+            borderColor: 'color-mix(in srgb, var(--border-primary) 50%, transparent)',
+            color: 'var(--text-tertiary)',
+          }}
+        >
           <div>
-            <span className="text-gray-600">Branch:</span>{' '}
-            <span className="font-mono text-gray-400">{agent.branch.slice(-20)}</span>
+            <span style={{ color: 'var(--text-tertiary)' }}>Branch:</span>{' '}
+            <span
+              className="font-mono"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {agent.branch.slice(-20)}
+            </span>
           </div>
           <div>
-            <span className="text-gray-600">Started:</span>{' '}
-            <span className="text-gray-400">{formatRelativeTime(agent.createdAt)}</span>
+            <span style={{ color: 'var(--text-tertiary)' }}>Started:</span>{' '}
+            <span style={{ color: 'var(--text-secondary)' }}>
+              {formatRelativeTime(agent.createdAt)}
+            </span>
           </div>
         </div>
       )}
@@ -596,36 +836,44 @@ function SubagentCard({ agent, compact, onDelete }: SubagentCardProps) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// STAT CARD COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 interface StatCardProps {
   label: string;
   value: number;
-  color: 'emerald' | 'blue' | 'red' | 'amber';
+  colorKey: keyof typeof STAT_COLORS;
   loading: boolean;
 }
 
-function StatCard({ label, value, color, loading }: StatCardProps) {
-  const colorMap = {
-    emerald: 'text-emerald-400',
-    blue: 'text-blue-400',
-    red: 'text-red-400',
-    amber: 'text-amber-400',
-  };
-
-  const bgMap = {
-    emerald: 'bg-emerald-900/20',
-    blue: 'bg-blue-900/20',
-    red: 'bg-red-900/20',
-    amber: 'bg-amber-900/20',
-  };
+function StatCard({ label, value, colorKey, loading }: StatCardProps) {
+  const colors = STAT_COLORS[colorKey];
 
   return (
-    <div className={`rounded-xl border border-gray-800 ${bgMap[color]} p-4`}>
+    <div
+      className="card-ari rounded-xl border p-4"
+      style={{
+        background: colors.cssBg,
+        borderColor: `color-mix(in srgb, ${colors.cssColor} 30%, transparent)`,
+      }}
+    >
       {loading ? (
         <Skeleton className="h-10 w-16" />
       ) : (
         <>
-          <div className={`text-3xl font-bold ${colorMap[color]}`}>{value}</div>
-          <div className="mt-1 text-xs uppercase text-gray-500">{label}</div>
+          <div
+            className="text-3xl font-bold"
+            style={{ color: colors.cssColor }}
+          >
+            {value}
+          </div>
+          <div
+            className="mt-1 text-xs uppercase"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            {label}
+          </div>
         </>
       )}
     </div>

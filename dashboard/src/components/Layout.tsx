@@ -14,9 +14,20 @@ export function Layout({ children, currentPage, onNavigate, wsStatus = 'disconne
   return (
     <>
       <SkipLink />
-      <div className="flex h-screen bg-gray-950 text-gray-100">
+      <div
+        className="flex h-screen"
+        style={{
+          background: 'var(--bg-primary)',
+          color: 'var(--text-primary)',
+        }}
+      >
         <Sidebar currentPage={currentPage} onNavigate={onNavigate} wsStatus={wsStatus} />
-        <main id="main-content" className="flex-1 overflow-auto">{children}</main>
+        <main
+          id="main-content"
+          className="flex-1 overflow-auto custom-scrollbar bg-ari-radial"
+        >
+          {children}
+        </main>
       </div>
     </>
   );

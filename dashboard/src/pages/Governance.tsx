@@ -43,6 +43,22 @@ const QUALITY_GATES = [
   { id: 5, name: 'Permission Checks', desc: 'Agent allowlist, trust level, permission tier', threshold: 1.0 },
 ];
 
+// Member type styling
+const MEMBER_TYPE_STYLES = {
+  agent: {
+    cssColor: 'var(--ari-purple)',
+    cssBg: 'var(--ari-purple-muted)',
+  },
+  system: {
+    cssColor: 'var(--ari-info)',
+    cssBg: 'var(--ari-info-muted)',
+  },
+  domain: {
+    cssColor: 'var(--text-tertiary)',
+    cssBg: 'var(--bg-tertiary)',
+  },
+};
+
 export function Governance() {
   const { data: proposals, isLoading: proposalsLoading, isError: proposalsError, refetch: refetchProposals } = useQuery({
     queryKey: ['proposals'],
@@ -63,24 +79,38 @@ export function Governance() {
   const safeProposals = Array.isArray(proposals) ? proposals : [];
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-950/80 px-8 py-6 backdrop-blur-sm">
+      <header
+        className="px-8 py-6 backdrop-blur-sm"
+        style={{
+          background: 'var(--bg-glass)',
+          borderBottom: '1px solid var(--border-muted)',
+        }}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Governance</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              Governance
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
               Constitutional rules, quality gates, and council voting
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-gray-900 px-4 py-2">
-              <div className="text-xs text-gray-500">Council</div>
-              <div className="text-lg font-bold text-purple-400">13</div>
+            <div
+              className="rounded-xl px-4 py-2"
+              style={{ background: 'var(--bg-tertiary)' }}
+            >
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Council</div>
+              <div className="text-lg font-bold" style={{ color: 'var(--ari-purple)' }}>13</div>
             </div>
-            <div className="rounded-lg bg-gray-900 px-4 py-2">
-              <div className="text-xs text-gray-500">Quorum</div>
-              <div className="text-lg font-bold text-white">7</div>
+            <div
+              className="rounded-xl px-4 py-2"
+              style={{ background: 'var(--bg-tertiary)' }}
+            >
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Quorum</div>
+              <div className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>7</div>
             </div>
           </div>
         </div>
@@ -89,65 +119,102 @@ export function Governance() {
       <div className="p-8">
         {/* Council Members */}
         <section className="mb-8">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <h2
+            className="mb-4 text-sm font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)' }}
+          >
             Governance Council (13 Members)
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {COUNCIL_MEMBERS.map((member) => (
-              <div
-                key={member.id}
-                className={`rounded-lg border p-4 ${
-                  member.type === 'agent'
-                    ? 'border-purple-800 bg-purple-900/10'
-                    : member.type === 'system'
-                      ? 'border-blue-800 bg-blue-900/10'
-                      : 'border-gray-800 bg-gray-900/30'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-white">{member.name}</span>
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] ${
-                    member.type === 'agent'
-                      ? 'bg-purple-900/50 text-purple-400'
-                      : member.type === 'system'
-                        ? 'bg-blue-900/50 text-blue-400'
-                        : 'bg-gray-800 text-gray-400'
-                  }`}>
-                    {member.type}
-                  </span>
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 stagger-children">
+            {COUNCIL_MEMBERS.map((member) => {
+              const typeStyle = MEMBER_TYPE_STYLES[member.type as keyof typeof MEMBER_TYPE_STYLES];
+              return (
+                <div
+                  key={member.id}
+                  className="card-ari rounded-xl p-4"
+                  style={{
+                    background: typeStyle.cssBg,
+                    border: `1px solid color-mix(in srgb, ${typeStyle.cssColor} 30%, transparent)`,
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {member.name}
+                    </span>
+                    <span
+                      className="rounded px-1.5 py-0.5 text-[10px]"
+                      style={{
+                        background: `color-mix(in srgb, ${typeStyle.cssColor} 20%, transparent)`,
+                        color: typeStyle.cssColor,
+                      }}
+                    >
+                      {member.type}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {member.role}
+                  </div>
                 </div>
-                <div className="mt-1 text-xs text-gray-500">{member.role}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-          <div className="mt-4 rounded-lg bg-gray-900/50 p-4 text-sm text-gray-400">
-            <span className="font-medium text-white">Voting:</span> 50%+1 (simple majority) required.
-            <span className="ml-2 font-medium text-white">Quorum:</span> 7/13 members.
-            <span className="ml-2 font-medium text-white">Operator:</span> Can override council decision (logged).
+          <div
+            className="mt-4 rounded-xl p-4 text-sm"
+            style={{
+              background: 'var(--bg-card)',
+              color: 'var(--text-tertiary)',
+            }}
+          >
+            <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Voting:</span> 50%+1 (simple majority) required.
+            <span className="ml-2 font-medium" style={{ color: 'var(--text-primary)' }}>Quorum:</span> 7/13 members.
+            <span className="ml-2 font-medium" style={{ color: 'var(--text-primary)' }}>Operator:</span> Can override council decision (logged).
           </div>
         </section>
 
         {/* Constitutional Rules */}
         <section className="mb-8">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <h2
+            className="mb-4 text-sm font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)' }}
+          >
             Constitutional Rules (Arbiter)
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-3 stagger-children">
             {CONSTITUTIONAL_RULES.map((rule) => (
               <div
                 key={rule.id}
-                className="flex items-center justify-between rounded-lg border border-emerald-800 bg-emerald-900/10 p-4"
+                className="card-ari flex items-center justify-between rounded-xl p-4"
+                style={{
+                  background: 'var(--ari-success-muted)',
+                  border: '1px solid color-mix(in srgb, var(--ari-success) 30%, transparent)',
+                }}
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-900/30 text-emerald-400 font-mono text-sm">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-xl font-mono text-sm"
+                    style={{
+                      background: 'color-mix(in srgb, var(--ari-success) 20%, transparent)',
+                      color: 'var(--ari-success)',
+                    }}
+                  >
                     R{rule.id}
                   </div>
                   <div>
-                    <div className="font-medium text-white">{rule.name}</div>
-                    <div className="text-xs text-gray-500">{rule.desc}</div>
+                    <div className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {rule.name}
+                    </div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {rule.desc}
+                    </div>
                   </div>
                 </div>
-                <span className="rounded bg-emerald-900/50 px-2 py-1 text-xs font-medium text-emerald-400">
+                <span
+                  className="rounded px-2 py-1 text-xs font-medium"
+                  style={{
+                    background: 'color-mix(in srgb, var(--ari-success) 20%, transparent)',
+                    color: 'var(--ari-success)',
+                  }}
+                >
                   ENFORCED
                 </span>
               </div>
@@ -157,22 +224,39 @@ export function Governance() {
 
         {/* Quality Gates */}
         <section className="mb-8">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <h2
+            className="mb-4 text-sm font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)' }}
+          >
             Quality Gates (Overseer)
           </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
             {QUALITY_GATES.map((gate) => (
               <div
                 key={gate.id}
-                className="rounded-lg border border-gray-800 bg-gray-900/50 p-4"
+                className="card-ari card-ari-hover rounded-xl p-4"
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-muted)',
+                }}
               >
                 <div className="mb-2 flex items-start justify-between">
-                  <h3 className="font-medium text-white">{gate.name}</h3>
-                  <span className="rounded bg-blue-900/50 px-2 py-0.5 text-xs text-blue-400">
+                  <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                    {gate.name}
+                  </h3>
+                  <span
+                    className="rounded px-2 py-0.5 text-xs"
+                    style={{
+                      background: 'var(--ari-info-muted)',
+                      color: 'var(--ari-info)',
+                    }}
+                  >
                     {(gate.threshold * 100).toFixed(0)}%
                   </span>
                 </div>
-                <p className="text-xs text-gray-400">{gate.desc}</p>
+                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  {gate.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -180,7 +264,10 @@ export function Governance() {
 
         {/* Active Proposals */}
         <section className="mb-8">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <h2
+            className="mb-4 text-sm font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)' }}
+          >
             Active Proposals
           </h2>
           {(() => {
@@ -206,39 +293,60 @@ export function Governance() {
 
             if (safeProposals.length === 0) {
               return (
-                <div className="rounded-lg border border-dashed border-gray-800 p-8 text-center">
-                  <div className="text-sm text-gray-500">No active proposals</div>
-                  <div className="mt-1 text-xs text-gray-600">Proposals will appear here when agents submit them</div>
+                <div
+                  className="rounded-xl border-dashed p-8 text-center"
+                  style={{
+                    border: '2px dashed var(--border-muted)',
+                  }}
+                >
+                  <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    No active proposals
+                  </div>
+                  <div className="mt-1 text-xs" style={{ color: 'var(--text-disabled)' }}>
+                    Proposals will appear here when agents submit them
+                  </div>
                 </div>
               );
             }
 
             return (
-              <div className="space-y-4">
+              <div className="space-y-4 stagger-children">
                 {safeProposals.map((proposal) => (
                   <div
                     key={proposal.id}
-                    className="rounded-xl border border-gray-800 bg-gray-900/50 p-6"
+                    className="card-ari rounded-xl p-6"
+                    style={{
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-muted)',
+                    }}
                   >
                     <div className="mb-3 flex items-start justify-between">
                       <div>
-                        <h3 className="text-lg font-semibold text-white">
+                        <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
                           {proposal.title}
                         </h3>
-                        <p className="mt-1 text-sm text-gray-400">
+                        <p className="mt-1 text-sm" style={{ color: 'var(--text-tertiary)' }}>
                           {proposal.description}
                         </p>
                       </div>
                       <span
-                        className={`rounded px-3 py-1 text-xs font-semibold ${
-                          proposal.status === 'APPROVED'
-                            ? 'bg-emerald-900/50 text-emerald-400'
+                        className="rounded px-3 py-1 text-xs font-semibold"
+                        style={{
+                          background: proposal.status === 'APPROVED'
+                            ? 'var(--ari-success-muted)'
                             : proposal.status === 'REJECTED'
-                              ? 'bg-red-900/50 text-red-400'
+                              ? 'var(--ari-error-muted)'
                               : proposal.status === 'EXPIRED'
-                                ? 'bg-gray-700 text-gray-400'
-                                : 'bg-amber-900/50 text-amber-400'
-                        }`}
+                                ? 'var(--bg-tertiary)'
+                                : 'var(--ari-warning-muted)',
+                          color: proposal.status === 'APPROVED'
+                            ? 'var(--ari-success)'
+                            : proposal.status === 'REJECTED'
+                              ? 'var(--ari-error)'
+                              : proposal.status === 'EXPIRED'
+                                ? 'var(--text-muted)'
+                                : 'var(--ari-warning)',
+                        }}
                       >
                         {proposal.status}
                       </span>
@@ -246,12 +354,14 @@ export function Governance() {
 
                     <div className="mb-4 flex gap-4 text-sm">
                       <div>
-                        <span className="text-gray-500">Type: </span>
-                        <span className="font-mono text-gray-300">{proposal.type}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>Type: </span>
+                        <span className="font-mono" style={{ color: 'var(--text-secondary)' }}>
+                          {proposal.type}
+                        </span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Threshold: </span>
-                        <span className="font-mono text-gray-300">
+                        <span style={{ color: 'var(--text-muted)' }}>Threshold: </span>
+                        <span className="font-mono" style={{ color: 'var(--text-secondary)' }}>
                           {proposal.threshold * 100}%
                         </span>
                       </div>
@@ -259,22 +369,29 @@ export function Governance() {
 
                     <div className="mb-4">
                       <div className="mb-2 flex justify-between text-sm">
-                        <span className="text-gray-400">Votes</span>
-                        <span className="font-mono text-gray-300">
+                        <span style={{ color: 'var(--text-tertiary)' }}>Votes</span>
+                        <span className="font-mono" style={{ color: 'var(--text-secondary)' }}>
                           {proposal.votes.approve}/{proposal.votes.total}
                         </span>
                       </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-gray-800">
+                      <div
+                        className="h-2 overflow-hidden rounded-full"
+                        style={{ background: 'var(--bg-tertiary)' }}
+                      >
                         <div
-                          className="h-full bg-emerald-500 transition-all"
+                          className="h-full transition-all"
                           style={{
                             width: `${proposal.votes.total > 0 ? (proposal.votes.approve / proposal.votes.total) * 100 : 0}%`,
+                            background: 'var(--ari-success)',
                           }}
                         />
                       </div>
                     </div>
 
-                    <div className="flex justify-between font-mono text-xs text-gray-500">
+                    <div
+                      className="flex justify-between font-mono text-xs"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
                       <span>
                         Created: {new Date(proposal.createdAt).toLocaleString()}
                       </span>
@@ -293,7 +410,10 @@ export function Governance() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Server Rules */}
           <section>
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+            <h2
+              className="mb-4 text-sm font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--text-muted)' }}
+            >
               API Constitutional Rules
             </h2>
             {(() => {
@@ -324,26 +444,38 @@ export function Governance() {
               }
 
               return (
-                <div className="space-y-3">
+                <div className="space-y-3 stagger-children">
                   {safeRules.map((rule) => (
                     <div
                       key={rule.id}
-                      className="rounded-lg border border-gray-800 bg-gray-900/50 p-4"
+                      className="card-ari rounded-xl p-4"
+                      style={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-muted)',
+                      }}
                     >
                       <div className="flex items-start justify-between">
-                        <h3 className="font-medium text-white">{rule.name}</h3>
+                        <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {rule.name}
+                        </h3>
                         <span
-                          className={`rounded px-2 py-0.5 text-xs ${
-                            rule.enabled
-                              ? 'bg-emerald-900/50 text-emerald-400'
-                              : 'bg-gray-800 text-gray-500'
-                          }`}
+                          className="rounded px-2 py-0.5 text-xs"
+                          style={{
+                            background: rule.enabled
+                              ? 'var(--ari-success-muted)'
+                              : 'var(--bg-tertiary)',
+                            color: rule.enabled
+                              ? 'var(--ari-success)'
+                              : 'var(--text-muted)',
+                          }}
                         >
                           {rule.enabled ? 'ENABLED' : 'DISABLED'}
                         </span>
                       </div>
-                      <p className="mt-2 text-xs text-gray-400">{rule.description}</p>
-                      <div className="mt-2 font-mono text-xs text-gray-500">
+                      <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        {rule.description}
+                      </p>
+                      <div className="mt-2 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
                         Violations: {rule.violations}
                       </div>
                     </div>
@@ -355,7 +487,10 @@ export function Governance() {
 
           {/* Server Gates */}
           <section>
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+            <h2
+              className="mb-4 text-sm font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--text-muted)' }}
+            >
               API Quality Gates
             </h2>
             {(() => {
@@ -386,29 +521,41 @@ export function Governance() {
               }
 
               return (
-                <div className="space-y-3">
+                <div className="space-y-3 stagger-children">
                   {safeGates.map((gate) => (
                     <div
                       key={gate.id}
-                      className="rounded-lg border border-gray-800 bg-gray-900/50 p-4"
+                      className="card-ari rounded-xl p-4"
+                      style={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-muted)',
+                      }}
                     >
                       <div className="flex items-start justify-between">
-                        <h3 className="font-medium text-white">{gate.name}</h3>
+                        <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {gate.name}
+                        </h3>
                         <span
-                          className={`rounded px-2 py-0.5 text-xs ${
-                            gate.enabled
-                              ? 'bg-emerald-900/50 text-emerald-400'
-                              : 'bg-gray-800 text-gray-500'
-                          }`}
+                          className="rounded px-2 py-0.5 text-xs"
+                          style={{
+                            background: gate.enabled
+                              ? 'var(--ari-success-muted)'
+                              : 'var(--bg-tertiary)',
+                            color: gate.enabled
+                              ? 'var(--ari-success)'
+                              : 'var(--text-muted)',
+                          }}
                         >
                           {gate.enabled ? 'ENABLED' : 'DISABLED'}
                         </span>
                       </div>
-                      <p className="mt-2 text-xs text-gray-400">{gate.description}</p>
+                      <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        {gate.description}
+                      </p>
                       <div className="mt-2 flex gap-4 font-mono text-xs">
-                        <span className="text-emerald-400">Pass: {gate.passCount}</span>
-                        <span className="text-red-400">Fail: {gate.failCount}</span>
-                        <span className="text-gray-500">Threshold: {gate.threshold}</span>
+                        <span style={{ color: 'var(--ari-success)' }}>Pass: {gate.passCount}</span>
+                        <span style={{ color: 'var(--ari-error)' }}>Fail: {gate.failCount}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>Threshold: {gate.threshold}</span>
                       </div>
                     </div>
                   ))}

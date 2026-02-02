@@ -7,12 +7,12 @@ import { StatusCardSkeleton } from '../components/ui/Skeleton';
 
 // Trust level configuration matching ARI's 6-tier system
 const TRUST_LEVELS = [
-  { level: 'SYSTEM', multiplier: '0.5x', color: 'text-purple-400', bg: 'bg-purple-900/20' },
-  { level: 'OPERATOR', multiplier: '0.6x', color: 'text-blue-400', bg: 'bg-blue-900/20' },
-  { level: 'VERIFIED', multiplier: '0.75x', color: 'text-cyan-400', bg: 'bg-cyan-900/20' },
-  { level: 'STANDARD', multiplier: '1.0x', color: 'text-gray-400', bg: 'bg-gray-800/50' },
-  { level: 'UNTRUSTED', multiplier: '1.5x', color: 'text-amber-400', bg: 'bg-amber-900/20' },
-  { level: 'HOSTILE', multiplier: '2.0x', color: 'text-red-400', bg: 'bg-red-900/20' },
+  { level: 'SYSTEM', multiplier: '0.5x', cssColor: 'var(--ari-purple)', bgColor: 'var(--ari-purple-muted)' },
+  { level: 'OPERATOR', multiplier: '0.6x', cssColor: 'var(--ari-info)', bgColor: 'var(--ari-info-muted)' },
+  { level: 'VERIFIED', multiplier: '0.75x', cssColor: 'var(--ari-cyan)', bgColor: 'rgba(6, 182, 212, 0.1)' },
+  { level: 'STANDARD', multiplier: '1.0x', cssColor: 'var(--text-secondary)', bgColor: 'var(--bg-tertiary)' },
+  { level: 'UNTRUSTED', multiplier: '1.5x', cssColor: 'var(--ari-warning)', bgColor: 'var(--ari-warning-muted)' },
+  { level: 'HOSTILE', multiplier: '2.0x', cssColor: 'var(--ari-error)', bgColor: 'var(--ari-error-muted)' },
 ];
 
 // Philosophy pillars from the audit
@@ -37,12 +37,12 @@ export function Home() {
 
   if (healthLoading) {
     return (
-      <div className="min-h-screen bg-gray-950 p-8">
+      <div className="min-h-screen p-8" style={{ background: 'var(--bg-primary)' }}>
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">System Overview</h1>
-          <p className="mt-1 text-sm text-gray-500">Loading system status...</p>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>System Overview</h1>
+          <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>Loading system status...</p>
         </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <StatusCardSkeleton key={i} />
           ))}
@@ -53,9 +53,9 @@ export function Home() {
 
   if (healthError) {
     return (
-      <div className="min-h-screen bg-gray-950 p-8">
+      <div className="min-h-screen p-8" style={{ background: 'var(--bg-primary)' }}>
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">System Overview</h1>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>System Overview</h1>
         </div>
         <ErrorState
           title="Failed to load system status"
@@ -67,27 +67,36 @@ export function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-950/80 px-8 py-6 backdrop-blur-sm">
+      <header
+        className="px-8 py-6 backdrop-blur-md"
+        style={{
+          borderBottom: '1px solid var(--border-muted)',
+          background: 'var(--bg-glass)',
+        }}
+      >
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">System Overview</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>System Overview</h1>
+            <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
               Real-time health monitoring and system status
             </p>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <div className="text-xs text-gray-500">Audit Chain</div>
-              <div className={`text-sm font-mono ${auditVerification?.valid ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Audit Chain</div>
+              <div
+                className="text-sm font-mono"
+                style={{ color: auditVerification?.valid ? 'var(--ari-success)' : 'var(--ari-error)' }}
+              >
                 {auditVerification?.valid ? '✓ VERIFIED' : '✗ INVALID'}
               </div>
             </div>
-            <div className="h-8 w-px bg-gray-800" />
+            <div className="h-8 w-px" style={{ background: 'var(--border-muted)' }} />
             <div className="text-right">
-              <div className="text-xs text-gray-500">Gateway</div>
-              <div className="text-sm font-mono text-emerald-400">127.0.0.1:3141</div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Gateway</div>
+              <div className="text-sm font-mono" style={{ color: 'var(--ari-success)' }}>127.0.0.1:3141</div>
             </div>
           </div>
         </div>
@@ -96,94 +105,130 @@ export function Home() {
       <div className="p-8">
         {/* Main Status Grid */}
         {health && (
-          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
             {/* Gateway Status */}
-            <div className="card-hover rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-6">
+            <div
+              className="card-ari card-ari-hover rounded-xl p-6"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-muted)',
+              }}
+            >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                     Gateway
                   </h3>
                   <div className="mt-2">
                     <StatusBadge status={health.gateway.status} size="md" />
                   </div>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-900/20 text-emerald-400">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg"
+                  style={{ background: 'var(--ari-success-muted)', color: 'var(--ari-success)' }}
+                >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
                   </svg>
                 </div>
               </div>
-              <div className="mt-4 space-y-2 border-t border-gray-800 pt-4 font-mono text-xs text-gray-400">
+              <div
+                className="mt-4 space-y-2 pt-4 font-mono text-xs"
+                style={{ borderTop: '1px solid var(--border-muted)', color: 'var(--text-tertiary)' }}
+              >
                 <div className="flex justify-between">
                   <span>Host</span>
-                  <span className="text-gray-300">{health.gateway.host}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{health.gateway.host}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Port</span>
-                  <span className="text-gray-300">{health.gateway.port}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{health.gateway.port}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Connections</span>
-                  <span className="text-emerald-400">{health.gateway.connections}</span>
+                  <span style={{ color: 'var(--ari-success)' }}>{health.gateway.connections}</span>
                 </div>
               </div>
             </div>
 
             {/* Event Bus Status */}
-            <div className="card-hover rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-6">
+            <div
+              className="card-ari card-ari-hover rounded-xl p-6"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-muted)',
+              }}
+            >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                     Event Bus
                   </h3>
                   <div className="mt-2">
                     <StatusBadge status={health.eventBus.status} size="md" />
                   </div>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900/20 text-blue-400">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg"
+                  style={{ background: 'var(--ari-info-muted)', color: 'var(--ari-info)' }}
+                >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
               </div>
-              <div className="mt-4 space-y-2 border-t border-gray-800 pt-4 font-mono text-xs text-gray-400">
+              <div
+                className="mt-4 space-y-2 pt-4 font-mono text-xs"
+                style={{ borderTop: '1px solid var(--border-muted)', color: 'var(--text-tertiary)' }}
+              >
                 <div className="flex justify-between">
                   <span>Events Processed</span>
-                  <span className="text-blue-400">{health.eventBus.eventCount.toLocaleString()}</span>
+                  <span style={{ color: 'var(--ari-info)' }}>{health.eventBus.eventCount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Subscribers</span>
-                  <span className="text-gray-300">{health.eventBus.subscribers}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{health.eventBus.subscribers}</span>
                 </div>
               </div>
             </div>
 
             {/* Audit Log Status */}
-            <div className="card-hover rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-6">
+            <div
+              className="card-ari card-ari-hover rounded-xl p-6"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-muted)',
+              }}
+            >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                     Audit Log
                   </h3>
                   <div className="mt-2">
                     <StatusBadge status={health.audit.status} size="md" />
                   </div>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-900/20 text-purple-400">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg"
+                  style={{ background: 'var(--ari-purple-muted)', color: 'var(--ari-purple)' }}
+                >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
               </div>
-              <div className="mt-4 space-y-2 border-t border-gray-800 pt-4 font-mono text-xs text-gray-400">
+              <div
+                className="mt-4 space-y-2 pt-4 font-mono text-xs"
+                style={{ borderTop: '1px solid var(--border-muted)', color: 'var(--text-tertiary)' }}
+              >
                 <div className="flex justify-between">
                   <span>Entries</span>
-                  <span className="text-purple-400">{health.audit.entryCount.toLocaleString()}</span>
+                  <span style={{ color: 'var(--ari-purple)' }}>{health.audit.entryCount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Hash Chain</span>
-                  <span className={health.audit.chainValid ? 'text-emerald-400' : 'text-red-400'}>
+                  <span style={{ color: health.audit.chainValid ? 'var(--ari-success)' : 'var(--ari-error)' }}>
                     {health.audit.chainValid ? 'Valid' : 'Invalid'}
                   </span>
                 </div>
@@ -191,88 +236,124 @@ export function Home() {
             </div>
 
             {/* Sanitizer Status */}
-            <div className="card-hover rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-6">
+            <div
+              className="card-ari card-ari-hover rounded-xl p-6"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-muted)',
+              }}
+            >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                     Sanitizer
                   </h3>
                   <div className="mt-2">
                     <StatusBadge status={health.sanitizer.status} size="md" />
                   </div>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-900/20 text-amber-400">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg"
+                  style={{ background: 'var(--ari-warning-muted)', color: 'var(--ari-warning)' }}
+                >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
               </div>
-              <div className="mt-4 space-y-2 border-t border-gray-800 pt-4 font-mono text-xs text-gray-400">
+              <div
+                className="mt-4 space-y-2 pt-4 font-mono text-xs"
+                style={{ borderTop: '1px solid var(--border-muted)', color: 'var(--text-tertiary)' }}
+              >
                 <div className="flex justify-between">
                   <span>Injection Patterns</span>
-                  <span className="text-amber-400">{health.sanitizer.patternsLoaded}</span>
+                  <span style={{ color: 'var(--ari-warning)' }}>{health.sanitizer.patternsLoaded}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Categories</span>
-                  <span className="text-gray-300">6</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>6</span>
                 </div>
               </div>
             </div>
 
             {/* Agents Status */}
-            <div className="card-hover rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-6">
+            <div
+              className="card-ari card-ari-hover rounded-xl p-6"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-muted)',
+              }}
+            >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                     Agents
                   </h3>
                   <div className="mt-2">
                     <StatusBadge status={health.agents.status} size="md" />
                   </div>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-900/20 text-cyan-400">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg"
+                  style={{ background: 'rgba(6, 182, 212, 0.1)', color: 'var(--ari-cyan)' }}
+                >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
               </div>
-              <div className="mt-4 space-y-2 border-t border-gray-800 pt-4 font-mono text-xs text-gray-400">
+              <div
+                className="mt-4 space-y-2 pt-4 font-mono text-xs"
+                style={{ borderTop: '1px solid var(--border-muted)', color: 'var(--text-tertiary)' }}
+              >
                 <div className="flex justify-between">
                   <span>Active</span>
-                  <span className="text-cyan-400">{health.agents.activeCount}</span>
+                  <span style={{ color: 'var(--ari-cyan)' }}>{health.agents.activeCount}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Total</span>
-                  <span className="text-gray-300">{Object.keys(health.agents.agents).length}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{Object.keys(health.agents.agents).length}</span>
                 </div>
               </div>
             </div>
 
             {/* Governance Status */}
-            <div className="card-hover rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950 p-6">
+            <div
+              className="card-ari card-ari-hover rounded-xl p-6"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-muted)',
+              }}
+            >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                     Governance
                   </h3>
                   <div className="mt-2">
                     <StatusBadge status={health.governance.status} size="md" />
                   </div>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-900/20 text-indigo-400">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg"
+                  style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8' }}
+                >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                   </svg>
                 </div>
               </div>
-              <div className="mt-4 space-y-2 border-t border-gray-800 pt-4 font-mono text-xs text-gray-400">
+              <div
+                className="mt-4 space-y-2 pt-4 font-mono text-xs"
+                style={{ borderTop: '1px solid var(--border-muted)', color: 'var(--text-tertiary)' }}
+              >
                 <div className="flex justify-between">
                   <span>Active Votes</span>
-                  <span className="text-indigo-400">{health.governance.activeVotes}</span>
+                  <span style={{ color: '#818cf8' }}>{health.governance.activeVotes}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Council Members</span>
-                  <span className="text-gray-300">{health.governance.councilMembers}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{health.governance.councilMembers}</span>
                 </div>
               </div>
             </div>
@@ -282,8 +363,14 @@ export function Home() {
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Active Agents */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <div
+            className="rounded-xl p-6 card-ari"
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-muted)',
+            }}
+          >
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
               Active Agents
             </h2>
             {agentsLoading ? (
@@ -297,50 +384,73 @@ export function Home() {
                 {agents.map((agent) => (
                   <div
                     key={agent.id}
-                    className={`agent-card flex items-center justify-between rounded-lg border border-gray-800 bg-gray-950/50 p-4 ${agent.status}`}
+                    className="agent-card flex items-center justify-between rounded-lg p-4"
+                    style={{
+                      background: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-muted)',
+                    }}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`h-2 w-2 rounded-full ${
-                        agent.status === 'active' ? 'bg-emerald-400 status-dot-healthy' :
-                        agent.status === 'idle' ? 'bg-amber-400' : 'bg-red-400'
-                      }`} />
+                      <div
+                        className={`h-2 w-2 rounded-full ${
+                          agent.status === 'active' ? 'status-dot-healthy' : ''
+                        }`}
+                        style={{
+                          background:
+                            agent.status === 'active'
+                              ? 'var(--ari-success)'
+                              : agent.status === 'idle'
+                                ? 'var(--ari-warning)'
+                                : 'var(--ari-error)',
+                        }}
+                      />
                       <div>
-                        <div className="font-mono text-sm text-white">{agent.type}</div>
-                        <div className="text-xs text-gray-500">ID: {agent.id.slice(0, 8)}</div>
+                        <div className="font-mono text-sm" style={{ color: 'var(--text-primary)' }}>{agent.type}</div>
+                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>ID: {agent.id.slice(0, 8)}</div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-mono text-sm text-emerald-400">{agent.tasksCompleted}</div>
-                      <div className="text-xs text-gray-500">tasks</div>
+                      <div className="font-mono text-sm" style={{ color: 'var(--ari-success)' }}>{agent.tasksCompleted}</div>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>tasks</div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-gray-800 p-8 text-center">
-                <div className="text-sm text-gray-500">No agents active</div>
-                <div className="mt-1 text-xs text-gray-600">Agents will appear here when running</div>
+              <div
+                className="rounded-lg p-8 text-center"
+                style={{ border: '1px dashed var(--border-muted)' }}
+              >
+                <div className="text-sm" style={{ color: 'var(--text-muted)' }}>No agents active</div>
+                <div className="mt-1 text-xs" style={{ color: 'var(--text-disabled)' }}>Agents will appear here when running</div>
               </div>
             )}
           </div>
 
           {/* Trust Levels */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <div
+            className="rounded-xl p-6 card-ari"
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-muted)',
+            }}
+          >
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
               Trust Levels
             </h2>
             <div className="space-y-2">
               {TRUST_LEVELS.map((trust) => (
                 <div
                   key={trust.level}
-                  className={`flex items-center justify-between rounded-lg ${trust.bg} px-4 py-3`}
+                  className="flex items-center justify-between rounded-lg px-4 py-3"
+                  style={{ background: trust.bgColor }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`text-sm font-mono font-medium ${trust.color}`}>
+                    <div className="text-sm font-mono font-medium" style={{ color: trust.cssColor }}>
                       {trust.level}
                     </div>
                   </div>
-                  <div className={`font-mono text-xs ${trust.color}`}>
+                  <div className="font-mono text-xs" style={{ color: trust.cssColor }}>
                     {trust.multiplier} risk
                   </div>
                 </div>
@@ -350,71 +460,74 @@ export function Home() {
         </div>
 
         {/* Philosophy Section */}
-        <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+        <div
+          className="mt-6 rounded-xl p-6 card-ari"
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-muted)',
+          }}
+        >
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
             Core Philosophy
           </h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {PHILOSOPHY.map((pillar) => (
               <div
                 key={pillar.name}
-                className="rounded-lg border border-gray-800 bg-gray-950/50 p-4"
+                className="rounded-lg p-4"
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-muted)',
+                }}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-lg text-purple-400">{pillar.icon}</span>
+                  <span className="text-lg" style={{ color: 'var(--ari-purple)' }}>{pillar.icon}</span>
                   <div>
-                    <div className="text-sm font-medium text-white">{pillar.name}</div>
-                    <div className="text-xs text-gray-500">{pillar.source}</div>
+                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{pillar.name}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{pillar.source}</div>
                   </div>
                 </div>
-                <div className="mt-2 text-xs text-gray-400">{pillar.description}</div>
+                <div className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>{pillar.description}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Security Invariants */}
-        <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900/50 p-6">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-gray-400">
+        <div
+          className="mt-6 rounded-xl p-6 card-ari"
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-muted)',
+          }}
+        >
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
             Security Invariants
           </h2>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <div className="flex items-center gap-3 rounded-lg bg-emerald-900/10 px-4 py-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-emerald-900/30 text-emerald-400">
-                ✓
+            {[
+              { label: 'Loopback Only', desc: '127.0.0.1 enforced' },
+              { label: 'Content ≠ Command', desc: 'Input is data only' },
+              { label: 'Hash Chain Audit', desc: 'SHA-256 linked' },
+              { label: 'Least Privilege', desc: '3-layer checks' },
+            ].map((invariant) => (
+              <div
+                key={invariant.label}
+                className="flex items-center gap-3 rounded-lg px-4 py-3"
+                style={{ background: 'var(--ari-success-muted)' }}
+              >
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded text-sm font-bold"
+                  style={{ background: 'rgba(16, 185, 129, 0.2)', color: 'var(--ari-success)' }}
+                >
+                  ✓
+                </div>
+                <div>
+                  <div className="text-xs font-medium" style={{ color: 'var(--ari-success)' }}>{invariant.label}</div>
+                  <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{invariant.desc}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-xs font-medium text-emerald-400">Loopback Only</div>
-                <div className="text-[10px] text-gray-500">127.0.0.1 enforced</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-lg bg-emerald-900/10 px-4 py-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-emerald-900/30 text-emerald-400">
-                ✓
-              </div>
-              <div>
-                <div className="text-xs font-medium text-emerald-400">Content ≠ Command</div>
-                <div className="text-[10px] text-gray-500">Input is data only</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-lg bg-emerald-900/10 px-4 py-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-emerald-900/30 text-emerald-400">
-                ✓
-              </div>
-              <div>
-                <div className="text-xs font-medium text-emerald-400">Hash Chain Audit</div>
-                <div className="text-[10px] text-gray-500">SHA-256 linked</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-lg bg-emerald-900/10 px-4 py-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-emerald-900/30 text-emerald-400">
-                ✓
-              </div>
-              <div>
-                <div className="text-xs font-medium text-emerald-400">Least Privilege</div>
-                <div className="text-[10px] text-gray-500">3-layer checks</div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
