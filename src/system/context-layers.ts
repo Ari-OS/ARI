@@ -1,5 +1,5 @@
 import type { EventBus } from '../kernel/event-bus.js';
-import type { Message, AgentId } from '../kernel/types.js';
+import type { Message } from '../kernel/types.js';
 import type { MemoryManager } from '../agents/memory-manager.js';
 import type { LearningMachine } from '../agents/learning-machine.js';
 import { VOTING_AGENTS } from '../kernel/types.js';
@@ -68,7 +68,7 @@ export class ContextLayerManager {
   /**
    * Layer 1: Schema Context - Type definitions, runtime schemas
    */
-  async loadSchemaContext(): Promise<ContextLayer> {
+  loadSchemaContext(): Promise<ContextLayer> {
     const schemas = {
       trustLevels: ['system', 'operator', 'verified', 'standard', 'untrusted', 'hostile'],
       permissionTiers: ['READ_ONLY', 'WRITE_SAFE', 'WRITE_DESTRUCTIVE', 'ADMIN'],
@@ -78,7 +78,7 @@ export class ContextLayerManager {
       councilPillars: ['infrastructure', 'protection', 'strategy', 'domains', 'meta'],
     };
 
-    return {
+    return Promise.resolve({
       id: 1,
       name: 'schema',
       source: 'types.ts',
@@ -86,7 +86,7 @@ export class ContextLayerManager {
       priority: 100,
       size: JSON.stringify(schemas).length,
       lastUpdated: new Date(),
-    };
+    });
   }
 
   /**
@@ -179,14 +179,14 @@ export class ContextLayerManager {
    * Layer 4: Institutional Knowledge - KnowledgeIndex content
    * Note: KnowledgeIndex integration to be added when available
    */
-  async loadKnowledge(query: string): Promise<ContextLayer> {
+  loadKnowledge(query: string): Promise<ContextLayer> {
     // Placeholder for KnowledgeIndex integration
     // When KnowledgeIndex is available, this will search for relevant documents
-    return {
+    return Promise.resolve({
       id: 4,
       name: 'knowledge',
       source: 'knowledge_index',
-      content: { 
+      content: {
         documents: [],
         query,
         note: 'KnowledgeIndex integration pending',
@@ -194,7 +194,7 @@ export class ContextLayerManager {
       priority: 70,
       size: 0,
       lastUpdated: new Date(),
-    };
+    });
   }
 
   /**

@@ -421,7 +421,7 @@ export class Scratchpad {
     let totalEntries = 0;
     let totalSize = 0;
 
-    for (const [agent, context] of this.contexts) {
+    for (const agent of this.contexts.keys()) {
       const entries = this.readAll(agent);
       let agentSize = 0;
 

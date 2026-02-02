@@ -247,7 +247,7 @@ export class PlanReviewer {
   /**
    * Constitutional review using the Arbiter
    */
-  private async constitutionalReview(plan: Plan): Promise<PlanReview> {
+  private constitutionalReview(plan: Plan): Promise<PlanReview> {
     const blockers: string[] = [];
     const concerns: string[] = [];
     const tips: string[] = [];
@@ -297,7 +297,7 @@ export class PlanReviewer {
 
     const passed = blockers.length === 0;
 
-    return {
+    return Promise.resolve({
       planId: plan.id,
       reviewer: 'arbiter',
       reviewType: 'constitutional',
@@ -317,13 +317,13 @@ export class PlanReviewer {
         confidence: 1,
         steps,
       },
-    };
+    });
   }
 
   /**
    * Quality review using the Overseer's perspective
    */
-  private async qualityReview(plan: Plan): Promise<PlanReview> {
+  private qualityReview(plan: Plan): Promise<PlanReview> {
     const concerns: string[] = [];
     const tips: string[] = [];
     const recommendations: string[] = [];
@@ -395,7 +395,7 @@ export class PlanReviewer {
     // Clamp score
     score = Math.max(0, Math.min(100, score));
 
-    return {
+    return Promise.resolve({
       planId: plan.id,
       reviewer: 'overseer',
       reviewType: 'quality',
@@ -413,13 +413,13 @@ export class PlanReviewer {
         confidence: 0.9,
         steps,
       },
-    };
+    });
   }
 
   /**
    * Expert review - simulated senior engineer perspective
    */
-  private async expertReview(plan: Plan, reviewer?: AgentId): Promise<PlanReview> {
+  private expertReview(plan: Plan, reviewer?: AgentId): Promise<PlanReview> {
     const tips: string[] = [];
     const recommendations: string[] = [];
     const steps: ReasoningStep[] = [];
@@ -487,7 +487,7 @@ export class PlanReviewer {
     const passed = recommendations.length < 5;
     const score = Math.max(0, 100 - (recommendations.length * 10));
 
-    return {
+    return Promise.resolve({
       planId: plan.id,
       reviewer: reviewer || 'integrator',
       reviewType: 'expert',
@@ -505,7 +505,7 @@ export class PlanReviewer {
         confidence: 0.85,
         steps,
       },
-    };
+    });
   }
 
   /**

@@ -141,7 +141,7 @@ export class LearningMachine {
    * Observe an interaction and extract patterns
    */
   async observe(interaction: Interaction): Promise<void> {
-    const extracted = await this.extractPatterns(interaction);
+    const extracted = this.extractPatterns(interaction);
 
     for (const pattern of extracted) {
       if (pattern.confidence >= this.MIN_CONFIDENCE_TO_STORE) {
@@ -179,7 +179,7 @@ export class LearningMachine {
   /**
    * Extract patterns from an interaction
    */
-  private async extractPatterns(interaction: Interaction): Promise<LearnedPattern[]> {
+  private extractPatterns(interaction: Interaction): LearnedPattern[] {
     const patterns: LearnedPattern[] = [];
     const now = new Date();
 
@@ -269,7 +269,7 @@ export class LearningMachine {
   /**
    * Retrieve relevant patterns for a context
    */
-  async retrieve(context: string, options: RetrieveOptions = {}): Promise<LearnedPattern[]> {
+  retrieve(context: string, options: RetrieveOptions = {}): Promise<LearnedPattern[]> {
     const {
       limit = 5,
       minConfidence = 0.3,
@@ -296,7 +296,7 @@ export class LearningMachine {
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
 
-    return scored.map(s => s.pattern);
+    return Promise.resolve(scored.map(s => s.pattern));
   }
 
   /**

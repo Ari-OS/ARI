@@ -84,7 +84,7 @@ export class SOULManager {
       }
 
       console.log(`[SOULManager] Loaded ${this.souls.size} SOUL identities`);
-    } catch (error) {
+    } catch {
       // Souls directory may not exist yet
       console.log('[SOULManager] Souls directory not found, using defaults');
     }

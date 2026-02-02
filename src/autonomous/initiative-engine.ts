@@ -16,6 +16,7 @@
  */
 
 import { EventBus } from '../kernel/event-bus.js';
+import { InitiativeExecutor } from './initiative-executor.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -468,6 +469,7 @@ export class InitiativeEngine {
   private running = false;
   private initialized = false;
   private scanTimer: NodeJS.Timeout | null = null;
+  private executor: InitiativeExecutor;
 
   constructor(config: Partial<InitiativeConfig> = {}) {
     this.config = {
@@ -481,6 +483,9 @@ export class InitiativeEngine {
       projectPath: process.cwd(),
       ...config,
     };
+
+    // Create sophisticated executor
+    this.executor = new InitiativeExecutor(eventBus, this.config.projectPath);
   }
 
   /**
@@ -492,6 +497,9 @@ export class InitiativeEngine {
     // Load any persisted initiatives
     await this.loadState();
 
+    // Initialize the sophisticated executor
+    this.executor.init();
+
     this.initialized = true;
 
     eventBus.emit('audit:log', {
@@ -502,11 +510,12 @@ export class InitiativeEngine {
         categories: this.config.categories,
         autoExecute: this.config.autoExecute,
         threshold: this.config.autonomousThreshold,
+        executorStrategies: this.executor.getStats().totalExecutions,
       },
     });
 
     // eslint-disable-next-line no-console
-    console.log('[InitiativeEngine] Initialized');
+    console.log('[InitiativeEngine] Initialized with sophisticated executor');
   }
 
   /**
@@ -668,29 +677,61 @@ export class InitiativeEngine {
     });
 
     try {
-      // Execute based on initiative category
-      const result = this.executeByCategory(initiative);
-      initiative.status = 'COMPLETED';
-      initiative.result = result;
+      // Execute using sophisticated executor with full cognitive pipeline
+      const executionResult = await this.executor.execute(initiative);
 
-      eventBus.emit('audit:log', {
-        action: 'initiative:completed',
-        agent: 'INITIATIVE',
-        trustLevel: 'system',
-        details: { initiativeId: initiative.id, result: initiative.result },
-      });
+      if (executionResult.success) {
+        initiative.status = 'COMPLETED';
+        initiative.result = executionResult.output;
+
+        eventBus.emit('audit:log', {
+          action: 'initiative:completed',
+          agent: 'INITIATIVE',
+          trustLevel: 'system',
+          details: {
+            initiativeId: initiative.id,
+            result: initiative.result,
+            artifacts: executionResult.artifactsCreated,
+            lessons: executionResult.lessonsLearned,
+            duration: executionResult.duration,
+          },
+        });
+
+        // Log lessons learned for continuous improvement
+        if (executionResult.lessonsLearned.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log(`[InitiativeEngine] Lessons learned: ${executionResult.lessonsLearned.join('; ')}`);
+        }
+      } else {
+        // Execution failed but handled gracefully
+        initiative.status = 'REJECTED';
+        initiative.result = executionResult.output;
+
+        eventBus.emit('audit:log', {
+          action: 'initiative:soft_failed',
+          agent: 'INITIATIVE',
+          trustLevel: 'system',
+          details: {
+            initiativeId: initiative.id,
+            reason: executionResult.output,
+            lessons: executionResult.lessonsLearned,
+          },
+        });
+      }
     } catch (error) {
       initiative.status = 'REJECTED';
       initiative.result = error instanceof Error ? error.message : String(error);
 
       eventBus.emit('audit:log', {
-        action: 'initiative:failed',
+        action: 'initiative:hard_failed',
         agent: 'INITIATIVE',
         trustLevel: 'system',
         details: { initiativeId: initiative.id, error: initiative.result },
       });
 
-      throw error;
+      // Don't throw - allow engine to continue with other initiatives
+      // eslint-disable-next-line no-console
+      console.error(`[InitiativeEngine] Hard failure: ${initiative.result}`);
     }
 
     // Persist state after execution
@@ -698,49 +739,10 @@ export class InitiativeEngine {
   }
 
   /**
-   * Execute initiative based on its category
+   * Get execution statistics from the executor
    */
-  private executeByCategory(initiative: Initiative): string {
-    switch (initiative.category) {
-      case 'CODE_QUALITY':
-        return this.executeCodeQuality(initiative);
-      case 'KNOWLEDGE':
-        return this.executeKnowledge(initiative);
-      case 'OPPORTUNITIES':
-        return this.executeOpportunity(initiative);
-      case 'DELIVERABLES':
-        return this.executeDeliverable(initiative);
-      case 'IMPROVEMENTS':
-        return this.executeImprovement(initiative);
-      default:
-        return 'Unknown category';
-    }
-  }
-
-  private executeCodeQuality(initiative: Initiative): string {
-    // Code quality initiatives will spawn agents or use cognition layer
-    // For now, log the intent
-    return `Code quality initiative queued: ${initiative.title}`;
-  }
-
-  private executeKnowledge(initiative: Initiative): string {
-    // Knowledge initiatives interact with the knowledge index
-    return `Knowledge initiative queued: ${initiative.title}`;
-  }
-
-  private executeOpportunity(initiative: Initiative): string {
-    // Opportunity initiatives create user deliverables
-    return `Opportunity identified: ${initiative.title}`;
-  }
-
-  private executeDeliverable(initiative: Initiative): string {
-    // Deliverable initiatives generate artifacts
-    return `Deliverable created: ${initiative.title}`;
-  }
-
-  private executeImprovement(initiative: Initiative): string {
-    // Self-improvement initiatives enhance ARI
-    return `Improvement logged: ${initiative.title}`;
+  getExecutorStats(): ReturnType<InitiativeExecutor['getStats']> {
+    return this.executor.getStats();
   }
 
   /**
