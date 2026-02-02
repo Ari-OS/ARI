@@ -16,11 +16,12 @@
  */
 
 import { EventBus } from '../kernel/event-bus.js';
-import { InitiativeExecutor } from './initiative-executor.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-
-const eventBus = new EventBus();
+import { detectCognitiveBias, runDisciplineCheck } from '../cognition/ethos/index.js';
+import type { AgentSpawner } from './agent-spawner.js';
+import type { KnowledgeIndex } from './knowledge-index.js';
+import { homedir } from 'node:os';
 
 // =============================================================================
 // TYPES
@@ -36,6 +37,7 @@ export type InitiativeCategory =
 export interface Initiative {
   id: string;
   category: InitiativeCategory;
+  kind?: string; // More specific subtype within a category (e.g. WRITE_TESTS)
   title: string;
   description: string;
   rationale: string;  // Why this is valuable
@@ -47,6 +49,8 @@ export interface Initiative {
   createdAt: Date;
   status: 'DISCOVERED' | 'QUEUED' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED';
   result?: string;
+  resultDetails?: Record<string, unknown>;
+  target?: InitiativeTarget;
 }
 
 export interface InitiativeConfig {
@@ -58,6 +62,34 @@ export interface InitiativeConfig {
   autonomousThreshold: number;    // Priority threshold for auto-execution (0-100)
   autoExecute: boolean;           // Execute autonomous initiatives automatically
   projectPath: string;
+}
+
+export interface InitiativeTarget {
+  /** Path relative to project root */
+  filePath?: string;
+  /** Suggested path relative to project root */
+  testPath?: string;
+  todo?: { file: string; line: number; text: string };
+  docsPath?: string;
+}
+
+export interface InitiativeExecutionPlan {
+  initiativeId: string;
+  title: string;
+  category: InitiativeCategory;
+  kind?: string;
+  steps: Array<{ id: string; description: string; risk: 'LOW' | 'MEDIUM' | 'HIGH' }>;
+  safetyGates: {
+    discipline: { passed: boolean; score: number; blockers: string[]; recommendations: string[] };
+    bias: { riskLevel: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL'; overallRisk: number; recommendations: string[] };
+  };
+  recommendedExecution: 'IN_PROCESS' | 'SPAWN_WORKTREE' | 'USER_REVIEW';
+}
+
+interface InitiativeExecutionOutcome {
+  status: Initiative['status'];
+  summary: string;
+  details?: Record<string, unknown>;
 }
 
 // =============================================================================
@@ -108,9 +140,11 @@ async function discoverCodeQualityInitiatives(projectPath: string): Promise<Init
   // Check for missing tests
   const missingTests = await findFilesWithoutTests(projectPath);
   for (const file of missingTests.slice(0, 5)) {  // Limit to top 5
+    const rel = file.replace(projectPath + '/', '');
     initiatives.push({
       id: `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       category: 'CODE_QUALITY',
+      kind: 'WRITE_TESTS',
       title: `Write tests for ${path.basename(file)}`,
       description: `The file ${file} has no corresponding test file. Writing tests would improve reliability and catch bugs early.`,
       rationale: 'Test coverage prevents regressions and documents expected behavior.',
@@ -121,6 +155,10 @@ async function discoverCodeQualityInitiatives(projectPath: string): Promise<Init
       autonomous: true,  // ARI can write tests without asking
       createdAt: new Date(),
       status: 'DISCOVERED',
+      target: {
+        filePath: rel,
+        testPath: suggestTestPathForSource(rel),
+      },
     });
   }
 
@@ -130,6 +168,7 @@ async function discoverCodeQualityInitiatives(projectPath: string): Promise<Init
     initiatives.push({
       id: `todo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       category: 'CODE_QUALITY',
+      kind: 'RESOLVE_TODO',
       title: `Address TODO: ${todo.text.slice(0, 50)}...`,
       description: `Found TODO in ${todo.file}:${todo.line}: ${todo.text}`,
       rationale: 'Resolving TODOs improves code quality and reduces technical debt.',
@@ -140,6 +179,9 @@ async function discoverCodeQualityInitiatives(projectPath: string): Promise<Init
       autonomous: true,
       createdAt: new Date(),
       status: 'DISCOVERED',
+      target: {
+        todo: { file: todo.file, line: todo.line, text: todo.text },
+      },
     });
   }
 
@@ -149,6 +191,7 @@ async function discoverCodeQualityInitiatives(projectPath: string): Promise<Init
     initiatives.push({
       id: `refactor-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       category: 'CODE_QUALITY',
+      kind: 'REFACTOR_SUGGESTION',
       title: `Consider refactoring ${path.basename(file.path)}`,
       description: `${file.path} has ${file.lines} lines. Large files are harder to maintain.`,
       rationale: 'Smaller, focused files are easier to understand and test.',
@@ -159,10 +202,19 @@ async function discoverCodeQualityInitiatives(projectPath: string): Promise<Init
       autonomous: false,
       createdAt: new Date(),
       status: 'DISCOVERED',
+      target: { filePath: file.path },
     });
   }
 
   return initiatives;
+}
+
+function suggestTestPathForSource(sourceRelPath: string): string {
+  // Convention: src/foo/bar.ts => tests/unit/foo/bar.test.ts
+  const normalized = sourceRelPath.replace(/\\/g, '/');
+  const withoutPrefix = normalized.startsWith('src/') ? normalized.slice('src/'.length) : normalized;
+  const testRel = withoutPrefix.replace(/\.ts$/, '.test.ts');
+  return path.posix.join('tests', 'unit', testRel);
 }
 
 async function findFilesWithoutTests(projectPath: string): Promise<string[]> {
@@ -469,9 +521,17 @@ export class InitiativeEngine {
   private running = false;
   private initialized = false;
   private scanTimer: NodeJS.Timeout | null = null;
-  private executor: InitiativeExecutor;
+  private eventBus: EventBus;
+  private agentSpawner?: AgentSpawner;
+  private knowledgeIndex?: KnowledgeIndex;
 
-  constructor(config: Partial<InitiativeConfig> = {}) {
+  constructor(
+    config: Partial<InitiativeConfig> = {},
+    deps: { eventBus?: EventBus; agentSpawner?: AgentSpawner; knowledgeIndex?: KnowledgeIndex } = {}
+  ) {
+    this.eventBus = deps.eventBus ?? new EventBus();
+    this.agentSpawner = deps.agentSpawner;
+    this.knowledgeIndex = deps.knowledgeIndex;
     this.config = {
       enabled: true,
       categories: ['CODE_QUALITY', 'KNOWLEDGE', 'OPPORTUNITIES', 'DELIVERABLES', 'IMPROVEMENTS'],
@@ -483,9 +543,6 @@ export class InitiativeEngine {
       projectPath: process.cwd(),
       ...config,
     };
-
-    // Create sophisticated executor
-    this.executor = new InitiativeExecutor(eventBus, this.config.projectPath);
   }
 
   /**
@@ -497,12 +554,9 @@ export class InitiativeEngine {
     // Load any persisted initiatives
     await this.loadState();
 
-    // Initialize the sophisticated executor
-    this.executor.init();
-
     this.initialized = true;
 
-    eventBus.emit('audit:log', {
+    this.eventBus.emit('audit:log', {
       action: 'initiative:initialized',
       agent: 'INITIATIVE',
       trustLevel: 'system',
@@ -510,12 +564,11 @@ export class InitiativeEngine {
         categories: this.config.categories,
         autoExecute: this.config.autoExecute,
         threshold: this.config.autonomousThreshold,
-        executorStrategies: this.executor.getStats().totalExecutions,
       },
     });
 
     // eslint-disable-next-line no-console
-    console.log('[InitiativeEngine] Initialized with sophisticated executor');
+    console.log('[InitiativeEngine] Initialized');
   }
 
   /**
@@ -539,7 +592,7 @@ export class InitiativeEngine {
       });
     }, this.config.scanIntervalMs);
 
-    eventBus.emit('audit:log', {
+    this.eventBus.emit('audit:log', {
       action: 'initiative:engine_started',
       agent: 'INITIATIVE',
       trustLevel: 'system',
@@ -620,7 +673,7 @@ export class InitiativeEngine {
         console.log(`[InitiativeEngine] Auto-executing ${Math.min(toExecute.length, this.config.maxConcurrent)} initiatives`);
       }
 
-      eventBus.emit('audit:log', {
+      this.eventBus.emit('audit:log', {
         action: 'initiative:scan_complete',
         agent: 'INITIATIVE',
         trustLevel: 'system',
@@ -631,7 +684,7 @@ export class InitiativeEngine {
         },
       });
     } else {
-      eventBus.emit('audit:log', {
+      this.eventBus.emit('audit:log', {
         action: 'initiative:scan_complete',
         agent: 'INITIATIVE',
         trustLevel: 'system',
@@ -647,6 +700,63 @@ export class InitiativeEngine {
     await this.saveState();
 
     return newInitiatives;
+  }
+
+  /**
+   * Build an execution plan for an initiative, including cognitive safety gates.
+   * This is safe to call for user review.
+   */
+  async planInitiative(initiativeOrId: Initiative | string): Promise<InitiativeExecutionPlan> {
+    const initiative = typeof initiativeOrId === 'string'
+      ? this.initiatives.find(i => i.id === initiativeOrId)
+      : initiativeOrId;
+    if (!initiative) {
+      const idStr = typeof initiativeOrId === 'string' ? initiativeOrId : initiativeOrId.id;
+      throw new Error(`Initiative not found: ${idStr}`);
+    }
+
+    const steps = this.buildPlanSteps(initiative);
+    const decisionText = `Execute initiative: ${initiative.title}\n\nRationale: ${initiative.rationale}\n\nSteps:\n- ${steps.map(s => s.description).join('\n- ')}`;
+
+    // ETHOS gate: discipline check (readiness + caution)
+    const discipline = await runDisciplineCheck(decisionText, 'INITIATIVE', {
+      alternativesConsidered: ['skip', 'user_review', 'spawn_worktree_agent', 'in_process'],
+      researchDocuments: initiative.target?.filePath ? [initiative.target.filePath] : undefined,
+    });
+
+    // ETHOS gate: bias detection on the plan itself
+    const bias = await detectCognitiveBias(decisionText, {
+      domain: `initiative:${initiative.category.toLowerCase()}`,
+      expertise: 'intermediate',
+    });
+
+    const recommendedExecution =
+      initiative.category === 'CODE_QUALITY' ? 'SPAWN_WORKTREE' :
+      initiative.category === 'DELIVERABLES' ? 'IN_PROCESS' :
+      initiative.category === 'KNOWLEDGE' ? 'IN_PROCESS' :
+      'USER_REVIEW';
+
+    return {
+      initiativeId: initiative.id,
+      title: initiative.title,
+      category: initiative.category,
+      kind: initiative.kind,
+      steps,
+      safetyGates: {
+        discipline: {
+          passed: discipline.shouldProceed,
+          score: discipline.overallScore,
+          blockers: discipline.blockers,
+          recommendations: discipline.recommendations,
+        },
+        bias: {
+          riskLevel: bias.riskLevel,
+          overallRisk: bias.overallRisk,
+          recommendations: bias.recommendations,
+        },
+      },
+      recommendedExecution,
+    };
   }
 
   /**
@@ -669,7 +779,7 @@ export class InitiativeEngine {
     // eslint-disable-next-line no-console
     console.log(`[InitiativeEngine] Executing: ${initiative.title}`);
 
-    eventBus.emit('audit:log', {
+    this.eventBus.emit('audit:log', {
       action: 'initiative:executing',
       agent: 'INITIATIVE',
       trustLevel: 'system',
@@ -677,61 +787,49 @@ export class InitiativeEngine {
     });
 
     try {
-      // Execute using sophisticated executor with full cognitive pipeline
-      const executionResult = await this.executor.execute(initiative);
+      const plan = await this.planInitiative(initiative);
 
-      if (executionResult.success) {
-        initiative.status = 'COMPLETED';
-        initiative.result = executionResult.output;
-
-        eventBus.emit('audit:log', {
-          action: 'initiative:completed',
-          agent: 'INITIATIVE',
-          trustLevel: 'system',
-          details: {
-            initiativeId: initiative.id,
-            result: initiative.result,
-            artifacts: executionResult.artifactsCreated,
-            lessons: executionResult.lessonsLearned,
-            duration: executionResult.duration,
-          },
-        });
-
-        // Log lessons learned for continuous improvement
-        if (executionResult.lessonsLearned.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log(`[InitiativeEngine] Lessons learned: ${executionResult.lessonsLearned.join('; ')}`);
-        }
-      } else {
-        // Execution failed but handled gracefully
-        initiative.status = 'REJECTED';
-        initiative.result = executionResult.output;
-
-        eventBus.emit('audit:log', {
-          action: 'initiative:soft_failed',
-          agent: 'INITIATIVE',
-          trustLevel: 'system',
-          details: {
-            initiativeId: initiative.id,
-            reason: executionResult.output,
-            lessons: executionResult.lessonsLearned,
-          },
-        });
+      // Hard gate: do not proceed if discipline gate fails or bias is CRITICAL.
+      if (!plan.safetyGates.discipline.passed || plan.safetyGates.bias.riskLevel === 'CRITICAL') {
+        initiative.status = 'QUEUED';
+        initiative.result = 'Execution deferred by safety gates';
+        initiative.resultDetails = {
+          reason: 'SAFETY_GATES',
+          discipline: plan.safetyGates.discipline,
+          bias: plan.safetyGates.bias,
+        };
+        await this.saveState();
+        return;
       }
+
+      const outcome = await this.executeByCategory(initiative, plan);
+      initiative.status = outcome.status;
+      initiative.result = outcome.summary;
+      initiative.resultDetails = outcome.details;
+
+      this.eventBus.emit('audit:log', {
+        action: initiative.status === 'COMPLETED' ? 'initiative:completed' : 'initiative:orchestrated',
+        agent: 'INITIATIVE',
+        trustLevel: 'system',
+        details: {
+          initiativeId: initiative.id,
+          status: initiative.status,
+          result: initiative.result,
+          kind: initiative.kind,
+        },
+      });
     } catch (error) {
       initiative.status = 'REJECTED';
       initiative.result = error instanceof Error ? error.message : String(error);
 
-      eventBus.emit('audit:log', {
-        action: 'initiative:hard_failed',
+      this.eventBus.emit('audit:log', {
+        action: 'initiative:failed',
         agent: 'INITIATIVE',
         trustLevel: 'system',
         details: { initiativeId: initiative.id, error: initiative.result },
       });
 
-      // Don't throw - allow engine to continue with other initiatives
-      // eslint-disable-next-line no-console
-      console.error(`[InitiativeEngine] Hard failure: ${initiative.result}`);
+      throw error;
     }
 
     // Persist state after execution
@@ -739,10 +837,222 @@ export class InitiativeEngine {
   }
 
   /**
-   * Get execution statistics from the executor
+   * Execute initiative based on its category
    */
-  getExecutorStats(): ReturnType<InitiativeExecutor['getStats']> {
-    return this.executor.getStats();
+  private async executeByCategory(
+    initiative: Initiative,
+    plan: InitiativeExecutionPlan
+  ): Promise<InitiativeExecutionOutcome> {
+    switch (initiative.category) {
+      case 'CODE_QUALITY':
+        return await this.executeCodeQuality(initiative, plan);
+      case 'KNOWLEDGE':
+        return await this.executeKnowledge(initiative, plan);
+      case 'OPPORTUNITIES':
+        return await this.executeOpportunity(initiative, plan);
+      case 'DELIVERABLES':
+        return await this.executeDeliverable(initiative, plan);
+      case 'IMPROVEMENTS':
+        return await this.executeImprovement(initiative, plan);
+      default:
+        return { status: 'REJECTED', summary: 'Unknown category' };
+    }
+  }
+
+  private buildPlanSteps(initiative: Initiative): InitiativeExecutionPlan['steps'] {
+    if (initiative.category === 'CODE_QUALITY' && initiative.kind === 'WRITE_TESTS' && initiative.target?.filePath) {
+      return [
+        { id: 'identify-test-target', description: `Target module: ${initiative.target.filePath}`, risk: 'LOW' },
+        { id: 'create-worktree', description: 'Create isolated worktree branch for changes', risk: 'LOW' },
+        { id: 'write-tests', description: `Write/extend tests at ${initiative.target.testPath ?? 'tests/unit/...'} covering public API and error paths`, risk: 'MEDIUM' },
+        { id: 'verify', description: 'Run unit tests and ensure no lint/build regressions', risk: 'MEDIUM' },
+        { id: 'handoff', description: 'Provide summary + next steps for review/merge', risk: 'LOW' },
+      ];
+    }
+
+    if (initiative.category === 'CODE_QUALITY' && initiative.kind === 'RESOLVE_TODO' && initiative.target?.todo) {
+      return [
+        { id: 'locate-todo', description: `Locate TODO at ${initiative.target.todo.file}:${initiative.target.todo.line}`, risk: 'LOW' },
+        { id: 'design-fix', description: 'Design the smallest correct fix with tests if applicable', risk: 'MEDIUM' },
+        { id: 'implement', description: 'Implement fix in isolated worktree', risk: 'MEDIUM' },
+        { id: 'verify', description: 'Run tests/lint/build as appropriate', risk: 'MEDIUM' },
+      ];
+    }
+
+    if (initiative.category === 'DELIVERABLES') {
+      return [
+        { id: 'collect-signals', description: 'Collect project signals (git status, recent commits, failing tasks)', risk: 'LOW' },
+        { id: 'generate-artifact', description: 'Generate deliverable artifact and persist it', risk: 'LOW' },
+        { id: 'index', description: 'Index deliverable into KnowledgeIndex for retrieval', risk: 'LOW' },
+      ];
+    }
+
+    return [
+      { id: 'review', description: 'Review and execute with appropriate safety gates', risk: 'MEDIUM' },
+    ];
+  }
+
+  private async executeCodeQuality(
+    initiative: Initiative,
+    plan: InitiativeExecutionPlan
+  ): Promise<InitiativeExecutionOutcome> {
+    // Prefer isolated worktrees for any code modifications.
+    if (!this.agentSpawner) {
+      return {
+        status: 'QUEUED',
+        summary: `Code quality initiative ready, but AgentSpawner not available: ${initiative.title}`,
+        details: { recommended: plan.recommendedExecution, missing: 'agentSpawner' },
+      };
+    }
+
+    const worktreeTask = [
+      `You are executing an ARI Initiative in an isolated git worktree.`,
+      ``,
+      `## Initiative`,
+      `- id: ${initiative.id}`,
+      `- category: ${initiative.category}`,
+      `- kind: ${initiative.kind ?? 'unknown'}`,
+      `- title: ${initiative.title}`,
+      ``,
+      `## Rationale`,
+      initiative.rationale,
+      ``,
+      `## Target`,
+      initiative.target ? JSON.stringify(initiative.target, null, 2) : 'none',
+      ``,
+      `## Plan`,
+      plan.steps.map(s => `- [ ] (${s.risk}) ${s.description}`).join('\n'),
+      ``,
+      `## Safety constraints`,
+      `- Keep changes minimal and test-backed.`,
+      `- No secrets, no credentials, no hardcoded user paths.`,
+      `- Prefer unit tests under ${initiative.target?.testPath ?? 'tests/unit/...'} when applicable.`,
+      `- Leave clear summary + how to validate.`,
+      ``,
+      `## Completion protocol`,
+      `Write a JSON file named ".ari-completed" at the worktree root with:`,
+      `{ "initiativeId": "${initiative.id}", "summary": "...", "filesChanged": ["..."], "testsRun": ["..."], "notes": "..." }`,
+    ].join('\n');
+
+    const spawned = await this.agentSpawner.spawnInWorktree(
+      worktreeTask,
+      `initiative-${initiative.id}`,
+      { baseBranch: 'main' }
+    );
+
+    return {
+      status: 'IN_PROGRESS',
+      summary: `Spawned worktree agent ${spawned.id} for: ${initiative.title}`,
+      details: {
+        subagentId: spawned.id,
+        worktreePath: spawned.worktreePath,
+        branch: spawned.branch,
+        safetyGates: plan.safetyGates,
+      },
+    };
+  }
+
+  private async executeKnowledge(
+    initiative: Initiative,
+    plan: InitiativeExecutionPlan
+  ): Promise<InitiativeExecutionOutcome> {
+    // For now: index the plan itself as a retrievable knowledge artifact.
+    if (this.knowledgeIndex) {
+      await this.knowledgeIndex.index({
+        content: [
+          `Initiative: ${initiative.title}`,
+          `Category: ${initiative.category}`,
+          `Kind: ${initiative.kind ?? 'unknown'}`,
+          ``,
+          `Rationale: ${initiative.rationale}`,
+          ``,
+          `Plan:`,
+          plan.steps.map(s => `- (${s.risk}) ${s.description}`).join('\n'),
+        ].join('\n'),
+        title: `Initiative Plan: ${initiative.title}`,
+        source: 'file',
+        domain: 'decisions',
+        tags: ['initiative', 'plan', initiative.category.toLowerCase()],
+        provenance: { createdBy: 'initiative-engine', createdAt: new Date() },
+      });
+    }
+
+    return {
+      status: 'COMPLETED',
+      summary: `Knowledge initiative processed: ${initiative.title}`,
+      details: { safetyGates: plan.safetyGates },
+    };
+  }
+
+  private executeOpportunity(
+    initiative: Initiative,
+    plan: InitiativeExecutionPlan
+  ): Promise<InitiativeExecutionOutcome> {
+    // Opportunities are generally user-facing; record for review.
+    return Promise.resolve({
+      status: 'COMPLETED',
+      summary: `Opportunity recorded: ${initiative.title}`,
+      details: { forUser: initiative.forUser, safetyGates: plan.safetyGates },
+    });
+  }
+
+  private async executeDeliverable(
+    initiative: Initiative,
+    plan: InitiativeExecutionPlan
+  ): Promise<InitiativeExecutionOutcome> {
+    // Minimal in-process deliverable: write a status summary file and index it.
+    const now = new Date();
+    const stamp = now.toISOString().replace(/[:.]/g, '-');
+    const relOut = path.join('deliverables', `status-${stamp}.md`);
+    const outDir = path.join(homedir(), '.ari', 'deliverables');
+    const outPath = path.join(outDir, `status-${stamp}.md`);
+
+    await fs.mkdir(outDir, { recursive: true });
+
+    const content = [
+      `# Project Status Summary`,
+      ``,
+      `- Generated: ${now.toISOString()}`,
+      `- Initiative: ${initiative.id} (${initiative.title})`,
+      ``,
+      `## Summary`,
+      initiative.description,
+      ``,
+      `## Notes`,
+      `This is an automated deliverable artifact generated by ARI.`,
+    ].join('\n');
+
+    await fs.writeFile(outPath, content, 'utf-8');
+
+    if (this.knowledgeIndex) {
+      await this.knowledgeIndex.index({
+        content,
+        title: `Deliverable: ${initiative.title}`,
+        source: 'file',
+        sourcePath: relOut,
+        domain: 'docs',
+        tags: ['deliverable', 'status'],
+        provenance: { createdBy: 'initiative-engine', createdAt: now },
+      });
+    }
+
+    return {
+      status: 'COMPLETED',
+      summary: `Deliverable generated at ${outPath}`,
+      details: { path: outPath, indexed: !!this.knowledgeIndex, safetyGates: plan.safetyGates },
+    };
+  }
+
+  private executeImprovement(
+    initiative: Initiative,
+    plan: InitiativeExecutionPlan
+  ): Promise<InitiativeExecutionOutcome> {
+    // Improvements are intentionally conservative: log + require review.
+    return Promise.resolve({
+      status: 'QUEUED',
+      summary: `Improvement queued for review: ${initiative.title}`,
+      details: { safetyGates: plan.safetyGates },
+    });
   }
 
   /**
@@ -804,11 +1114,7 @@ export class InitiativeEngine {
    * Load persisted state
    */
   private async loadState(): Promise<void> {
-    const statePath = path.join(
-      process.env.HOME || '~',
-      '.ari',
-      'initiative-state.json'
-    );
+    const statePath = path.join(homedir(), '.ari', 'initiative-state.json');
 
     try {
       const data = await fs.readFile(statePath, 'utf-8');
@@ -831,11 +1137,7 @@ export class InitiativeEngine {
    * Save state to disk
    */
   private async saveState(): Promise<void> {
-    const statePath = path.join(
-      process.env.HOME || '~',
-      '.ari',
-      'initiative-state.json'
-    );
+    const statePath = path.join(homedir(), '.ari', 'initiative-state.json');
 
     const dir = path.dirname(statePath);
     await fs.mkdir(dir, { recursive: true });
@@ -856,7 +1158,7 @@ export class InitiativeEngine {
     initiative.status = 'REJECTED';
     initiative.result = reason || 'Rejected by user';
 
-    eventBus.emit('audit:log', {
+    this.eventBus.emit('audit:log', {
       action: 'initiative:rejected',
       agent: 'INITIATIVE',
       trustLevel: 'system',
@@ -876,7 +1178,7 @@ export class InitiativeEngine {
 
     initiative.status = 'QUEUED';
 
-    eventBus.emit('audit:log', {
+    this.eventBus.emit('audit:log', {
       action: 'initiative:queued',
       agent: 'INITIATIVE',
       trustLevel: 'system',
