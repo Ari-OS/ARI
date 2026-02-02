@@ -215,6 +215,44 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
       description: 'Monthly comprehensive self-evaluation',
     },
   },
+
+  // ==========================================================================
+  // INITIATIVE ENGINE: Proactive autonomy and user deliverables
+  // ==========================================================================
+
+  {
+    id: 'initiative-comprehensive-scan',
+    name: 'Initiative Comprehensive Scan',
+    cron: '0 6 * * *', // 6:00 AM daily (before morning briefing)
+    handler: 'initiative_comprehensive_scan',
+    enabled: true,
+    metadata: {
+      category: 'PROACTIVE',
+      description: 'Comprehensive scan for new work to do autonomously',
+    },
+  },
+  {
+    id: 'user-daily-brief',
+    name: 'User Daily Brief',
+    cron: '30 7 * * *', // 7:30 AM daily (after initiative scan, before work starts)
+    handler: 'user_daily_brief',
+    enabled: true,
+    metadata: {
+      category: 'DELIVERABLES',
+      description: 'Generate daily focus, action items, and insights for user',
+    },
+  },
+  {
+    id: 'initiative-midday-check',
+    name: 'Initiative Midday Check',
+    cron: '0 14 * * *', // 2:00 PM daily
+    handler: 'initiative_midday_check',
+    enabled: true,
+    metadata: {
+      category: 'PROACTIVE',
+      description: 'Mid-day progress check and urgent initiative execution',
+    },
+  },
 ];
 
 export class Scheduler {

@@ -23,6 +23,8 @@ import { KnowledgeIndex } from './knowledge-index.js';
 import { ChangelogGenerator } from './changelog-generator.js';
 import { AgentSpawner } from './agent-spawner.js';
 import { BriefingGenerator } from './briefings.js';
+import { InitiativeEngine } from './initiative-engine.js';
+import { generateDailyBrief, formatDailyBrief } from './user-deliverables.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -51,6 +53,7 @@ export class AutonomousAgent {
   private changelogGenerator: ChangelogGenerator;
   private agentSpawner: AgentSpawner;
   private briefingGenerator: BriefingGenerator | null = null;
+  private initiativeEngine: InitiativeEngine;
 
   constructor(eventBus: EventBus, config?: Partial<AutonomousConfig>) {
     this.eventBus = eventBus;
@@ -74,6 +77,14 @@ export class AutonomousAgent {
     this.knowledgeIndex = new KnowledgeIndex(eventBus);
     this.changelogGenerator = new ChangelogGenerator(eventBus, process.cwd());
     this.agentSpawner = new AgentSpawner(eventBus, process.cwd());
+
+    // Initialize initiative engine for proactive autonomy
+    this.initiativeEngine = new InitiativeEngine({
+      projectPath: process.cwd(),
+      scanIntervalMs: 30 * 60 * 1000, // 30 minutes between automatic scans
+      maxInitiativesPerScan: 10,
+      autoExecute: true, // Execute autonomous initiatives automatically
+    });
   }
 
   /**
@@ -110,6 +121,9 @@ export class AutonomousAgent {
 
     // Initialize agent spawner
     await this.agentSpawner.init();
+
+    // Initialize initiative engine (proactive autonomy)
+    await this.initiativeEngine.init();
 
     // Initialize Pushover if configured
     if (this.config.pushover?.userKey && this.config.pushover?.apiToken) {
@@ -162,6 +176,9 @@ export class AutonomousAgent {
     // Start scheduler
     this.scheduler.start();
 
+    // Start initiative engine (proactive autonomy)
+    void this.initiativeEngine.start();
+
     // No notification on startup - saves tokens and reduces noise
     // Only notify on errors or important events
 
@@ -183,6 +200,9 @@ export class AutonomousAgent {
 
     // Stop scheduler
     this.scheduler.stop();
+
+    // Stop initiative engine
+    this.initiativeEngine.stop();
 
     if (this.pollTimer) {
       clearTimeout(this.pollTimer);
@@ -226,6 +246,45 @@ export class AutonomousAgent {
 
       // Send batched notifications if it's morning (8am) - handled by auditReporter now
       // The notification manager batch processing is integrated into processQueue()
+
+      // ==========================================================================
+      // INITIATIVE ENGINE: Proactive autonomy - thinking, designing, implementing
+      // ==========================================================================
+      // Quick scan for initiatives (~5% chance each poll to avoid overhead)
+      if (Math.random() < 0.05) {
+        const initiatives = await this.initiativeEngine.scan();
+        if (initiatives.length > 0) {
+          // eslint-disable-next-line no-console
+          console.log(`[Initiative] Discovered ${initiatives.length} new initiatives`);
+
+          // Execute high-priority autonomous initiatives immediately
+          const autonomous = initiatives.filter(i => i.autonomous && i.priority >= 70);
+          for (const initiative of autonomous.slice(0, 2)) { // Max 2 per cycle
+            try {
+              // eslint-disable-next-line no-console
+              console.log(`[Initiative] Executing: ${initiative.title}`);
+              await this.initiativeEngine.executeInitiative(initiative.id);
+            } catch (err) {
+              // eslint-disable-next-line no-console
+              console.error(`[Initiative] Failed to execute ${initiative.id}:`, err);
+            }
+          }
+
+          // Queue user-facing initiatives as deliverables
+          const forUser = initiatives.filter(i => i.forUser && !i.autonomous);
+          if (forUser.length > 0) {
+            this.eventBus.emit('audit:log', {
+              action: 'initiatives_for_user',
+              agent: 'INITIATIVE_ENGINE',
+              trustLevel: 'system',
+              details: {
+                count: forUser.length,
+                initiatives: forUser.map(i => ({ title: i.title, category: i.category })),
+              },
+            });
+          }
+        }
+      }
 
       // Periodic cleanup
       if (Math.random() < 0.01) { // ~1% chance each poll
@@ -566,6 +625,116 @@ export class AutonomousAgent {
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('[Cognitive] Self-assessment failed:', error);
+      }
+    });
+
+    // ==========================================================================
+    // INITIATIVE ENGINE: Proactive work discovery and execution
+    // ==========================================================================
+
+    // Comprehensive initiative scan at 6 AM (before morning briefing)
+    this.scheduler.registerHandler('initiative_comprehensive_scan', async () => {
+      try {
+        // eslint-disable-next-line no-console
+        console.log('[Initiative] Starting comprehensive daily scan...');
+
+        const initiatives = await this.initiativeEngine.scan();
+
+        // Execute all autonomous high-priority initiatives
+        const autonomous = initiatives.filter(i => i.autonomous && i.priority >= 60);
+        let executed = 0;
+        for (const initiative of autonomous.slice(0, 5)) { // Max 5 per day
+          try {
+            await this.initiativeEngine.executeInitiative(initiative.id);
+            executed++;
+          } catch {
+            // Continue with others even if one fails
+          }
+        }
+
+        // Log summary
+        this.eventBus.emit('audit:log', {
+          action: 'initiative_daily_scan',
+          agent: 'INITIATIVE_ENGINE',
+          trustLevel: 'system',
+          details: {
+            discovered: initiatives.length,
+            autonomous: autonomous.length,
+            executed,
+            forUser: initiatives.filter(i => i.forUser).length,
+          },
+        });
+
+        // eslint-disable-next-line no-console
+        console.log(`[Initiative] Daily scan: ${initiatives.length} discovered, ${executed} executed`);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('[Initiative] Daily scan failed:', error);
+      }
+    });
+
+    // Generate user deliverables daily brief at 7:30 AM
+    this.scheduler.registerHandler('user_daily_brief', async () => {
+      try {
+        const brief = await generateDailyBrief(process.cwd());
+        const formatted = formatDailyBrief(brief);
+
+        // Log the brief
+        this.eventBus.emit('audit:log', {
+          action: 'daily_brief_generated',
+          agent: 'USER_DELIVERABLES',
+          trustLevel: 'system',
+          details: {
+            focusAreas: brief.focusAreas.length,
+            actionItems: brief.actionItems.length,
+            insights: brief.insights.length,
+            opportunities: brief.opportunities.length,
+          },
+        });
+
+        // eslint-disable-next-line no-console
+        console.log('[Deliverables] Daily brief generated:');
+        // eslint-disable-next-line no-console
+        console.log(formatted);
+
+        // If notification is available, send a summary
+        if (brief.actionItems.length > 0) {
+          const urgent = brief.actionItems.filter(i => i.priority === 'URGENT' || i.priority === 'HIGH');
+          if (urgent.length > 0) {
+            await notificationManager.insight(
+              'Daily Brief',
+              `${urgent.length} high-priority item${urgent.length > 1 ? 's' : ''}: ${urgent.map(i => i.title).join(', ')}`
+            );
+          }
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('[Deliverables] Daily brief generation failed:', error);
+      }
+    });
+
+    // Initiative check-in at 2 PM (mid-day progress check)
+    this.scheduler.registerHandler('initiative_midday_check', async () => {
+      try {
+        const queued = this.initiativeEngine.getInitiativesByStatus('QUEUED');
+        const inProgress = this.initiativeEngine.getInitiativesByStatus('IN_PROGRESS');
+        const completed = this.initiativeEngine.getInitiativesByStatus('COMPLETED');
+
+        // eslint-disable-next-line no-console
+        console.log(`[Initiative] Mid-day status: ${queued.length} queued, ${inProgress.length} in progress, ${completed.length} completed today`);
+
+        // Execute any high-priority queued items that haven't been started
+        const urgent = queued.filter(i => i.autonomous && i.priority >= 80);
+        for (const initiative of urgent.slice(0, 2)) {
+          try {
+            await this.initiativeEngine.executeInitiative(initiative.id);
+          } catch {
+            // Continue
+          }
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('[Initiative] Mid-day check failed:', error);
       }
     });
   }
