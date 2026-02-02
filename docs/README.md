@@ -2,14 +2,19 @@
 
 > Your Life Operating System — Built to multiply human capability within strict boundaries.
 
+**ARI helps you think.** Not just execute tasks, but reason about them.
+
 ---
 
 ## Find What You Need
 
 | You want to... | Start here |
 |----------------|------------|
+| **Understand the vision** | [Vision & Philosophy](VISION.md) |
 | **Get running quickly** | [Quick Start](guides/setup.md#quick-start) |
 | **Understand the architecture** | [Architecture Overview](architecture/ARCHITECTURE.md) |
+| **Understand the networking** | [Networking Architecture](architecture/NETWORKING.md) |
+| **Understand the cognitive layer** | [Cognitive Architecture](cognition/README.md) |
 | **Set up development** | [Full Setup Guide](guides/setup.md) |
 | **Deploy to Mac Mini** | [Mac Mini Runbook](operations/RUNBOOK_MAC_MINI.md) |
 | **Work with Claude Code** | [Claude Code Setup](guides/CLAUDE-CODE-SETUP.md) |
@@ -21,12 +26,23 @@
 
 ```
 docs/
+├── VISION.md         # ARI's unique value proposition
+│
 ├── architecture/     # How ARI is built
-│   ├── ARCHITECTURE.md   — 6-layer system design
+│   ├── ARCHITECTURE.md   — 7-layer system design
+│   ├── NETWORKING.md     — Three-zone network architecture  ← NEW
 │   ├── agents.md         — 8 specialized agents
 │   ├── security.md       — Threat model + defenses
 │   ├── principles.md     — Engineering philosophy
 │   └── DECISIONS.md      — Architectural decisions (ADRs)
+│
+├── cognition/        # Layer 0: Cognitive Architecture  ← NEW
+│   ├── README.md         — Overview of LOGOS/ETHOS/PATHOS
+│   ├── 01-pillars.md     — Three cognitive pillars
+│   ├── 02-logos.md       — Reason (Bayesian, Kelly, EV)
+│   ├── 03-ethos.md       — Character (bias, emotion)
+│   ├── 04-pathos.md      — Growth (CBT, Stoic, wisdom)
+│   └── ...               — (full spec in directory)
 │
 ├── guides/           # How to use ARI
 │   ├── setup.md          — Complete installation
@@ -73,7 +89,7 @@ These live at the repository root for visibility:
 
 ---
 
-## The 6 Layers
+## The 7 Layers
 
 ARI's architecture is strictly layered. Each layer only imports from layers below it:
 
@@ -91,10 +107,15 @@ ARI's architecture is strictly layered. Each layer only imports from layers belo
 ├─────────────────────────────────────────┤
 │  1. Kernel       Gateway, Sanitizer,    │
 │                  Audit, EventBus        │
+├─────────────────────────────────────────┤
+│  0. Cognitive    LOGOS, ETHOS, PATHOS   │  ← NEW
+│                  Reason, Character,     │
+│                  Growth                 │
 └─────────────────────────────────────────┘
 ```
 
 → [Full architecture details](architecture/ARCHITECTURE.md)
+→ [Cognitive layer details](cognition/README.md)
 
 ---
 
@@ -148,6 +169,10 @@ ARI is built on three principles:
 
 🖤
 
-**ARI v2.0.0** — Aurora Protocol
+**ARI v2.1.0** — Cognitive Layer
+
+*Claude Code helps you write code.*
+*OpenClaw helps you communicate.*
+*ARI helps you think.*
 
 </div>
