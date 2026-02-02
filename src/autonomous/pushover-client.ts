@@ -24,11 +24,12 @@ interface PushoverConfig {
   enabled?: boolean;  // Set to false to disable all Pushover API calls
 }
 
-// GLOBAL KILL SWITCH - Disable ALL Pushover notifications
-// This was added to prevent API cost issues
-// Can be overridden in tests via PUSHOVER_ENABLED=true
+// GLOBAL KILL SWITCH - Pushover is PERMANENTLY DISABLED
+// Pushover was causing spam issues and cost problems
+// Use Twilio SMS or other notification channels instead
+// To re-enable, change this function to check PUSHOVER_ENABLED env var
 function isPushoverDisabled(): boolean {
-  return process.env.PUSHOVER_ENABLED !== 'true';
+  return true; // ALWAYS disabled - use Twilio SMS instead
 }
 
 interface NotificationOptions {
