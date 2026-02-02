@@ -128,6 +128,28 @@ export interface EventMap {
     agent: string;
     timestamp: string;
   };
+  'cognition:leverage_point_identified': {
+    system: string;
+    level: number;
+    name: string;
+    effectiveness: 'low' | 'medium' | 'high' | 'transformative';
+    agent: string;
+    timestamp: string;
+  };
+  'cognition:antifragility_assessed': {
+    item: string;
+    category: 'fragile' | 'robust' | 'antifragile';
+    score: number;
+    agent: string;
+    timestamp: string;
+  };
+  'cognition:decision_tree_evaluated': {
+    rootId: string;
+    expectedValue: number;
+    optimalPath: string[];
+    agent: string;
+    timestamp: string;
+  };
 
   // ═══════════════════════════════════════════════════════════════════════
   // COGNITIVE LAYER 0: ETHOS events (Character & Bias)
@@ -151,6 +173,14 @@ export interface EventMap {
     passed: boolean;
     overallScore: number;
     violations: string[];
+    timestamp: string;
+  };
+  'cognition:fear_greed_detected': {
+    agent: string;
+    pattern: 'FEAR_SPIRAL' | 'GREED_CHASE' | 'REVENGE_TRADING' | 'EUPHORIA' | 'PANIC_SELLING' | 'FOMO' | 'NONE';
+    severity: number;
+    phase: 'early' | 'mid' | 'late' | 'none';
+    recommendation: string;
     timestamp: string;
   };
 
@@ -184,6 +214,63 @@ export interface EventMap {
     targetLevel: number;
     estimatedHours: number;
     agent: string;
+    timestamp: string;
+  };
+  'cognition:dichotomy_analyzed': {
+    situation: string;
+    controllableCount: number;
+    uncontrollableCount: number;
+    focusArea: string;
+    agent: string;
+    timestamp: string;
+  };
+  'cognition:virtue_check': {
+    decision: string;
+    overallAlignment: number;
+    conflicts: string[];
+    virtues: { wisdom: number; courage: number; justice: number; temperance: number };
+    agent: string;
+    timestamp: string;
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // COGNITIVE LAYER 0: Knowledge events
+  // ═══════════════════════════════════════════════════════════════════════
+  'knowledge:source_fetched': {
+    sourceId: string;
+    url: string;
+    trustLevel: 'VERIFIED' | 'STANDARD' | 'UNTRUSTED';
+    success: boolean;
+    documentsCount: number;
+    timestamp: string;
+  };
+  'knowledge:content_validated': {
+    sourceId: string;
+    stage: number;
+    stageName: 'whitelist' | 'sanitize' | 'bias_check' | 'fact_check' | 'human_review';
+    passed: boolean;
+    reason?: string;
+    timestamp: string;
+  };
+  'knowledge:gap_identified': {
+    gapId: string;
+    domain: string;
+    description: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    affectedMembers: string[];
+    timestamp: string;
+  };
+  'knowledge:source_integrated': {
+    sourceId: string;
+    documentCount: number;
+    pillar: 'LOGOS' | 'ETHOS' | 'PATHOS' | 'CROSS_CUTTING';
+    timestamp: string;
+  };
+  'knowledge:council_profile_loaded': {
+    memberId: string;
+    memberName: string;
+    frameworks: string[];
+    sourcesCount: number;
     timestamp: string;
   };
 
