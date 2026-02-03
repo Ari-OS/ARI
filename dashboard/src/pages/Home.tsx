@@ -4,6 +4,7 @@ import { getAgents, verifyAuditChain } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
 import { ErrorState } from '../components/ui/ErrorState';
 import { StatusCardSkeleton } from '../components/ui/Skeleton';
+import { BudgetPanel } from '../components/BudgetPanel';
 
 // Trust level configuration matching ARI's 6-tier system
 const TRUST_LEVELS = [
@@ -359,6 +360,11 @@ export function Home() {
             </div>
           </div>
         )}
+
+        {/* Budget Panel - Prominent Position */}
+        <div className="mb-8">
+          <BudgetPanel />
+        </div>
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

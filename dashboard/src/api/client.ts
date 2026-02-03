@@ -19,6 +19,10 @@ import type {
   Subagent,
   SubagentStats,
   SystemMetrics,
+  BudgetStatus,
+  BudgetProfileName,
+  BudgetProfileChangeResult,
+  ApprovalQueueResponse,
 } from '../types/api';
 
 const API_BASE = '/api';
@@ -360,6 +364,22 @@ export const getFrameworkUsage = (): Promise<FrameworkUsage[]> =>
 
 export const getCognitiveInsights = (limit?: number): Promise<CognitiveInsight[]> =>
   fetchAPI(`/cognition/insights${limit ? `?limit=${limit}` : ''}`);
+
+// Budget Endpoints
+export const getBudgetStatus = (): Promise<BudgetStatus> =>
+  fetchAPI('/budget/status');
+
+export const setBudgetProfile = (profile: BudgetProfileName): Promise<BudgetProfileChangeResult> =>
+  postAPI('/budget/profile', { profile });
+
+export const getApprovalQueue = (): Promise<ApprovalQueueResponse> =>
+  fetchAPI('/approval-queue');
+
+export const approveItem = (id: string, note?: string): Promise<{ success: boolean; id: string }> =>
+  postAPI(`/approval-queue/${id}/approve`, { note });
+
+export const rejectItem = (id: string, reason: string): Promise<{ success: boolean; id: string }> =>
+  postAPI(`/approval-queue/${id}/reject`, { reason });
 
 // Export fetchAPI for direct use if needed
 export { fetchAPI };

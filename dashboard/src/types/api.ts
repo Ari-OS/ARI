@@ -240,3 +240,66 @@ export interface SystemMetrics {
   arch: string;
   pid: number;
 }
+
+// Budget Types
+export type ThrottleLevel = 'normal' | 'warning' | 'reduce' | 'pause';
+export type BudgetProfileName = 'conservative' | 'balanced' | 'aggressive';
+
+export interface BudgetStatus {
+  profile: BudgetProfileName;
+  budget: {
+    maxTokens: number;
+    maxCost: number;
+  };
+  usage: {
+    tokensUsed: number;
+    tokensRemaining: number;
+    costUsed: number;
+    percentUsed: number;
+  };
+  throttle: {
+    level: ThrottleLevel;
+    projectedEOD: number;
+  };
+  breakdown: {
+    byModel: Record<string, { tokens: number; cost: number }>;
+    byTaskType: Array<{
+      taskType: string;
+      tokens: number;
+      cost: number;
+      count: number;
+      percentOfTotal: number;
+    }>;
+  };
+  resetAt: string;
+  date: string;
+}
+
+export interface BudgetProfileChangeResult {
+  success: boolean;
+  profile: BudgetProfileName;
+}
+
+export interface ApprovalItem {
+  id: string;
+  type: 'INITIATIVE' | 'CONFIG_CHANGE' | 'DESTRUCTIVE_OP';
+  title: string;
+  description: string;
+  risk: 'LOW' | 'MEDIUM' | 'HIGH';
+  estimatedCost: number;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ApprovalDecision {
+  itemId: string;
+  decision: 'APPROVED' | 'REJECTED';
+  decidedAt: string;
+  note?: string;
+  reason?: string;
+}
+
+export interface ApprovalQueueResponse {
+  pending: ApprovalItem[];
+  history: ApprovalDecision[];
+}
