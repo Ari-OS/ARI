@@ -114,10 +114,17 @@ function TabNav({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (ta
   ];
 
   return (
-    <div className="flex gap-1 p-1 bg-[var(--bg-tertiary)]/60 backdrop-blur-sm rounded-xl border border-[var(--border-subtle)]">
+    <nav
+      role="tablist"
+      aria-label="Cognition dashboard tabs"
+      className="flex gap-1 p-1 bg-[var(--bg-tertiary)]/60 backdrop-blur-sm rounded-xl border border-[var(--border-subtle)]"
+    >
       {tabs.map((tab) => (
         <button
           key={tab.id}
+          role="tab"
+          aria-selected={activeTab === tab.id}
+          aria-controls={`tabpanel-${tab.id}`}
           onClick={() => onTabChange(tab.id)}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             activeTab === tab.id
@@ -125,11 +132,11 @@ function TabNav({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (ta
               : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-interactive)]'
           }`}
         >
-          <span className="text-base">{tab.icon}</span>
+          <span className="text-base" aria-hidden="true">{tab.icon}</span>
           {tab.label}
         </button>
       ))}
-    </div>
+    </nav>
   );
 }
 

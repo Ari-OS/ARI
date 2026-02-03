@@ -53,6 +53,46 @@ export const CHART_DIMENSIONS = {
   FULL_CHART_WIDTH: 60,
   /** Padding around chart content */
   CHART_PADDING: 2,
+  /** Maximum width for any chart (70 chars) */
+  MAX_WIDTH: 70,
+  /** Default chart width (60 chars) */
+  DEFAULT_WIDTH: 60,
+  /** Width for decorated gauges (50 chars) */
+  DECORATED_GAUGE_WIDTH: 50,
+  /** Width for comparison charts (30 chars) */
+  COMPARISON_WIDTH: 30,
+  /** Width for histograms (30 chars) */
+  HISTOGRAM_WIDTH: 30,
+  /** Width for progress bars (30 chars) */
+  PROGRESS_BAR_WIDTH: 30,
+  /** Width for gauge bars (40 chars) */
+  GAUGE_BAR_WIDTH: 40,
+  /** Width for pillar comparison bars (25 chars) */
+  PILLAR_BAR_WIDTH: 25,
+  /** Tree structure indentation (4 spaces) */
+  TREE_INDENT: 4,
+} as const;
+
+/**
+ * Sparkline configuration
+ */
+export const SPARKLINE_CONFIG = {
+  /** Single value threshold for showing trend */
+  SINGLE_VALUE_THRESHOLD: 1,
+  /** Divisor for character selection (12.5) */
+  CHAR_DIVISOR: 12.5,
+  /** Number of sparkline characters available (8) */
+  CHAR_COUNT: 8,
+} as const;
+
+/**
+ * Score thresholds for rating quality
+ */
+export const SCORE_QUALITY_THRESHOLDS = {
+  /** Scores >= 7 are excellent */
+  EXCELLENT: 7,
+  /** Scores >= 5 are good */
+  GOOD: 5,
 } as const;
 
 /**

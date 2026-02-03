@@ -161,7 +161,12 @@ export class LearningMachine {
           });
         } catch (error) {
           // Memory storage failed, keep in local cache only
-          console.error('Failed to persist pattern to memory:', error);
+          this.eventBus.emit('audit:log', {
+            action: 'pattern_persist_failed',
+            agent: 'learning_machine',
+            trustLevel: 'system' as const,
+            details: { error: error instanceof Error ? error.message : String(error) },
+          });
         }
 
         this.patterns.set(pattern.id, pattern);
@@ -354,7 +359,12 @@ export class LearningMachine {
         partition: 'INTERNAL',
       });
     } catch (error) {
-      console.error('Failed to update pattern in memory:', error);
+      this.eventBus.emit('audit:log', {
+        action: 'pattern_update_failed',
+        agent: 'learning_machine',
+        trustLevel: 'system' as const,
+        details: { error: error instanceof Error ? error.message : String(error) },
+      });
     }
   }
 
@@ -385,7 +395,12 @@ export class LearningMachine {
         }
       }
     } catch (error) {
-      console.error('Failed to load patterns from memory:', error);
+      this.eventBus.emit('audit:log', {
+        action: 'pattern_load_failed',
+        agent: 'learning_machine',
+        trustLevel: 'system' as const,
+        details: { error: error instanceof Error ? error.message : String(error) },
+      });
     }
   }
 

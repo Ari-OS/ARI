@@ -15,6 +15,9 @@ import { renderMiniGauge, type NormalizedMetric } from './normalizer.js';
 import {
   PILLAR_CONFIG,
   TRAFFIC_LIGHT_CONFIG,
+  CHART_DIMENSIONS,
+  SPARKLINE_CONFIG,
+  SCORE_QUALITY_THRESHOLDS,
 } from './constants.js';
 
 // =============================================================================
@@ -30,33 +33,28 @@ export interface RenderOptions {
   width?: number;
 }
 
-/** Maximum width for all charts (optimal readability) */
-const MAX_WIDTH = 70;
+// Import chart dimensions from centralized constants
+const {
+  MAX_WIDTH,
+  DEFAULT_WIDTH,
+  DECORATED_GAUGE_WIDTH,
+  COMPARISON_WIDTH,
+  HISTOGRAM_WIDTH,
+  PROGRESS_BAR_WIDTH,
+  GAUGE_BAR_WIDTH,
+  PILLAR_BAR_WIDTH,
+  TREE_INDENT,
+} = CHART_DIMENSIONS;
 
-/** Default width for most charts */
-const DEFAULT_WIDTH = 60;
+// Import score thresholds from centralized constants
+const { EXCELLENT: SCORE_EXCELLENT, GOOD: SCORE_GOOD } = SCORE_QUALITY_THRESHOLDS;
 
-/** Default decorated gauge width */
-const DECORATED_GAUGE_WIDTH = 50;
-
-/** Default comparison chart width */
-const COMPARISON_WIDTH = 30;
-
-/** Default histogram width */
-const HISTOGRAM_WIDTH = 30;
-
-/** Default progress bar width */
-const PROGRESS_BAR_WIDTH = 30;
-
-/** Default gauge bar width */
-const GAUGE_BAR_WIDTH = 40;
-
-/** Pillar comparison bar width */
-const PILLAR_BAR_WIDTH = 25;
-
-/** Score thresholds for visual indicators (0-10 scale) */
-const SCORE_EXCELLENT = 7;
-const SCORE_GOOD = 5;
+// Import sparkline config from centralized constants
+const {
+  SINGLE_VALUE_THRESHOLD: SPARKLINE_SINGLE_VALUE_THRESHOLD,
+  CHAR_DIVISOR: SPARKLINE_CHAR_DIVISOR,
+  CHAR_COUNT: SPARKLINE_CHAR_COUNT,
+} = SPARKLINE_CONFIG;
 
 /** Action configuration for recommendations */
 const ACTION_CONFIG = {
@@ -79,18 +77,6 @@ const ACTION_CONFIG = {
 
 /** Sparkline characters */
 const SPARKLINE_CHARS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
-
-/** Sparkline bar count threshold */
-const SPARKLINE_SINGLE_VALUE_THRESHOLD = 1;
-
-/** Sparkline normalization divisor */
-const SPARKLINE_CHAR_DIVISOR = 12.5;
-
-/** Sparkline char count */
-const SPARKLINE_CHAR_COUNT = 8;
-
-/** Decision tree indent size */
-const TREE_INDENT = 4;
 
 // =============================================================================
 // EMOJI SUPPORT DETECTION

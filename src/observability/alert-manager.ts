@@ -164,7 +164,14 @@ export class AlertManager {
       // Update existing alert
       existingAlert.count++;
       existingAlert.lastSeenAt = new Date().toISOString();
-      this.save().catch(console.error);
+      this.save().catch((error) => {
+        this.eventBus.emit('audit:log', {
+          action: 'alert_save_failed',
+          agent: 'alert_manager',
+          trustLevel: 'system' as const,
+          details: { error: error instanceof Error ? error.message : String(error) },
+        });
+      });
       return;
     }
 
@@ -186,8 +193,14 @@ export class AlertManager {
     // Emit alert:created event for WebSocket broadcast
     this.eventBus.emit('alert:created' as keyof import('../kernel/event-bus.js').EventMap, alert as never);
 
-    // eslint-disable-next-line no-console
-    this.save().catch(console.error);
+    this.save().catch((error) => {
+      this.eventBus.emit('audit:log', {
+        action: 'alert_save_failed',
+        agent: 'alert_manager',
+        trustLevel: 'system' as const,
+        details: { error: error instanceof Error ? error.message : String(error) },
+      });
+    });
   }
 
   private getDedupKey(alert: Alert, rule: AlertRule): string {
@@ -215,8 +228,12 @@ export class AlertManager {
 
     const parsed = AlertSchema.safeParse(alert);
     if (!parsed.success) {
-      // eslint-disable-next-line no-console
-      console.error('Invalid alert:', parsed.error);
+      this.eventBus.emit('audit:log', {
+        action: 'alert_validation_failed',
+        agent: 'alert_manager',
+        trustLevel: 'system' as const,
+        details: { error: parsed.error.message },
+      });
       return alert;
     }
 
