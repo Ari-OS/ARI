@@ -19,6 +19,8 @@ const pages = [
   { id: 'memory', label: 'Memory', icon: '⬢', description: 'Knowledge', accent: 'cyan' },
   { id: 'tools', label: 'Tools', icon: '⚙', description: 'Registry', accent: 'amber' },
   { id: 'audit', label: 'Audit Trail', icon: '⊞', description: 'Hash chain', accent: 'purple' },
+  { id: 'e2e', label: 'E2E Tests', icon: '✓', description: 'Test results', accent: 'emerald' },
+  { id: 'budget', label: 'Budget', icon: '💰', description: '$75/month', accent: 'amber' },
 ];
 
 export function Sidebar({ currentPage, onNavigate, wsStatus = 'disconnected' }: SidebarProps) {

@@ -530,6 +530,36 @@ export const getAdaptiveSummaries = (): Promise<WeeklySummary[]> =>
 export const getAdaptivePeakHours = (): Promise<{ hours: number[] }> =>
   fetchAPI('/adaptive/peak-hours');
 
+// E2E Testing Endpoints
+export interface E2ERunsResponse {
+  runs: Array<{
+    id: string;
+    status: 'passed' | 'failed' | 'running';
+    startedAt: string;
+    completedAt: string | null;
+    duration: number | null;
+    scenarios: Array<{
+      id: string;
+      name: string;
+      status: 'passed' | 'failed' | 'running';
+      duration: number;
+      error?: string;
+    }>;
+    passed: number;
+    failed: number;
+    total: number;
+  }>;
+  stats: {
+    totalRuns: number;
+    passRate: number;
+    lastRun: string | null;
+    consecutiveFailures: number;
+  };
+}
+
+export const getE2ERuns = (): Promise<E2ERunsResponse> =>
+  fetchAPI('/e2e/runs');
+
 // Export fetchAPI for direct use if needed
 export { fetchAPI };
 

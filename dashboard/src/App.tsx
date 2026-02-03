@@ -14,6 +14,8 @@ import { Tools } from './pages/Tools';
 import { Agents } from './pages/Agents';
 import { Audit } from './pages/Audit';
 import { Cognition } from './pages/Cognition';
+import { E2E } from './pages/E2E';
+import { Budget } from './pages/Budget';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +49,10 @@ function AppContent() {
         return <Agents />;
       case 'audit':
         return <Audit />;
+      case 'e2e':
+        return <E2E />;
+      case 'budget':
+        return <Budget />;
       default:
         return <Home />;
     }

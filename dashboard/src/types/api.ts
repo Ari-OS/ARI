@@ -303,3 +303,47 @@ export interface ApprovalQueueResponse {
   pending: ApprovalItem[];
   history: ApprovalDecision[];
 }
+
+// E2E Testing Types
+export type E2EStatus = 'passed' | 'failed' | 'running';
+
+export interface E2EScenario {
+  id: string;
+  name: string;
+  status: E2EStatus;
+  duration: number;
+  error?: string;
+}
+
+export interface E2ERun {
+  id: string;
+  status: E2EStatus;
+  startedAt: string;
+  completedAt: string | null;
+  duration: number | null;
+  scenarios: E2EScenario[];
+  passed: number;
+  failed: number;
+  total: number;
+}
+
+export interface E2ERunsResponse {
+  runs: E2ERun[];
+  stats: {
+    totalRuns: number;
+    passRate: number;
+    lastRun: string | null;
+    consecutiveFailures: number;
+  };
+}
+
+export interface E2ELiveRun {
+  id: string;
+  status: E2EStatus;
+  startedAt: string;
+  completed: number;
+  total: number;
+  passed: number;
+  failed: number;
+  currentScenario: string | null;
+}

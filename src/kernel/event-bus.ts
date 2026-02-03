@@ -447,6 +447,55 @@ export interface EventMap {
   // MODEL ROUTING events (Intelligent Model Selection)
   // ═══════════════════════════════════════════════════════════════════════
   'model:routed': { task: string; model: string; reason: string; estimatedCost?: number };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // E2E TESTING events (Playwright Integration)
+  // ═══════════════════════════════════════════════════════════════════════
+  'e2e:run_started': { runId: string; scenarioCount: number; timestamp: string };
+  'e2e:scenario_started': { runId: string; scenario: string };
+  'e2e:scenario_complete': {
+    runId: string;
+    scenario: string;
+    passed: boolean;
+    duration: number;
+    error?: string;
+    screenshot?: string;
+  };
+  'e2e:run_complete': {
+    runId: string;
+    passed: number;
+    failed: number;
+    skipped: number;
+    duration: number;
+    consecutiveFailures: number;
+  };
+  'e2e:bug_filed': { runId: string; issueUrl: string; issueNumber: number };
+  'e2e:skipped': { reason: 'budget_pause' | 'already_running' | 'gateway_down' };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // BUDGET TRACKER events (Enhanced Model Management)
+  // ═══════════════════════════════════════════════════════════════════════
+  'budget:warning': { spent: number; remaining: number };
+  'budget:critical': { spent: number; remaining: number };
+  'budget:pause': { spent: number; budget: number; percentUsed: number };
+  'budget:cycle_reset': { previousSpent: number; newBudget: number };
+  'budget:update': { status: string; spent: number; remaining: number; percentUsed: number; mode: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // LLM REQUEST events (Token & Cost Tracking)
+  // ═══════════════════════════════════════════════════════════════════════
+  'llm:request_start': { model: string; estimatedTokens: number };
+  'llm:request_complete': {
+    timestamp: string;
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    cost: number;
+    taskType: string;
+    taskCategory?: string;
+    duration: number;
+    success: boolean;
+  };
 }
 
 /**

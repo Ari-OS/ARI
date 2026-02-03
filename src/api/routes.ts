@@ -20,6 +20,8 @@ import type { ApprovalQueue } from '../autonomous/approval-queue.js';
 import type { BillingCycleManager } from '../autonomous/billing-cycle.js';
 import type { ValueAnalytics } from '../observability/value-analytics.js';
 import type { AdaptiveLearner } from '../autonomous/adaptive-learner.js';
+import type { BudgetTracker } from '../autonomous/budget-tracker.js';
+import type { E2ERunner } from '../e2e/runner.js';
 import fastifyStatic from '@fastify/static';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -65,6 +67,8 @@ export interface ApiDependencies {
   billingCycleManager?: BillingCycleManager;
   valueAnalytics?: ValueAnalytics;
   adaptiveLearner?: AdaptiveLearner;
+  budgetTracker?: BudgetTracker;
+  e2eRunner?: E2ERunner;
 }
 
 export interface ApiRouteOptions extends FastifyPluginOptions {
@@ -2414,6 +2418,242 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
       };
     }
   );
+
+  // ── E2E Testing Endpoints ─────────────────────────────────────────────────────
+
+  /**
+   * GET /api/e2e/runs
+   * Returns E2E test run history
+   */
+  fastify.get<{ Querystring: { limit?: string } }>(
+    '/api/e2e/runs',
+    async (request) => {
+      const limit = request.query.limit ? parseInt(request.query.limit, 10) : 20;
+
+      if (!deps.e2eRunner) {
+        return {
+          runs: [],
+          passRate: 0,
+          lastRun: null,
+          consecutiveFailures: 0,
+        };
+      }
+
+      const history = deps.e2eRunner.getRunHistory();
+      const runs = history.slice(0, limit);
+      const totalRuns = runs.length;
+      const passedRuns = runs.filter(r => r.failed === 0).length;
+      const passRate = totalRuns > 0 ? (passedRuns / totalRuns) * 100 : 0;
+
+      return {
+        runs,
+        passRate,
+        lastRun: runs[0]?.timestamp ?? null,
+        consecutiveFailures: deps.e2eRunner.getConsecutiveFailures(),
+      };
+    }
+  );
+
+  /**
+   * GET /api/e2e/runs/:id
+   * Returns a specific E2E test run
+   */
+  fastify.get<{ Params: { id: string } }>(
+    '/api/e2e/runs/:id',
+    async (request, reply) => {
+      const { id } = request.params;
+
+      if (!deps.e2eRunner) {
+        reply.code(503);
+        return { error: 'E2E runner not initialized' };
+      }
+
+      const history = deps.e2eRunner.getRunHistory();
+      const run = history.find(r => r.id === id);
+
+      if (!run) {
+        reply.code(404);
+        return { error: `E2E run ${id} not found` };
+      }
+
+      return run;
+    }
+  );
+
+  /**
+   * GET /api/e2e/status
+   * Returns current E2E testing status
+   */
+  fastify.get('/api/e2e/status', async () => {
+    if (!deps.e2eRunner) {
+      return {
+        isRunning: false,
+        lastRunId: null,
+        consecutiveFailures: 0,
+        initialized: false,
+      };
+    }
+
+    const history = deps.e2eRunner.getRunHistory();
+
+    return {
+      isRunning: deps.e2eRunner.isCurrentlyRunning(),
+      lastRunId: history[0]?.id ?? null,
+      consecutiveFailures: deps.e2eRunner.getConsecutiveFailures(),
+      initialized: true,
+    };
+  });
+
+  /**
+   * POST /api/e2e/run
+   * Triggers a new E2E test run
+   */
+  fastify.post<{
+    Body?: {
+      category?: string;
+      tag?: string;
+      triggeredBy?: 'manual' | 'scheduled' | 'ci';
+    };
+  }>('/api/e2e/run', async (request, reply) => {
+    if (!deps.e2eRunner) {
+      reply.code(503);
+      return { error: 'E2E runner not initialized' };
+    }
+
+    if (deps.e2eRunner.isCurrentlyRunning()) {
+      reply.code(409);
+      return { error: 'E2E test run already in progress' };
+    }
+
+    const options = request.body ?? {};
+
+    // Trigger async run - don't wait for completion
+    deps.e2eRunner.runDailySuite({
+      category: options.category,
+      tag: options.tag,
+      triggeredBy: options.triggeredBy ?? 'manual',
+    }).catch((error: Error) => {
+      console.error('E2E run failed:', error.message);
+    });
+
+    await deps.audit.log(
+      'e2e:run_triggered',
+      'API',
+      'operator',
+      { category: options.category, triggeredBy: options.triggeredBy ?? 'manual' }
+    );
+
+    return { started: true, message: 'E2E test run started' };
+  });
+
+  // ── Budget Tracker Endpoints (Enhanced) ───────────────────────────────────────
+
+  /**
+   * GET /api/budget/state
+   * Returns full budget tracker state for dashboard visualization
+   */
+  fastify.get('/api/budget/state', async () => {
+    if (!deps.budgetTracker) {
+      // Return default state if budget tracker not initialized
+      return {
+        config: {
+          monthlyBudget: 75,
+          billingCycleStart: 1,
+          warningThreshold: 0.7,
+          criticalThreshold: 0.9,
+          pauseThreshold: 0.95,
+          reservePercent: 0.1,
+          adaptiveMode: true,
+        },
+        currentCycle: {
+          startDate: new Date().toISOString(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          spent: 0,
+          remaining: 75,
+          usageByDay: [],
+        },
+        historicalCycles: [],
+        adaptiveState: {
+          currentMode: 'normal',
+          recommendedDailyBudget: 2.5,
+          usagePatterns: {
+            weekdayAverage: 0,
+            weekendAverage: 0,
+            hourlyDistribution: new Array(24).fill(0),
+            trendDirection: 'stable',
+          },
+          modelEfficiency: {},
+        },
+      };
+    }
+
+    return deps.budgetTracker.getState();
+  });
+
+  /**
+   * GET /api/budget/recommended-model
+   * Get recommended model for a task type based on current budget
+   */
+  fastify.get<{ Querystring: { taskType?: string } }>(
+    '/api/budget/recommended-model',
+    async (request) => {
+      const taskType = (request.query.taskType || 'standard') as 'simple' | 'standard' | 'complex' | 'critical';
+
+      if (!deps.budgetTracker) {
+        // Return sensible default based on task type
+        const defaults: Record<string, string> = {
+          simple: 'claude-3-haiku',
+          standard: 'claude-haiku-4.5',
+          complex: 'claude-sonnet-4.5',
+          critical: 'claude-opus-4.5',
+        };
+        return {
+          model: defaults[taskType] || 'claude-sonnet-4.5',
+          reason: 'Default recommendation (budget tracker not initialized)',
+        };
+      }
+
+      const model = deps.budgetTracker.getRecommendedModel(taskType);
+      const status = deps.budgetTracker.getStatus();
+
+      return {
+        model,
+        reason: `Recommended for ${taskType} task in ${status.mode} mode`,
+        budgetMode: status.mode,
+        percentUsed: status.percentUsed,
+      };
+    }
+  );
+
+  /**
+   * PUT /api/budget/config
+   * Update budget configuration
+   */
+  fastify.put<{
+    Body: {
+      monthlyBudget?: number;
+      warningThreshold?: number;
+      criticalThreshold?: number;
+      adaptiveMode?: boolean;
+    };
+  }>('/api/budget/config', async (request, reply) => {
+    if (!deps.budgetTracker) {
+      reply.code(503);
+      return { error: 'Budget tracker not initialized' };
+    }
+
+    const updates = request.body;
+    await deps.budgetTracker.updateConfig(updates);
+
+    await deps.audit.log(
+      'budget:config_updated',
+      'API',
+      'operator',
+      { updates }
+    );
+
+    return { success: true, message: 'Budget configuration updated' };
+  });
 };
 
 function formatUptime(seconds: number): string {

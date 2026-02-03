@@ -41,6 +41,9 @@ const EVENT_TO_QUERY_KEYS: Record<string, string[][]> = {
   'alert:created': [['alerts']],
   'alert:acknowledged': [['alerts']],
   'alert:resolved': [['alerts']],
+  'e2e:run_started': [['e2e', 'runs']],
+  'e2e:scenario_complete': [['e2e', 'runs']],
+  'e2e:run_complete': [['e2e', 'runs']],
 };
 
 const MAX_RECONNECT_DELAY = 30000;
