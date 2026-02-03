@@ -5,3 +5,4 @@ export { TaskSuccessChart, MiniSuccessBar } from './TaskSuccessChart';
 export { HealthScoreGauge, InlineHealth } from './HealthScoreGauge';
 export { ValueScoreCard } from './ValueScoreCard';
 export { BillingCycleProgress } from './BillingCycleProgress';
+export { ValueTrendChart } from './ValueTrendChart';
