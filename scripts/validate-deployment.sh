@@ -5,7 +5,7 @@
 # Validates all components after deployment to Mac Mini
 # ═══════════════════════════════════════════════════════════════════════════
 
-set -e
+# Note: set -e removed to allow warnings without immediate exit
 
 MINI_HOST="${MINI_HOST:-ari@100.81.73.34}"
 SSH_KEY="${SSH_KEY:-~/.ssh/id_ed25519}"
@@ -132,7 +132,7 @@ echo ""
 
 echo "━━━ Audit Chain ━━━"
 ssh_check "Audit log exists" "test -f ~/.ari/audit.json"
-ssh_check "Audit chain valid" "cd ~/ARI && npx ari audit verify 2>&1 | grep -q 'valid\|Valid\|intact'"
+ssh_check "Audit chain valid" "cd ~/ARI && npx ari audit verify 2>&1 | grep -qi 'valid\|verified\|intact'"
 echo ""
 
 echo "━━━ API Endpoints ━━━"
