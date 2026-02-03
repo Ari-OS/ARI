@@ -15,6 +15,10 @@ import type { MetricsCollector } from '../observability/metrics-collector.js';
 import type { AlertManager } from '../observability/alert-manager.js';
 import type { ExecutionHistoryTracker } from '../observability/execution-history.js';
 import type { AlertSeverity, AlertStatus } from '../observability/types.js';
+import type { CostTracker } from '../observability/cost-tracker.js';
+import type { ApprovalQueue } from '../autonomous/approval-queue.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 export interface ApiDependencies {
   audit: AuditLogger;
@@ -31,6 +35,8 @@ export interface ApiDependencies {
   metricsCollector?: MetricsCollector;
   alertManager?: AlertManager;
   executionHistory?: ExecutionHistoryTracker;
+  costTracker?: CostTracker;
+  approvalQueue?: ApprovalQueue;
 }
 
 export interface ApiRouteOptions extends FastifyPluginOptions {
@@ -1741,6 +1747,327 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
     } catch (error) {
       reply.code(500);
       return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+  // ── Budget Endpoints ────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/budget/status
+   * Returns current budget usage and throttle status
+   */
+  fastify.get('/api/budget/status', async () => {
+    if (!deps.costTracker) {
+      return { error: 'Cost tracker not initialized' };
+    }
+
+    const status = deps.costTracker.getThrottleStatus();
+    const usage = deps.costTracker.getTokenUsage();
+    const profile = deps.costTracker.getProfile();
+
+    return {
+      profile: profile?.profile ?? 'unknown',
+      budget: {
+        maxTokens: profile?.budget?.daily?.maxTokens ?? 800000,
+        maxCost: profile?.budget?.daily?.maxCost ?? 2.50,
+      },
+      usage: {
+        tokensUsed: usage.totalTokens,
+        tokensRemaining: status.tokensRemaining,
+        costUsed: usage.totalCost,
+        percentUsed: status.usagePercent,
+      },
+      throttle: {
+        level: status.level,
+        projectedEOD: status.projectedEOD,
+      },
+      breakdown: {
+        byModel: usage.byModel,
+        byTaskType: Object.entries(usage.byTaskType)
+          .sort((a, b) => b[1].cost - a[1].cost)
+          .slice(0, 10)
+          .map(([taskType, data]) => ({
+            taskType,
+            tokens: data.tokens,
+            cost: data.cost,
+            count: data.count,
+            percentOfTotal: usage.totalTokens > 0
+              ? (data.tokens / usage.totalTokens) * 100
+              : 0,
+          })),
+      },
+      resetAt: usage.resetAt,
+      date: usage.date,
+    };
+  });
+
+  /**
+   * GET /api/budget/history
+   * Returns historical budget usage (last N days)
+   */
+  fastify.get<{ Querystring: { days?: string } }>(
+    '/api/budget/history',
+    async (request) => {
+      const days = request.query.days ? parseInt(request.query.days, 10) : 7;
+
+      // For now, return current day only
+      // TODO: Implement multi-day history storage
+      const usage = deps.costTracker?.getTokenUsage();
+
+      return {
+        history: usage ? [usage] : [],
+        days,
+      };
+    }
+  );
+
+  /**
+   * POST /api/budget/profile
+   * Switch budget profile (conservative, balanced, aggressive)
+   */
+  fastify.post<{ Body: { profile: string } }>(
+    '/api/budget/profile',
+    async (request, reply) => {
+      const { profile } = request.body;
+
+      if (!['conservative', 'balanced', 'aggressive'].includes(profile)) {
+        reply.code(400);
+        return { error: 'Invalid profile. Must be conservative, balanced, or aggressive.' };
+      }
+
+      if (!deps.costTracker) {
+        reply.code(503);
+        return { error: 'Cost tracker not initialized' };
+      }
+
+      try {
+        // Load profile from config file
+        const profilePath = path.join(process.cwd(), 'config', `budget.${profile}.json`);
+        const profileData = JSON.parse(await fs.readFile(profilePath, 'utf-8')) as import('../observability/cost-tracker.js').BudgetProfile;
+
+        await deps.costTracker.setProfile(profileData);
+
+        await deps.audit.log(
+          'budget:profile_changed',
+          'API',
+          'operator',
+          { profile, previousProfile: deps.costTracker.getProfile()?.profile }
+        );
+
+        return { success: true, profile };
+      } catch (error) {
+        reply.code(500);
+        return { error: `Failed to load profile: ${error instanceof Error ? error.message : String(error)}` };
+      }
+    }
+  );
+
+  /**
+   * GET /api/budget/can-proceed
+   * Check if an operation can proceed within budget constraints
+   */
+  fastify.get<{ Querystring: { tokens?: string; priority?: string } }>(
+    '/api/budget/can-proceed',
+    async (request) => {
+      const tokens = request.query.tokens ? parseInt(request.query.tokens, 10) : 10000;
+      const priority = (request.query.priority || 'STANDARD') as 'BACKGROUND' | 'STANDARD' | 'URGENT';
+
+      if (!deps.costTracker) {
+        return { allowed: true, throttled: false, reason: 'Cost tracker not initialized' };
+      }
+
+      return deps.costTracker.canProceed(tokens, priority);
+    }
+  );
+
+  // ── Approval Queue Endpoints ─────────────────────────────────────────────────
+
+  /**
+   * GET /api/approval-queue
+   * List pending approval items and recent history
+   */
+  fastify.get('/api/approval-queue', async () => {
+    if (!deps.approvalQueue) {
+      return { pending: [], history: [], stats: null };
+    }
+
+    return {
+      pending: deps.approvalQueue.getPending(),
+      history: deps.approvalQueue.getHistory(20),
+      stats: deps.approvalQueue.getStats(),
+    };
+  });
+
+  /**
+   * GET /api/approval-queue/pending
+   * List only pending approval items
+   */
+  fastify.get('/api/approval-queue/pending', async () => {
+    if (!deps.approvalQueue) {
+      return [];
+    }
+    return deps.approvalQueue.getPending();
+  });
+
+  /**
+   * GET /api/approval-queue/stats
+   * Get approval queue statistics
+   */
+  fastify.get('/api/approval-queue/stats', async () => {
+    if (!deps.approvalQueue) {
+      return {
+        pendingCount: 0,
+        pendingByRisk: { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 },
+        pendingByType: {},
+        totalApproved: 0,
+        totalRejected: 0,
+        totalExpired: 0,
+        averageDecisionTimeMs: 0,
+        approvalRate: 0,
+      };
+    }
+    return deps.approvalQueue.getStats();
+  });
+
+  /**
+   * GET /api/approval-queue/:id
+   * Get a specific approval item by ID
+   */
+  fastify.get<{ Params: { id: string } }>(
+    '/api/approval-queue/:id',
+    async (request, reply) => {
+      const { id } = request.params;
+
+      if (!deps.approvalQueue) {
+        reply.code(503);
+        return { error: 'Approval queue not initialized' };
+      }
+
+      const item = deps.approvalQueue.getItem(id);
+      if (!item) {
+        reply.code(404);
+        return { error: `Approval item ${id} not found` };
+      }
+
+      return item;
+    }
+  );
+
+  /**
+   * POST /api/approval-queue/:id/approve
+   * Approve a pending item
+   */
+  fastify.post<{ Params: { id: string }; Body: { note?: string; approvedBy?: string } }>(
+    '/api/approval-queue/:id/approve',
+    async (request, reply) => {
+      const { id } = request.params;
+      const { note, approvedBy } = request.body || {};
+
+      if (!deps.approvalQueue) {
+        reply.code(503);
+        return { error: 'Approval queue not initialized' };
+      }
+
+      try {
+        await deps.approvalQueue.approve(id, { note, approvedBy: approvedBy || 'operator' });
+
+        await deps.audit.log(
+          'approval:item_approved_via_api',
+          'API',
+          'operator',
+          { itemId: id, note }
+        );
+
+        return { success: true, id };
+      } catch (error) {
+        reply.code(404);
+        return { error: error instanceof Error ? error.message : `Item ${id} not found` };
+      }
+    }
+  );
+
+  /**
+   * POST /api/approval-queue/:id/reject
+   * Reject a pending item (reason required)
+   */
+  fastify.post<{ Params: { id: string }; Body: { reason: string; rejectedBy?: string } }>(
+    '/api/approval-queue/:id/reject',
+    async (request, reply) => {
+      const { id } = request.params;
+      const { reason, rejectedBy } = request.body || {};
+
+      if (!reason) {
+        reply.code(400);
+        return { error: 'Reason is required for rejection' };
+      }
+
+      if (!deps.approvalQueue) {
+        reply.code(503);
+        return { error: 'Approval queue not initialized' };
+      }
+
+      try {
+        await deps.approvalQueue.reject(id, { reason, rejectedBy: rejectedBy || 'operator' });
+
+        await deps.audit.log(
+          'approval:item_rejected_via_api',
+          'API',
+          'operator',
+          { itemId: id, reason }
+        );
+
+        return { success: true, id };
+      } catch (error) {
+        reply.code(404);
+        return { error: error instanceof Error ? error.message : `Item ${id} not found` };
+      }
+    }
+  );
+
+  /**
+   * POST /api/approval-queue/add
+   * Add an item to the approval queue (for testing or manual additions)
+   */
+  fastify.post<{
+    Body: {
+      id: string;
+      type: 'INITIATIVE' | 'CONFIG_CHANGE' | 'DESTRUCTIVE_OP' | 'HIGH_COST' | 'SECURITY_SENSITIVE';
+      title: string;
+      description: string;
+      risk: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+      estimatedCost: number;
+      estimatedTokens: number;
+      reversible: boolean;
+      affectedFiles?: string[];
+      toolsRequired?: string[];
+      metadata?: Record<string, unknown>;
+    };
+  }>('/api/approval-queue/add', async (request, reply) => {
+    if (!deps.approvalQueue) {
+      reply.code(503);
+      return { error: 'Approval queue not initialized' };
+    }
+
+    const item = request.body;
+    if (!item.id || !item.type || !item.title || !item.description) {
+      reply.code(400);
+      return { error: 'Missing required fields: id, type, title, description' };
+    }
+
+    try {
+      const fullItem = await deps.approvalQueue.add(item);
+
+      await deps.audit.log(
+        'approval:item_added_via_api',
+        'API',
+        'operator',
+        { itemId: item.id, type: item.type, risk: item.risk }
+      );
+
+      return { success: true, item: fullItem };
+    } catch (error) {
+      reply.code(500);
+      return { error: error instanceof Error ? error.message : 'Failed to add item' };
     }
   });
 };
