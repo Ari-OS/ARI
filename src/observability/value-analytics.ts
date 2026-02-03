@@ -529,7 +529,10 @@ export class ValueAnalytics {
         mkdirSync(ARI_DIR, { recursive: true });
       }
 
-      await fs.writeFile(VALUE_ANALYTICS_PATH, JSON.stringify(this.data, null, 2));
+      // Atomic write: temp file + rename for crash safety
+      const tempPath = `${VALUE_ANALYTICS_PATH}.tmp`;
+      await fs.writeFile(tempPath, JSON.stringify(this.data, null, 2));
+      await fs.rename(tempPath, VALUE_ANALYTICS_PATH);
     } catch (error) {
       console.error('[ValueAnalytics] Failed to persist:', error);
     }

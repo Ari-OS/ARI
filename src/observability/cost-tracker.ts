@@ -479,7 +479,8 @@ export class CostTracker {
     if (this.profile?.models) {
       for (const [, config] of Object.entries(this.profile.models)) {
         if (config.id === model) {
-          return (inputTokens * config.inputCost + outputTokens * config.outputCost) / 1_000_000 * 1000;
+          // Profile pricing is in dollars per million tokens
+          return (inputTokens * config.inputCost + outputTokens * config.outputCost) / 1_000_000;
         }
       }
     }
