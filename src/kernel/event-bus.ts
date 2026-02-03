@@ -335,6 +335,85 @@ export interface EventMap {
   'cost:budget_exceeded': { type: string; current: number; budget: number };
 
   // ═══════════════════════════════════════════════════════════════════════
+  // BUDGET MANAGEMENT events (24/7 Autonomous System)
+  // ═══════════════════════════════════════════════════════════════════════
+  'budget:daily_reset': { previousUsage: number; profile: string };
+  'budget:threshold_reached': {
+    level: 'warning' | 'reduce' | 'pause';
+    percentage: number;
+    remaining?: number;
+    recommendation?: string;
+  };
+  'budget:status_changed': {
+    profile: string;
+    used: number;
+    remaining: number;
+    throttled: boolean;
+  };
+  'budget:profile_changed': {
+    previousProfile: string;
+    newProfile: string;
+    maxTokens: number;
+    maxCost: number;
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // BILLING CYCLE events (14-day cycles)
+  // ═══════════════════════════════════════════════════════════════════════
+  'billing:cycle_started': { cycleStart: string; cycleEnd: string; budget: number };
+  'billing:cycle_warning': { daysRemaining: number; status: string; percentUsed: number };
+  'billing:cycle_ended': { totalSpent: number; budget: number; underBudget: boolean };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // VALUE ANALYTICS events (Cost-to-Reward Tracking)
+  // ═══════════════════════════════════════════════════════════════════════
+  'value:day_analyzed': {
+    date: string;
+    score: number;
+    cost: number;
+    efficiency: string;
+    breakdown: string[];
+  };
+  'value:weekly_report': {
+    averageScore: number;
+    totalCost: number;
+    trend: string;
+    recommendations: string[];
+  };
+
+  // Value-generating events (tracked for scoring)
+  'briefing:morning_delivered': { date: string };
+  'briefing:evening_delivered': { date: string };
+  'test:generated': { file: string; testCount: number };
+  'doc:written': { file: string; wordCount: number };
+  'bug:fixed': { description: string; file: string };
+  'code:improved': { description: string; file: string };
+  'insight:high_value': { insight: string; category: string };
+  'pattern:learned': { pattern: string; confidence: number };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ADAPTIVE LEARNING events (Pattern Recognition)
+  // ═══════════════════════════════════════════════════════════════════════
+  'adaptive:weekly_summary': { summary: Record<string, unknown>; recommendations: unknown[] };
+  'adaptive:recommendation': { type: string; recommendation: string; confidence: number };
+  'adaptive:pattern_applied': { patternId: string; result: 'success' | 'failure' };
+  'user:active': { hour: number; date: string };
+  'model:selected': { taskType: string; model: string; success: boolean };
+  'notification:response': {
+    category: string;
+    priority: string;
+    response: 'opened' | 'dismissed' | 'ignored';
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // APPROVAL QUEUE events (Safety Gates)
+  // ═══════════════════════════════════════════════════════════════════════
+  'approval:item_added': { itemId: string; type: string; risk: string; estimatedCost: number };
+  'approval:approved': { itemId: string; type: string; approvedBy?: string };
+  'approval:rejected': { itemId: string; type: string; reason: string; rejectedBy?: string };
+  'approval:expired': { itemId: string; type: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
   // PLAN REVIEW events (Quality Gates)
   // ═══════════════════════════════════════════════════════════════════════
   'plan:review_started': { planId: string; requiredReviews: string[] };
