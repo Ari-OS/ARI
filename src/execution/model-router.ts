@@ -1,6 +1,23 @@
 import type { EventBus } from '../kernel/event-bus.js';
-import type { CostTracker } from '../observability/cost-tracker.js';
+import type { CostTracker, BudgetProfile } from '../observability/cost-tracker.js';
 import type { AgentId } from '../kernel/types.js';
+
+/**
+ * Task complexity levels matching budget profile routing rules
+ */
+export type ComplexityLevel = 'TRIVIAL' | 'SIMPLE' | 'MODERATE' | 'COMPLEX';
+
+/**
+ * Override categories for special routing rules
+ */
+export type OverrideCategory =
+  | 'userFacing'
+  | 'security'
+  | 'credentials'
+  | 'destructive'
+  | 'highRisk'
+  | 'architecture'
+  | 'refactoring';
 
 /**
  * Available AI model providers
@@ -211,6 +228,11 @@ export class ModelRouter {
     reason: string;
   }> = [];
 
+  // Profile-aware routing state
+  private profile: BudgetProfile | null = null;
+  private opusUsedToday: number = 0;
+  private lastOpusResetDate: string = '';
+
   constructor(eventBus: EventBus, costTracker?: CostTracker, customModels?: ModelConfig[]) {
     this.eventBus = eventBus;
     this.costTracker = costTracker || null;
@@ -219,6 +241,297 @@ export class ModelRouter {
     for (const model of customModels || DEFAULT_MODELS) {
       this.models.set(model.id, model);
     }
+
+    // Try to load profile from cost tracker if available
+    if (this.costTracker) {
+      const profile = this.costTracker.getProfile();
+      if (profile) {
+        this.setProfile(profile);
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROFILE-AWARE ROUTING
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Set the active budget profile for routing decisions
+   */
+  setProfile(profile: BudgetProfile): void {
+    this.profile = profile;
+
+    // Check if we need to reset Opus counter for a new day
+    const today = new Date().toISOString().split('T')[0];
+    if (this.lastOpusResetDate !== today) {
+      this.opusUsedToday = 0;
+      this.lastOpusResetDate = today;
+    }
+
+    // Apply model availability from profile
+    if (profile.models) {
+      for (const [tier, config] of Object.entries(profile.models)) {
+        // Find model by tier (haiku, sonnet, opus)
+        const model = Array.from(this.models.values()).find(m =>
+          m.id.toLowerCase().includes(tier.toLowerCase())
+        );
+        if (model) {
+          model.isAvailable = !config.disabled && config.enabled !== false;
+        }
+      }
+    }
+  }
+
+  /**
+   * Get the current profile
+   */
+  getProfile(): BudgetProfile | null {
+    return this.profile;
+  }
+
+  /**
+   * Route a task using budget profile rules
+   *
+   * Priority order:
+   * 1. Override categories (security, userFacing, etc.)
+   * 2. Complexity-based routing rules
+   * 3. Default model from profile
+   */
+  routeWithProfile(
+    content: string,
+    hints: {
+      complexity?: ComplexityLevel;
+      overrideCategories?: OverrideCategory[];
+      urgency?: 'low' | 'normal' | 'high' | 'critical';
+      agent?: AgentId;
+      tokenEstimate?: { input: number; output: number };
+    } = {}
+  ): RoutingDecision {
+    // If no profile, fall back to default routing
+    if (!this.profile) {
+      const classification = this.classifyTask(content, hints);
+      return this.route(classification);
+    }
+
+    const routing = this.profile.routing;
+    let selectedModelId: string;
+    const reasonParts: string[] = [`Profile: ${this.profile.profile}`];
+
+    // 1. Check override categories first (highest priority)
+    if (hints.overrideCategories && hints.overrideCategories.length > 0) {
+      for (const category of hints.overrideCategories) {
+        const override = routing.overrides?.[category];
+        if (override) {
+          selectedModelId = this.resolveModelId(override);
+
+          // Check Opus daily limit
+          if (this.isOpus(selectedModelId) && !this.canUseOpus()) {
+            selectedModelId = this.resolveModelId('sonnet'); // Fallback
+            reasonParts.push(`Override ${category} -> Opus but daily limit reached, using Sonnet`);
+          } else {
+            reasonParts.push(`Override: ${category} -> ${override}`);
+          }
+
+          return this.buildDecision(selectedModelId, reasonParts.join('. '));
+        }
+      }
+    }
+
+    // 2. Use complexity-based routing from profile
+    const complexity = hints.complexity ?? this.inferComplexity(content);
+    const ruleModel = routing.rules?.[complexity] ?? routing.defaultModel;
+    selectedModelId = this.resolveModelId(ruleModel);
+    reasonParts.push(`Complexity: ${complexity} -> ${ruleModel}`);
+
+    // 3. Check Opus daily limit
+    if (this.isOpus(selectedModelId) && !this.canUseOpus()) {
+      selectedModelId = this.resolveModelId('sonnet');
+      reasonParts.push('Opus daily limit reached, using Sonnet');
+    }
+
+    // 4. Check if model is disabled in profile
+    const modelTier = this.getModelTier(selectedModelId);
+    const modelConfig = this.profile.models?.[modelTier];
+    if (modelConfig?.disabled) {
+      selectedModelId = this.resolveModelId(routing.defaultModel);
+      reasonParts.push(`${modelTier} disabled, using default`);
+    }
+
+    // 5. Apply preferCheaper / preferQuality settings
+    if (routing.preferCheaper && !this.isHaiku(selectedModelId)) {
+      // Check if haiku can handle this complexity
+      if (complexity === 'TRIVIAL' || complexity === 'SIMPLE') {
+        selectedModelId = this.resolveModelId('haiku');
+        reasonParts.push('preferCheaper: downgraded to Haiku');
+      }
+    }
+
+    if (routing.preferQuality && this.canUseOpus() && complexity === 'COMPLEX') {
+      selectedModelId = this.resolveModelId('opus');
+      reasonParts.push('preferQuality: upgraded to Opus');
+    }
+
+    return this.buildDecision(selectedModelId, reasonParts.join('. '));
+  }
+
+  /**
+   * Record Opus usage (call after successful Opus use)
+   */
+  recordOpusUsage(): void {
+    this.opusUsedToday++;
+
+    this.eventBus.emit('model:selected', {
+      taskType: 'opus_usage',
+      model: 'claude-opus-4',
+      success: true,
+    });
+  }
+
+  /**
+   * Check if Opus can be used today
+   */
+  canUseOpus(): boolean {
+    const maxPerDay = this.profile?.models?.opus?.maxPerDay ?? Infinity;
+    return this.opusUsedToday < maxPerDay;
+  }
+
+  /**
+   * Get Opus usage status
+   */
+  getOpusStatus(): { used: number; limit: number; remaining: number } {
+    const limit = this.profile?.models?.opus?.maxPerDay ?? Infinity;
+    return {
+      used: this.opusUsedToday,
+      limit,
+      remaining: Math.max(0, limit - this.opusUsedToday),
+    };
+  }
+
+  /**
+   * Infer complexity from content
+   */
+  private inferComplexity(content: string): ComplexityLevel {
+    const lower = content.toLowerCase();
+    const length = content.length;
+
+    // Trivial: Very short, simple queries
+    if (length < 100 && !lower.includes('implement') && !lower.includes('refactor')) {
+      return 'TRIVIAL';
+    }
+
+    // Complex: Architecture, refactoring, security, multi-step
+    if (lower.includes('architect') || lower.includes('refactor') ||
+        lower.includes('security') || lower.includes('design pattern') ||
+        lower.includes('implement feature') || lower.includes('comprehensive')) {
+      return 'COMPLEX';
+    }
+
+    // Moderate: Tests, docs, analysis, review
+    if (lower.includes('test') || lower.includes('document') ||
+        lower.includes('analyze') || lower.includes('review') ||
+        lower.includes('explain')) {
+      return 'MODERATE';
+    }
+
+    // Simple: Everything else
+    return 'SIMPLE';
+  }
+
+  /**
+   * Resolve model tier name to actual model ID
+   */
+  private resolveModelId(tier: string): string {
+    // If already a full model ID, return it
+    if (tier.includes('-')) {
+      return tier;
+    }
+
+    // Try to get from profile's model config
+    if (this.profile?.models?.[tier]?.id) {
+      return this.profile.models[tier].id;
+    }
+
+    // Default mappings
+    const defaults: Record<string, string> = {
+      haiku: 'claude-haiku',
+      sonnet: 'claude-sonnet-4',
+      opus: 'claude-opus-4',
+    };
+    return defaults[tier.toLowerCase()] ?? tier;
+  }
+
+  /**
+   * Check if model ID is Opus
+   */
+  private isOpus(modelId: string): boolean {
+    return modelId.toLowerCase().includes('opus');
+  }
+
+  /**
+   * Check if model ID is Haiku
+   */
+  private isHaiku(modelId: string): boolean {
+    return modelId.toLowerCase().includes('haiku');
+  }
+
+  /**
+   * Get model tier from ID
+   */
+  private getModelTier(modelId: string): string {
+    const lower = modelId.toLowerCase();
+    if (lower.includes('haiku')) return 'haiku';
+    if (lower.includes('sonnet')) return 'sonnet';
+    if (lower.includes('opus')) return 'opus';
+    return 'unknown';
+  }
+
+  /**
+   * Build routing decision object
+   */
+  private buildDecision(modelId: string, reasoning: string): RoutingDecision {
+    const model = this.getModel(modelId) ?? this.models.values().next().value;
+
+    if (!model) {
+      throw new Error('No suitable models available');
+    }
+
+    // Track routing decision
+    this.routingHistory.push({
+      timestamp: new Date(),
+      task: 'profile_routed',
+      selectedModel: model.id,
+      reason: reasoning,
+    });
+
+    // Keep history bounded
+    if (this.routingHistory.length > 100) {
+      this.routingHistory = this.routingHistory.slice(-100);
+    }
+
+    return {
+      primaryModel: model,
+      fallbackModels: this.getFallbacks(modelId),
+      reasoning: `${reasoning}. Selected: ${model.name}`,
+      estimatedCost: 0, // Would need token estimate
+      estimatedLatency: model.latencyClass,
+    };
+  }
+
+  /**
+   * Get fallback models based on current selection
+   */
+  private getFallbacks(selectedId: string): ModelConfig[] {
+    const tier = this.getModelTier(selectedId);
+    const fallbackOrder: Record<string, string[]> = {
+      opus: ['sonnet', 'haiku'],
+      sonnet: ['haiku', 'opus'],
+      haiku: ['sonnet'],
+      unknown: ['sonnet', 'haiku'],
+    };
+
+    return (fallbackOrder[tier] ?? [])
+      .map(t => this.getModel(this.resolveModelId(t)))
+      .filter((m): m is ModelConfig => m !== undefined && m.isAvailable);
   }
 
   /**

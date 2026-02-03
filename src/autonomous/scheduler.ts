@@ -31,6 +31,11 @@ export interface ScheduledTask {
   lastRun?: Date;
   nextRun?: Date;
   metadata?: Record<string, unknown>;
+  essential?: boolean; // If true, runs even when budget is in 'reduce' mode
+}
+
+export interface CheckAndRunOptions {
+  essentialOnly?: boolean; // If true, only run tasks marked as essential
 }
 
 interface SchedulerState {
@@ -121,40 +126,17 @@ function parseCronExpression(cron: string, from: Date = new Date()): Date | null
  * Default scheduled tasks for ARI
  */
 const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
+  // ============================================================================
+  // ESSENTIAL TASKS - Run even when budget is in 'reduce' mode
+  // These are user-facing deliverables that provide core value
+  // ============================================================================
   {
     id: 'morning-briefing',
     name: 'Morning Briefing',
     cron: '0 7 * * *', // 7:00 AM daily
     handler: 'morning_briefing',
     enabled: true,
-  },
-  {
-    id: 'knowledge-index-morning',
-    name: 'Knowledge Index (Morning)',
-    cron: '0 8 * * *', // 8:00 AM daily
-    handler: 'knowledge_index',
-    enabled: true,
-  },
-  {
-    id: 'knowledge-index-afternoon',
-    name: 'Knowledge Index (Afternoon)',
-    cron: '0 14 * * *', // 2:00 PM daily
-    handler: 'knowledge_index',
-    enabled: true,
-  },
-  {
-    id: 'knowledge-index-evening',
-    name: 'Knowledge Index (Evening)',
-    cron: '0 20 * * *', // 8:00 PM daily
-    handler: 'knowledge_index',
-    enabled: true,
-  },
-  {
-    id: 'changelog-generate',
-    name: 'Changelog Generation',
-    cron: '0 19 * * *', // 7:00 PM daily
-    handler: 'changelog_generate',
-    enabled: true,
+    essential: true, // User-facing deliverable
   },
   {
     id: 'evening-summary',
@@ -162,6 +144,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     cron: '0 21 * * *', // 9:00 PM daily
     handler: 'evening_summary',
     enabled: true,
+    essential: true, // User-facing deliverable
   },
   {
     id: 'agent-health-check',
@@ -169,6 +152,43 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     cron: '*/15 * * * *', // Every 15 minutes
     handler: 'agent_health_check',
     enabled: true,
+    essential: true, // System health monitoring
+  },
+  {
+    id: 'changelog-generate',
+    name: 'Changelog Generation',
+    cron: '0 19 * * *', // 7:00 PM daily
+    handler: 'changelog_generate',
+    enabled: true,
+    essential: true, // User-facing deliverable
+  },
+
+  // ============================================================================
+  // NON-ESSENTIAL TASKS - Skipped when budget is constrained
+  // ============================================================================
+  {
+    id: 'knowledge-index-morning',
+    name: 'Knowledge Index (Morning)',
+    cron: '0 8 * * *', // 8:00 AM daily
+    handler: 'knowledge_index',
+    enabled: true,
+    essential: false,
+  },
+  {
+    id: 'knowledge-index-afternoon',
+    name: 'Knowledge Index (Afternoon)',
+    cron: '0 14 * * *', // 2:00 PM daily
+    handler: 'knowledge_index',
+    enabled: true,
+    essential: false,
+  },
+  {
+    id: 'knowledge-index-evening',
+    name: 'Knowledge Index (Evening)',
+    cron: '0 20 * * *', // 8:00 PM daily
+    handler: 'knowledge_index',
+    enabled: true,
+    essential: false,
   },
   {
     id: 'weekly-review',
@@ -176,10 +196,11 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     cron: '0 18 * * 0', // Sunday 6:00 PM
     handler: 'weekly_review',
     enabled: true,
+    essential: false,
   },
 
   // ==========================================================================
-  // COGNITIVE LAYER 0: LEARNING LOOP TASKS
+  // COGNITIVE LAYER 0: LEARNING LOOP TASKS (NON-ESSENTIAL - Background)
   // ==========================================================================
 
   {
@@ -188,6 +209,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     cron: '0 21 * * *', // 9:00 PM daily
     handler: 'cognitive_performance_review',
     enabled: true,
+    essential: false, // Background learning task
     metadata: {
       pillar: 'LEARNING',
       description: 'Analyze decisions made in the past 24 hours',
@@ -199,6 +221,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     cron: '0 20 * * 0', // Sunday 8:00 PM
     handler: 'cognitive_gap_analysis',
     enabled: true,
+    essential: false,
     metadata: {
       pillar: 'LEARNING',
       description: 'Identify knowledge gaps from the past week',
@@ -210,6 +233,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     cron: '0 9 1 * *', // 1st of month, 9:00 AM
     handler: 'cognitive_self_assessment',
     enabled: true,
+    essential: false,
     metadata: {
       pillar: 'LEARNING',
       description: 'Monthly comprehensive self-evaluation',
@@ -221,6 +245,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     cron: '0 8 * * *', // 8:00 AM daily
     handler: 'spaced_repetition_review',
     enabled: true,
+    essential: false,
     metadata: {
       pillar: 'LEARNING',
       description: 'Daily spaced-repetition review for due concept cards',
@@ -237,6 +262,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     cron: '0 6 * * *', // 6:00 AM daily (before morning briefing)
     handler: 'initiative_comprehensive_scan',
     enabled: true,
+    essential: false, // Background proactive task
     metadata: {
       category: 'PROACTIVE',
       description: 'Comprehensive scan for new work to do autonomously',
@@ -248,6 +274,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     cron: '30 7 * * *', // 7:30 AM daily (after initiative scan, before work starts)
     handler: 'user_daily_brief',
     enabled: true,
+    essential: true, // USER-FACING deliverable - always run
     metadata: {
       category: 'DELIVERABLES',
       description: 'Generate daily focus, action items, and insights for user',
@@ -259,6 +286,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     cron: '0 14 * * *', // 2:00 PM daily
     handler: 'initiative_midday_check',
     enabled: true,
+    essential: false, // Background proactive task
     metadata: {
       category: 'PROACTIVE',
       description: 'Mid-day progress check and urgent initiative execution',
@@ -335,13 +363,21 @@ export class Scheduler {
 
   /**
    * Check for due tasks and run them
+   *
+   * @param options - Optional settings
+   * @param options.essentialOnly - If true, only runs tasks marked as essential (for budget reduce mode)
    */
-  async checkAndRun(): Promise<void> {
+  async checkAndRun(options: CheckAndRunOptions = {}): Promise<void> {
     const now = new Date();
 
     for (const [taskId, task] of this.tasks.entries()) {
       if (!task.enabled) continue;
       if (!task.nextRun) continue;
+
+      // Skip non-essential tasks when in essentialOnly mode
+      if (options.essentialOnly && !task.essential) {
+        continue;
+      }
 
       if (now >= task.nextRun) {
         await this.runTask(taskId);

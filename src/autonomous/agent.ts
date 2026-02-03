@@ -25,6 +25,9 @@ import { AgentSpawner } from './agent-spawner.js';
 import { BriefingGenerator } from './briefings.js';
 import { InitiativeEngine } from './initiative-engine.js';
 import { generateDailyBrief, formatDailyBrief } from './user-deliverables.js';
+import { CostTracker, ThrottleLevel } from '../observability/cost-tracker.js';
+import { ApprovalQueue } from './approval-queue.js';
+import { AuditLogger } from '../kernel/audit.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -54,6 +57,11 @@ export class AutonomousAgent {
   private agentSpawner: AgentSpawner;
   private briefingGenerator: BriefingGenerator | null = null;
   private initiativeEngine: InitiativeEngine;
+
+  // Budget-aware components
+  private costTracker: CostTracker | null = null;
+  private approvalQueue: ApprovalQueue | null = null;
+  private lastThrottleLevel: ThrottleLevel = 'normal';
 
   constructor(eventBus: EventBus, config?: Partial<AutonomousConfig>) {
     this.eventBus = eventBus;
@@ -85,6 +93,11 @@ export class AutonomousAgent {
       maxInitiativesPerScan: 10,
       autoExecute: true, // Execute autonomous initiatives automatically
     });
+
+    // Initialize budget-aware components
+    // Note: CostTracker and ApprovalQueue will be fully initialized in init()
+    // once we have access to the AuditLogger
+    this.approvalQueue = new ApprovalQueue(eventBus);
   }
 
   /**
@@ -124,6 +137,21 @@ export class AutonomousAgent {
 
     // Initialize initiative engine (proactive autonomy)
     await this.initiativeEngine.init();
+
+    // Initialize CostTracker for budget-aware operations
+    // Uses a lightweight audit logger that emits events (full AuditLogger requires more setup)
+    const lightweightAuditLogger = {
+      log: (action: string, agent: string, trustLevel: 'system' | 'operator' | 'verified' | 'standard' | 'untrusted' | 'hostile', details: Record<string, unknown>): Promise<void> => {
+        this.eventBus.emit('audit:log', { action, agent, trustLevel, details });
+        return Promise.resolve();
+      },
+    } as unknown as AuditLogger;
+    this.costTracker = new CostTracker(this.eventBus, lightweightAuditLogger);
+
+    // Log budget status on init
+    const throttleStatus = this.costTracker.getThrottleStatus();
+    // eslint-disable-next-line no-console
+    console.log(`[Budget] Initialized - ${throttleStatus.usagePercent.toFixed(1)}% used (${throttleStatus.level})`);
 
     // Initialize Pushover if configured
     if (this.config.pushover?.userKey && this.config.pushover?.apiToken) {
@@ -223,12 +251,113 @@ export class AutonomousAgent {
   }
 
   /**
-   * Main polling loop
+   * Main polling loop - Now budget-aware!
+   *
+   * Throttle Behavior by Level:
+   * - normal: Full operation, all features enabled
+   * - warning (80%+): Log warning, continue operation
+   * - reduce (90%+): Skip non-essential tasks, essential only
+   * - pause (95%+): User interactions only, all autonomous work paused
    */
   private async poll(): Promise<void> {
     if (!this.running) return;
 
     try {
+      // ========================================================================
+      // BUDGET CHECK: First thing in every poll cycle
+      // ========================================================================
+      const throttleStatus = this.costTracker?.getThrottleStatus();
+      const currentThrottleLevel = throttleStatus?.level ?? 'normal';
+
+      // Log throttle state changes
+      if (currentThrottleLevel !== this.lastThrottleLevel) {
+        // eslint-disable-next-line no-console
+        console.log(`[Budget] Throttle level changed: ${this.lastThrottleLevel} → ${currentThrottleLevel}`);
+        this.lastThrottleLevel = currentThrottleLevel;
+
+        // Emit event for other systems to react
+        this.eventBus.emit('audit:log', {
+          action: 'budget_throttle_changed',
+          agent: 'autonomous',
+          trustLevel: 'system',
+          details: {
+            previousLevel: this.lastThrottleLevel,
+            newLevel: currentThrottleLevel,
+            usagePercent: throttleStatus?.usagePercent,
+            recommendation: throttleStatus?.recommendation,
+          },
+        });
+
+        // Critical notification when hitting pause level
+        if (currentThrottleLevel === 'pause') {
+          await notificationManager.error(
+            'Budget Critical',
+            `Budget ${throttleStatus?.usagePercent.toFixed(1)}% used. Autonomous work paused until midnight reset.`
+          );
+        } else if (currentThrottleLevel === 'reduce') {
+          await notificationManager.insight(
+            'Budget Warning',
+            `Budget ${throttleStatus?.usagePercent.toFixed(1)}% used. Running essential tasks only.`
+          );
+        }
+      }
+
+      // ========================================================================
+      // THROTTLE BEHAVIOR BY LEVEL
+      // ========================================================================
+
+      if (currentThrottleLevel === 'pause') {
+        // PAUSE: Only user interactions allowed (URGENT priority)
+        // eslint-disable-next-line no-console
+        console.warn('[Budget] 95%+ consumed - autonomous work paused until midnight reset');
+
+        // Still process user messages (these are URGENT priority)
+        await this.checkPushoverMessages();
+
+        // Process pending tasks that came from user (URGENT)
+        // These bypass budget checks
+        await this.processNextTask();
+
+        // Skip everything else - no scheduler, no initiatives, no cleanup
+        this.state.lastActivity = new Date().toISOString();
+        this.pollTimer = setTimeout(() => { void this.poll(); }, this.config.pollIntervalMs);
+        return;
+      }
+
+      if (currentThrottleLevel === 'reduce') {
+        // REDUCE: Essential tasks only (STANDARD priority allowed, BACKGROUND skipped)
+        // eslint-disable-next-line no-console
+        console.info('[Budget] 90%+ consumed - running essential tasks only');
+
+        // Run scheduler with essential-only flag
+        await this.scheduler.checkAndRun({ essentialOnly: true });
+
+        // Process user messages (always)
+        await this.checkPushoverMessages();
+
+        // Process pending tasks (STANDARD priority)
+        await this.processNextTask();
+
+        // Check thresholds (essential)
+        await auditReporter.checkThresholds();
+        await auditReporter.maybeSendDailyReport();
+
+        // Skip initiatives and periodic cleanup (BACKGROUND tasks)
+        this.state.lastActivity = new Date().toISOString();
+        this.pollTimer = setTimeout(() => { void this.poll(); }, this.config.pollIntervalMs);
+        return;
+      }
+
+      if (currentThrottleLevel === 'warning') {
+        // WARNING: Log but continue with reduced initiative execution
+        // eslint-disable-next-line no-console
+        console.info(`[Budget] ${throttleStatus?.usagePercent.toFixed(1)}% consumed - monitoring usage`);
+      }
+
+      // ========================================================================
+      // NORMAL OPERATION (or warning level with full features)
+      // ========================================================================
+
       // Check scheduled tasks first
       await this.scheduler.checkAndRun();
 
@@ -244,30 +373,113 @@ export class AutonomousAgent {
       // Check if daily report should be sent (8am or 9pm)
       await auditReporter.maybeSendDailyReport();
 
-      // Send batched notifications if it's morning (8am) - handled by auditReporter now
-      // The notification manager batch processing is integrated into processQueue()
-
       // ==========================================================================
-      // INITIATIVE ENGINE: Proactive autonomy - thinking, designing, implementing
+      // INITIATIVE ENGINE: Budget-aware proactive autonomy
       // ==========================================================================
       // Quick scan for initiatives (~5% chance each poll to avoid overhead)
-      if (Math.random() < 0.05) {
+      // At warning level, reduce to ~2% chance
+      const scanChance = currentThrottleLevel === 'warning' ? 0.02 : 0.05;
+
+      if (Math.random() < scanChance) {
         const initiatives = await this.initiativeEngine.scan();
         if (initiatives.length > 0) {
           // eslint-disable-next-line no-console
           console.log(`[Initiative] Discovered ${initiatives.length} new initiatives`);
 
-          // Execute high-priority autonomous initiatives immediately
-          const autonomous = initiatives.filter(i => i.autonomous && i.priority >= 70);
-          for (const initiative of autonomous.slice(0, 2)) { // Max 2 per cycle
-            try {
+          // Get profile thresholds for auto-execute decisions
+          const profile = this.costTracker?.getProfile();
+          const autoThreshold = profile?.initiatives?.autoExecuteThreshold ?? {
+            maxCostPerTask: 0.25,
+            maxRisk: 40,
+            maxFilesAffected: 5,
+            minPriority: 65,
+          };
+          const approvalThreshold = profile?.initiatives?.approvalRequired ?? {
+            minCost: 0.50,
+            minRisk: 60,
+            minFilesAffected: 10,
+            touchesSecurity: true,
+          };
+
+          // Filter autonomous initiatives by profile thresholds
+          const autonomous = initiatives.filter(i =>
+            i.autonomous &&
+            i.priority >= autoThreshold.minPriority
+          );
+
+          // Execute with budget check
+          let executed = 0;
+          const maxPerCycle = currentThrottleLevel === 'warning' ? 1 : 2;
+
+          for (const initiative of autonomous.slice(0, maxPerCycle)) {
+            // Estimate tokens for this initiative (rough estimate: 10K per initiative)
+            const estimatedTokens = 10000;
+
+            // Check if budget allows
+            const canProceed = this.costTracker?.canProceed(estimatedTokens, 'BACKGROUND');
+
+            if (canProceed?.allowed) {
+              try {
+                // eslint-disable-next-line no-console
+                console.log(`[Initiative] Executing: ${initiative.title}`);
+                await this.initiativeEngine.executeInitiative(initiative.id);
+                executed++;
+              } catch (err) {
+                // eslint-disable-next-line no-console
+                console.error(`[Initiative] Failed to execute ${initiative.id}:`, err);
+              }
+            } else {
               // eslint-disable-next-line no-console
-              console.log(`[Initiative] Executing: ${initiative.title}`);
-              await this.initiativeEngine.executeInitiative(initiative.id);
-            } catch (err) {
-              // eslint-disable-next-line no-console
-              console.error(`[Initiative] Failed to execute ${initiative.id}:`, err);
+              console.log(`[Initiative] Skipped due to budget: ${initiative.title} (${canProceed?.reason})`);
+
+              // Check if this requires approval (high-risk initiative)
+              // Note: Initiative doesn't have affectedFiles, use target.filePath count as proxy
+              const filesAffected = initiative.target?.filePath ? 1 : 0;
+              // Note: Initiative categories don't include 'security' - use false for now
+              const touchesSecurity = false;
+              const requiresApproval = this.approvalQueue?.requiresApproval(
+                0.10, // Estimated cost
+                initiative.priority, // Use priority as risk proxy
+                filesAffected,
+                touchesSecurity,
+                approvalThreshold
+              );
+
+              // Add to approval queue for later user review
+              if (this.approvalQueue && (requiresApproval?.required || !canProceed?.allowed)) {
+                await this.approvalQueue.add({
+                  id: `init_${initiative.id}_${Date.now()}`,
+                  type: 'INITIATIVE',
+                  title: initiative.title,
+                  description: initiative.description || `Initiative in ${initiative.category}`,
+                  risk: initiative.priority >= 80 ? 'HIGH' : initiative.priority >= 60 ? 'MEDIUM' : 'LOW',
+                  estimatedCost: 0.10,
+                  estimatedTokens,
+                  reversible: true,
+                  metadata: {
+                    initiativeId: initiative.id,
+                    category: initiative.category,
+                    priority: initiative.priority,
+                    reason: canProceed?.reason || requiresApproval?.reason,
+                  },
+                });
+                // eslint-disable-next-line no-console
+                console.log(`[Initiative] Added to approval queue: ${initiative.title}`);
+              }
             }
+          }
+
+          if (executed > 0) {
+            this.eventBus.emit('audit:log', {
+              action: 'initiatives_executed',
+              agent: 'INITIATIVE_ENGINE',
+              trustLevel: 'system',
+              details: {
+                discovered: initiatives.length,
+                executed,
+                throttleLevel: currentThrottleLevel,
+              },
+            });
           }
 
           // Queue user-facing initiatives as deliverables
@@ -286,10 +498,13 @@ export class AutonomousAgent {
         }
       }
 
-      // Periodic cleanup
+      // Periodic cleanup (BACKGROUND task - check budget first)
       if (Math.random() < 0.01) { // ~1% chance each poll
-        await this.queue.cleanup(24);
-        await this.agentSpawner.cleanupOld(24);
+        const canCleanup = this.costTracker?.canProceed(1000, 'BACKGROUND');
+        if (canCleanup?.allowed) {
+          await this.queue.cleanup(24);
+          await this.agentSpawner.cleanupOld(24);
+        }
       }
 
       this.state.lastActivity = new Date().toISOString();
@@ -457,10 +672,45 @@ export class AutonomousAgent {
   }
 
   /**
-   * Get agent status
+   * Get agent status including budget information
    */
-  getStatus(): AgentState & { queueStats?: Record<string, number> } {
-    return { ...this.state };
+  getStatus(): AgentState & {
+    queueStats?: Record<string, number>;
+    budget?: {
+      throttleLevel: ThrottleLevel;
+      usagePercent: number;
+      tokensUsed: number;
+      tokensRemaining: number;
+    };
+  } {
+    const status: ReturnType<typeof this.getStatus> = { ...this.state };
+
+    // Include budget status if tracker is available
+    if (this.costTracker) {
+      const throttleStatus = this.costTracker.getThrottleStatus();
+      status.budget = {
+        throttleLevel: throttleStatus.level,
+        usagePercent: throttleStatus.usagePercent,
+        tokensUsed: throttleStatus.tokensUsed,
+        tokensRemaining: throttleStatus.tokensRemaining,
+      };
+    }
+
+    return status;
+  }
+
+  /**
+   * Get the cost tracker instance (for external integrations)
+   */
+  getCostTracker(): CostTracker | null {
+    return this.costTracker;
+  }
+
+  /**
+   * Get the approval queue instance (for external integrations)
+   */
+  getApprovalQueue(): ApprovalQueue | null {
+    return this.approvalQueue;
   }
 
   /**
