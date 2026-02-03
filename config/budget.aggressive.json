@@ -1,0 +1,113 @@
+{
+  "version": "1.0.0",
+  "profile": "aggressive",
+  "budget": {
+    "daily": {
+      "maxTokens": 1500000,
+      "maxCost": 5.00,
+      "reserved": {
+        "user": 1000000,
+        "autonomous": 500000
+      }
+    },
+    "throttling": {
+      "warning": 0.85,
+      "reduce": 0.93,
+      "pause": 0.98
+    },
+    "resetTime": "00:00",
+    "timezone": "America/New_York"
+  },
+  "models": {
+    "haiku": {
+      "id": "claude-haiku",
+      "inputCost": 0.00025,
+      "outputCost": 0.00125
+    },
+    "sonnet": {
+      "id": "claude-sonnet-4",
+      "inputCost": 0.003,
+      "outputCost": 0.015
+    },
+    "opus": {
+      "id": "claude-opus-4",
+      "inputCost": 0.015,
+      "outputCost": 0.075,
+      "enabled": true,
+      "maxPerDay": 10,
+      "preferForQuality": true
+    }
+  },
+  "routing": {
+    "defaultModel": "sonnet",
+    "preferCheaper": false,
+    "preferQuality": true,
+    "rules": {
+      "TRIVIAL": "haiku",
+      "SIMPLE": "sonnet",
+      "MODERATE": "sonnet",
+      "COMPLEX": "opus"
+    },
+    "overrides": {
+      "userFacing": "opus",
+      "security": "opus",
+      "credentials": "opus",
+      "destructive": "opus",
+      "highRisk": "opus",
+      "architecture": "opus",
+      "refactoring": "opus"
+    }
+  },
+  "initiatives": {
+    "autoExecute": true,
+    "maxPerDay": 25,
+    "scanFrequency": "3x",
+    "autoExecuteThreshold": {
+      "maxCostPerTask": 0.50,
+      "maxRisk": 50,
+      "maxFilesAffected": 10,
+      "minPriority": 60
+    },
+    "approvalRequired": {
+      "minCost": 1.00,
+      "minRisk": 70,
+      "minFilesAffected": 15,
+      "touchesSecurity": true
+    }
+  },
+  "scheduling": {
+    "essentialOnly": false,
+    "highFrequency": true,
+    "tasks": {
+      "morning-briefing": { "enabled": true, "model": "opus" },
+      "evening-summary": { "enabled": true, "model": "opus" },
+      "initiative-scan": { "enabled": true, "model": "opus", "frequency": "3x" },
+      "initiative-midday": { "enabled": true, "model": "sonnet" },
+      "user-daily-brief": { "enabled": true, "model": "opus" },
+      "knowledge-index": { "enabled": true, "model": "sonnet", "frequency": "5x" },
+      "cognitive-review": { "enabled": true, "model": "opus" },
+      "gap-analysis": { "enabled": true, "model": "opus" },
+      "self-assessment": { "enabled": true, "model": "opus" },
+      "spaced-repetition": { "enabled": true, "model": "sonnet" },
+      "changelog": { "enabled": true, "model": "sonnet" },
+      "agent-health": { "enabled": true, "model": "haiku" }
+    }
+  },
+  "billing": {
+    "cycleLength": 14,
+    "totalBudget": 75.00,
+    "warningThreshold": 0.85,
+    "criticalThreshold": 0.95,
+    "autoAdjustDaily": true,
+    "learningEnabled": true
+  },
+  "monitoring": {
+    "alerts": {
+      "critical": { "enabled": true, "channels": ["pushover", "dashboard"] },
+      "warning": { "enabled": true, "channels": ["pushover", "dashboard"] },
+      "info": { "enabled": true, "channels": ["dashboard"] }
+    },
+    "verboseLogging": true
+  },
+  "description": "Aggressive budget profile - Maximum capability, quality-first model selection, frequent initiative scans, heavy autonomous work. Use when cost is not a primary concern."
+}

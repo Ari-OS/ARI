@@ -1,0 +1,111 @@
+{
+  "version": "1.0.0",
+  "profile": "balanced",
+  "budget": {
+    "daily": {
+      "maxTokens": 800000,
+      "maxCost": 2.50,
+      "reserved": {
+        "user": 500000,
+        "autonomous": 300000
+      }
+    },
+    "throttling": {
+      "warning": 0.80,
+      "reduce": 0.90,
+      "pause": 0.95
+    },
+    "resetTime": "00:00",
+    "timezone": "America/New_York"
+  },
+  "models": {
+    "haiku": {
+      "id": "claude-haiku",
+      "inputCost": 0.00025,
+      "outputCost": 0.00125
+    },
+    "sonnet": {
+      "id": "claude-sonnet-4",
+      "inputCost": 0.003,
+      "outputCost": 0.015
+    },
+    "opus": {
+      "id": "claude-opus-4",
+      "inputCost": 0.015,
+      "outputCost": 0.075,
+      "enabled": true,
+      "maxPerDay": 5,
+      "preferForQuality": false
+    }
+  },
+  "routing": {
+    "defaultModel": "sonnet",
+    "preferCheaper": false,
+    "preferQuality": false,
+    "rules": {
+      "TRIVIAL": "haiku",
+      "SIMPLE": "haiku",
+      "MODERATE": "sonnet",
+      "COMPLEX": "opus"
+    },
+    "overrides": {
+      "security": "opus",
+      "credentials": "opus",
+      "destructive": "opus",
+      "highRisk": "opus",
+      "architecture": "opus"
+    }
+  },
+  "initiatives": {
+    "autoExecute": true,
+    "maxPerDay": 15,
+    "scanFrequency": "2x",
+    "autoExecuteThreshold": {
+      "maxCostPerTask": 0.25,
+      "maxRisk": 40,
+      "maxFilesAffected": 5,
+      "minPriority": 65
+    },
+    "approvalRequired": {
+      "minCost": 0.50,
+      "minRisk": 60,
+      "minFilesAffected": 10,
+      "touchesSecurity": true
+    }
+  },
+  "scheduling": {
+    "essentialOnly": false,
+    "highFrequency": false,
+    "tasks": {
+      "morning-briefing": { "enabled": true, "model": "sonnet" },
+      "evening-summary": { "enabled": true, "model": "sonnet" },
+      "initiative-scan": { "enabled": true, "model": "sonnet" },
+      "initiative-midday": { "enabled": true, "model": "haiku" },
+      "user-daily-brief": { "enabled": true, "model": "sonnet" },
+      "knowledge-index": { "enabled": true, "model": "haiku", "frequency": "3x" },
+      "cognitive-review": { "enabled": true, "model": "sonnet" },
+      "gap-analysis": { "enabled": true, "model": "sonnet" },
+      "self-assessment": { "enabled": true, "model": "sonnet" },
+      "spaced-repetition": { "enabled": true, "model": "haiku" },
+      "changelog": { "enabled": true, "model": "haiku" },
+      "agent-health": { "enabled": true, "model": "haiku" }
+    }
+  },
+  "billing": {
+    "cycleLength": 14,
+    "totalBudget": 75.00,
+    "warningThreshold": 0.85,
+    "criticalThreshold": 0.95,
+    "autoAdjustDaily": true,
+    "learningEnabled": true
+  },
+  "monitoring": {
+    "alerts": {
+      "critical": { "enabled": true, "channels": ["pushover", "dashboard"] },
+      "warning": { "enabled": true, "channels": ["pushover", "dashboard"] },
+      "info": { "enabled": true, "channels": ["dashboard"] }
+    },
+    "verboseLogging": false
+  },
+  "description": "Balanced budget profile - Full features with moderate cost, all models enabled with limits, standard autonomous work. RECOMMENDED starting configuration."
+}

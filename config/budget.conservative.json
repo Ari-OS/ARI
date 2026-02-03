@@ -1,0 +1,103 @@
+{
+  "version": "1.0.0",
+  "profile": "conservative",
+  "budget": {
+    "daily": {
+      "maxTokens": 500000,
+      "maxCost": 1.50,
+      "reserved": {
+        "user": 300000,
+        "autonomous": 200000
+      }
+    },
+    "throttling": {
+      "warning": 0.75,
+      "reduce": 0.85,
+      "pause": 0.95
+    },
+    "resetTime": "00:00",
+    "timezone": "America/New_York"
+  },
+  "models": {
+    "haiku": {
+      "id": "claude-haiku",
+      "inputCost": 0.00025,
+      "outputCost": 0.00125
+    },
+    "sonnet": {
+      "id": "claude-sonnet-4",
+      "inputCost": 0.003,
+      "outputCost": 0.015
+    },
+    "opus": {
+      "id": "claude-opus-4",
+      "inputCost": 0.015,
+      "outputCost": 0.075,
+      "disabled": true
+    }
+  },
+  "routing": {
+    "defaultModel": "haiku",
+    "preferCheaper": true,
+    "preferQuality": false,
+    "rules": {
+      "TRIVIAL": "haiku",
+      "SIMPLE": "haiku",
+      "MODERATE": "sonnet",
+      "COMPLEX": "sonnet"
+    },
+    "overrides": {}
+  },
+  "initiatives": {
+    "autoExecute": true,
+    "maxPerDay": 5,
+    "scanFrequency": "1x",
+    "autoExecuteThreshold": {
+      "maxCostPerTask": 0.05,
+      "maxRisk": 20,
+      "maxFilesAffected": 2,
+      "minPriority": 80
+    },
+    "approvalRequired": {
+      "minCost": 0.10,
+      "minRisk": 40,
+      "minFilesAffected": 3,
+      "touchesSecurity": true
+    }
+  },
+  "scheduling": {
+    "essentialOnly": true,
+    "highFrequency": false,
+    "tasks": {
+      "morning-briefing": { "enabled": true, "model": "sonnet" },
+      "evening-summary": { "enabled": true, "model": "sonnet" },
+      "initiative-scan": { "enabled": true, "model": "haiku" },
+      "initiative-midday": { "enabled": false },
+      "user-daily-brief": { "enabled": true, "model": "sonnet" },
+      "knowledge-index": { "enabled": false },
+      "cognitive-review": { "enabled": false },
+      "gap-analysis": { "enabled": false },
+      "self-assessment": { "enabled": false },
+      "spaced-repetition": { "enabled": false },
+      "changelog": { "enabled": true, "model": "haiku" },
+      "agent-health": { "enabled": true, "model": "haiku" }
+    }
+  },
+  "billing": {
+    "cycleLength": 14,
+    "totalBudget": 75.00,
+    "warningThreshold": 0.85,
+    "criticalThreshold": 0.95,
+    "autoAdjustDaily": true,
+    "learningEnabled": true
+  },
+  "monitoring": {
+    "alerts": {
+      "critical": { "enabled": true, "channels": ["pushover", "dashboard"] },
+      "warning": { "enabled": true, "channels": ["dashboard"] },
+      "info": { "enabled": false, "channels": [] }
+    },
+    "verboseLogging": false
+  },
+  "description": "Conservative budget profile - Essential operations only, maximum cost efficiency, Opus disabled, limited autonomous work"
+}
