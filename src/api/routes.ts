@@ -20,8 +20,14 @@ import type { ApprovalQueue } from '../autonomous/approval-queue.js';
 import type { BillingCycleManager } from '../autonomous/billing-cycle.js';
 import type { ValueAnalytics } from '../observability/value-analytics.js';
 import type { AdaptiveLearner } from '../autonomous/adaptive-learner.js';
+import fastifyStatic from '@fastify/static';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Get __dirname equivalent for ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface ApiDependencies {
   audit: AuditLogger;
@@ -59,9 +65,40 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
 ): Promise<void> => {
   const { deps } = options;
 
+  // ── Static file serving for React Dashboard ─────────────────────────────────
+  // Serve the React dashboard from dashboard/dist
+  // Fall back to inline HTML if dashboard is not built
+
+  const dashboardDistPath = path.resolve(__dirname, '../../dashboard/dist');
+  let dashboardAvailable = false;
+
+  try {
+    await fs.access(dashboardDistPath);
+    dashboardAvailable = true;
+
+    // Register static file serving for the React dashboard
+    await fastify.register(fastifyStatic, {
+      root: dashboardDistPath,
+      prefix: '/',
+      decorateReply: false, // Don't conflict with other plugins
+    });
+
+    console.log(`Dashboard serving from: ${dashboardDistPath}`);
+  } catch {
+    console.warn('Dashboard dist not found, using inline fallback');
+  }
+
   // ── Dashboard HTML endpoint ─────────────────────────────────────────────
+  // Serve React SPA for all non-API routes (SPA routing support)
+  // Falls back to inline HTML if dashboard is not built
 
   fastify.get('/', async (_request, reply) => {
+    // If React dashboard is available, serve index.html
+    if (dashboardAvailable) {
+      return reply.sendFile('index.html');
+    }
+
+    // Fallback: inline HTML dashboard
     const uptime = process.uptime();
     const hours = Math.floor(uptime / 3600);
     const minutes = Math.floor((uptime % 3600) / 60);
@@ -191,6 +228,16 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
       color: rgba(255,255,255,0.3);
       font-size: 12px;
     }
+    .notice {
+      text-align: center;
+      margin-top: 20px;
+      padding: 12px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 8px;
+      color: rgba(255,255,255,0.7);
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -199,6 +246,10 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
       <h1>ARI</h1>
       <p>ARTIFICIAL REASONING INTELLIGENCE</p>
       <div class="status-badge">FULLY OPERATIONAL</div>
+    </div>
+
+    <div class="notice">
+      React Dashboard not built. Run <code>cd dashboard && npm run build</code> for full UI.
     </div>
 
     <div class="grid">
