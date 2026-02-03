@@ -42,7 +42,8 @@ echo ""
 
 # Install dependencies
 echo "━━━ Installing Dependencies ━━━"
-ssh_run "cd $MINI_PATH && npm install"
+# Use --ignore-scripts to skip husky prepare hook
+ssh_run "cd $MINI_PATH && npm install --ignore-scripts"
 echo "✓ Dependencies installed"
 echo ""
 
