@@ -17,6 +17,9 @@ import type { ExecutionHistoryTracker } from '../observability/execution-history
 import type { AlertSeverity, AlertStatus } from '../observability/types.js';
 import type { CostTracker } from '../observability/cost-tracker.js';
 import type { ApprovalQueue } from '../autonomous/approval-queue.js';
+import type { BillingCycleManager } from '../autonomous/billing-cycle.js';
+import type { ValueAnalytics } from '../observability/value-analytics.js';
+import type { AdaptiveLearner } from '../autonomous/adaptive-learner.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -37,6 +40,9 @@ export interface ApiDependencies {
   executionHistory?: ExecutionHistoryTracker;
   costTracker?: CostTracker;
   approvalQueue?: ApprovalQueue;
+  billingCycleManager?: BillingCycleManager;
+  valueAnalytics?: ValueAnalytics;
+  adaptiveLearner?: AdaptiveLearner;
 }
 
 export interface ApiRouteOptions extends FastifyPluginOptions {
@@ -2070,6 +2076,228 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
       return { error: error instanceof Error ? error.message : 'Failed to add item' };
     }
   });
+
+  // ── Billing Cycle Endpoints ─────────────────────────────────────────────────
+
+  /**
+   * GET /api/billing/cycle
+   * Returns current billing cycle status and recommendations
+   */
+  fastify.get('/api/billing/cycle', async () => {
+    if (!deps.billingCycleManager) {
+      return { error: 'Billing cycle manager not initialized' };
+    }
+
+    const status = deps.billingCycleManager.getCycleStatus();
+    const recommended = deps.billingCycleManager.getRecommendedDailyBudget();
+    const cycleData = deps.billingCycleManager.getCycleData();
+
+    return {
+      ...status,
+      cycle: {
+        startDate: cycleData.cycleStartDate,
+        endDate: cycleData.cycleEndDate,
+        totalBudget: cycleData.totalBudget,
+        daysInCycle: cycleData.daysInCycle,
+      },
+      recommended: {
+        dailyBudget: recommended.recommended,
+        reason: recommended.reason,
+        confidence: recommended.confidence,
+        adjustments: recommended.adjustments,
+      },
+      dailySpending: cycleData.dailySpending.slice(-7), // Last 7 days
+      previousCycles: cycleData.previousCycles.slice(-3), // Last 3 cycles
+    };
+  });
+
+  /**
+   * POST /api/billing/new-cycle
+   * Start a new billing cycle (manual trigger)
+   */
+  fastify.post('/api/billing/new-cycle', async () => {
+    if (!deps.billingCycleManager) {
+      return { error: 'Billing cycle manager not initialized' };
+    }
+
+    await deps.billingCycleManager.startNewCycle();
+
+    await deps.audit.log(
+      'billing:cycle_started_manually',
+      'API',
+      'operator',
+      {}
+    );
+
+    return { success: true, message: 'New billing cycle started' };
+  });
+
+  // ── Value Analytics Endpoints ─────────────────────────────────────────────────
+
+  /**
+   * GET /api/analytics/value
+   * Returns value analytics summary
+   */
+  fastify.get('/api/analytics/value', async () => {
+    if (!deps.valueAnalytics) {
+      return { error: 'Value analytics not initialized' };
+    }
+
+    return deps.valueAnalytics.getSummary();
+  });
+
+  /**
+   * GET /api/analytics/value/daily
+   * Returns daily value breakdown for last N days
+   */
+  fastify.get<{ Querystring: { days?: string } }>(
+    '/api/analytics/value/daily',
+    async (request) => {
+      const days = request.query.days ? parseInt(request.query.days, 10) : 7;
+
+      if (!deps.valueAnalytics) {
+        return [];
+      }
+
+      return deps.valueAnalytics.getDailyBreakdown(days);
+    }
+  );
+
+  /**
+   * GET /api/analytics/value/today
+   * Returns today's value progress (real-time)
+   */
+  fastify.get('/api/analytics/value/today', async () => {
+    if (!deps.valueAnalytics) {
+      return {
+        metrics: {
+          morningBriefDelivered: false,
+          eveningSummaryDelivered: false,
+          testsGenerated: 0,
+          docsWritten: 0,
+          bugsFixed: 0,
+          codeImprovements: 0,
+          initiativesExecuted: 0,
+          highValueInsights: 0,
+          patternsLearned: 0,
+          tasksAttempted: 0,
+          tasksSucceeded: 0,
+          errorsEncountered: 0,
+        },
+        currentScore: 0,
+        breakdown: [],
+      };
+    }
+
+    return deps.valueAnalytics.getTodayProgress();
+  });
+
+  /**
+   * GET /api/analytics/value/weekly
+   * Returns weekly value report
+   */
+  fastify.get('/api/analytics/value/weekly', async () => {
+    if (!deps.valueAnalytics) {
+      return { error: 'Value analytics not initialized' };
+    }
+
+    return deps.valueAnalytics.getWeeklyReport();
+  });
+
+  // ── Adaptive Learning Endpoints ─────────────────────────────────────────────────
+
+  /**
+   * GET /api/adaptive/patterns
+   * Returns learned usage patterns
+   */
+  fastify.get('/api/adaptive/patterns', async () => {
+    if (!deps.adaptiveLearner) {
+      return [];
+    }
+
+    return deps.adaptiveLearner.getPatterns();
+  });
+
+  /**
+   * GET /api/adaptive/recommendations
+   * Returns current active recommendations
+   */
+  fastify.get('/api/adaptive/recommendations', async () => {
+    if (!deps.adaptiveLearner) {
+      return [];
+    }
+
+    return deps.adaptiveLearner.getRecommendations();
+  });
+
+  /**
+   * GET /api/adaptive/summaries
+   * Returns weekly learning summaries
+   */
+  fastify.get('/api/adaptive/summaries', async () => {
+    if (!deps.adaptiveLearner) {
+      return [];
+    }
+
+    return deps.adaptiveLearner.getWeeklySummaries();
+  });
+
+  /**
+   * GET /api/adaptive/peak-hours
+   * Returns learned peak activity hours
+   */
+  fastify.get('/api/adaptive/peak-hours', async () => {
+    if (!deps.adaptiveLearner) {
+      return { hours: [9, 10, 11, 14, 15, 16] }; // Default business hours
+    }
+
+    return {
+      hours: deps.adaptiveLearner.getPeakActivityHours(),
+    };
+  });
+
+  /**
+   * GET /api/adaptive/summary
+   * Returns adaptive learning summary statistics
+   */
+  fastify.get('/api/adaptive/summary', async () => {
+    if (!deps.adaptiveLearner) {
+      return {
+        patternCount: 0,
+        weeklyCount: 0,
+        recommendationCount: 0,
+        topPatterns: [],
+      };
+    }
+
+    return deps.adaptiveLearner.getSummary();
+  });
+
+  /**
+   * GET /api/adaptive/model/:taskType
+   * Get recommended model for a specific task type
+   */
+  fastify.get<{ Params: { taskType: string } }>(
+    '/api/adaptive/model/:taskType',
+    async (request) => {
+      const { taskType } = request.params;
+
+      if (!deps.adaptiveLearner) {
+        return { model: null, confidence: 0, reason: 'Adaptive learner not initialized' };
+      }
+
+      const result = deps.adaptiveLearner.getOptimalModelForTask(taskType);
+      if (!result) {
+        return { model: null, confidence: 0, reason: 'Insufficient data for this task type' };
+      }
+
+      return {
+        model: result.model,
+        confidence: result.confidence,
+        reason: `Learned from ${result.confidence > 0.8 ? 'many' : 'some'} observations`,
+      };
+    }
+  );
 };
 
 function formatUptime(seconds: number): string {
