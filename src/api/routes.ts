@@ -24,6 +24,22 @@ import fastifyStatic from '@fastify/static';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { z } from 'zod';
+
+// ── Request Validation Schemas (ADR-006 compliance) ─────────────────────────
+const ProfileChangeSchema = z.object({
+  profile: z.enum(['conservative', 'balanced', 'aggressive']),
+});
+
+const ApproveItemSchema = z.object({
+  note: z.string().optional(),
+  approvedBy: z.string().min(1).optional(),
+});
+
+const RejectItemSchema = z.object({
+  reason: z.string().min(1, 'Reason is required for rejection'),
+  rejectedBy: z.string().min(1).optional(),
+});
 
 // Get __dirname equivalent for ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -1882,39 +1898,71 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
    * POST /api/budget/profile
    * Switch budget profile (conservative, balanced, aggressive)
    */
-  fastify.post<{ Body: { profile: string } }>(
+  fastify.post<{ Body: unknown }>(
     '/api/budget/profile',
     async (request, reply) => {
-      const { profile } = request.body;
-
-      if (!['conservative', 'balanced', 'aggressive'].includes(profile)) {
+      // Validate request body with Zod (ADR-006 compliance)
+      const parsed = ProfileChangeSchema.safeParse(request.body);
+      if (!parsed.success) {
         reply.code(400);
-        return { error: 'Invalid profile. Must be conservative, balanced, or aggressive.' };
+        return {
+          error: 'Invalid request body',
+          details: parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message })),
+        };
       }
+
+      const { profile } = parsed.data;
 
       if (!deps.costTracker) {
         reply.code(503);
         return { error: 'Cost tracker not initialized' };
       }
 
-      try {
-        // Load profile from config file
-        const profilePath = path.join(process.cwd(), 'config', `budget.${profile}.json`);
-        const profileData = JSON.parse(await fs.readFile(profilePath, 'utf-8')) as import('../observability/cost-tracker.js').BudgetProfile;
+      const profilePath = path.join(process.cwd(), 'config', `budget.${profile}.json`);
 
-        await deps.costTracker.setProfile(profileData);
+      // Step 1: Read file
+      let fileContent: string;
+      try {
+        fileContent = await fs.readFile(profilePath, 'utf-8');
+      } catch (error) {
+        reply.code(404);
+        return {
+          error: `Profile file not found: budget.${profile}.json`,
+          details: error instanceof Error ? error.message : String(error),
+        };
+      }
+
+      // Step 2: Parse JSON
+      let profileData: unknown;
+      try {
+        profileData = JSON.parse(fileContent);
+      } catch (error) {
+        reply.code(400);
+        return {
+          error: `Invalid JSON in profile file: budget.${profile}.json`,
+          details: error instanceof Error ? error.message : String(error),
+        };
+      }
+
+      // Step 3: Apply profile (cost-tracker validates internally)
+      try {
+        const previousProfile = deps.costTracker.getProfile()?.profile;
+        await deps.costTracker.setProfile(profileData as import('../observability/cost-tracker.js').BudgetProfile);
 
         await deps.audit.log(
           'budget:profile_changed',
           'API',
           'operator',
-          { profile, previousProfile: deps.costTracker.getProfile()?.profile }
+          { profile, previousProfile }
         );
 
         return { success: true, profile };
       } catch (error) {
         reply.code(500);
-        return { error: `Failed to load profile: ${error instanceof Error ? error.message : String(error)}` };
+        return {
+          error: 'Failed to apply profile',
+          details: error instanceof Error ? error.message : String(error),
+        };
       }
     }
   );
@@ -2014,11 +2062,22 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
    * POST /api/approval-queue/:id/approve
    * Approve a pending item
    */
-  fastify.post<{ Params: { id: string }; Body: { note?: string; approvedBy?: string } }>(
+  fastify.post<{ Params: { id: string }; Body: unknown }>(
     '/api/approval-queue/:id/approve',
     async (request, reply) => {
       const { id } = request.params;
-      const { note, approvedBy } = request.body || {};
+
+      // Validate request body with Zod (ADR-006 compliance)
+      const parsed = ApproveItemSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        reply.code(400);
+        return {
+          error: 'Invalid request body',
+          details: parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message })),
+        };
+      }
+
+      const { note, approvedBy } = parsed.data;
 
       if (!deps.approvalQueue) {
         reply.code(503);
@@ -2047,16 +2106,22 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
    * POST /api/approval-queue/:id/reject
    * Reject a pending item (reason required)
    */
-  fastify.post<{ Params: { id: string }; Body: { reason: string; rejectedBy?: string } }>(
+  fastify.post<{ Params: { id: string }; Body: unknown }>(
     '/api/approval-queue/:id/reject',
     async (request, reply) => {
       const { id } = request.params;
-      const { reason, rejectedBy } = request.body || {};
 
-      if (!reason) {
+      // Validate request body with Zod (ADR-006 compliance)
+      const parsed = RejectItemSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
         reply.code(400);
-        return { error: 'Reason is required for rejection' };
+        return {
+          error: 'Invalid request body',
+          details: parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message })),
+        };
       }
+
+      const { reason, rejectedBy } = parsed.data;
 
       if (!deps.approvalQueue) {
         reply.code(503);
