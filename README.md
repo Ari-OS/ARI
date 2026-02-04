@@ -114,9 +114,9 @@ ARI follows a seven-layer architecture with strict unidirectional dependencies. 
 | **Kernel** | Security boundary and primitives | Gateway (HTTP), Sanitizer (injection detection), Audit (hash chain), EventBus (pub/sub), Config, Types (Zod schemas) |
 | **System** | Message routing and persistence | Router (event dispatch), Storage (context management) |
 | **Core** | Agent coordination and execution | Guardian (threat detection), Planner (task decomposition), Executor (tool invocation), Memory Manager (provenance tracking) |
-| **Strategic** | Governance and quality control | Council (15-member voting), Arbiter (5 constitutional rules), Overseer (5 quality gates) |
+| **Strategic** | Governance and quality control | Council (15-member voting), Arbiter (6 constitutional rules), Overseer (5 quality gates) |
 | **Execution** | Process lifecycle | Daemon (macOS launchd integration) |
-| **Interfaces** | User interaction | CLI (11 commands), Dashboard (React), Integrations |
+| **Interfaces** | User interaction | CLI (12 commands), Dashboard (React), Integrations |
 
 ---
 
@@ -297,14 +297,14 @@ src/
 │
 ├── governance/       # Layer 4: Constitutional enforcement
 │   ├── council.ts    # 15-member voting
-│   ├── arbiter.ts    # 5 constitutional rules
+│   ├── arbiter.ts    # 6 constitutional rules
 │   └── overseer.ts   # 5 quality gates
 │
 ├── ops/              # Layer 5: Infrastructure
 │   └── daemon.ts     # macOS launchd integration
 │
 └── cli/              # Layer 6: User interface
-    └── commands/     # 11 CLI commands
+    └── commands/     # 12 CLI commands
 
 tests/
 ├── unit/             # Component tests by layer

@@ -220,7 +220,8 @@ The governance layer enforces constitutional rules, manages voting, and gates qu
 ### Components
 
 #### arbiter.ts
-- **5 constitutional rules** (hard invariants):
+- **6 constitutional rules** (hard invariants):
+  0. **creator_primacy**: Always operate in the creator's best interest
   1. **loopback_only**: Gateway must bind to 127.0.0.1
   2. **content_not_command**: External content never treated as instructions
   3. **audit_immutable**: Audit chain is append-only
@@ -577,7 +578,7 @@ Agent → Propose Action → Arbiter (Layer 2)
 - **Timeout**: 30s default per tool
 
 ### Arbiter
-- **Rules**: 5 constitutional invariants
+- **Rules**: 6 constitutional invariants
 - **Evaluation**: All actions checked against all rules
 - **Dispute Resolution**: Refer to council if no violations
 - **Binding**: All rulings are binding

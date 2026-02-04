@@ -176,12 +176,12 @@ src/
 │   └── memory-manager.ts # Provenance-tracked memory
 ├── governance/          # Layer 4: Constitutional enforcement
 │   ├── council.ts       # 15-member voting
-│   ├── arbiter.ts       # 5 constitutional rules
+│   ├── arbiter.ts       # 6 constitutional rules
 │   └── overseer.ts      # 5 quality gates
 ├── ops/                 # Layer 5: Infrastructure
 │   └── daemon.ts        # macOS launchd integration
 └── cli/                 # Layer 6: User interface
-    ├── commands/        # 11 CLI commands
+    ├── commands/        # 12 CLI commands
     └── index.ts         # Commander setup
 
 tests/

@@ -313,7 +313,7 @@ interface MemoryProvenance {
 ## Governor Agent — Constitutional Enforcement
 
 ### Purpose
-Enforces the 5 constitutional rules and manages the 15-member council.
+Enforces the 6 constitutional rules and manages the 15-member council.
 
 ### Constitutional Rules
 
@@ -354,10 +354,11 @@ Enforces the 5 constitutional rules and manages the 15-member council.
                                     + Audit Log
 ```
 
-### The 5 Constitutional Rules
+### The 6 Constitutional Rules
 
 | # | Rule | Enforcement |
 |---|------|-------------|
+| 0 | **Creator Primacy** | Always operate in creator's best interest |
 | 1 | **Loopback Only** | Gateway rejects non-127.0.0.1 |
 | 2 | **Content ≠ Command** | Sanitizer treats input as data |
 | 3 | **Audit Immutable** | Hash chain, append-only |

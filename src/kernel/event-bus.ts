@@ -310,6 +310,13 @@ export interface EventMap {
     recommendations: string[];
     timestamp: string;
   };
+  'learning:spaced_repetition_due': {
+    due: number;
+    totalCards: number;
+    reviewedToday: number;
+    averageEaseFactor: number;
+    timestamp: string;
+  };
   'learning:insight_generated': {
     insightId: string;
     type: string;

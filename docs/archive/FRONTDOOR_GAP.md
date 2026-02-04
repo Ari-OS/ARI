@@ -101,7 +101,7 @@ await this.app.listen({ port: this.port, host: '127.0.0.1' });
 | Agents | Executor | ✅ Complete | Tool execution |
 | Agents | Memory | ✅ Complete | Provenance tracking |
 | Governance | Council | ✅ Complete | 15-member voting |
-| Governance | Arbiter | ✅ Complete | 5 constitutional rules |
+| Governance | Arbiter | ✅ Complete | 6 constitutional rules |
 | Governance | Overseer | ✅ Complete | 5 quality gates |
 | CLI | Commands | ✅ Complete | 8 commands |
 | Dashboard | UI | ✅ Complete | React 19 + Vite |

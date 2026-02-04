@@ -30,14 +30,14 @@ export function registerOnboardCommand(program: Command): void {
         // Step 4: Initialize audit log
         const logger = new AuditLogger();
         await logger.log('system_initialized', 'system', 'system', {
-          version: '2.0.0',
+          version: '2.1.0',
           protocol: 'aurora',
           timestamp: new Date().toISOString(),
         });
         console.log('[✓] Initialized audit log');
 
         // Success message
-        console.log('\nARI V2.0 (Aurora Protocol) initialization complete.');
+        console.log('\nARI V2.1 (Aurora Protocol) initialization complete.');
         console.log("Run 'ari doctor' to verify system health.");
       } catch (error) {
         console.error('\nInitialization failed:', error);

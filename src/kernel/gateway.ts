@@ -45,7 +45,7 @@ export class Gateway {
     // Status endpoint with security information
     this.server.get('/status', async (_request: FastifyRequest, _reply: FastifyReply) => {
       return {
-        version: '2.0.0',
+        version: '2.1.0',
         gateway: {
           host: this.HOST,
           port: this.port,

@@ -7,7 +7,7 @@ Constitutional enforcement through Council, Arbiter, and Overseer.
 | Component | Role | Mechanism |
 |-----------|------|-----------|
 | Council | 15-member voting | Majority/supermajority thresholds |
-| Arbiter | Constitutional rules | 5 immutable rules |
+| Arbiter | Constitutional rules | 6 immutable rules |
 | Overseer | Quality gates | 5 validation checks |
 | PolicyEngine | Permission control | Three-layer checks |
 

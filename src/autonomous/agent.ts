@@ -814,8 +814,7 @@ export class AutonomousAgent {
           insightsGenerated: result.insights.length,
         });
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.eventBus.emit('learning:performance_review' as any, {
+        this.eventBus.emit('learning:performance_review', {
           period: `${result.period.start.toISOString()} - ${result.period.end.toISOString()}`,
           successRate: result.decisions.successRate,
           biasCount: result.biasesDetected.total,
@@ -859,8 +858,7 @@ export class AutonomousAgent {
 
         const result = await runGapAnalysis(recentQueries, recentFailures);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.eventBus.emit('learning:gap_analysis' as any, {
+        this.eventBus.emit('learning:gap_analysis', {
           period: `${result.period.start.toISOString()} - ${result.period.end.toISOString()}`,
           gapsFound: result.gaps.length,
           topGaps: result.topGaps.map(g => ({ domain: g.description, severity: g.severity })),
@@ -908,8 +906,7 @@ export class AutonomousAgent {
 
         const result = await runSelfAssessment(currentPeriod, previousPeriod);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.eventBus.emit('learning:self_assessment' as any, {
+        this.eventBus.emit('learning:self_assessment', {
           period: `${result.period.start.toISOString()} - ${result.period.end.toISOString()}`,
           grade: result.grade,
           improvement: result.overallImprovement,
@@ -944,8 +941,7 @@ export class AutonomousAgent {
           );
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.eventBus.emit('learning:spaced_repetition_due' as any, {
+        this.eventBus.emit('learning:spaced_repetition_due', {
           due: dueCards.length,
           totalCards: stats.totalCards,
           reviewedToday: stats.reviewedToday,

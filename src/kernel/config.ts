@@ -9,7 +9,7 @@ export const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
 
 // Default configuration
 export const DEFAULT_CONFIG: Config = {
-  version: '2.0.0',
+  version: '2.1.0',
   auditPath: path.join(CONFIG_DIR, 'audit.json'),
   gatewayPort: 3141,
   trustDefaults: {

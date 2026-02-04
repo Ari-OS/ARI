@@ -22,7 +22,7 @@ Display comprehensive ARI system status and metrics.
 ║ │ Daemon      │ ● OK    │ PID 12345, uptime 2d 4h             │   ║
 ║ │ Audit       │ ● OK    │ Chain valid, 1,234 events           │   ║
 ║ │ Memory      │ ● OK    │ 456 entries, 12MB                   │   ║
-║ │ Council     │ ● OK    │ 13 members, quorum active           │   ║
+║ │ Council     │ ● OK    │ 15 members, quorum active           │   ║
 ║ └─────────────┴─────────┴─────────────────────────────────────┘   ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║ AGENTS                                                             ║

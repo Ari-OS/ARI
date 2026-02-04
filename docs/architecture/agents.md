@@ -377,12 +377,18 @@ expireOverdueVotes(): void  // Called every 60 seconds
 **Purpose:** Constitutional enforcement and final authority.
 
 **Responsibilities:**
-- Validate proposals against 5 constitutional rules
+- Validate proposals against 6 constitutional rules
 - Sign off on releases
 - Emergency stop authority
 - Rule interpretation
 
-**5 Constitutional Rules:**
+**6 Constitutional Rules:**
+
+**Rule 0: Creator Primacy**
+```typescript
+// arbiter.ts - Creator's interests always come first
+// ARI always operates in the creator's best interest
+```
 
 **Rule 1: Loopback-Only Gateway**
 ```typescript

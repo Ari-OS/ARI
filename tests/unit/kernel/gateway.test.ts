@@ -137,7 +137,7 @@ describe('Gateway', () => {
       const data = await response.json();
 
       expect(response.ok).toBe(true);
-      expect(data).toHaveProperty('version', '2.0.0');
+      expect(data).toHaveProperty('version', '2.1.0');
       expect(data).toHaveProperty('gateway');
       expect(data.gateway).toHaveProperty('host', '127.0.0.1');
       expect(data.gateway).toHaveProperty('port', testPort);

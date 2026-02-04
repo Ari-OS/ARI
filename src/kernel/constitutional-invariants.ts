@@ -167,19 +167,21 @@ export const COUNCIL = Object.freeze({
   name: 'The Council',
   members: 15,
   votingAgents: Object.freeze([
-    'router',
-    'planner',
-    'executor',
-    'memory_manager',
-    'guardian',
-    'research',
-    'marketing',
-    'sales',
-    'content',
-    'seo',
-    'build',
-    'development',
-    'client_comms',
+    'router',           // ATLAS — Infrastructure
+    'executor',         // BOLT — Infrastructure
+    'memory_keeper',    // ECHO — Infrastructure
+    'guardian',         // AEGIS — Protection
+    'risk_assessor',    // SCOUT — Protection
+    'planner',          // TRUE — Strategy
+    'scheduler',        // TEMPO — Strategy
+    'resource_manager', // OPAL — Strategy
+    'wellness',         // PULSE — Life Domains
+    'relationships',    // EMBER — Life Domains
+    'creative',         // PRISM — Life Domains
+    'wealth',           // MINT — Life Domains
+    'growth',           // BLOOM — Life Domains
+    'ethics',           // VERA — Meta
+    'integrator',       // NEXUS — Meta
   ]),
   thresholds: Object.freeze({
     MAJORITY: 0.5,

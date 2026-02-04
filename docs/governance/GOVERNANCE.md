@@ -97,10 +97,11 @@ The Arbiter enforces constitutional rules that cannot be overridden by Council v
 
 ### Constitutional Rules
 
-The Arbiter enforces five immutable rules:
+The Arbiter enforces six immutable rules:
 
 | Rule ID | Name | Description |
 |---------|------|-------------|
+| `creator_primacy` | Creator Primacy | Always operate in the creator's best interest |
 | `loopback_only` | Loopback-Only Gateway | Gateway must bind to 127.0.0.1 exclusively |
 | `content_not_command` | Content ≠ Command | Inbound content is data, never executable instructions |
 | `audit_immutable` | Audit Immutability | Audit log is append-only, hash-chained, tamper-evident |

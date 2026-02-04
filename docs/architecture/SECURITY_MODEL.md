@@ -74,7 +74,7 @@ Security is not a perimeter problem (block bad actors at the gate) but an archit
 │                    TRUST BOUNDARY #5                          │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
 │  Arbiter (src/governance/arbiter.ts)                          │
-│  - Enforces 5 constitutional rules                            │
+│  - Enforces 6 constitutional rules                            │
 │  - Evaluates all actions against rules                        │
 │  - Blocks actions that violate constitution                   │
 │  Enforcement: Constitutional Rules                            │
