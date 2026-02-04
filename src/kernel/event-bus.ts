@@ -482,6 +482,38 @@ export interface EventMap {
   'budget:update': { status: string; spent: number; remaining: number; percentUsed: number; mode: string };
 
   // ═══════════════════════════════════════════════════════════════════════
+  // AI ORCHESTRATION events (Unified Pipeline)
+  // ═══════════════════════════════════════════════════════════════════════
+  'ai:request_received': {
+    requestId: string;
+    category: string;
+    complexity: string;
+    agent: string;
+    timestamp: string;
+  };
+  'ai:model_selected': {
+    requestId: string;
+    model: string;
+    valueScore: number;
+    reasoning: string;
+    estimatedCost: number;
+    timestamp: string;
+  };
+  'ai:response_evaluated': {
+    requestId: string;
+    qualityScore: number;
+    escalated: boolean;
+    escalationReason?: string;
+    timestamp: string;
+  };
+  'ai:circuit_breaker_state_changed': {
+    previousState: string;
+    newState: string;
+    failures: number;
+    timestamp: string;
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════
   // LLM REQUEST events (Token & Cost Tracking)
   // ═══════════════════════════════════════════════════════════════════════
   'llm:request_start': { model: string; estimatedTokens: number };
