@@ -11,6 +11,7 @@ import { Council } from '../../governance/council.js';
 import { Arbiter } from '../../governance/arbiter.js';
 import { Overseer } from '../../governance/overseer.js';
 import { SystemRouter } from '../../system/router.js';
+import { HeartbeatMonitor } from '../../kernel/heartbeat.js';
 import { apiRoutes } from '../../api/routes.js';
 import { WebSocketBroadcaster } from '../../api/ws.js';
 import * as Storage from '../../system/storage.js';
@@ -64,6 +65,8 @@ export function registerGatewayCommand(program: Command): void {
       // Initialize agents
       const guardian = new Guardian(audit, eventBus);
       const memoryManager = new MemoryManager(audit, eventBus);
+      await memoryManager.initialize();
+      console.log('Memory persistence loaded');
       const executor = new Executor(audit, eventBus);
       const planner = new Planner(audit, eventBus);
 
@@ -93,6 +96,16 @@ export function registerGatewayCommand(program: Command): void {
       const valueAnalytics = new ValueAnalytics(eventBus);
       const adaptiveLearner = new AdaptiveLearner(eventBus);
       console.log('Budget and analytics components initialized');
+
+      // Initialize heartbeat monitor
+      const heartbeat = new HeartbeatMonitor(eventBus);
+      heartbeat.register('gateway', 'kernel', async () => ({ status: 'up' }));
+      heartbeat.register('audit', 'kernel', async () => ({
+        entries: (await audit.getChain()).length,
+      }));
+      heartbeat.register('memory', 'agent', async () => ({
+        entries: memoryManager.getStats().total_entries,
+      }));
 
       // Create gateway
       const gatewayInstance = new Gateway(port, audit, eventBus);
@@ -139,6 +152,11 @@ export function registerGatewayCommand(program: Command): void {
         try {
           // Stop autonomous agent first
           await autonomousAgent.stop();
+
+          // Shutdown persistence layers
+          await memoryManager.shutdown();
+          await costTracker.shutdown();
+          heartbeat.stop();
 
           // Stop agents and core
           await core.stop('shutdown');
@@ -212,6 +230,10 @@ export function registerGatewayCommand(program: Command): void {
           console.warn('Autonomous agent failed to start:', error);
           console.warn('ARI will continue without autonomous capabilities');
         }
+
+        // Start heartbeat monitoring
+        heartbeat.start();
+        console.log('Heartbeat monitor started');
 
         console.log('ARI system fully initialized');
         console.log('API endpoints available at http://127.0.0.1:' + port + '/api/*');

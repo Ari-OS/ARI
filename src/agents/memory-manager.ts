@@ -1,4 +1,8 @@
 import { createHash, randomUUID } from 'crypto';
+import fs from 'node:fs/promises';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { homedir } from 'node:os';
 import type { AuditLogger } from '../kernel/audit.js';
 import type { EventBus } from '../kernel/event-bus.js';
 import type {
@@ -56,6 +60,12 @@ export class MemoryManager {
   private readonly TRUST_DECAY_PER_DAY = 0.01;
   private readonly VERIFIED_DECAY_FACTOR = 0.5; // Verified entries decay slower
 
+  // Persistence — file-based, partition-organized, atomic writes
+  private readonly MEMORY_DIR = path.join(homedir(), '.ari', 'memories');
+  private persistTimer: NodeJS.Timeout | null = null;
+  private dirty = false;
+  private readonly PERSIST_DEBOUNCE_MS = 5000; // Batch writes every 5 seconds
+
   // Partition access control
   private readonly PARTITION_ACCESS: Record<MemoryPartition, AgentId[]> = {
     SENSITIVE: ['arbiter', 'overseer', 'guardian'],
@@ -87,6 +97,56 @@ export class MemoryManager {
   constructor(auditLogger: AuditLogger, eventBus: EventBus) {
     this.auditLogger = auditLogger;
     this.eventBus = eventBus;
+  }
+
+  /**
+   * Initialize persistence — load memories from disk and start background flush.
+   * Must be called after construction and before first use.
+   */
+  async initialize(): Promise<void> {
+    // Create directory structure
+    mkdirSync(this.MEMORY_DIR, { recursive: true });
+
+    // Load existing memories from disk
+    await this.loadFromDisk();
+
+    // Start debounced persistence timer
+    this.persistTimer = setInterval(() => {
+      if (this.dirty) {
+        this.persistToDisk().catch((err: unknown) => {
+          this.eventBus.emit('audit:log', {
+            action: 'memory:persist_failed',
+            agent: 'memory_keeper',
+            trustLevel: 'system',
+            details: { error: err instanceof Error ? err.message : String(err) },
+          });
+        });
+      }
+    }, this.PERSIST_DEBOUNCE_MS);
+
+    // Audit the load
+    await this.auditLogger.log('memory:loaded_from_disk', 'memory_keeper', 'system', {
+      entries_loaded: this.memories.size,
+    });
+  }
+
+  /**
+   * Graceful shutdown — flush pending writes and stop timer.
+   */
+  async shutdown(): Promise<void> {
+    if (this.persistTimer) {
+      clearInterval(this.persistTimer);
+      this.persistTimer = null;
+    }
+
+    // Final flush
+    if (this.dirty) {
+      await this.persistToDisk();
+    }
+
+    await this.auditLogger.log('memory:shutdown', 'memory_keeper', 'system', {
+      entries_saved: this.memories.size,
+    });
   }
 
   /**
@@ -137,6 +197,7 @@ export class MemoryManager {
 
     // Store memory
     this.memories.set(id, entry);
+    this.dirty = true;
 
     // Audit and emit event
     await this.auditLogger.log('memory:store', params.provenance.agent, params.provenance.trust_level, {
@@ -250,6 +311,7 @@ export class MemoryManager {
     entry.verified_at = new Date().toISOString();
     entry.verified_by = verifyingAgent;
     entry.hash = this.computeHash(entry); // Recompute hash
+    this.dirty = true;
 
     await this.auditLogger.log('memory:verify', verifyingAgent, 'system', {
       memory_id: id,
@@ -267,6 +329,7 @@ export class MemoryManager {
       entry.partition = 'SENSITIVE';
       entry.allowed_agents = ['arbiter', 'overseer', 'guardian'];
       entry.hash = this.computeHash(entry);
+      this.dirty = true;
     }
 
     await this.auditLogger.logSecurity({
@@ -487,6 +550,60 @@ export class MemoryManager {
   }
 
   /**
+   * Load memories from disk — one JSON file per partition.
+   */
+  private async loadFromDisk(): Promise<void> {
+    const partitions: MemoryPartition[] = ['PUBLIC', 'INTERNAL', 'SENSITIVE'];
+
+    for (const partition of partitions) {
+      const filePath = path.join(this.MEMORY_DIR, `${partition.toLowerCase()}.json`);
+
+      try {
+        if (existsSync(filePath)) {
+          const data = readFileSync(filePath, 'utf-8');
+          const entries: MemoryEntry[] = JSON.parse(data);
+
+          for (const entry of entries) {
+            if (entry.id && entry.content && entry.provenance) {
+              this.memories.set(entry.id, entry);
+            }
+          }
+        }
+      } catch (error) {
+        this.eventBus.emit('audit:log', {
+          action: 'memory:load_failed',
+          agent: 'memory_keeper',
+          trustLevel: 'system',
+          details: {
+            partition,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        });
+      }
+    }
+  }
+
+  /**
+   * Persist memories to disk — atomic write per partition via tmp+rename.
+   */
+  private async persistToDisk(): Promise<void> {
+    const partitions: MemoryPartition[] = ['PUBLIC', 'INTERNAL', 'SENSITIVE'];
+
+    for (const partition of partitions) {
+      const entries = Array.from(this.memories.values())
+        .filter((e) => e.partition === partition);
+
+      const filePath = path.join(this.MEMORY_DIR, `${partition.toLowerCase()}.json`);
+      const tempPath = `${filePath}.tmp`;
+
+      await fs.writeFile(tempPath, JSON.stringify(entries, null, 2));
+      await fs.rename(tempPath, filePath);
+    }
+
+    this.dirty = false;
+  }
+
+  /**
    * Consolidate memories when at capacity
    */
   private async consolidate(): Promise<void> {
@@ -516,6 +633,8 @@ export class MemoryManager {
         this.memories.delete(id);
       }
     }
+
+    this.dirty = true;
 
     await this.auditLogger.log('memory:consolidate', 'memory_keeper', 'system', {
       final_count: this.memories.size,

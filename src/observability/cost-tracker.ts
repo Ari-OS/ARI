@@ -20,17 +20,21 @@ const BUDGET_CONFIG_PATH = path.join(ARI_DIR, 'budget-config.json');
 
 /**
  * Model pricing in dollars per 1 million tokens.
- * Updated to match current Anthropic pricing (2026).
+ * Aligned with ModelRegistry (src/ai/model-registry.ts) — the single source of truth.
+ * Updated February 2026 to match Anthropic published rates.
  */
 export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  // Anthropic models
-  'claude-opus-4': { input: 15, output: 75 },
+  // Anthropic models — aligned with ModelRegistry
+  'claude-opus-4': { input: 5, output: 25 },
+  'claude-opus-4.5': { input: 5, output: 25 },
+  'claude-opus-4-20250514': { input: 5, output: 25 },
+  'claude-sonnet-5': { input: 3, output: 15 },
   'claude-sonnet-4': { input: 3, output: 15 },
-  'claude-haiku': { input: 0.25, output: 1.25 },
-  // Legacy model IDs (for compatibility)
-  'claude-3-haiku-20240307': { input: 0.25, output: 1.25 },
   'claude-3-5-sonnet-20241022': { input: 3, output: 15 },
-  'claude-opus-4-20250514': { input: 15, output: 75 },
+  'claude-haiku': { input: 1, output: 5 },
+  'claude-haiku-4.5': { input: 1, output: 5 },
+  'claude-haiku-3': { input: 0.25, output: 1.25 },
+  'claude-3-haiku-20240307': { input: 0.25, output: 1.25 },
   // OpenAI models
   'gpt-4o': { input: 5, output: 15 },
   'gpt-4o-mini': { input: 0.15, output: 0.6 },

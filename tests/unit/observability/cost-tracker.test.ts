@@ -75,8 +75,8 @@ describe('CostTracker', () => {
   describe('calculateCost', () => {
     it('should calculate cost for known models', () => {
       const cost = costTracker.calculateCost('claude-opus-4', 1000, 500);
-      // $15/1M input + $75/1M output = (1000 * 15 + 500 * 75) / 1_000_000
-      expect(cost).toBeCloseTo(0.0525, 5);
+      // $5/1M input + $25/1M output = (1000 * 5 + 500 * 25) / 1_000_000
+      expect(cost).toBeCloseTo(0.0175, 5);
     });
 
     it('should use default pricing for unknown models', () => {
@@ -128,16 +128,18 @@ describe('CostTracker', () => {
       eventBus.on('cost:budget_warning', warningHandler);
 
       // Track enough to exceed 80% of $10 daily budget
+      // With corrected Opus pricing ($5/$25): need more tokens
+      // (300k * $5 + 300k * $25) / 1M = $1.5 + $7.5 = $9
       costTracker.track({
         operation: 'expensive',
         agent: 'core',
         provider: 'anthropic',
         model: 'claude-opus-4',
-        inputTokens: 100_000,
-        outputTokens: 100_000,
+        inputTokens: 300_000,
+        outputTokens: 300_000,
       });
 
-      // This should trigger warning (100k * $15 + 100k * $75) / 1M = $9
+      // This should trigger warning at $9 (>80% of $10 budget)
       expect(warningHandler).toHaveBeenCalled();
     });
 
@@ -146,15 +148,15 @@ describe('CostTracker', () => {
       eventBus.on('cost:budget_exceeded', exceededHandler);
 
       // Track enough to exceed $10 daily budget
-      // With claude-opus-4 pricing ($15/M input, $75/M output):
-      // 200k input * $15/M = $3, 150k output * $75/M = $11.25, total = $14.25 > $10
+      // With corrected Opus pricing ($5/M input, $25/M output):
+      // 500k input * $5/M = $2.5, 400k output * $25/M = $10, total = $12.5 > $10
       costTracker.track({
         operation: 'expensive',
         agent: 'core',
         provider: 'anthropic',
         model: 'claude-opus-4',
-        inputTokens: 200_000,
-        outputTokens: 150_000,
+        inputTokens: 500_000,
+        outputTokens: 400_000,
       });
 
       expect(exceededHandler).toHaveBeenCalledWith(
@@ -278,8 +280,8 @@ describe('CostTracker', () => {
     it('should estimate cost for planned operations', () => {
       const estimate = costTracker.estimateCost('claude-opus-4', 10000, 5000);
       
-      // $15/1M input + $75/1M output
-      const expected = (10000 * 15 + 5000 * 75) / 1_000_000;
+      // $5/1M input + $25/1M output
+      const expected = (10000 * 5 + 5000 * 25) / 1_000_000;
       expect(estimate).toBeCloseTo(expected, 5);
     });
   });

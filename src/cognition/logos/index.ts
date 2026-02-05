@@ -31,8 +31,16 @@ import type {
 } from '../types.js';
 import { BayesianError } from '../errors.js';
 
-// Create shared EventBus instance for cognition layer
-const eventBus = new EventBus();
+// Module-level EventBus — defaults to private, can be replaced with shared bus
+let eventBus = new EventBus();
+
+/**
+ * Replace the module-level EventBus with a shared instance.
+ * Called by CognitionLayer.initialize() to connect LOGOS events to the kernel bus.
+ */
+export function setLogosEventBus(bus: EventBus): void {
+  eventBus = bus;
+}
 
 /**
  * Calculate posterior probability using Bayes' theorem

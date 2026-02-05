@@ -20,13 +20,55 @@ export class Gateway {
   private readonly HOST = '127.0.0.1';
   private port: number;
 
+  // Rate limiting — in-process token bucket (no external dependency needed)
+  private readonly RATE_LIMIT_MAX = 100; // requests per window
+  private readonly RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+  private rateLimitTokens = 100;
+  private rateLimitLastRefill = Date.now();
+
   constructor(port?: number, audit?: AuditLogger, eventBus?: EventBus) {
     this.port = port ?? 3141;
     this.server = Fastify({ logger: false });
     this.audit = audit ?? new AuditLogger();
     this.eventBus = eventBus ?? new EventBus();
 
+    this.registerRateLimiter();
     this.registerRoutes();
+  }
+
+  /**
+   * Register rate limiter as a Fastify preHandler hook.
+   * Token bucket: 100 requests per minute, refills linearly.
+   */
+  private registerRateLimiter(): void {
+    this.server.addHook('preHandler', async (_request, reply) => {
+      // Refill tokens based on elapsed time
+      const now = Date.now();
+      const elapsed = now - this.rateLimitLastRefill;
+      const tokensToAdd = (elapsed / this.RATE_LIMIT_WINDOW_MS) * this.RATE_LIMIT_MAX;
+      this.rateLimitTokens = Math.min(this.RATE_LIMIT_MAX, this.rateLimitTokens + tokensToAdd);
+      this.rateLimitLastRefill = now;
+
+      if (this.rateLimitTokens < 1) {
+        this.eventBus.emit('security:alert', {
+          type: 'rate_limited',
+          source: 'gateway',
+          data: {
+            timestamp: new Date().toISOString(),
+            tokensRemaining: this.rateLimitTokens,
+          },
+        });
+
+        reply.code(429);
+        reply.send({
+          error: 'Too Many Requests',
+          retryAfter: Math.ceil(this.RATE_LIMIT_WINDOW_MS / 1000),
+        });
+        return;
+      }
+
+      this.rateLimitTokens -= 1;
+    });
   }
 
   /**

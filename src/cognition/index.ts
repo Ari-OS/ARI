@@ -132,16 +132,17 @@ export class CognitionLayer {
   public visualization: typeof import('./visualization/index.js') | null = null;
   public ux: typeof import('./ux/index.js') | null = null;
 
-  private constructor() {
-    this.eventBus = new EventBus();
+  private constructor(eventBus?: EventBus) {
+    this.eventBus = eventBus ?? new EventBus();
   }
 
   /**
-   * Get the singleton instance of CognitionLayer
+   * Get the singleton instance of CognitionLayer.
+   * Pass an EventBus on first call to connect cognitive events to the kernel bus.
    */
-  public static getInstance(): CognitionLayer {
+  public static getInstance(eventBus?: EventBus): CognitionLayer {
     if (!CognitionLayer.instance) {
-      CognitionLayer.instance = new CognitionLayer();
+      CognitionLayer.instance = new CognitionLayer(eventBus);
     }
     return CognitionLayer.instance;
   }
@@ -166,6 +167,11 @@ export class CognitionLayer {
       this.learning = await import('./learning/index.js');
       this.visualization = await import('./visualization/index.js');
       this.ux = await import('./ux/index.js');
+
+      // Wire pillar EventBus instances to the shared bus
+      this.logos.setLogosEventBus(this.eventBus);
+      this.ethos.setEthosEventBus(this.eventBus);
+      this.pathos.setPathosEventBus(this.eventBus);
 
       this.initialized = true;
       this.initializationTime = new Date();
@@ -364,15 +370,16 @@ export class CognitionLayer {
 /**
  * Get the singleton CognitionLayer instance
  */
-export function getCognitionLayer(): CognitionLayer {
-  return CognitionLayer.getInstance();
+export function getCognitionLayer(eventBus?: EventBus): CognitionLayer {
+  return CognitionLayer.getInstance(eventBus);
 }
 
 /**
- * Initialize the cognitive layer
+ * Initialize the cognitive layer.
+ * Pass an EventBus to connect all cognitive events to the kernel bus.
  */
-export async function initializeCognition(): Promise<CognitionLayer> {
-  const layer = CognitionLayer.getInstance();
+export async function initializeCognition(eventBus?: EventBus): Promise<CognitionLayer> {
+  const layer = CognitionLayer.getInstance(eventBus);
   await layer.initialize();
   return layer;
 }

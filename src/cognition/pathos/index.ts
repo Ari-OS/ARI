@@ -37,7 +37,16 @@ import {
 } from '../constants.js';
 import { CBTError, StoicError, ReflectionError, WisdomError } from '../errors.js';
 
-const eventBus = new EventBus();
+// Module-level EventBus — defaults to private, can be replaced with shared bus
+let eventBus = new EventBus();
+
+/**
+ * Replace the module-level EventBus with a shared instance.
+ * Called by CognitionLayer.initialize() to connect PATHOS events to the kernel bus.
+ */
+export function setPathosEventBus(bus: EventBus): void {
+  eventBus = bus;
+}
 
 // =============================================================================
 // CBT REFRAMING
