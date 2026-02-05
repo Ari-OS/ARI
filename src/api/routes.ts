@@ -2605,7 +2605,7 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
           simple: 'claude-3-haiku',
           standard: 'claude-haiku-4.5',
           complex: 'claude-sonnet-4.5',
-          critical: 'claude-opus-4.5',
+          critical: 'claude-opus-4.6',
         };
         return {
           model: defaults[taskType] || 'claude-sonnet-4.5',

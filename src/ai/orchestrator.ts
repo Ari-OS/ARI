@@ -581,6 +581,7 @@ export class AIOrchestrator {
       'claude-sonnet-4',
       'claude-sonnet-5',
       'claude-opus-4.5',
+      'claude-opus-4.6',
     ];
 
     const currentIndex = hierarchy.indexOf(current);
@@ -593,6 +594,7 @@ export class AIOrchestrator {
 
   private resolveModelId(tier: ModelTier): string {
     const modelIdMap: Record<ModelTier, string> = {
+      'claude-opus-4.6': 'claude-opus-4-6-20260205',
       'claude-opus-4.5': 'claude-opus-4-5-20251101',
       'claude-sonnet-5': 'claude-sonnet-5-20250514',
       'claude-sonnet-4': 'claude-sonnet-4-20250514',

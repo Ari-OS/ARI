@@ -60,6 +60,11 @@ export const MODEL_PRICING = {
   'claude-opus-4.5': {
     input: 5.00,
     output: 25.00,
+    intelligence: 0.95,
+  },
+  'claude-opus-4.6': {
+    input: 5.00,
+    output: 25.00,
     intelligence: 1.0,
   },
 } as const;
@@ -640,9 +645,9 @@ export class BudgetTracker {
           case 'standard':
             return 'claude-sonnet-4.5';
           case 'complex':
-            return 'claude-opus-4.5';
+            return 'claude-opus-4.6';
           case 'critical':
-            return 'claude-opus-4.5';
+            return 'claude-opus-4.6';
         }
         break;
 

@@ -190,6 +190,9 @@ export class ValueScorer {
     }
 
     if (score >= 85 && (category === 'planning' || category === 'analysis')) {
+      if (this.registry.isAvailable('claude-opus-4.6')) {
+        return 'claude-opus-4.6';
+      }
       if (this.registry.isAvailable('claude-opus-4.5')) {
         return 'claude-opus-4.5';
       }
