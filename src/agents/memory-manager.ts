@@ -5,6 +5,7 @@ import path from 'node:path';
 import { homedir } from 'node:os';
 import type { AuditLogger } from '../kernel/audit.js';
 import type { EventBus } from '../kernel/event-bus.js';
+import { INJECTION_PATTERNS } from '../kernel/sanitizer.js';
 import type {
   AgentId,
   MemoryEntry,
@@ -83,15 +84,15 @@ export class MemoryManager {
   };
 
   // Injection patterns for poisoning detection
-  private readonly INJECTION_PATTERNS = [
-    /\$\{.*\}/,
+  // Base: all 27 kernel sanitizer patterns (shared single source of truth)
+  // Plus: memory-specific patterns for standalone function call injection
+  private readonly MEMORY_INJECTION_PATTERNS = [
+    ...INJECTION_PATTERNS.map(p => p.pattern),
+    // Memory-specific: standalone function calls without semicolon prefix
     /eval\s*\(/i,
     /exec\s*\(/i,
     /__proto__|constructor\[/i,
-    /\.\.\//,
-    /<script/i,
     /union.*select/i,
-    /;\s*rm\s+-rf/i,
   ];
 
   constructor(auditLogger: AuditLogger, eventBus: EventBus) {
@@ -484,7 +485,7 @@ export class MemoryManager {
    */
   private detectPoisoning(params: StoreParams): { should_quarantine: boolean; reason: string } {
     // Check for injection patterns
-    for (const pattern of this.INJECTION_PATTERNS) {
+    for (const pattern of this.MEMORY_INJECTION_PATTERNS) {
       if (pattern.test(params.content)) {
         return {
           should_quarantine: true,

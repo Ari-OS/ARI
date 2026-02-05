@@ -23,7 +23,15 @@ import type {
 // These errors will be used when we implement validation and source fetching
 // import { KnowledgeSourceError, ValidationError } from '../errors.js';
 
-const eventBus = new EventBus();
+let eventBus = new EventBus();
+
+/**
+ * Set the shared EventBus for the knowledge module.
+ * Called by CognitionLayer during initialization to connect events to kernel bus.
+ */
+export function setKnowledgeEventBus(bus: EventBus): void {
+  eventBus = bus;
+}
 
 // =============================================================================
 // KNOWLEDGE SOURCES CATALOG

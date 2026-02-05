@@ -27,7 +27,15 @@ import type {
 // LearningLoopError will be used when we implement error handling for learning loop operations
 // import { LearningLoopError } from '../errors.js';
 
-const eventBus = new EventBus();
+let eventBus = new EventBus();
+
+/**
+ * Set the shared EventBus for the learning module.
+ * Called by CognitionLayer during initialization to connect events to kernel bus.
+ */
+export function setLearningEventBus(bus: EventBus): void {
+  eventBus = bus;
+}
 
 // =============================================================================
 // TEACHING-ORIENTED LEARNING (Retrieval Practice, Knowledge Tracking)

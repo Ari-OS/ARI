@@ -91,6 +91,100 @@ import type {
 } from './types.js';
 import { PILLAR_ICONS, PILLAR_NAMES, COGNITIVE_FRAMEWORKS } from './constants.js';
 
+// =============================================================================
+// COGNITIVE METRICS — Event-driven tracking (replaces hardcoded TODOs)
+// =============================================================================
+
+interface FrameworkMetrics {
+  usageCount: number;
+  errorCount: number;
+  totalResponseTime: number;
+  lastUsed: Date | null;
+}
+
+class CognitiveMetricsTracker {
+  private frameworkMetrics: Map<string, FrameworkMetrics> = new Map();
+  private pillarErrors: Map<Pillar, number> = new Map();
+  private pillarLastActivity: Map<Pillar, Date> = new Map();
+
+  recordUsage(framework: string, pillar: Pillar, responseTimeMs: number, success: boolean): void {
+    const existing = this.frameworkMetrics.get(framework) ?? {
+      usageCount: 0, errorCount: 0, totalResponseTime: 0, lastUsed: null,
+    };
+    existing.usageCount++;
+    existing.totalResponseTime += responseTimeMs;
+    if (!success) existing.errorCount++;
+    existing.lastUsed = new Date();
+    this.frameworkMetrics.set(framework, existing);
+
+    this.pillarLastActivity.set(pillar, new Date());
+    if (!success) {
+      this.pillarErrors.set(pillar, (this.pillarErrors.get(pillar) ?? 0) + 1);
+    }
+  }
+
+  getFrameworkMetrics(framework: string): FrameworkMetrics {
+    return this.frameworkMetrics.get(framework) ?? {
+      usageCount: 0, errorCount: 0, totalResponseTime: 0, lastUsed: null,
+    };
+  }
+
+  getPillarErrors(pillar: Pillar): number {
+    return this.pillarErrors.get(pillar) ?? 0;
+  }
+
+  getPillarLastActivity(pillar: Pillar): Date | null {
+    return this.pillarLastActivity.get(pillar) ?? null;
+  }
+
+  getAvgResponseTime(pillar: Pillar): number {
+    const frameworks = Object.values(COGNITIVE_FRAMEWORKS).filter(f => f.pillar === pillar);
+    let totalTime = 0;
+    let totalCalls = 0;
+    for (const f of frameworks) {
+      const m = this.frameworkMetrics.get(f.name);
+      if (m) {
+        totalTime += m.totalResponseTime;
+        totalCalls += m.usageCount;
+      }
+    }
+    return totalCalls > 0 ? totalTime / totalCalls : 0;
+  }
+
+  getPillarHealth(pillar: Pillar): number {
+    const frameworks = Object.values(COGNITIVE_FRAMEWORKS).filter(f => f.pillar === pillar);
+    if (frameworks.length === 0) return 1.0;
+
+    let totalUsage = 0;
+    let totalErrors = 0;
+    for (const f of frameworks) {
+      const m = this.frameworkMetrics.get(f.name);
+      if (m) {
+        totalUsage += m.usageCount;
+        totalErrors += m.errorCount;
+      }
+    }
+
+    if (totalUsage === 0) return 0.95; // No data yet — assume healthy
+    const errorRate = totalErrors / totalUsage;
+    return Math.max(0, 1 - errorRate);
+  }
+
+  getTopFramework(pillar: Pillar): string {
+    const frameworks = Object.values(COGNITIVE_FRAMEWORKS).filter(f => f.pillar === pillar);
+    let top = frameworks[0]?.name || 'None';
+    let topCount = 0;
+    for (const f of frameworks) {
+      const m = this.frameworkMetrics.get(f.name);
+      if (m && m.usageCount > topCount) {
+        topCount = m.usageCount;
+        top = f.name;
+      }
+    }
+    return top;
+  }
+}
+
 /**
  * CognitionLayer provides a unified interface to all cognitive capabilities.
  *
@@ -122,6 +216,7 @@ export class CognitionLayer {
   private eventBus: EventBus;
   private initialized: boolean = false;
   private initializationTime: Date | null = null;
+  private metrics: CognitiveMetricsTracker = new CognitiveMetricsTracker();
 
   // Pillar APIs (will be populated on init)
   public logos: typeof import('./logos/index.js') | null = null;
@@ -173,6 +268,17 @@ export class CognitionLayer {
       this.ethos.setEthosEventBus(this.eventBus);
       this.pathos.setPathosEventBus(this.eventBus);
 
+      // Wire knowledge and learning modules to the shared bus
+      if (this.knowledge && 'setKnowledgeEventBus' in this.knowledge) {
+        (this.knowledge as { setKnowledgeEventBus: (bus: EventBus) => void }).setKnowledgeEventBus(this.eventBus);
+      }
+      if (this.learning && 'setLearningEventBus' in this.learning) {
+        (this.learning as { setLearningEventBus: (bus: EventBus) => void }).setLearningEventBus(this.eventBus);
+      }
+
+      // Subscribe to cognitive events for real metrics tracking
+      this.subscribeToCognitiveEvents();
+
       this.initialized = true;
       this.initializationTime = new Date();
 
@@ -221,23 +327,39 @@ export class CognitionLayer {
       (f) => f.pillar === pillar
     );
 
-    // TODO: Implement actual health checks based on API response times,
-    // error rates, and usage statistics
+    const health = this.metrics.getPillarHealth(pillar);
+    const healthLevel =
+      health >= 0.9 ? 'EXCELLENT' :
+      health >= 0.75 ? 'GOOD' :
+      health >= 0.6 ? 'FAIR' :
+      health >= 0.4 ? 'POOR' : 'CRITICAL';
+
+    // Count active APIs (those with at least one usage)
+    const apisActive = frameworks.filter(f => {
+      const m = this.metrics.getFrameworkMetrics(f.name);
+      return m.usageCount > 0;
+    }).length;
+
     return {
       pillar,
-      health: 0.95, // Placeholder
-      healthLevel: 'EXCELLENT',
-      apisActive: frameworks.length,
+      health,
+      healthLevel,
+      apisActive,
       apisTotal: frameworks.length,
-      lastActivity: now,
-      topFramework: frameworks[0]?.name || 'None',
-      frameworkUsage: frameworks.map((f) => ({
-        framework: f.name,
-        usageCount: 0, // TODO: Track actual usage
-        successRate: 1.0,
-      })),
-      recentErrors: 0,
-      avgResponseTime: 50, // ms
+      lastActivity: this.metrics.getPillarLastActivity(pillar) ?? now,
+      topFramework: this.metrics.getTopFramework(pillar),
+      frameworkUsage: frameworks.map((f) => {
+        const m = this.metrics.getFrameworkMetrics(f.name);
+        return {
+          framework: f.name,
+          usageCount: m.usageCount,
+          successRate: m.usageCount > 0
+            ? (m.usageCount - m.errorCount) / m.usageCount
+            : 1.0,
+        };
+      }),
+      recentErrors: this.metrics.getPillarErrors(pillar),
+      avgResponseTime: Math.round(this.metrics.getAvgResponseTime(pillar)),
     };
   }
 
@@ -258,15 +380,26 @@ export class CognitionLayer {
       overall >= 0.6 ? 'FAIR' :
       overall >= 0.4 ? 'POOR' : 'CRITICAL';
 
+    // Pull real data from knowledge and learning modules
+    const knowledgeSources = this.knowledge
+      ? this.knowledge.getEnabledSources().length
+      : 0;
+    const councilProfiles = this.knowledge
+      ? this.knowledge.getAllCouncilProfiles().length
+      : 0;
+    const learningStatus = this.learning
+      ? this.learning.getLearningStatus()
+      : null;
+
     return {
       overall,
       overallLevel,
       pillars,
-      learningLoopActive: true, // TODO: Check scheduler
-      learningLoopStage: 'PERFORMANCE_REVIEW', // TODO: Get from learning module
-      knowledgeSources: 87, // TODO: Get from knowledge module
-      knowledgeSourcesActive: 87,
-      councilProfilesLoaded: 15, // TODO: Get from knowledge module
+      learningLoopActive: learningStatus !== null,
+      learningLoopStage: learningStatus?.currentStage ?? 'PERFORMANCE_REVIEW',
+      knowledgeSources,
+      knowledgeSourcesActive: knowledgeSources,
+      councilProfilesLoaded: councilProfiles,
       lastUpdated: new Date(),
     };
   }
@@ -275,18 +408,22 @@ export class CognitionLayer {
    * Get the current learning progress
    */
   public async getLearningProgress(): Promise<LearningProgress> {
-    const now = new Date();
+    // Delegate to learning module's real implementation
+    if (this.learning) {
+      return this.learning.getLearningStatus();
+    }
 
-    // TODO: Implement actual learning progress tracking
+    // Fallback if learning module not loaded
+    const now = new Date();
     return {
       currentStage: 'PERFORMANCE_REVIEW',
-      stageProgress: 0.5,
+      stageProgress: 0,
       lastReview: now,
       lastGapAnalysis: now,
       lastAssessment: now,
-      nextReview: new Date(now.getTime() + 24 * 60 * 60 * 1000), // Tomorrow
-      nextGapAnalysis: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // Next week
-      nextAssessment: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000), // Next month
+      nextReview: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      nextGapAnalysis: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+      nextAssessment: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
       recentInsights: [],
       recentInsightsCount: 0,
       improvementTrend: 'IMPROVING',
@@ -325,6 +462,56 @@ export class CognitionLayer {
       icon: PILLAR_ICONS[pillar],
       frameworks,
     };
+  }
+
+  /**
+   * Subscribe to cognitive events for real-time metrics tracking.
+   * Events flow from LOGOS/ETHOS/PATHOS through the shared EventBus (fixed in P1-2).
+   */
+  private subscribeToCognitiveEvents(): void {
+    // LOGOS events
+    const logosEvents: Array<{ event: string; framework: string }> = [
+      { event: 'cognition:belief_updated', framework: 'Bayesian Reasoning' },
+      { event: 'cognition:expected_value_calculated', framework: 'Expected Value' },
+      { event: 'cognition:kelly_calculated', framework: 'Kelly Criterion' },
+    ];
+    for (const { event, framework } of logosEvents) {
+      this.eventBus.on(event as 'audit:log', () => {
+        this.metrics.recordUsage(framework, 'LOGOS', 0, true);
+      });
+    }
+
+    // ETHOS events
+    const ethosEvents: Array<{ event: string; framework: string }> = [
+      { event: 'cognition:bias_detected', framework: 'Cognitive Bias Detection' },
+      { event: 'cognition:emotional_risk', framework: 'Emotional State Monitoring' },
+      { event: 'cognition:discipline_check', framework: 'Pre-Decision Discipline' },
+    ];
+    for (const { event, framework } of ethosEvents) {
+      this.eventBus.on(event as 'audit:log', () => {
+        this.metrics.recordUsage(framework, 'ETHOS', 0, true);
+      });
+    }
+
+    // PATHOS events
+    const pathosEvents: Array<{ event: string; framework: string }> = [
+      { event: 'cognition:thought_reframed', framework: 'CBT Reframing' },
+      { event: 'cognition:reflection_complete', framework: 'Reflection Engine' },
+      { event: 'cognition:wisdom_consulted', framework: 'Wisdom Traditions' },
+      { event: 'cognition:practice_plan_created', framework: 'Deliberate Practice' },
+    ];
+    for (const { event, framework } of pathosEvents) {
+      this.eventBus.on(event as 'audit:log', () => {
+        this.metrics.recordUsage(framework, 'PATHOS', 0, true);
+      });
+    }
+  }
+
+  /**
+   * Get the metrics tracker (for testing/introspection)
+   */
+  public getMetrics(): CognitiveMetricsTracker {
+    return this.metrics;
   }
 
   /**

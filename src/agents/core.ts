@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import type { AuditLogger } from '../kernel/audit.js';
 import type { EventBus } from '../kernel/event-bus.js';
-import type { Message, TrustLevel } from '../kernel/types.js';
+import type { Message, TrustLevel, CouncilInterface, ArbiterInterface, OverseerInterface } from '../kernel/types.js';
 import type { Guardian } from './guardian.js';
 import type { MemoryManager } from './memory-manager.js';
 import type { Executor } from './executor.js';
@@ -62,10 +62,10 @@ export class Core {
   private readonly soulManager: SOULManager | null;
   private readonly contextLayerManager: ContextLayerManager | null;
 
-  // Governance components (optional, typed as unknown for forward compatibility)
-  private council: unknown = null;
-  private arbiter: unknown = null;
-  private overseer: unknown = null;
+  // Governance components (typed interfaces from kernel/types.ts)
+  private council: CouncilInterface | null = null;
+  private arbiter: ArbiterInterface | null = null;
+  private overseer: OverseerInterface | null = null;
 
   private started = false;
 
@@ -91,7 +91,7 @@ export class Core {
   /**
    * Set governance components (optional)
    */
-  setGovernance(components: { council?: unknown; arbiter?: unknown; overseer?: unknown }): void {
+  setGovernance(components: { council?: CouncilInterface; arbiter?: ArbiterInterface; overseer?: OverseerInterface }): void {
     if (components.council) this.council = components.council;
     if (components.arbiter) this.arbiter = components.arbiter;
     if (components.overseer) this.overseer = components.overseer;

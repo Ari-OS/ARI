@@ -53,7 +53,7 @@ describe('Doctor Command', () => {
 
       const doctorCmd = program.commands.find(cmd => cmd.name() === 'doctor');
       expect(doctorCmd).toBeDefined();
-      expect(doctorCmd?.description()).toBe('Run system health checks');
+      expect(doctorCmd?.description()).toBe('Run comprehensive system health checks');
     });
 
     it('should register command with correct structure', () => {

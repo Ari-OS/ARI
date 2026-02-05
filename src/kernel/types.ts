@@ -308,6 +308,57 @@ export const ProposalSchema = z.object({
 });
 export type Proposal = z.infer<typeof ProposalSchema>;
 
+// ── Governance Interfaces ────────────────────────────────────────────────────
+
+/**
+ * Interface for the Council governance component.
+ * Used by Core to interact with the Council without direct import (layer boundary).
+ */
+export interface CouncilInterface {
+  createVote(request: {
+    topic: string;
+    description: string;
+    threshold: VoteThreshold;
+    deadline_minutes?: number;
+    initiated_by: AgentId;
+    domains?: VetoDomain[];
+  }): Vote;
+  castVote(voteId: string, agent: AgentId, vote: VoteOption, reasoning?: string): void;
+  getVote(voteId: string): Vote | undefined;
+  getOpenVotes(): Vote[];
+  expireOverdueVotes(): number;
+}
+
+/**
+ * Interface for the Arbiter governance component.
+ * Used by Core to check constitutional compliance without direct import.
+ */
+export interface ArbiterInterface {
+  evaluateAction(
+    action: string,
+    context: Record<string, unknown>,
+    agentId?: string
+  ): { allowed: boolean; violations: string[]; ruling_id: string; constitutional_status: string };
+  start(): void;
+  stop(): void;
+}
+
+/**
+ * Interface for the Overseer governance component.
+ * Used by Core to check quality gates without direct import.
+ */
+export interface OverseerInterface {
+  evaluateAllGates(context: Record<string, unknown>): Array<{
+    passed: boolean;
+    reason: string;
+    details?: Record<string, unknown>;
+    gate_id: string;
+  }>;
+  canRelease(context: Record<string, unknown>): { approved: boolean; blockers: string[] };
+  start(): void;
+  stop(): void;
+}
+
 // ── Tool Definition ──────────────────────────────────────────────────────────
 
 export const ToolDefinitionSchema = z.object({
