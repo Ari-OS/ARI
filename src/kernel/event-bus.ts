@@ -561,6 +561,116 @@ export interface EventMap {
     threshold: number;
     reason: string;
   };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // WEB NAVIGATION events (Playwright-based browsing)
+  // ═══════════════════════════════════════════════════════════════════════
+  'web:navigate': {
+    callId: string;
+    url: string;
+    action: string;
+    agent: AgentId;
+    trustLevel: TrustLevel;
+    timestamp: Date;
+  };
+  'web:page_loaded': {
+    callId: string;
+    url: string;
+    title: string;
+    status: number;
+    wordCount: number;
+    durationMs: number;
+    timestamp: Date;
+  };
+  'web:content_extracted': {
+    callId: string;
+    url: string;
+    wordCount: number;
+    linkCount: number;
+    headingCount: number;
+    timestamp: Date;
+  };
+  'web:screenshot_captured': {
+    callId: string;
+    url: string;
+    sizeBytes: number;
+    fullPage: boolean;
+    timestamp: Date;
+  };
+  'web:action_performed': {
+    callId: string;
+    url: string;
+    action: string;
+    selector?: string;
+    timestamp: Date;
+  };
+  'web:search_completed': {
+    callId: string;
+    query: string;
+    resultCount: number;
+    timestamp: Date;
+  };
+  'web:error': {
+    callId: string;
+    url: string;
+    action: string;
+    error: string;
+    timestamp: Date;
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // COUNCIL DELIBERATION events (Deliberative Governance)
+  // ═══════════════════════════════════════════════════════════════════════
+  'deliberation:proposal_analyzed': {
+    topic: string;
+    risk: string;
+    riskScore: number;
+    domainCount: number;
+    relevantMemberCount: number;
+    biasWarningCount: number;
+    virtueAlignment: number;
+    timestamp: Date;
+  };
+  'deliberation:soul_consulted': {
+    agentId: AgentId;
+    memberName: string;
+    recommendation: string;
+    confidence: number;
+    timestamp: Date;
+  };
+  'deliberation:domain_weighted': {
+    agentId: AgentId;
+    baseWeight: number;
+    finalWeight: number;
+    domainBonus: number;
+    credibilityModifier: number;
+    timestamp: Date;
+  };
+  'deliberation:outcome_recorded': {
+    voteId: string;
+    topic: string;
+    decision: string;
+    outcomeQuality: number;
+    membersUpdated: number;
+    timestamp: Date;
+  };
+  'deliberation:credibility_updated': {
+    agentId: AgentId;
+    memberName: string;
+    credibility: number;
+    totalVotes: number;
+    correctPredictions: number;
+    streak: number;
+    timestamp: Date;
+  };
+  'deliberation:style_enforced': {
+    agentId: AgentId;
+    originalRecommendation: string;
+    enforcedRecommendation: string;
+    style: string;
+    risk: string;
+    timestamp: Date;
+  };
 }
 
 /**
