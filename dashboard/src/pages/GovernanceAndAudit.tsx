@@ -12,7 +12,6 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { MetricCard } from '../components/ui/MetricCard';
 import { Card } from '../components/ui/Card';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
-import { DataTable } from '../components/ui/DataTable';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
 import { CardSkeleton, ProposalCardSkeleton, AuditEntrySkeleton } from '../components/ui/Skeleton';

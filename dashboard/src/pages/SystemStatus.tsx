@@ -8,7 +8,6 @@ import { StatusCardSkeleton, AuditEntrySkeleton } from '../components/ui/Skeleto
 import { BudgetPanel } from '../components/BudgetPanel';
 import { TabGroup } from '../components/ui/TabGroup';
 import { Card } from '../components/ui/Card';
-import { MetricCard } from '../components/ui/MetricCard';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
 import { PageHeader } from '../components/ui/PageHeader';
 
@@ -112,21 +111,6 @@ export default function SystemStatus() {
     queryFn: getSystemMetrics,
     refetchInterval: 5000,
   });
-
-  const overallStatus = (() => {
-    if (!health) return 'unknown';
-    const statuses = [
-      health.gateway.status,
-      health.eventBus.status,
-      health.audit.status,
-      health.sanitizer.status,
-      health.agents.status,
-      health.governance.status,
-    ];
-    if (statuses.every((s) => s === 'healthy')) return 'healthy';
-    if (statuses.some((s) => s === 'unhealthy')) return 'unhealthy';
-    return 'degraded';
-  })();
 
   if (healthLoading) {
     return (

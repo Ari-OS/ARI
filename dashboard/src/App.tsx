@@ -10,7 +10,7 @@ import { PageSkeleton } from './components/PageSkeleton';
 
 const SystemStatus = lazy(() => import('./pages/SystemStatus'));
 const AgentsAndTools = lazy(() => import('./pages/AgentsAndTools'));
-const Cognition = lazy(() => import('./pages/Cognition'));
+const Cognition = lazy(() => import('./pages/cognition'));
 const Autonomy = lazy(() => import('./pages/Autonomy'));
 const GovernanceAndAudit = lazy(() => import('./pages/GovernanceAndAudit'));
 const Memory = lazy(() => import('./pages/Memory'));

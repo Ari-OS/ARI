@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
-import { useWebSocketContext } from '../contexts/WebSocketContext';
 import { useE2E } from '../hooks/useE2E';
 import { TabGroup } from '../components/ui/TabGroup';
 import { Card } from '../components/ui/Card';
@@ -80,7 +79,6 @@ function formatDuration(ms: number): string {
 
 export default function Operations() {
   const [activeTab, setActiveTab] = useState('budget');
-  const { subscribe } = useWebSocketContext();
 
   // Budget data
   const { data: status, isLoading: statusLoading } = useQuery<BudgetStatus>({

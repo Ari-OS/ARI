@@ -76,45 +76,6 @@ const ADVISOR_FLOW = [
   { icon: '📋', label: 'Audit', sub: 'logged', cssColor: 'var(--ari-cyan)', cssBg: 'var(--ari-cyan-muted)' },
 ];
 
-// Tool categories
-const TOOL_CATEGORIES = {
-  system: {
-    name: 'System',
-    icon: '◉',
-    description: 'Core system operations',
-    cssColor: 'var(--ari-purple)',
-    cssBg: 'var(--ari-purple-muted)',
-  },
-  memory: {
-    name: 'Memory',
-    icon: '⬢',
-    description: 'Knowledge storage and retrieval',
-    cssColor: 'var(--ari-cyan)',
-    cssBg: 'var(--ari-cyan-muted)',
-  },
-  audit: {
-    name: 'Audit',
-    icon: '⊞',
-    description: 'Audit trail operations',
-    cssColor: 'var(--ari-success)',
-    cssBg: 'var(--ari-success-muted)',
-  },
-  governance: {
-    name: 'Governance',
-    icon: '⚖',
-    description: 'Council and proposal management',
-    cssColor: 'var(--ari-warning)',
-    cssBg: 'var(--ari-warning-muted)',
-  },
-  agents: {
-    name: 'Agents',
-    icon: '⬡',
-    description: 'Agent coordination tools',
-    cssColor: 'var(--ari-info)',
-    cssBg: 'var(--ari-info-muted)',
-  },
-};
-
 // Permission tiers
 const PERMISSION_TIERS = [
   { name: 'READ', desc: 'Read-only access', cssColor: 'var(--ari-success)', cssBg: 'var(--ari-success-muted)', risk: 'Low' },
@@ -230,14 +191,12 @@ function AgentsTab({ agents, isLoading, isError, refetch }: { agents: Agent[]; i
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
             {Object.entries(AGENT_ROLES).map(([key, role]) => {
               const liveAgent = agents.find(a => a.type === key);
-              const status = liveAgent?.status || 'active';
+              const status = (liveAgent?.status || 'active') as 'healthy' | 'degraded' | 'unhealthy' | 'active' | 'idle' | 'stopped';
 
               return (
-                <Card
+                <div
                   key={key}
-                  hoverable
-                  padding="lg"
-                  className="border"
+                  className="rounded-xl border p-6 cursor-pointer hover:brightness-110 transition-all"
                   style={{
                     background: role.cssBgColor,
                     borderColor: `color-mix(in srgb, ${role.cssColor} 30%, transparent)`,
@@ -325,7 +284,7 @@ function AgentsTab({ agents, isLoading, isError, refetch }: { agents: Agent[]; i
                       </div>
                     </div>
                   )}
-                </Card>
+                </div>
               );
             })}
           </div>
@@ -405,18 +364,6 @@ interface Tool {
 }
 
 function ToolsTab({ tools, isLoading, isError, refetch }: { tools: Tool[]; isLoading: boolean; isError: boolean; refetch: () => void }) {
-  const groupedTools = tools.reduce(
-    (acc, tool) => {
-      const category = tool.category || 'Uncategorized';
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(tool);
-      return acc;
-    },
-    {} as Record<string, Tool[]>,
-  );
-
   // Tool registry table columns
   const columns = [
     {
