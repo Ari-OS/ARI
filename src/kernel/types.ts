@@ -123,6 +123,14 @@ export const VETO_AUTHORITY: Partial<Record<AgentId, VetoDomain[]>> = {
 
 export type CouncilPillar = 'infrastructure' | 'protection' | 'strategy' | 'domains' | 'meta';
 
+/** Minimum number of distinct pillars required for pillar quorum. */
+export const PILLAR_QUORUM_MINIMUM = 3;
+
+/** All pillar values for iteration. */
+export const ALL_PILLARS: readonly CouncilPillar[] = [
+  'infrastructure', 'protection', 'strategy', 'domains', 'meta',
+] as const;
+
 export const PILLAR_MEMBERS: Record<CouncilPillar, readonly AgentId[]> = {
   infrastructure: ['router', 'executor', 'memory_keeper'],
   protection: ['guardian', 'risk_assessor'],
@@ -243,7 +251,7 @@ export type VoteOption = z.infer<typeof VoteOptionSchema>;
 export const VoteThresholdSchema = z.enum(['MAJORITY', 'SUPERMAJORITY', 'UNANIMOUS']);
 export type VoteThreshold = z.infer<typeof VoteThresholdSchema>;
 
-export const VoteStatusSchema = z.enum(['OPEN', 'PASSED', 'FAILED', 'EXPIRED', 'VETOED']);
+export const VoteStatusSchema = z.enum(['OPEN', 'PASSED', 'FAILED', 'EXPIRED', 'VETOED', 'OVERTURNED']);
 export type VoteStatus = z.infer<typeof VoteStatusSchema>;
 
 export const VoteSchema = z.object({

@@ -184,7 +184,7 @@ export const COUNCIL_MEMBERS: Record<AgentId, CouncilMember> = {
     avatar: '💚',
     votingStyle: 'balanced',
     vetoAuthority: ['health_harm'],
-    coverage: ['physical_health', 'mental_health', 'fitness', 'nutrition', 'medical', 'sleep'],
+    coverage: ['physical_health', 'mental_health', 'fitness', 'nutrition', 'medical', 'sleep', 'rest', 'recovery', 'leisure', 'downtime', 'vacation'],
     description: 'Monitors your pulse, guards health. Your pulse is my purpose.',
   },
 
@@ -248,7 +248,7 @@ export const COUNCIL_MEMBERS: Record<AgentId, CouncilMember> = {
     avatar: '⚖️',
     votingStyle: 'cautious',
     vetoAuthority: ['ethics_violation'],
-    coverage: ['morals', 'fairness', 'consequences', 'values', 'principles', 'honesty'],
+    coverage: ['morals', 'fairness', 'consequences', 'values', 'principles', 'honesty', 'purpose', 'meaning', 'philosophy', 'reflection'],
     description: 'Speaks truth, ensures fairness. Vera means truth in Latin.',
   },
 

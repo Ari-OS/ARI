@@ -41,9 +41,9 @@ import { VOTING_AGENTS } from '../kernel/types.js';
 const DOMAIN_SYNONYMS: Record<string, string[]> = {
   security: ['threats', 'injection', 'anomalies', 'safety', 'defense'],
   financial: ['income', 'expenses', 'investments', 'budget', 'wealth', 'assets'],
-  health: ['physical_health', 'mental_health', 'fitness', 'nutrition', 'medical', 'sleep'],
+  health: ['physical_health', 'mental_health', 'fitness', 'nutrition', 'medical', 'sleep', 'rest', 'recovery', 'leisure', 'downtime', 'vacation'],
   scheduling: ['calendar', 'deadlines', 'scheduling', 'rhythm'],
-  ethics: ['morals', 'fairness', 'consequences', 'values', 'principles', 'honesty'],
+  ethics: ['morals', 'fairness', 'consequences', 'values', 'principles', 'honesty', 'purpose', 'meaning', 'philosophy', 'reflection'],
   creative: ['art', 'ideas', 'innovation', 'hobbies', 'imagination'],
   growth: ['learning', 'skills', 'career', 'self_improvement', 'habits'],
   relationships: ['family', 'friends', 'romance', 'professional', 'social'],
@@ -145,10 +145,10 @@ export interface DeliberationResult {
 export interface DecisionOutcome {
   voteId: string;
   topic: string;
-  decision: 'PASSED' | 'FAILED' | 'VETOED' | 'EXPIRED';
+  decision: 'PASSED' | 'FAILED' | 'VETOED' | 'EXPIRED' | 'OVERTURNED';
   outcomeQuality: number; // -1 (terrible) to +1 (excellent)
   outcomeDescription: string;
-  memberVotes: Record<AgentId, 'APPROVE' | 'REJECT' | 'ABSTAIN'>;
+  memberVotes: Partial<Record<AgentId, 'APPROVE' | 'REJECT' | 'ABSTAIN'>>;
   recordedAt: Date;
 }
 
@@ -225,10 +225,10 @@ export class ProposalAnalyzer {
     const domainKeywords: Record<string, string[]> = {
       security: ['security', 'threat', 'vulnerability', 'attack', 'protect', 'defense'],
       memory: ['memory', 'recall', 'knowledge', 'remember', 'store', 'persist'],
-      health: ['health', 'wellness', 'fitness', 'nutrition', 'medical', 'sleep'],
+      health: ['health', 'wellness', 'fitness', 'nutrition', 'medical', 'sleep', 'rest', 'recovery', 'leisure', 'vacation', 'downtime'],
       financial: ['money', 'budget', 'cost', 'invest', 'financial', 'expense', 'wealth'],
       scheduling: ['calendar', 'schedule', 'deadline', 'time', 'appointment'],
-      ethics: ['ethics', 'moral', 'fair', 'right', 'wrong', 'principle', 'honest'],
+      ethics: ['ethics', 'moral', 'fair', 'right', 'wrong', 'principle', 'honest', 'purpose', 'meaning', 'philosophy', 'reflect'],
       creative: ['creative', 'art', 'innovation', 'idea', 'design', 'imagine'],
       growth: ['learn', 'grow', 'skill', 'improve', 'develop', 'career'],
       relationships: ['family', 'friend', 'relationship', 'social', 'communication'],

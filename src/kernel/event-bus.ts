@@ -654,6 +654,53 @@ export interface EventMap {
     risk: string;
     timestamp: Date;
   };
+
+  // ── Council Governance Improvements ─────────────────────────────────────
+  'council:pillar_quorum_failed': {
+    voteId: string;
+    topic: string;
+    pillarsRepresented: string[];
+    missingPillars: string[];
+  };
+  'council:dissent_report_generated': {
+    voteId: string;
+    topic: string;
+    dissenterCount: number;
+    consensusStrength: number;
+    precedentCount: number;
+  };
+  'council:emergency_vote_started': {
+    voteId: string;
+    topic: string;
+    urgencyReason: string;
+    panelMembers: AgentId[];
+    overturnDeadline: string;
+  };
+  'council:emergency_overturn_requested': {
+    emergencyVoteId: string;
+    overturnVoteId: string;
+    requestedBy: AgentId;
+    reason: string;
+  };
+  'council:emergency_overturned': {
+    emergencyVoteId: string;
+    overturnVoteId: string;
+  };
+  'council:feedback_requested': {
+    voteId: string;
+    topic: string;
+    decision: string;
+    significance: string;
+    timestamp: Date;
+  };
+  'council:feedback_submitted': {
+    voteId: string;
+    rating: number;
+    comment?: string;
+    decision: string;
+    significance: string;
+    timestamp: Date;
+  };
 }
 
 /**
