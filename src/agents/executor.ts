@@ -6,6 +6,12 @@ import { ToolRegistry } from '../execution/tool-registry.js';
 import type { ToolHandler } from '../execution/types.js';
 import fs from 'node:fs/promises';
 import { loadConfig } from '../kernel/config.js';
+import {
+  webNavigateHandler,
+  webSearchHandler,
+  webScreenshotHandler,
+  webExtractHandler,
+} from '../execution/tools/web-navigate.js';
 
 interface ToolCall {
   id: string;
@@ -509,6 +515,42 @@ export class Executor {
           throw new Error(`Failed to load config: ${message}`);
         }
       }
+      case 'web_navigate':
+        return webNavigateHandler(call.parameters, {
+          callId: call.id,
+          tokenId: '',
+          agentId: call.requesting_agent,
+          trustLevel: call.trust_level,
+          startTime: call.timestamp,
+          timeout: tool.timeout_ms || 60000,
+        });
+      case 'web_search':
+        return webSearchHandler(call.parameters, {
+          callId: call.id,
+          tokenId: '',
+          agentId: call.requesting_agent,
+          trustLevel: call.trust_level,
+          startTime: call.timestamp,
+          timeout: tool.timeout_ms || 30000,
+        });
+      case 'web_screenshot':
+        return webScreenshotHandler(call.parameters, {
+          callId: call.id,
+          tokenId: '',
+          agentId: call.requesting_agent,
+          trustLevel: call.trust_level,
+          startTime: call.timestamp,
+          timeout: tool.timeout_ms || 45000,
+        });
+      case 'web_extract':
+        return webExtractHandler(call.parameters, {
+          callId: call.id,
+          tokenId: '',
+          agentId: call.requesting_agent,
+          trustLevel: call.trust_level,
+          startTime: call.timestamp,
+          timeout: tool.timeout_ms || 30000,
+        });
       default:
         throw new Error(`Tool ${tool.id} has no implementation`);
     }
@@ -611,6 +653,84 @@ export class Executor {
             throw new Error(`Failed to load config: ${message}`);
           }
         },
+      },
+      // ── Web Navigation Tools ────────────────────────────────────────────
+      {
+        definition: {
+          id: 'web_navigate',
+          name: 'Web Navigate',
+          description: 'Navigate to a URL and interact with web pages. Supports actions: navigate, extract, screenshot, click, type, fill, select, scroll, wait, evaluate.',
+          permission_tier: 'WRITE_SAFE',
+          required_trust_level: 'verified',
+          allowed_agents: [],
+          timeout_ms: 60000,
+          sandboxed: true,
+          parameters: {
+            url: { type: 'string', required: true, description: 'URL to visit' },
+            action: { type: 'string', required: false, description: 'Action: navigate|extract|screenshot|click|type|fill|select|scroll|wait|evaluate' },
+            selector: { type: 'string', required: false, description: 'CSS selector for interactive actions' },
+            text: { type: 'string', required: false, description: 'Text for type/fill actions' },
+            waitFor: { type: 'string', required: false, description: 'CSS selector to wait for before proceeding' },
+            timeout: { type: 'number', required: false, description: 'Navigation timeout in ms (max 60000)' },
+            fullPage: { type: 'boolean', required: false, description: 'Full page screenshot (default: false)' },
+            script: { type: 'string', required: false, description: 'JavaScript for evaluate action (read-only)' },
+          },
+        },
+        handler: webNavigateHandler,
+      },
+      {
+        definition: {
+          id: 'web_search',
+          name: 'Web Search',
+          description: 'Search the web via DuckDuckGo and return structured results. Privacy-first, no API key required.',
+          permission_tier: 'READ_ONLY',
+          required_trust_level: 'standard',
+          allowed_agents: [],
+          timeout_ms: 30000,
+          sandboxed: true,
+          parameters: {
+            query: { type: 'string', required: true, description: 'Search query' },
+            maxResults: { type: 'number', required: false, description: 'Max results to return (default 10, max 20)' },
+          },
+        },
+        handler: webSearchHandler,
+      },
+      {
+        definition: {
+          id: 'web_screenshot',
+          name: 'Web Screenshot',
+          description: 'Capture a PNG screenshot of any URL with configurable viewport.',
+          permission_tier: 'READ_ONLY',
+          required_trust_level: 'standard',
+          allowed_agents: [],
+          timeout_ms: 45000,
+          sandboxed: true,
+          parameters: {
+            url: { type: 'string', required: true, description: 'URL to capture' },
+            fullPage: { type: 'boolean', required: false, description: 'Capture full page (default: false)' },
+            width: { type: 'number', required: false, description: 'Viewport width (default 1280, max 1920)' },
+            height: { type: 'number', required: false, description: 'Viewport height (default 720, max 1080)' },
+          },
+        },
+        handler: webScreenshotHandler,
+      },
+      {
+        definition: {
+          id: 'web_extract',
+          name: 'Web Extract',
+          description: 'Extract structured content from a URL: clean text, links, headings, metadata. Fast — blocks images/fonts for speed.',
+          permission_tier: 'READ_ONLY',
+          required_trust_level: 'standard',
+          allowed_agents: [],
+          timeout_ms: 30000,
+          sandboxed: true,
+          parameters: {
+            url: { type: 'string', required: true, description: 'URL to extract content from' },
+            maxTextLength: { type: 'number', required: false, description: 'Max text length (default 50000)' },
+            waitFor: { type: 'string', required: false, description: 'CSS selector to wait for before extraction' },
+          },
+        },
+        handler: webExtractHandler,
       },
     ];
 

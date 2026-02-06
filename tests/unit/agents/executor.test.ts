@@ -20,16 +20,20 @@ describe('Executor', () => {
     executor = new Executor(auditLogger, eventBus);
   });
 
-  it('should have 4 built-in tools registered after construction', () => {
+  it('should have 8 built-in tools registered after construction', () => {
     const tools = executor.getTools();
 
-    expect(tools).toHaveLength(4);
+    expect(tools).toHaveLength(8);
 
     const toolNames = tools.map((t) => t.name);
     expect(toolNames).toContain('Read File');
     expect(toolNames).toContain('Write File');
     expect(toolNames).toContain('Delete File');
     expect(toolNames).toContain('System Configuration');
+    expect(toolNames).toContain('Web Navigate');
+    expect(toolNames).toContain('Web Search');
+    expect(toolNames).toContain('Web Screenshot');
+    expect(toolNames).toContain('Web Extract');
   });
 
   it('should execute file_read with standard trust successfully', async () => {
