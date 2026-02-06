@@ -61,7 +61,7 @@ const PARTITION_STYLES = {
   QUARANTINE: { cssColor: 'var(--ari-error)', cssBg: 'var(--ari-error-muted)' },
 };
 
-export function Memory() {
+export default function Memory() {
   const [typeFilter, setTypeFilter] = useState<MemoryType | 'ALL'>('ALL');
   const [partitionFilter, setPartitionFilter] = useState<MemoryPartition | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
