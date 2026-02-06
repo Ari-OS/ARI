@@ -1,49 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventBus } from '../../src/kernel/event-bus.js';
-import { getLearningStatus } from '../../src/cognition/learning/index.js';
 
 describe('Learning Loop Full Cycle', () => {
   let eventBus: EventBus;
 
   beforeEach(() => {
     eventBus = new EventBus();
-  });
-
-  describe('Learning Status', () => {
-    it('should return valid learning status structure', () => {
-      const status = getLearningStatus();
-
-      expect(status).toHaveProperty('currentStage');
-      expect(status).toHaveProperty('stageProgress');
-      expect(status).toHaveProperty('improvementTrend');
-      expect(status).toHaveProperty('currentGrade');
-      expect(status).toHaveProperty('streakDays');
-      expect(status).toHaveProperty('recentInsightsCount');
-      expect(status).toHaveProperty('nextReview');
-      expect(status).toHaveProperty('nextGapAnalysis');
-    });
-
-    it('should have valid improvement trend values', () => {
-      const status = getLearningStatus();
-      expect(['IMPROVING', 'DECLINING', 'STABLE']).toContain(status.improvementTrend);
-    });
-
-    it('should have valid grade', () => {
-      const status = getLearningStatus();
-      expect(['A', 'B', 'C', 'D', 'F']).toContain(status.currentGrade);
-    });
-
-    it('should have stageProgress in valid range', () => {
-      const status = getLearningStatus();
-      expect(status.stageProgress).toBeGreaterThanOrEqual(0);
-      expect(status.stageProgress).toBeLessThanOrEqual(1);
-    });
-
-    it('should have numeric streak days', () => {
-      const status = getLearningStatus();
-      expect(typeof status.streakDays).toBe('number');
-      expect(status.streakDays).toBeGreaterThanOrEqual(0);
-    });
   });
 
   describe('EventBus Event Flow', () => {
@@ -76,9 +38,10 @@ describe('Learning Loop Full Cycle', () => {
 
       eventBus.emit('learning:performance_review', {
         period: 'daily',
-        tasksCompleted: 5,
         successRate: 0.8,
-        areasForImprovement: ['error handling'],
+        biasCount: 1,
+        insightCount: 3,
+        recommendations: ['error handling'],
         timestamp: new Date().toISOString(),
       });
 
@@ -162,9 +125,10 @@ describe('Learning Loop Full Cycle', () => {
 
       eventBus.emit('learning:performance_review', {
         period: 'daily',
-        tasksCompleted: 3,
         successRate: 0.67,
-        areasForImprovement: [],
+        biasCount: 0,
+        insightCount: 1,
+        recommendations: [],
         timestamp: new Date().toISOString(),
       });
 

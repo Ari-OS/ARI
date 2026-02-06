@@ -85,21 +85,29 @@ export function registerCognitiveCommand(program: Command): void {
     .option('--json', 'Output as JSON')
     .action(async (options: { json?: boolean }) => {
       try {
-        const { getEnabledSources, getSourcesByPillar, getAllCouncilProfiles } = await import(
-          '../../cognition/knowledge/index.js'
-        );
-        const { getLearningStatus, getRecentInsights } = await import(
-          '../../cognition/learning/index.js'
-        );
+        // Stub - knowledge/learning modules removed
+        const sources = [];
+        const profiles = [];
+        const learningStatus = {
+          currentStage: 'PERFORMANCE_REVIEW' as const,
+          stageProgress: 0,
+          lastReview: new Date(),
+          lastGapAnalysis: new Date(),
+          lastAssessment: new Date(),
+          nextReview: new Date(),
+          nextGapAnalysis: new Date(),
+          nextAssessment: new Date(),
+          recentInsights: [] as Array<{ type: string; description: string }>,
+          recentInsightsCount: 0,
+          improvementTrend: 'STABLE' as const,
+          currentGrade: 'N/A',
+          streakDays: 0,
+        };
+        const recentInsights = learningStatus.recentInsights;
 
-        const sources = getEnabledSources();
-        const profiles = getAllCouncilProfiles();
-        const learningStatus = getLearningStatus();
-        const recentInsights = getRecentInsights(5);
-
-        const logosSources = getSourcesByPillar('LOGOS').length;
-        const ethosSources = getSourcesByPillar('ETHOS').length;
-        const pathosSources = getSourcesByPillar('PATHOS').length;
+        const logosSources = 0;
+        const ethosSources = 0;
+        const pathosSources = 0;
 
         if (options.json) {
           console.log(
@@ -135,7 +143,7 @@ export function registerCognitiveCommand(program: Command): void {
         console.log(bullet(`Stage: ${color(learningStatus.currentStage, 'cyan')}`));
         console.log(bullet(`Last Review: ${learningStatus.lastReview.toLocaleDateString()}`));
         console.log(bullet(`Next Review: ${learningStatus.nextReview.toLocaleDateString()}`));
-        console.log(bullet(`Trend: ${color(learningStatus.improvementTrend, learningStatus.improvementTrend === 'IMPROVING' ? 'green' : 'yellow')}`));
+        console.log(bullet(`Trend: ${color(learningStatus.improvementTrend, 'yellow')}`));
 
         // Recent Insights
         if (recentInsights.length > 0) {
@@ -233,7 +241,7 @@ export function registerCognitiveCommand(program: Command): void {
       try {
         const { calculateExpectedValue } = await import('../../cognition/logos/index.js');
         const { detectCognitiveBias, runDisciplineCheck } = await import('../../cognition/ethos/index.js');
-        const { formatComprehensiveAnalysis } = await import('../../cognition/visualization/index.js');
+        // Visualization module removed - will format output manually
 
         // Parse outcomes or use defaults
         let outcomes: Array<{ description: string; probability: number; value: number }>;
@@ -262,12 +270,19 @@ export function registerCognitiveCommand(program: Command): void {
           return;
         }
 
-        // Use the visualization formatter
-        const analysis = formatComprehensiveAnalysis({
-          ev: evResult,
-          biases: biasResult,
-        });
-        console.log(analysis);
+        // Format output manually (visualization module removed)
+        console.log(subheader(`${PILLAR_ICONS.LOGOS} Expected Value`));
+        console.log(bullet(`EV: ${evResult.expectedValue.toFixed(2)}`));
+        console.log(bullet(`Recommendation: ${evResult.recommendation}`));
+
+        console.log(subheader(`${PILLAR_ICONS.ETHOS} Bias Detection`));
+        if (biasResult.biasesDetected.length > 0) {
+          for (const bias of biasResult.biasesDetected) {
+            console.log(bullet(`${bias.type}: ${bias.evidence}`));
+          }
+        } else {
+          console.log(bullet('No biases detected'));
+        }
 
         // Discipline check
         console.log(subheader(`${PILLAR_ICONS.ETHOS} Discipline Check`));
@@ -345,69 +360,8 @@ export function registerCognitiveCommand(program: Command): void {
     .option('--json', 'Output as JSON')
     .option('--list', 'List all available profiles')
     .action(async (member: string | undefined, options: { json?: boolean; list?: boolean }) => {
-      try {
-        const { getAllCouncilProfiles, getCouncilProfile } = await import(
-          '../../cognition/knowledge/index.js'
-        );
-
-        const allProfiles = getAllCouncilProfiles();
-
-        if (options.list || !member) {
-          if (options.json) {
-            console.log(JSON.stringify(allProfiles.map((p) => ({ id: p.memberId, name: p.memberName })), null, 2));
-            return;
-          }
-
-          console.log(header('COUNCIL COGNITIVE PROFILES', '👥'));
-          for (const p of allProfiles) {
-            const weights = `L:${(p.pillarWeights.logos * 100).toFixed(0)}% E:${(p.pillarWeights.ethos * 100).toFixed(0)}% P:${(p.pillarWeights.pathos * 100).toFixed(0)}%`;
-            console.log(bullet(`${color(p.memberId.padEnd(15), 'cyan')} ${p.memberName.padEnd(25)} ${color(weights, 'dim')}`));
-          }
-          console.log('\n' + color('Use "ari cognitive profile <member>" for details.', 'dim'));
-          return;
-        }
-
-        const profile = getCouncilProfile(member);
-        if (!profile) {
-          console.error(color(`Profile not found: ${member}`, 'red'));
-          console.log('Available profiles:', allProfiles.map((p) => p.memberId).join(', '));
-          process.exit(1);
-        }
-
-        if (options.json) {
-          console.log(JSON.stringify(profile, null, 2));
-          return;
-        }
-
-        console.log(header(`PROFILE: ${profile.memberName}`, '👤'));
-
-        console.log(subheader('Pillar Weights'));
-        console.log(bullet(`${PILLAR_ICONS.LOGOS} LOGOS: ${progressBar(profile.pillarWeights.logos)} ${(profile.pillarWeights.logos * 100).toFixed(0)}%`));
-        console.log(bullet(`${PILLAR_ICONS.ETHOS} ETHOS: ${progressBar(profile.pillarWeights.ethos)} ${(profile.pillarWeights.ethos * 100).toFixed(0)}%`));
-        console.log(bullet(`${PILLAR_ICONS.PATHOS} PATHOS: ${progressBar(profile.pillarWeights.pathos)} ${(profile.pillarWeights.pathos * 100).toFixed(0)}%`));
-
-        console.log(subheader('Primary Frameworks'));
-        for (const fw of profile.primaryFrameworks.slice(0, 3)) {
-          console.log(bullet(`${color(fw.name, 'cyan')} — ${fw.domain}`));
-          console.log(`      ${color('→', 'dim')} ${fw.application}`);
-        }
-
-        console.log(subheader('Consulted For'));
-        console.log(`  ${profile.consultedFor}`);
-
-        console.log(subheader('Bias Awareness'));
-        console.log(bullet(`Natural Tendency: ${profile.cognitiveBiasAwareness.naturalTendency}`));
-        console.log(bullet(`Compensation: ${profile.cognitiveBiasAwareness.compensationStrategy}`));
-
-        if (profile.learningPlan) {
-          console.log(subheader('Learning Plan'));
-          console.log(bullet(`Current: ${profile.learningPlan.current}`));
-          console.log(bullet(`Next: ${profile.learningPlan.next}`));
-        }
-      } catch (error) {
-        console.error(color('Error:', 'red'), error instanceof Error ? error.message : String(error));
-        process.exit(1);
-      }
+      console.error(color('Council profiles not available (knowledge module removed)', 'red'));
+      process.exit(1);
     });
 
   // ---------------------------------------------------------------------------

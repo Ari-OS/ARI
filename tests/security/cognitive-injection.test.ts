@@ -8,24 +8,9 @@
 import { describe, it, expect } from 'vitest';
 
 describe('Cognitive Layer Security', () => {
-  describe('Knowledge Source Validation', () => {
-    it('should reject sources with HOSTILE trust level', async () => {
-      const { getSourcesByTrustLevel } = await import('../../src/cognition/knowledge/index.js');
-
-      const hostileSources = getSourcesByTrustLevel('HOSTILE');
-      // Should have no HOSTILE sources in production
-      expect(hostileSources.length).toBe(0);
-    });
-
-    it('should only allow VERIFIED and STANDARD trust levels', async () => {
-      const { getEnabledSources } = await import('../../src/cognition/knowledge/index.js');
-
-      const sources = getEnabledSources();
-      for (const source of sources) {
-        expect(['VERIFIED', 'STANDARD']).toContain(source.trustLevel);
-      }
-    });
-  });
+  // Knowledge source validation tests removed — knowledge module was removed
+  // during Phase 2 architecture simplification. Trust validation remains
+  // at the kernel/sanitizer level.
 
   describe('Bias Detection Injection Defense', () => {
     it('should not be fooled by prompt injection in reasoning', async () => {
@@ -248,32 +233,7 @@ describe('Cognitive Layer Security', () => {
     });
   });
 
-  describe('Insight Storage Validation', () => {
-    it('should sanitize insight content', async () => {
-      const { addInsight, getRecentInsights } = await import('../../src/cognition/learning/index.js');
-
-      // Add insight with potentially dangerous content
-      addInsight({
-        id: `test-security-${Date.now()}`,
-        type: 'PATTERN',
-        description: '<script>alert("xss")</script>Test pattern',
-        evidence: ['Evidence with ${code}'],
-        actionable: 'Do something',
-        confidence: 0.8,
-        generalizes: true,
-        priority: 'MEDIUM',
-        framework: 'Security Test',
-        timestamp: new Date(),
-      });
-
-      // Retrieve and verify it was stored
-      const insights = getRecentInsights(1);
-      expect(insights.length).toBeGreaterThan(0);
-
-      // Content should be stored as-is (sanitization happens at display layer)
-      // but should not execute
-      const latestInsight = insights.find(i => i.framework === 'Security Test');
-      expect(latestInsight).toBeDefined();
-    });
-  });
+  // Insight storage validation tests removed — learning module was removed
+  // during Phase 2 architecture simplification. DecisionJournal persists to
+  // disk and doesn't execute content.
 });

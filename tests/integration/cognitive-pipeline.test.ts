@@ -268,7 +268,6 @@ describe('Cognitive Pipeline Integration', () => {
       // Import from all pillars
       const { calculateExpectedValue } = await import('../../src/cognition/logos/index.js');
       const { detectCognitiveBias } = await import('../../src/cognition/ethos/index.js');
-      const { formatComprehensiveAnalysis } = await import('../../src/cognition/visualization/index.js');
 
       // Step 1: LOGOS - Calculate EV
       const evResult = await calculateExpectedValue({
@@ -285,116 +284,11 @@ describe('Cognitive Pipeline Integration', () => {
         { expertise: 'intermediate' }
       );
 
-      // Step 3: Format comprehensive output
-      const formatted = formatComprehensiveAnalysis({
-        ev: evResult,
-        biases: biasResult,
-      });
-
-      expect(formatted).toContain('COGNITIVE INSIGHT');
-      expect(formatted).toContain('LOGOS');
-      expect(formatted).toContain('ETHOS');
-    });
-  });
-
-  describe('Learning Loop Integration', () => {
-    it('should run performance review and generate insights', async () => {
-      const { runPerformanceReview, getRecentInsights, addInsight } = await import('../../src/cognition/learning/index.js');
-
-      // Add a test insight
-      addInsight({
-        id: 'test-insight-1',
-        type: 'PATTERN',
-        description: 'Test pattern insight',
-        evidence: ['Test evidence'],
-        actionable: 'Apply this pattern',
-        confidence: 0.8,
-        generalizes: true,
-        priority: 'MEDIUM',
-        framework: 'Testing',
-        timestamp: new Date(),
-      });
-
-      // Run performance review
-      const review = await runPerformanceReview([
-        {
-          id: 'decision-1',
-          description: 'Test decision',
-          outcome: 'success',
-          expectedValue: 100,
-          actualValue: 120,
-          biasesDetected: ['CONFIRMATION_BIAS'],
-          emotionalRisk: 0.3,
-        },
-        {
-          id: 'decision-2',
-          description: 'Another decision',
-          outcome: 'partial',
-          expectedValue: 50,
-          actualValue: 30,
-          emotionalRisk: 0.5,
-        },
-      ]);
-
-      expect(review.decisions.total).toBe(2);
-      expect(review.decisions.successful).toBe(1);
-      expect(review.decisions.partial).toBe(1);
-      expect(review.recommendations.length).toBeGreaterThan(0);
-
-      // Verify insights are tracked
-      const insights = getRecentInsights(5);
-      expect(insights.length).toBeGreaterThan(0);
-    });
-
-    it('should run gap analysis and suggest sources', async () => {
-      const { runGapAnalysis } = await import('../../src/cognition/learning/index.js');
-
-      const result = await runGapAnalysis(
-        [
-          { query: 'What is the risk?', domain: 'risk', answered: false },
-          { query: 'How to assess volatility?', domain: 'risk', answered: true, confidence: 0.4 },
-          { query: 'Market analysis', domain: 'finance', answered: false },
-        ],
-        [
-          { description: 'Failed risk calculation', domain: 'risk', reason: 'Missing data' },
-        ]
-      );
-
-      expect(result.gaps.length).toBeGreaterThan(0);
-      expect(result.topGaps.length).toBeLessThanOrEqual(5);
-      expect(result.recommendations.length).toBeGreaterThan(0);
-      expect(result.newSourceSuggestions.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Knowledge Integration', () => {
-    it('should access knowledge sources and council profiles', async () => {
-      const { getEnabledSources, getSourcesByPillar, getAllCouncilProfiles, getCouncilProfile } = await import('../../src/cognition/knowledge/index.js');
-
-      // Check enabled sources
-      const sources = getEnabledSources();
-      expect(sources.length).toBeGreaterThan(0);
-
-      // Check sources by pillar
-      const logosSources = getSourcesByPillar('LOGOS');
-      const ethosSources = getSourcesByPillar('ETHOS');
-      const pathosSources = getSourcesByPillar('PATHOS');
-
-      expect(logosSources.length).toBeGreaterThan(0);
-      expect(ethosSources.length).toBeGreaterThan(0);
-      expect(pathosSources.length).toBeGreaterThan(0);
-
-      // Check council profiles
-      const profiles = getAllCouncilProfiles();
-      expect(profiles.length).toBeGreaterThan(0);
-
-      // Check individual profile
-      if (profiles.length > 0) {
-        const firstProfile = profiles[0];
-        const profile = getCouncilProfile(firstProfile.memberId);
-        expect(profile).toBeDefined();
-        expect(profile?.primaryFrameworks.length).toBeGreaterThan(0);
-      }
+      // Verify cross-pillar results
+      expect(evResult.expectedValue).toBeDefined();
+      expect(evResult.provenance.framework).toContain('Expected Value');
+      expect(biasResult.biasesDetected).toBeDefined();
+      expect(biasResult.provenance.framework).toContain('Cognitive Bias');
     });
   });
 });

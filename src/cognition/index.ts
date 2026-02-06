@@ -55,28 +55,10 @@ export * from './ethos/index.js';
 export * from './pathos/index.js';
 
 // =============================================================================
-// KNOWLEDGE EXPORTS
+// LEARNING EXPORTS (Decision Journal only)
 // =============================================================================
 
-export * from './knowledge/index.js';
-
-// =============================================================================
-// LEARNING LOOP EXPORTS
-// =============================================================================
-
-export * from './learning/index.js';
-
-// =============================================================================
-// VISUALIZATION EXPORTS
-// =============================================================================
-
-export * from './visualization/index.js';
-
-// =============================================================================
-// UX EXPORTS (Dual-Coding / Interpretability)
-// =============================================================================
-
-export * from './ux/index.js';
+export * from './learning/decision-journal.js';
 
 // =============================================================================
 // SYNTHESIS EXPORTS (Cross-Pillar Integration)
@@ -228,10 +210,6 @@ export class CognitionLayer {
   public logos: typeof import('./logos/index.js') | null = null;
   public ethos: typeof import('./ethos/index.js') | null = null;
   public pathos: typeof import('./pathos/index.js') | null = null;
-  public knowledge: typeof import('./knowledge/index.js') | null = null;
-  public learning: typeof import('./learning/index.js') | null = null;
-  public visualization: typeof import('./visualization/index.js') | null = null;
-  public ux: typeof import('./ux/index.js') | null = null;
 
   private constructor(eventBus?: EventBus) {
     this.eventBus = eventBus ?? new EventBus();
@@ -264,23 +242,11 @@ export class CognitionLayer {
       this.logos = await import('./logos/index.js');
       this.ethos = await import('./ethos/index.js');
       this.pathos = await import('./pathos/index.js');
-      this.knowledge = await import('./knowledge/index.js');
-      this.learning = await import('./learning/index.js');
-      this.visualization = await import('./visualization/index.js');
-      this.ux = await import('./ux/index.js');
 
       // Wire pillar EventBus instances to the shared bus
       this.logos.setLogosEventBus(this.eventBus);
       this.ethos.setEthosEventBus(this.eventBus);
       this.pathos.setPathosEventBus(this.eventBus);
-
-      // Wire knowledge and learning modules to the shared bus
-      if (this.knowledge && 'setKnowledgeEventBus' in this.knowledge) {
-        (this.knowledge as { setKnowledgeEventBus: (bus: EventBus) => void }).setKnowledgeEventBus(this.eventBus);
-      }
-      if (this.learning && 'setLearningEventBus' in this.learning) {
-        (this.learning as { setLearningEventBus: (bus: EventBus) => void }).setLearningEventBus(this.eventBus);
-      }
 
       // Subscribe to cognitive events for real metrics tracking
       this.subscribeToCognitiveEvents();
@@ -386,26 +352,15 @@ export class CognitionLayer {
       overall >= 0.6 ? 'FAIR' :
       overall >= 0.4 ? 'POOR' : 'CRITICAL';
 
-    // Pull real data from knowledge and learning modules
-    const knowledgeSources = this.knowledge
-      ? this.knowledge.getEnabledSources().length
-      : 0;
-    const councilProfiles = this.knowledge
-      ? this.knowledge.getAllCouncilProfiles().length
-      : 0;
-    const learningStatus = this.learning
-      ? this.learning.getLearningStatus()
-      : null;
-
     return {
       overall,
       overallLevel,
       pillars,
-      learningLoopActive: learningStatus !== null,
-      learningLoopStage: learningStatus?.currentStage ?? 'PERFORMANCE_REVIEW',
-      knowledgeSources,
-      knowledgeSourcesActive: knowledgeSources,
-      councilProfilesLoaded: councilProfiles,
+      learningLoopActive: false,
+      learningLoopStage: 'PERFORMANCE_REVIEW',
+      knowledgeSources: 0,
+      knowledgeSourcesActive: 0,
+      councilProfilesLoaded: 0,
       lastUpdated: new Date(),
     };
   }
@@ -414,12 +369,6 @@ export class CognitionLayer {
    * Get the current learning progress
    */
   public async getLearningProgress(): Promise<LearningProgress> {
-    // Delegate to learning module's real implementation
-    if (this.learning) {
-      return this.learning.getLearningStatus();
-    }
-
-    // Fallback if learning module not loaded
     const now = new Date();
     return {
       currentStage: 'PERFORMANCE_REVIEW',
@@ -546,10 +495,6 @@ export class CognitionLayer {
     this.logos = null;
     this.ethos = null;
     this.pathos = null;
-    this.knowledge = null;
-    this.learning = null;
-    this.visualization = null;
-    this.ux = null;
 
     this.initialized = false;
     this.initializationTime = null;
