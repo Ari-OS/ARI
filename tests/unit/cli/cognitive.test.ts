@@ -107,29 +107,15 @@ describe('Cognitive CLI', () => {
   });
 
   describe('cognitive profile', () => {
-    it('should list all profiles when no member specified', async () => {
-      await program.parseAsync(['node', 'test', 'cognitive', 'profile']);
+    it('should report knowledge module removed', async () => {
+      // Profile command was disabled when knowledge module was removed
+      await expect(
+        program.parseAsync(['node', 'test', 'cognitive', 'profile'])
+      ).rejects.toThrow();
 
-      expect(consoleSpy).toHaveBeenCalled();
-      const output = consoleSpy.mock.calls.map(c => c[0]).join('\n');
-      expect(output).toContain('COUNCIL COGNITIVE PROFILES');
-    });
-
-    it('should list profiles with --list flag', async () => {
-      await program.parseAsync(['node', 'test', 'cognitive', 'profile', '--list']);
-
-      expect(consoleSpy).toHaveBeenCalled();
-      const output = consoleSpy.mock.calls.map(c => c[0]).join('\n');
-      expect(output).toContain('COUNCIL COGNITIVE PROFILES');
-    });
-
-    it('should show specific member profile', async () => {
-      await program.parseAsync(['node', 'test', 'cognitive', 'profile', 'strategic']);
-
-      expect(consoleSpy).toHaveBeenCalled();
-      const output = consoleSpy.mock.calls.map(c => c[0]).join('\n');
-      expect(output).toContain('PROFILE');
-      expect(output).toContain('Pillar Weights');
+      expect(errorSpy).toHaveBeenCalled();
+      const output = errorSpy.mock.calls.map(c => c[0]).join('\n');
+      expect(output).toContain('not available');
     });
   });
 
@@ -195,7 +181,7 @@ describe('Cognitive CLI', () => {
 
       expect(consoleSpy).toHaveBeenCalled();
       const output = consoleSpy.mock.calls.map(c => c[0]).join('\n');
-      expect(output).toContain('COGNITIVE INSIGHT');
+      expect(output).toContain('Expected Value');
       expect(output).toContain('Discipline Check');
     });
 

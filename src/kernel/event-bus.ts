@@ -10,6 +10,7 @@ export interface EventMap {
   'message:accepted': Message;
   'message:processed': Message;
   'message:rejected': { messageId: string; reason: string; riskScore: number };
+  'message:response': { content: string; source: string; timestamp: Date };
   'audit:logged': AuditEvent;
   'security:detected': SecurityEvent;
   'gateway:started': { port: number; host: string };
@@ -40,11 +41,6 @@ export interface EventMap {
   'vote:matrix_update': { voteId: string; matrix: Record<string, unknown> };
   'arbiter:ruling': { ruleId: string; type: string; decision: string };
   'overseer:gate': { gateId: string; passed: boolean; reason: string };
-
-  // ── Council Amendment events ────────────────────────────────────────────
-  'amendment:proposed': { amendmentId: string; type: string; proposedBy: string };
-  'amendment:voted': { amendmentId: string; status: string };
-  'amendment:ratified': { amendmentId: string; result: string };
 
   // ── PolicyEngine events (Separation of Powers) ───────────────────────────
   'permission:granted': { requestId: string; toolId: string; agentId: AgentId; tokenId: string; autoApproved: boolean };
@@ -99,57 +95,44 @@ export interface EventMap {
   // ── Audit log event (for logging) ───────────────────────────────────────
   'audit:log': { action: string; agent: string; trustLevel: TrustLevel; details: Record<string, unknown> };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // COGNITIVE LAYER 0: LOGOS events (Reason & Logic)
-  // ═══════════════════════════════════════════════════════════════════════
+  // ── Cognition events (used by DecisionJournal for framework attribution) ──
   'cognition:belief_updated': {
     hypothesis: string;
     priorProbability: number;
     posteriorProbability: number;
     shift: number;
-    agent: string;
     timestamp: string;
   };
   'cognition:expected_value_calculated': {
     decision: string;
     expectedValue: number;
-    recommendation: 'PROCEED' | 'CAUTION' | 'AVOID';
-    agent: string;
+    recommendation: string;
     timestamp: string;
   };
   'cognition:kelly_calculated': {
     recommendedFraction: number;
-    strategy: 'full' | 'half' | 'quarter' | 'avoid';
+    strategy: string;
     edge: number;
-    agent: string;
     timestamp: string;
   };
   'cognition:leverage_point_identified': {
     system: string;
     level: number;
-    name: string;
-    effectiveness: 'low' | 'medium' | 'high' | 'transformative';
-    agent: string;
+    effectiveness: string;
     timestamp: string;
   };
   'cognition:antifragility_assessed': {
     item: string;
-    category: 'fragile' | 'robust' | 'antifragile';
+    category: string;
     score: number;
-    agent: string;
     timestamp: string;
   };
   'cognition:decision_tree_evaluated': {
     rootId: string;
     expectedValue: number;
     optimalPath: string[];
-    agent: string;
     timestamp: string;
   };
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // COGNITIVE LAYER 0: ETHOS events (Character & Bias)
-  // ═══════════════════════════════════════════════════════════════════════
   'cognition:bias_detected': {
     agent: string;
     biases: Array<{ type: string; severity: number }>;
@@ -157,9 +140,8 @@ export interface EventMap {
     timestamp: string;
   };
   'cognition:emotional_risk': {
-    agent: string;
-    state: { valence: number; arousal: number; dominance: number };
     riskScore: number;
+    state: { valence: number; arousal: number; dominance: number };
     emotions: string[];
     timestamp: string;
   };
@@ -172,36 +154,28 @@ export interface EventMap {
     timestamp: string;
   };
   'cognition:fear_greed_detected': {
-    agent: string;
-    pattern: 'FEAR_SPIRAL' | 'GREED_CHASE' | 'REVENGE_TRADING' | 'EUPHORIA' | 'PANIC_SELLING' | 'FOMO' | 'NONE';
+    pattern: string;
+    phase: string;
     severity: number;
-    phase: 'early' | 'mid' | 'late' | 'none';
     recommendation: string;
     timestamp: string;
   };
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // COGNITIVE LAYER 0: PATHOS events (Growth & Wisdom)
-  // ═══════════════════════════════════════════════════════════════════════
   'cognition:thought_reframed': {
-    original: string;
     distortions: string[];
-    reframed: string;
-    agent: string;
+    originalThought: string;
+    reframedThought: string;
     timestamp: string;
   };
   'cognition:reflection_complete': {
     outcomeId: string;
     insights: string[];
     principles: string[];
-    agent: string;
     timestamp: string;
   };
   'cognition:wisdom_consulted': {
     query: string;
     tradition: string;
     principle: string;
-    agent: string;
     timestamp: string;
   };
   'cognition:practice_plan_created': {
@@ -209,7 +183,6 @@ export interface EventMap {
     currentLevel: number;
     targetLevel: number;
     estimatedHours: number;
-    agent: string;
     timestamp: string;
   };
   'cognition:dichotomy_analyzed': {
@@ -217,64 +190,14 @@ export interface EventMap {
     controllableCount: number;
     uncontrollableCount: number;
     focusArea: string;
-    agent: string;
     timestamp: string;
   };
   'cognition:virtue_check': {
     decision: string;
     overallAlignment: number;
     conflicts: string[];
-    virtues: { wisdom: number; courage: number; justice: number; temperance: number };
-    agent: string;
     timestamp: string;
   };
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // COGNITIVE LAYER 0: Knowledge events
-  // ═══════════════════════════════════════════════════════════════════════
-  'knowledge:source_fetched': {
-    sourceId: string;
-    url: string;
-    trustLevel: 'VERIFIED' | 'STANDARD' | 'UNTRUSTED';
-    success: boolean;
-    documentsCount: number;
-    timestamp: string;
-  };
-  'knowledge:content_validated': {
-    sourceId: string;
-    stage: number;
-    stageName: 'whitelist' | 'sanitize' | 'bias_check' | 'fact_check' | 'human_review';
-    passed: boolean;
-    reason?: string;
-    timestamp: string;
-  };
-  'knowledge:gap_identified': {
-    gapId: string;
-    domain: string;
-    description: string;
-    severity: 'low' | 'medium' | 'high' | 'critical';
-    affectedMembers: string[];
-    timestamp: string;
-  };
-  'knowledge:source_integrated': {
-    sourceId: string;
-    documentCount: number;
-    pillar: 'LOGOS' | 'ETHOS' | 'PATHOS' | 'CROSS_CUTTING';
-    timestamp: string;
-  };
-  'knowledge:council_profile_loaded': {
-    memberId: string;
-    memberName: string;
-    frameworks: string[];
-    sourcesCount: number;
-    timestamp: string;
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // COGNITIVE LAYER 0: General Cognition events
-  // ═══════════════════════════════════════════════════════════════════════
-  'cognition:query': { api: string; pillar: 'LOGOS' | 'ETHOS' | 'PATHOS'; agent: string };
-  'cognition:result': { api: string; pillar: string; confidence: number; latencyMs: number };
 
   // ═══════════════════════════════════════════════════════════════════════
   // LEARNING LOOP events (Self-Improvement System)
@@ -302,13 +225,6 @@ export interface EventMap {
     recommendations: string[];
     timestamp: string;
   };
-  'learning:spaced_repetition_due': {
-    due: number;
-    totalCards: number;
-    reviewedToday: number;
-    averageEaseFactor: number;
-    timestamp: string;
-  };
   'learning:insight_generated': {
     insightId: string;
     type: string;
@@ -327,42 +243,12 @@ export interface EventMap {
   'system:heartbeat_stopped': { timestamp: Date };
   'system:heartbeat_failure': { componentId: string; consecutiveFailures: number; timestamp: Date; error: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // COST TRACKING events (Budget & Spend)
-  // ═══════════════════════════════════════════════════════════════════════
+  // ── Cost & Budget events ───────────────────────────────────────────────
   'cost:tracked': { operation: string; cost: number; model: string };
   'cost:budget_warning': { type: string; current: number; budget: number; percentage: number };
   'cost:budget_exceeded': { type: string; current: number; budget: number };
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // BUDGET MANAGEMENT events (24/7 Autonomous System)
-  // ═══════════════════════════════════════════════════════════════════════
   'budget:daily_reset': { previousUsage: number; profile: string };
-  'budget:threshold_reached': {
-    level: 'warning' | 'reduce' | 'pause';
-    percentage: number;
-    remaining?: number;
-    recommendation?: string;
-  };
-  'budget:status_changed': {
-    profile: string;
-    used: number;
-    remaining: number;
-    throttled: boolean;
-  };
-  'budget:profile_changed': {
-    previousProfile: string;
-    newProfile: string;
-    maxTokens: number;
-    maxCost: number;
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // BILLING CYCLE events (14-day cycles)
-  // ═══════════════════════════════════════════════════════════════════════
   'billing:cycle_started': { cycleStart: string; cycleEnd: string; budget: number };
-  'billing:cycle_warning': { daysRemaining: number; status: string; percentUsed: number };
-  'billing:cycle_ended': { totalSpent: number; budget: number; underBudget: boolean };
 
   // ═══════════════════════════════════════════════════════════════════════
   // VALUE ANALYTICS events (Cost-to-Reward Tracking)
@@ -430,14 +316,7 @@ export interface EventMap {
   'scratchpad:cleared': { agent: string; count: number };
   'scratchpad:cleanup': { cleaned: number; remaining: number };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // SOUL events (Agent Identity & Personality)
-  // ═══════════════════════════════════════════════════════════════════════
-  'soul:decision_influenced': { agent: AgentId; action: string; confidence: number; appliedFrameworks: string[] };
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // MODEL ROUTING events (Intelligent Model Selection)
-  // ═══════════════════════════════════════════════════════════════════════
+  // ── Model Routing events ───────────────────────────────────────────────
   'model:routed': { task: string; model: string; reason: string; estimatedCost?: number };
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -545,115 +424,9 @@ export interface EventMap {
     reason: string;
   };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // WEB NAVIGATION events (Playwright-based browsing)
-  // ═══════════════════════════════════════════════════════════════════════
-  'web:navigate': {
-    callId: string;
-    url: string;
-    action: string;
-    agent: AgentId;
-    trustLevel: TrustLevel;
-    timestamp: Date;
-  };
-  'web:page_loaded': {
-    callId: string;
-    url: string;
-    title: string;
-    status: number;
-    wordCount: number;
-    durationMs: number;
-    timestamp: Date;
-  };
-  'web:content_extracted': {
-    callId: string;
-    url: string;
-    wordCount: number;
-    linkCount: number;
-    headingCount: number;
-    timestamp: Date;
-  };
-  'web:screenshot_captured': {
-    callId: string;
-    url: string;
-    sizeBytes: number;
-    fullPage: boolean;
-    timestamp: Date;
-  };
-  'web:action_performed': {
-    callId: string;
-    url: string;
-    action: string;
-    selector?: string;
-    timestamp: Date;
-  };
-  'web:search_completed': {
-    callId: string;
-    query: string;
-    resultCount: number;
-    timestamp: Date;
-  };
-  'web:error': {
-    callId: string;
-    url: string;
-    action: string;
-    error: string;
-    timestamp: Date;
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // COUNCIL DELIBERATION events (Deliberative Governance)
-  // ═══════════════════════════════════════════════════════════════════════
-  'deliberation:proposal_analyzed': {
-    topic: string;
-    risk: string;
-    riskScore: number;
-    domainCount: number;
-    relevantMemberCount: number;
-    biasWarningCount: number;
-    virtueAlignment: number;
-    timestamp: Date;
-  };
-  'deliberation:soul_consulted': {
-    agentId: AgentId;
-    memberName: string;
-    recommendation: string;
-    confidence: number;
-    timestamp: Date;
-  };
-  'deliberation:domain_weighted': {
-    agentId: AgentId;
-    baseWeight: number;
-    finalWeight: number;
-    domainBonus: number;
-    credibilityModifier: number;
-    timestamp: Date;
-  };
-  'deliberation:outcome_recorded': {
-    voteId: string;
-    topic: string;
-    decision: string;
-    outcomeQuality: number;
-    membersUpdated: number;
-    timestamp: Date;
-  };
-  'deliberation:credibility_updated': {
-    agentId: AgentId;
-    memberName: string;
-    credibility: number;
-    totalVotes: number;
-    correctPredictions: number;
-    streak: number;
-    timestamp: Date;
-  };
-  'deliberation:style_enforced': {
-    agentId: AgentId;
-    originalRecommendation: string;
-    enforcedRecommendation: string;
-    style: string;
-    risk: string;
-    timestamp: Date;
-  };
+  // ── Web Navigation events (simplified) ─────────────────────────────────
+  'web:navigate': { callId: string; url: string; action: string; agent: AgentId; trustLevel: TrustLevel; timestamp: Date };
+  'web:error': { callId: string; url: string; action: string; error: string; timestamp: Date };
 }
 
 /**

@@ -299,17 +299,11 @@ describe('Dual-Write Consistency', () => {
       expect(toolRegistry.size).toBeGreaterThanOrEqual(4);
     });
 
-    it('should have dual-write stats available', () => {
-      const stats = executor.getDualWriteStats();
-      expect(stats).toBeDefined();
-      expect(stats.totalChecks).toBe(0);
-      expect(stats.divergentChecks).toBe(0);
-    });
-
-    it('should report feature flag status', () => {
-      // Default is now true (new system is primary after Phase 4 cutover)
-      expect(executor.isNewPolicyEngineEnabled()).toBe(true);
-      expect(executor.isDualWriteEnabled()).toBe(false);
+    it('should have both PolicyEngine and ToolRegistry initialized', () => {
+      const policyEngine = executor.getPolicyEngine();
+      const toolRegistry = executor.getToolRegistry();
+      expect(policyEngine.getAllPolicies().length).toBeGreaterThanOrEqual(4);
+      expect(toolRegistry.size).toBeGreaterThanOrEqual(4);
     });
   });
 

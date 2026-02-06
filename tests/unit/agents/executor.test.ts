@@ -146,12 +146,16 @@ describe('Executor', () => {
 
   it('should execute pending call successfully after approval', async () => {
     const callId = randomUUID();
+    const testFilePath = join(tmpdir(), `delete-test-${randomUUID()}.txt`);
+    // Create the file so file_delete can succeed
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(testFilePath, 'test content');
 
     // Start execution but don't await
     const executePromise = executor.execute({
       id: callId,
       tool_id: 'file_delete',
-      parameters: { path: '/tmp/test.txt' },
+      parameters: { path: testFilePath },
       requesting_agent: 'executor' as AgentId,
       trust_level: 'operator' as TrustLevel,
       timestamp: new Date(),

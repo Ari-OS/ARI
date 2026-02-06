@@ -83,25 +83,6 @@ export class WebSocketBroadcaster {
       })
     );
 
-    // Council Amendment events
-    this.unsubscribers.push(
-      eventBus.on('amendment:proposed', (payload) => {
-        this.broadcast('amendment:proposed', payload);
-      })
-    );
-
-    this.unsubscribers.push(
-      eventBus.on('amendment:voted', (payload) => {
-        this.broadcast('amendment:voted', payload);
-      })
-    );
-
-    this.unsubscribers.push(
-      eventBus.on('amendment:ratified', (payload) => {
-        this.broadcast('amendment:ratified', payload);
-      })
-    );
-
     // Scheduler events
     this.unsubscribers.push(
       eventBus.on('scheduler:task_run', (payload) => {
@@ -199,106 +180,43 @@ export class WebSocketBroadcaster {
       })
     );
 
-    // ==========================================================================
-    // COGNITIVE LAYER 0: Real-time cognitive activity events
-    // ==========================================================================
-    //
-    // This implements the `cognition:live` WebSocket channel for Phase 4D.
-    // All cognitive events (LOGOS/ETHOS/PATHOS), learning loop events,
-    // decision journal entries, and self-improvement outcomes are broadcast
-    // in real-time to connected WebSocket clients.
-    //
-    // To subscribe: connect to ws://127.0.0.1:3000/ws
-    // Events are automatically streamed to all connected clients.
-    // ==========================================================================
+    // Cognition events (LOGOS / ETHOS / PATHOS)
+    const cognitionEvents = [
+      'cognition:belief_updated',
+      'cognition:expected_value_calculated',
+      'cognition:kelly_calculated',
+      'cognition:bias_detected',
+      'cognition:emotional_risk',
+      'cognition:discipline_check',
+      'cognition:thought_reframed',
+      'cognition:reflection_complete',
+      'cognition:wisdom_consulted',
+      'cognition:practice_plan_created',
+    ] as const;
 
-    // LOGOS events
-    this.unsubscribers.push(
-      eventBus.on('cognition:belief_updated', (payload) => {
-        this.broadcast('cognition:belief_updated', payload);
-      })
-    );
-
-    this.unsubscribers.push(
-      eventBus.on('cognition:expected_value_calculated', (payload) => {
-        this.broadcast('cognition:expected_value_calculated', payload);
-      })
-    );
-
-    this.unsubscribers.push(
-      eventBus.on('cognition:kelly_calculated', (payload) => {
-        this.broadcast('cognition:kelly_calculated', payload);
-      })
-    );
-
-    // ETHOS events
-    this.unsubscribers.push(
-      eventBus.on('cognition:bias_detected', (payload) => {
-        this.broadcast('cognition:bias_detected', payload);
-      })
-    );
-
-    this.unsubscribers.push(
-      eventBus.on('cognition:emotional_risk', (payload) => {
-        this.broadcast('cognition:emotional_risk', payload);
-      })
-    );
-
-    this.unsubscribers.push(
-      eventBus.on('cognition:discipline_check', (payload) => {
-        this.broadcast('cognition:discipline_check', payload);
-      })
-    );
-
-    // PATHOS events
-    this.unsubscribers.push(
-      eventBus.on('cognition:thought_reframed', (payload) => {
-        this.broadcast('cognition:thought_reframed', payload);
-      })
-    );
-
-    this.unsubscribers.push(
-      eventBus.on('cognition:reflection_complete', (payload) => {
-        this.broadcast('cognition:reflection_complete', payload);
-      })
-    );
-
-    this.unsubscribers.push(
-      eventBus.on('cognition:wisdom_consulted', (payload) => {
-        this.broadcast('cognition:wisdom_consulted', payload);
-      })
-    );
-
-    this.unsubscribers.push(
-      eventBus.on('cognition:practice_plan_created', (payload) => {
-        this.broadcast('cognition:practice_plan_created', payload);
-      })
-    );
+    for (const event of cognitionEvents) {
+      this.unsubscribers.push(
+        eventBus.on(event, (payload) => {
+          this.broadcast(event, payload);
+        })
+      );
+    }
 
     // Learning Loop events
-    this.unsubscribers.push(
-      eventBus.on('learning:performance_review', (payload) => {
-        this.broadcast('learning:performance_review', payload);
-      })
-    );
+    const learningEvents = [
+      'learning:performance_review',
+      'learning:gap_analysis',
+      'learning:self_assessment',
+      'learning:insight_generated',
+    ] as const;
 
-    this.unsubscribers.push(
-      eventBus.on('learning:gap_analysis', (payload) => {
-        this.broadcast('learning:gap_analysis', payload);
-      })
-    );
-
-    this.unsubscribers.push(
-      eventBus.on('learning:self_assessment', (payload) => {
-        this.broadcast('learning:self_assessment', payload);
-      })
-    );
-
-    this.unsubscribers.push(
-      eventBus.on('learning:insight_generated', (payload) => {
-        this.broadcast('learning:insight_generated', payload);
-      })
-    );
+    for (const event of learningEvents) {
+      this.unsubscribers.push(
+        eventBus.on(event, (payload) => {
+          this.broadcast(event, payload);
+        })
+      );
+    }
   }
 
   /**
