@@ -27,7 +27,8 @@ export function SubagentDetailModal({
     queryKey: ['subagent', subagentId],
     queryFn: () => fetchSubagent(subagentId!),
     enabled: isOpen && !!subagentId,
-    refetchInterval: 5000,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: false,
   });
 
   if (!subagentId) return null;

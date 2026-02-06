@@ -66,7 +66,8 @@ export function TaskDetailModal({
     queryKey: ['task-history', task?.id],
     queryFn: () => fetchTaskHistory(task!.id),
     enabled: isOpen && !!task,
-    refetchInterval: 10000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 
   if (!task) return null;

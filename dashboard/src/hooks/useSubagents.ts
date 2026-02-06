@@ -9,7 +9,8 @@ export function useSubagents() {
   return useQuery({
     queryKey: ['subagents'],
     queryFn: getSubagents,
-    refetchInterval: 5000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -21,6 +22,7 @@ export function useSubagentStats() {
   return useQuery({
     queryKey: ['subagent-stats'],
     queryFn: getSubagentStats,
-    refetchInterval: 5000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 }

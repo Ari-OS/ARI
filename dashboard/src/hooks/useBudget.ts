@@ -15,7 +15,8 @@ export function useBudget() {
   return useQuery({
     queryKey: ['budget-status'],
     queryFn: getBudgetStatus,
-    refetchInterval: 10000, // Every 10 seconds
+    refetchInterval: 60000, // Every 60 seconds
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -41,7 +42,8 @@ export function useApprovalQueue() {
   return useQuery({
     queryKey: ['approval-queue'],
     queryFn: getApprovalQueue,
-    refetchInterval: 30000, // Every 30 seconds
+    refetchInterval: 120000, // Every 120 seconds
+    refetchIntervalInBackground: false,
   });
 }
 

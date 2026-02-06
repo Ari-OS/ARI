@@ -63,7 +63,8 @@ export function useAlerts(filters?: AlertFilters) {
   return useQuery({
     queryKey: ['alerts', filters],
     queryFn: () => fetchAlerts(filters),
-    refetchInterval: 10000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -79,7 +80,8 @@ export function useAlertSummary() {
   return useQuery({
     queryKey: ['alerts', 'summary'],
     queryFn: fetchAlertSummary,
-    refetchInterval: 5000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 }
 

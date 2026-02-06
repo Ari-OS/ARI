@@ -9,6 +9,7 @@ export function useSystemMetrics() {
   return useQuery({
     queryKey: ['system-metrics'],
     queryFn: getSystemMetrics,
-    refetchInterval: 5000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 }

@@ -9,7 +9,8 @@ export function useSchedulerStatus() {
   return useQuery({
     queryKey: ['scheduler-status'],
     queryFn: getSchedulerStatus,
-    refetchInterval: 10000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -21,6 +22,7 @@ export function useSchedulerTasks() {
   return useQuery({
     queryKey: ['scheduler-tasks'],
     queryFn: getSchedulerTasks,
-    refetchInterval: 10000,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 }
