@@ -6,14 +6,20 @@ User interface for ARI operations using Commander.js.
 
 | Command | Purpose |
 |---------|---------|
+| `ari chat` | Interactive AI conversation |
+| `ari ask` | One-shot AI query |
 | `ari daemon` | Start/stop/status of daemon |
 | `ari gateway` | Gateway management |
 | `ari audit` | Audit trail operations |
+| `ari audit-report` | Generate audit reports |
 | `ari governance` | Council and voting |
 | `ari autonomous` | Autonomous agent control |
+| `ari cognitive` | Cognitive layer tools (alias: `cog`) |
 | `ari context` | Context management |
 | `ari doctor` | System diagnostics |
 | `ari onboard` | Initial setup |
+| `ari budget` | Budget management |
+| `ari knowledge` | Knowledge operations |
 
 ## Command Pattern
 

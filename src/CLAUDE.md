@@ -4,22 +4,25 @@ This is the main source directory for ARI. Quick navigation:
 
 | Layer | Directory | Purpose |
 |-------|-----------|---------|
-| 0. **Cognitive** | `cognition/` | **LOGOS/ETHOS/PATHOS (PROPOSED)** |
+| 0. Cognitive | `cognition/` | LOGOS/ETHOS/PATHOS reasoning frameworks |
 | 1. Kernel | `kernel/` | Security boundary, types, event bus |
 | 2. System | `system/` | Routing, storage, context loading |
 | 3. Agents | `agents/` | Multi-agent coordination |
-| 4. Governance | `governance/` | Council, arbiter, overseer |
+| 4. Governance | `governance/` | Council, arbiter, overseer, policy engine |
 | 5. Ops | `ops/` | Daemon, infrastructure |
-| 6. CLI | `cli/` | User interface commands |
+| 6. CLI | `cli/` | User interface commands (14 commands) |
 
 Additional directories:
-- `cognition/` — **NEW (PROPOSED)** - Cognitive Layer 0 (LOGOS/ETHOS/PATHOS) - See [`docs/cognition/README.md`](../docs/cognition/README.md)
+- `ai/` — AIOrchestrator, model registry, value scorer, prompt builder
 - `autonomous/` — Proactive agent, scheduler, briefings
 - `execution/` — Tool registry and executor
 - `integrations/` — External services (Notion, SMS, Cowork)
 - `mcp/` — Model Context Protocol server
 - `prompts/` — Prompt building utilities
 - `observability/` — Metrics, alerts, execution history
+- `api/` — REST routes (modular) and WebSocket server
+- `channels/` — Communication channels (Pushover, etc.)
+- `skills/` — Skill definitions
 
 ## Quick Rules
 
@@ -34,5 +37,6 @@ Additional directories:
 - `kernel/event-bus.ts` — Typed pub/sub
 - `kernel/sanitizer.ts` — Injection detection
 - `agents/core.ts` — Message pipeline
+- `ai/orchestrator.ts` — AI model routing and orchestration
 
 See subdirectory CLAUDE.md files for layer-specific guidance.

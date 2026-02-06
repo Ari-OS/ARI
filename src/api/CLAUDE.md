@@ -6,8 +6,20 @@ REST API and WebSocket endpoints for ARI operations.
 
 | Component | Purpose |
 |-----------|---------|
-| routes.ts | Fastify route definitions |
+| routes/ | Modular Fastify route plugins |
+| ws.ts | WebSocket event broadcaster |
 | index.ts | API initialization and exports |
+
+Routes are split into modular files under `routes/`:
+- `health.ts` — `/health`, `/version`, `/status`
+- `messages.ts` — `/message`
+- `cognitive.ts` — `/api/cognition/*`
+- `governance.ts` — `/api/governance/*`
+- `agents.ts` — `/api/agents/*`
+- `memory.ts` — `/api/memory/*`
+- `audit.ts` — `/api/audit/*`
+- `budget.ts` — `/api/budget/*`
+- `autonomous.ts` — `/api/autonomous/*`
 
 ## Endpoints
 

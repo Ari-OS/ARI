@@ -93,7 +93,7 @@ npm run dev          # Watch mode for development
 npm run clean        # Remove dist/ directory
 
 # Quality
-npm test             # Run all tests (3194 tests)
+npm test             # Run all tests (~3500 tests)
 npm run test:watch   # Watch mode for tests
 npm run test:coverage # Coverage report (target: 80%+)
 npm run typecheck    # TypeScript type checking
@@ -121,11 +121,11 @@ npx ari <command>    # Run ARI CLI commands
    ↓ can import
 1. Kernel (Gateway, Sanitizer, Audit, EventBus, Config, Types)
    ↓ can import
-0. Cognitive (PROPOSED - LOGOS/ETHOS/PATHOS) ← NEW
+0. Cognitive (LOGOS/ETHOS/PATHOS)
    [Self-contained, no dependencies]
 ```
 
-**NEW Layer 0**: Provides cognitive frameworks (Bayesian reasoning, bias detection, CBT, Stoicism, etc.) to all higher layers. See [`docs/cognition/README.md`](docs/cognition/README.md).
+**Layer 0**: Provides cognitive frameworks (Bayesian reasoning, bias detection, CBT, Stoicism) to all higher layers. Trimmed to essential pillars only.
 
 ### Rules
 
@@ -175,13 +175,14 @@ src/
 │   ├── executor.ts      # Tool execution, permissions
 │   └── memory-manager.ts # Provenance-tracked memory
 ├── governance/          # Layer 4: Constitutional enforcement
-│   ├── council.ts       # 15-member voting
+│   ├── council.ts       # 15-member voting (simplified, no SOUL deliberation)
 │   ├── arbiter.ts       # 6 constitutional rules
-│   └── overseer.ts      # 5 quality gates
+│   ├── overseer.ts      # 5 quality gates
+│   └── policy-engine.ts # Permission management
 ├── ops/                 # Layer 5: Infrastructure
 │   └── daemon.ts        # macOS launchd integration
 └── cli/                 # Layer 6: User interface
-    ├── commands/        # 12 CLI commands
+    ├── commands/        # 14 CLI commands (includes chat, ask)
     └── index.ts         # Commander setup
 
 tests/

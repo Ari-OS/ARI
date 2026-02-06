@@ -6,13 +6,15 @@ Testing with Vitest for ARI's 80%+ coverage requirement.
 
 ```
 tests/
-├── unit/           # Component tests
+├── unit/           # Component tests (~3,500 tests total)
 │   ├── kernel/     # sanitizer, audit, event-bus
 │   ├── system/     # router, context-loader
 │   ├── agents/     # core, guardian, executor, planner, memory
-│   └── governance/ # council, arbiter, overseer
-├── integration/    # Full pipeline tests
-└── security/       # Injection defense tests
+│   ├── governance/ # council, arbiter, overseer, policy-engine
+│   ├── cli/        # CLI command tests (cognitive, etc.)
+│   └── api/        # API route tests
+├── integration/    # Full pipeline tests (cognitive-pipeline, learning-loop)
+└── security/       # Injection defense tests (cognitive-injection, model-routing)
 ```
 
 ## Test Pattern

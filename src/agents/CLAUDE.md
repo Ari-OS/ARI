@@ -17,8 +17,8 @@ Multi-agent coordination for task execution.
 ```
 1. Core receives message
 2. Guardian assesses threat (risk 0.0-1.0)
-3. If risk < 0.8: Planner decomposes task
-4. Executor runs approved tools
+3. If risk < 0.8: Classify intent (conversation | tool_use | system_command)
+4. Route to AIOrchestrator (conversation) or Executor (tool_use)
 5. MemoryManager stores learnings
 ```
 

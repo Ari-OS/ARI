@@ -1,26 +1,36 @@
 # Cognitive Layer 0 — LOGOS / ETHOS / PATHOS
 
-This is Layer 0: the cognitive foundation that provides reasoning frameworks, bias detection, emotional intelligence, and continuous learning to all higher layers.
+This is Layer 0: the cognitive foundation that provides reasoning frameworks, bias detection, emotional intelligence, and wisdom to all higher layers.
 
 ## Architecture
 
 ```
-Layer 0: Cognitive
+Layer 0: Cognitive (trimmed to essentials)
 ├── logos/      — REASON: Bayesian, Expected Value, Kelly, Systems, Antifragility
 ├── ethos/      — CHARACTER: Bias detection, Emotional state, Discipline
 ├── pathos/     — GROWTH: CBT, Stoicism, Wisdom, Deliberate Practice
-├── knowledge/  — 92 curated sources, 16 Council cognitive profiles
-├── learning/   — 5-stage learning loop: review → gaps → discovery → integration → assessment
-└── visualization/ — Insight formatters for Claude Code and Dashboard
+├── learning/
+│   └── decision-journal.ts — Real-time decision recording with framework attribution
+├── types.ts    — Shared type definitions
+├── constants.ts — Shared constants
+├── errors.ts   — Error types
+├── synthesis.ts — Cross-pillar analysis
+└── index.ts    — Barrel exports
 ```
+
+**Removed modules** (Phase 2 simplification):
+- `knowledge/` — 92 curated sources (not connected to core pipeline)
+- `learning/` — 27-file educational platform (kept only decision-journal.ts)
+- `ux/` — 12-file visualization system
+- `visualization/` — Insight formatters
 
 ## Three Pillars
 
 | Pillar | Purpose | Key Frameworks |
 |--------|---------|----------------|
-| **LOGOS** 🧠 | Reason & Calculation | Bayesian, Kelly Criterion, Expected Value, Systems Thinking, Antifragility |
-| **ETHOS** ❤️ | Character & Discipline | Cognitive Bias Detection, Emotional State (VAD), Fear/Greed Cycle, Pre-Decision Discipline |
-| **PATHOS** 🌱 | Growth & Wisdom | CBT Reframing, Dichotomy of Control, Virtue Ethics, Deliberate Practice, Wisdom Traditions |
+| **LOGOS** | Reason & Calculation | Bayesian, Kelly Criterion, Expected Value, Systems Thinking, Antifragility |
+| **ETHOS** | Character & Discipline | Cognitive Bias Detection, Emotional State (VAD), Fear/Greed Cycle, Pre-Decision Discipline |
+| **PATHOS** | Growth & Wisdom | CBT Reframing, Dichotomy of Control, Virtue Ethics, Deliberate Practice, Wisdom Traditions |
 
 ## API Reference
 
@@ -60,76 +70,42 @@ Layer 0: Cognitive
 | `queryWisdom(query, traditions)` | Query 7 wisdom traditions |
 | `generatePracticePlan(skill, current, target, constraints)` | Ericsson deliberate practice |
 
-### Learning APIs
+### Decision Journal
 
 | Function | Purpose |
 |----------|---------|
-| `getLearningStatus()` | Current learning loop status |
-| `runPerformanceReview(decisions)` | Daily 9PM performance review |
-| `runGapAnalysis(queries, failures)` | Weekly gap identification |
-| `runSelfAssessment(current, previous)` | Monthly self-evaluation |
-| `addInsight(insight)` | Store a new insight |
-| `getRecentInsights(limit)` | Retrieve recent insights |
-
-### Knowledge APIs
-
-| Function | Purpose |
-|----------|---------|
-| `getEnabledSources()` | Get 92 enabled knowledge sources |
-| `getSourcesByPillar(pillar)` | Filter sources by pillar |
-| `getSourcesByTrustLevel(level)` | Filter by trust (VERIFIED, STANDARD) |
-| `validateContent(content, sourceId)` | 5-stage content validation |
-| `getAllCouncilProfiles()` | Get 16 Council cognitive profiles |
-| `getCouncilProfile(memberId)` | Get specific member profile |
+| `DecisionJournal.initialize(eventBus)` | Subscribe to cognitive events |
+| `DecisionJournal.recordDecision(params)` | Record a decision entry |
+| `DecisionJournal.getRecentDecisions(hours)` | Get recent decisions |
+| `DecisionJournal.getDecisionStats()` | Aggregate statistics |
+| `DecisionJournal.updateOutcome(id, outcome)` | Update decision outcome |
 
 ## EventBus Events
 
-All cognitive operations emit typed events for real-time tracking:
+Cognitive events are defined in EventMap for DecisionJournal subscription:
 
 ```typescript
 // LOGOS
 'cognition:belief_updated'           // Bayesian update completed
 'cognition:expected_value_calculated' // EV calculation done
 'cognition:kelly_calculated'         // Position sizing calculated
+'cognition:leverage_point_identified' // Systems leverage point found
+'cognition:antifragility_assessed'   // Antifragility score calculated
+'cognition:decision_tree_evaluated'  // Decision tree evaluation done
 
 // ETHOS
 'cognition:bias_detected'            // Cognitive bias found
 'cognition:emotional_risk'           // High emotional risk detected
 'cognition:discipline_check'         // Pre-decision check completed
+'cognition:fear_greed_detected'      // Fear/greed cycle pattern
 
 // PATHOS
 'cognition:thought_reframed'         // CBT reframe applied
 'cognition:reflection_complete'      // Reflection session done
 'cognition:wisdom_consulted'         // Wisdom tradition queried
 'cognition:practice_plan_created'    // New practice plan generated
-
-// Learning Loop
-'learning:performance_review'        // Daily review completed
-'learning:gap_analysis'              // Weekly gap analysis done
-'learning:self_assessment'           // Monthly assessment done
-'learning:insight_generated'         // New insight stored
-```
-
-## Learning Loop Schedule
-
-| Task | Schedule | Purpose |
-|------|----------|---------|
-| Performance Review | Daily 9PM | Analyze day's decisions |
-| Gap Analysis | Sunday 8PM | Identify knowledge gaps |
-| Self-Assessment | 1st of month 9AM | Comprehensive evaluation |
-
-## Visualization
-
-The visualization module formats cognitive results for display:
-
-```typescript
-import { formatInsightBlock, formatComprehensiveAnalysis } from './visualization/index.js';
-
-// Format single result
-const output = formatExpectedValueInsight(evResult);
-
-// Format cross-pillar analysis
-const analysis = formatComprehensiveAnalysis({ ev, kelly, biases, emotional });
+'cognition:dichotomy_analyzed'       // Dichotomy of control analysis
+'cognition:virtue_check'             // Virtue alignment check
 ```
 
 ## Usage Examples
@@ -173,16 +149,15 @@ const result = await reframeThought(
 
 ## Integration Points
 
-- **API Routes**: `/api/cognition/*` endpoints in `src/api/routes.ts`
+- **API Routes**: `/api/cognition/*` endpoints in `src/api/routes/cognitive.ts`
 - **WebSocket**: Real-time events broadcast via `src/api/ws.ts`
 - **Dashboard**: Cognition page at `dashboard/src/pages/Cognition.tsx`
-- **Scheduler**: Learning loop tasks in `src/autonomous/scheduler.ts`
+- **Decision Journal**: Used by self-improvement-loop and weekly-wisdom-digest
 
 ## Constitutional Rules
 
 1. **Provenance Required**: All cognitive outputs include framework attribution
-2. **Trust Validation**: Knowledge sources filtered by trust level
-3. **Bias Transparency**: All detected biases logged with evidence
-4. **Learning Persistence**: Insights stored for pattern extraction
+2. **Bias Transparency**: All detected biases logged with evidence
+3. **Decision Persistence**: All decisions recorded via DecisionJournal
 
-Skills: `/ari-cognitive-layer`, `/ari-learning-loop`
+Skills: `/ari-cognitive-layer`
