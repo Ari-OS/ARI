@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback, useState, type ReactNode } from 'react';
+import { createContext, useContext, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useWebSocket, type WebSocketMessage, type ConnectionStatus } from '../hooks/useWebSocket';
 
 interface WebSocketContextValue {
@@ -119,7 +119,8 @@ export function useWebSocketEvent(
   const stableHandler = useCallback(handler, deps);
 
   // Subscribe on mount, unsubscribe on unmount
-  useState(() => {
-    return subscribe(eventType, stableHandler);
-  });
+  useEffect(() => {
+    const unsubscribe = subscribe(eventType, stableHandler);
+    return unsubscribe;
+  }, [eventType, stableHandler, subscribe]);
 }
