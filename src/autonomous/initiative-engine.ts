@@ -15,6 +15,7 @@
  * @version 1.0.0
  */
 
+import { createLogger } from '../kernel/logger.js';
 import { EventBus } from '../kernel/event-bus.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -22,6 +23,8 @@ import { detectCognitiveBias, runDisciplineCheck } from '../cognition/ethos/inde
 import type { AgentSpawner } from './agent-spawner.js';
 import type { KnowledgeIndex } from './knowledge-index.js';
 import { homedir } from 'node:os';
+
+const log = createLogger('initiative-engine');
 
 // =============================================================================
 // TYPES
@@ -567,8 +570,7 @@ export class InitiativeEngine {
       },
     });
 
-    // eslint-disable-next-line no-console
-    console.log('[InitiativeEngine] Initialized');
+    log.info('Initiative engine initialized');
   }
 
   /**
@@ -578,8 +580,7 @@ export class InitiativeEngine {
     if (this.running) return;
     this.running = true;
 
-    // eslint-disable-next-line no-console
-    console.log('[InitiativeEngine] Starting proactive autonomy...');
+    log.info('Starting proactive autonomy');
 
     // Initial scan
     await this.scan();
@@ -587,8 +588,7 @@ export class InitiativeEngine {
     // Schedule periodic scans
     this.scanTimer = setInterval(() => {
       this.scan().catch(err => {
-        // eslint-disable-next-line no-console
-        console.error('[InitiativeEngine] Scan error:', err);
+        log.error({ error: err }, 'Scan error');
       });
     }, this.config.scanIntervalMs);
 
@@ -612,8 +612,7 @@ export class InitiativeEngine {
       this.scanTimer = null;
     }
 
-    // eslint-disable-next-line no-console
-    console.log('[InitiativeEngine] Stopped');
+    log.info('Initiative engine stopped');
   }
 
   /**
@@ -631,8 +630,7 @@ export class InitiativeEngine {
       await this.init();
     }
 
-    // eslint-disable-next-line no-console
-    console.log('[InitiativeEngine] Scanning for initiatives...');
+    log.info('Scanning for initiatives');
 
     const discovered = await discoverInitiatives(this.config);
 
@@ -647,8 +645,7 @@ export class InitiativeEngine {
 
     this.initiatives.push(...newInitiatives);
 
-    // eslint-disable-next-line no-console
-    console.log(`[InitiativeEngine] Discovered ${newInitiatives.length} new initiatives`);
+    log.info({ count: newInitiatives.length }, 'Discovered new initiatives');
 
     // Auto-execute high-priority autonomous initiatives if enabled
     if (this.config.autoExecute) {
@@ -663,14 +660,12 @@ export class InitiativeEngine {
       for (const initiative of toExecute.slice(0, this.config.maxConcurrent)) {
         // Don't await - execute in background
         this.executeInitiative(initiative).catch(err => {
-          // eslint-disable-next-line no-console
-          console.error(`[InitiativeEngine] Failed to execute ${initiative.id}:`, err);
+          log.error({ initiativeId: initiative.id, error: err }, 'Failed to execute initiative');
         });
       }
 
       if (toExecute.length > 0) {
-        // eslint-disable-next-line no-console
-        console.log(`[InitiativeEngine] Auto-executing ${Math.min(toExecute.length, this.config.maxConcurrent)} initiatives`);
+        log.info({ count: Math.min(toExecute.length, this.config.maxConcurrent) }, 'Auto-executing initiatives');
       }
 
       this.eventBus.emit('audit:log', {
@@ -776,8 +771,7 @@ export class InitiativeEngine {
 
     initiative.status = 'IN_PROGRESS';
 
-    // eslint-disable-next-line no-console
-    console.log(`[InitiativeEngine] Executing: ${initiative.title}`);
+    log.info({ title: initiative.title }, 'Executing initiative');
 
     this.eventBus.emit('audit:log', {
       action: 'initiative:executing',
@@ -1136,8 +1130,7 @@ export class InitiativeEngine {
         createdAt: new Date(i.createdAt),
       }));
 
-      // eslint-disable-next-line no-console
-      console.log(`[InitiativeEngine] Loaded ${this.initiatives.length} initiatives from state`);
+      log.info({ count: this.initiatives.length }, 'Loaded initiatives from state');
     } catch {
       // No state file, start fresh
     }

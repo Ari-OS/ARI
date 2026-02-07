@@ -1,9 +1,12 @@
+import { createLogger } from '../kernel/logger.js';
 import fs from 'node:fs/promises';
 import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { homedir } from 'node:os';
 import { z } from 'zod';
 import type { EventBus } from '../kernel/event-bus.js';
+
+const log = createLogger('budget-tracker');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FILE PATHS FOR PERSISTENCE
@@ -263,7 +266,7 @@ export class BudgetTracker {
         }
       })
       .catch((error) => {
-        console.error('[BudgetTracker] Operation failed:', error);
+        log.error({ error }, 'Operation failed');
       });
   }
 
@@ -302,7 +305,7 @@ export class BudgetTracker {
         return validated;
       }
     } catch (error) {
-      console.error('[BudgetTracker] Failed to load state:', error);
+      log.error({ error }, 'Failed to load state');
     }
 
     // Initialize new state
@@ -819,7 +822,7 @@ export class BudgetTracker {
       await fs.writeFile(tempPath, JSON.stringify(this.state, null, 2));
       await fs.rename(tempPath, BUDGET_STATE_PATH);
     } catch (error) {
-      console.error('[BudgetTracker] Failed to persist state:', error);
+      log.error({ error }, 'Failed to persist state');
       throw error;
     }
   }

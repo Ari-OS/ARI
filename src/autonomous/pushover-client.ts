@@ -11,7 +11,10 @@
  * - Rate limits outbound notifications
  */
 
+import { createLogger } from '../kernel/logger.js';
 import { PushoverMessage, PushoverResponse } from './types.js';
+
+const log = createLogger('pushover-client');
 
 const PUSHOVER_API = 'https://api.pushover.net/1';
 const PUSHOVER_CLIENT_API = 'https://client.pushover.net';
@@ -59,8 +62,7 @@ export class PushoverClient {
   ): Promise<boolean> {
     // KILL SWITCH - Pushover is disabled to prevent API cost issues
     if (isPushoverDisabled() || this.config.enabled === false) {
-      // eslint-disable-next-line no-console
-      console.log('[PUSHOVER DISABLED] Would have sent:', options.title || 'notification');
+      log.info({ title: options.title || 'notification' }, 'Pushover disabled - would have sent');
       return false;
     }
 
@@ -95,8 +97,7 @@ export class PushoverClient {
 
       return result.status === 1;
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Pushover send error:', error);
+      log.error({ error }, 'Pushover send error');
       return false;
     }
   }
@@ -129,8 +130,7 @@ export class PushoverClient {
       }
       return null;
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Device registration error:', error);
+      log.error({ error }, 'Device registration error');
       return null;
     }
   }
@@ -162,8 +162,7 @@ export class PushoverClient {
       }
       return [];
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Fetch messages error:', error);
+      log.error({ error }, 'Fetch messages error');
       return [];
     }
   }
@@ -197,8 +196,7 @@ export class PushoverClient {
       const result = await response.json() as { status: number };
       return result.status === 1;
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Delete messages error:', error);
+      log.error({ error }, 'Delete messages error');
       return false;
     }
   }
@@ -232,8 +230,7 @@ export class PushoverClient {
       }
       return null;
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Pushover login error:', error);
+      log.error({ error }, 'Pushover login error');
       return null;
     }
   }

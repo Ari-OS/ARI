@@ -10,6 +10,7 @@
  * This is what makes ARI truly autonomous.
  */
 
+import { createLogger } from '../kernel/logger.js';
 import { EventBus } from '../kernel/event-bus.js';
 import { TaskQueue, taskQueue } from './task-queue.js';
 import { PushoverClient } from './pushover-client.js';
@@ -31,6 +32,8 @@ import { ApprovalQueue } from './approval-queue.js';
 import { AuditLogger } from '../kernel/audit.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
+const log = createLogger('autonomous-agent');
 
 const CONFIG_PATH = path.join(process.env.HOME || '~', '.ari', 'autonomous.json');
 const STATE_PATH = path.join(process.env.HOME || '~', '.ari', 'agent-state.json');
@@ -112,8 +115,7 @@ export class AutonomousAgent {
       const fileConfig = JSON.parse(configData) as Partial<AutonomousConfig>;
       this.config = { ...this.config, ...fileConfig };
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[Agent] Config parse failed, using defaults:', err instanceof Error ? err.message : String(err));
+      log.warn({ error: err instanceof Error ? err.message : String(err) }, 'Config parse failed, using defaults');
     }
 
     // Load previous state
@@ -122,8 +124,7 @@ export class AutonomousAgent {
       const prevState = JSON.parse(stateData) as Partial<AgentState>;
       this.state.tasksProcessed = prevState.tasksProcessed ?? 0;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.info('[Agent] No previous state, starting fresh:', err instanceof Error ? err.message : String(err));
+      log.info({ error: err instanceof Error ? err.message : String(err) }, 'No previous state, starting fresh');
     }
 
     // Initialize queue
@@ -160,8 +161,7 @@ export class AutonomousAgent {
 
     // Log budget status on init
     const throttleStatus = this.costTracker.getThrottleStatus();
-    // eslint-disable-next-line no-console
-    console.log(`[Budget] Initialized - ${throttleStatus.usagePercent.toFixed(1)}% used (${throttleStatus.level})`);
+    log.info({ usagePercent: throttleStatus.usagePercent.toFixed(1), level: throttleStatus.level }, 'Budget initialized');
 
     // Initialize Pushover if configured
     if (this.config.pushover?.userKey && this.config.pushover?.apiToken) {
@@ -200,8 +200,7 @@ export class AutonomousAgent {
     await this.init();
 
     if (!this.config.enabled) {
-      // eslint-disable-next-line no-console
-      console.log('Autonomous agent is disabled in config');
+      log.info('Autonomous agent is disabled in config');
       return;
     }
 
@@ -223,8 +222,7 @@ export class AutonomousAgent {
     // Start polling loop
     void this.poll();
 
-    // eslint-disable-next-line no-console
-    console.log('Autonomous agent started');
+    log.info('Autonomous agent started');
   }
 
   /**
@@ -261,8 +259,7 @@ export class AutonomousAgent {
       reason: 'manual stop',
     });
 
-    // eslint-disable-next-line no-console
-    console.log('Autonomous agent stopped');
+    log.info('Autonomous agent stopped');
   }
 
   /**
@@ -286,8 +283,7 @@ export class AutonomousAgent {
 
       // Log throttle state changes
       if (currentThrottleLevel !== this.lastThrottleLevel) {
-        // eslint-disable-next-line no-console
-        console.log(`[Budget] Throttle level changed: ${this.lastThrottleLevel} → ${currentThrottleLevel}`);
+        log.info({ from: this.lastThrottleLevel, to: currentThrottleLevel }, 'Budget throttle level changed');
         this.lastThrottleLevel = currentThrottleLevel;
 
         // Emit event for other systems to react
@@ -323,8 +319,7 @@ export class AutonomousAgent {
 
       if (currentThrottleLevel === 'pause') {
         // PAUSE: Only user interactions allowed (URGENT priority)
-        // eslint-disable-next-line no-console
-        console.warn('[Budget] 95%+ consumed - autonomous work paused until midnight reset');
+        log.warn('95%+ consumed - autonomous work paused until midnight reset');
 
         // Still process user messages (these are URGENT priority)
         await this.checkPushoverMessages();
@@ -341,8 +336,7 @@ export class AutonomousAgent {
 
       if (currentThrottleLevel === 'reduce') {
         // REDUCE: Essential tasks only (STANDARD priority allowed, BACKGROUND skipped)
-        // eslint-disable-next-line no-console
-        console.info('[Budget] 90%+ consumed - running essential tasks only');
+        log.info('90%+ consumed - running essential tasks only');
 
         // Run scheduler with essential-only flag
         await this.scheduler.checkAndRun({ essentialOnly: true });
@@ -365,8 +359,7 @@ export class AutonomousAgent {
 
       if (currentThrottleLevel === 'warning') {
         // WARNING: Log but continue with reduced initiative execution
-        // eslint-disable-next-line no-console
-        console.info(`[Budget] ${throttleStatus?.usagePercent.toFixed(1)}% consumed - monitoring usage`);
+        log.info({ usagePercent: throttleStatus?.usagePercent.toFixed(1) }, 'Budget warning - monitoring usage');
       }
 
       // ========================================================================
@@ -398,8 +391,7 @@ export class AutonomousAgent {
       if (Math.random() < scanChance) {
         const initiatives = await this.initiativeEngine.scan();
         if (initiatives.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log(`[Initiative] Discovered ${initiatives.length} new initiatives`);
+          log.info({ count: initiatives.length }, 'Initiatives discovered');
 
           // Get profile thresholds for auto-execute decisions
           const profile = this.costTracker?.getProfile();
@@ -435,17 +427,14 @@ export class AutonomousAgent {
 
             if (canProceed?.allowed) {
               try {
-                // eslint-disable-next-line no-console
-                console.log(`[Initiative] Executing: ${initiative.title}`);
+                log.info({ title: initiative.title }, 'Executing initiative');
                 await this.initiativeEngine.executeInitiative(initiative.id);
                 executed++;
               } catch (err) {
-                // eslint-disable-next-line no-console
-                console.error(`[Initiative] Failed to execute ${initiative.id}:`, err);
+                log.error({ initiativeId: initiative.id, error: err }, 'Failed to execute initiative');
               }
             } else {
-              // eslint-disable-next-line no-console
-              console.log(`[Initiative] Skipped due to budget: ${initiative.title} (${canProceed?.reason})`);
+              log.info({ title: initiative.title, reason: canProceed?.reason }, 'Initiative skipped due to budget');
 
               // Check if this requires approval (high-risk initiative)
               // Note: Initiative doesn't have affectedFiles, use target.filePath count as proxy
@@ -478,8 +467,7 @@ export class AutonomousAgent {
                     reason: canProceed?.reason || requiresApproval?.reason,
                   },
                 });
-                // eslint-disable-next-line no-console
-                console.log(`[Initiative] Added to approval queue: ${initiative.title}`);
+                log.info({ title: initiative.title }, 'Initiative added to approval queue');
               }
             }
           }
@@ -525,8 +513,7 @@ export class AutonomousAgent {
       this.state.lastActivity = new Date().toISOString();
     } catch (error) {
       this.state.errors++;
-      // eslint-disable-next-line no-console
-      console.error('Poll error:', error);
+      log.error({ error }, 'Poll error');
 
       // Use notification manager for errors
       if (this.state.errors % 10 === 0) {
@@ -568,8 +555,7 @@ export class AutonomousAgent {
       await this.pushover.deleteMessages(msg.id);
     }
 
-    // eslint-disable-next-line no-console
-    console.log(`Received Pushover command: ${task.id}`);
+    log.info({ taskId: task.id }, 'Received Pushover command');
   }
 
   /**
@@ -586,8 +572,7 @@ export class AutonomousAgent {
    * Process a single task
    */
   private async processTask(task: Task): Promise<void> {
-    // eslint-disable-next-line no-console
-    console.log(`Processing task: ${task.id}`);
+    log.info({ taskId: task.id }, 'Processing task');
 
     await this.queue.updateStatus(task.id, 'processing');
 
@@ -746,8 +731,7 @@ export class AutonomousAgent {
       if (this.briefingGenerator) {
         await this.briefingGenerator.morningBriefing();
       }
-      // eslint-disable-next-line no-console
-      console.log('[Scheduler] Morning briefing completed');
+      log.info('Morning briefing completed');
     });
 
     // Evening summary at 9pm
@@ -755,8 +739,7 @@ export class AutonomousAgent {
       if (this.briefingGenerator) {
         await this.briefingGenerator.eveningSummary();
       }
-      // eslint-disable-next-line no-console
-      console.log('[Scheduler] Evening summary completed');
+      log.info('Evening summary completed');
     });
 
     // Weekly review on Sunday 6pm
@@ -764,23 +747,20 @@ export class AutonomousAgent {
       if (this.briefingGenerator) {
         await this.briefingGenerator.weeklyReview();
       }
-      // eslint-disable-next-line no-console
-      console.log('[Scheduler] Weekly review completed');
+      log.info('Weekly review completed');
     });
 
     // Knowledge indexing 3x daily
     this.scheduler.registerHandler('knowledge_index', async () => {
       await this.knowledgeIndex.reindexAll();
-      // eslint-disable-next-line no-console
-      console.log('[Scheduler] Knowledge index updated');
+      log.info('Knowledge index updated');
     });
 
     // Changelog generation at 7pm
     this.scheduler.registerHandler('changelog_generate', async () => {
       const result = await this.changelogGenerator.generateDaily();
       if (result.savedPath) {
-        // eslint-disable-next-line no-console
-        console.log(`[Scheduler] Changelog generated: ${result.savedPath}`);
+        log.info({ path: result.savedPath }, 'Changelog generated');
       }
     });
 
@@ -789,8 +769,7 @@ export class AutonomousAgent {
       await this.agentSpawner.checkAgents();
       const running = this.agentSpawner.getAgentsByStatus('running');
       if (running.length > 0) {
-        // eslint-disable-next-line no-console
-        console.log(`[Scheduler] ${running.length} agents still running`);
+        log.info({ count: running.length }, 'Agents still running');
       }
     });
 
@@ -810,8 +789,7 @@ export class AutonomousAgent {
         });
         return;
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('[Cognitive] Performance review failed:', error);
+        log.error({ error }, 'Cognitive performance review failed');
       }
     });
 
@@ -827,8 +805,7 @@ export class AutonomousAgent {
         });
         return;
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('[Cognitive] Gap analysis failed:', error);
+        log.error({ error }, 'Cognitive gap analysis failed');
       }
     });
 
@@ -844,8 +821,7 @@ export class AutonomousAgent {
         });
         return;
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('[Cognitive] Self-assessment failed:', error);
+        log.error({ error }, 'Cognitive self-assessment failed');
       }
     });
 
@@ -855,8 +831,7 @@ export class AutonomousAgent {
         // Stub - learning module removed
         return;
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('[Cognitive] Spaced repetition review failed:', error);
+        log.error({ error }, 'Spaced repetition review failed');
       }
     });
 
@@ -912,11 +887,9 @@ export class AutonomousAgent {
           },
         });
 
-        // eslint-disable-next-line no-console
-        console.log(`[Self-Improvement] Daily review: ${processed}/${recentDecisions.length} decisions processed`);
+        log.info({ processed, total: recentDecisions.length }, 'Self-improvement daily review complete');
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('[Self-Improvement] Daily review failed:', error);
+        log.error({ error }, 'Self-improvement daily review failed');
       }
     });
 
@@ -927,8 +900,7 @@ export class AutonomousAgent {
     // Comprehensive initiative scan at 6 AM (before morning briefing)
     this.scheduler.registerHandler('initiative_comprehensive_scan', async () => {
       try {
-        // eslint-disable-next-line no-console
-        console.log('[Initiative] Starting comprehensive daily scan...');
+        log.info('Starting comprehensive daily scan');
 
         const initiatives = await this.initiativeEngine.scan();
 
@@ -957,11 +929,9 @@ export class AutonomousAgent {
           },
         });
 
-        // eslint-disable-next-line no-console
-        console.log(`[Initiative] Daily scan: ${initiatives.length} discovered, ${executed} executed`);
+        log.info({ discovered: initiatives.length, executed }, 'Initiative daily scan complete');
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('[Initiative] Daily scan failed:', error);
+        log.error({ error }, 'Initiative daily scan failed');
       }
     });
 
@@ -984,10 +954,8 @@ export class AutonomousAgent {
           },
         });
 
-        // eslint-disable-next-line no-console
-        console.log('[Deliverables] Daily brief generated:');
-        // eslint-disable-next-line no-console
-        console.log(formatted);
+        log.info('Daily brief generated');
+        log.info(formatted);
 
         // If notification is available, send a summary
         if (brief.actionItems.length > 0) {
@@ -1000,8 +968,7 @@ export class AutonomousAgent {
           }
         }
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('[Deliverables] Daily brief generation failed:', error);
+        log.error({ error }, 'Daily brief generation failed');
       }
     });
 
@@ -1012,8 +979,7 @@ export class AutonomousAgent {
         const inProgress = this.initiativeEngine.getInitiativesByStatus('IN_PROGRESS');
         const completed = this.initiativeEngine.getInitiativesByStatus('COMPLETED');
 
-        // eslint-disable-next-line no-console
-        console.log(`[Initiative] Mid-day status: ${queued.length} queued, ${inProgress.length} in progress, ${completed.length} completed today`);
+        log.info({ queued: queued.length, inProgress: inProgress.length, completed: completed.length }, 'Initiative mid-day status');
 
         // Execute any high-priority queued items that haven't been started
         const urgent = queued.filter(i => i.autonomous && i.priority >= 80);
@@ -1025,8 +991,7 @@ export class AutonomousAgent {
           }
         }
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('[Initiative] Mid-day check failed:', error);
+        log.error({ error }, 'Initiative mid-day check failed');
       }
     });
   }
