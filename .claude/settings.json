@@ -2,6 +2,21 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "Write:src/**/*.ts|Edit:src/**/*.ts",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/security-check.sh",
+            "blocking": true
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/layer-deps-check.sh",
+            "blocking": true
+          }
+        ]
+      },
+      {
         "matcher": "Edit:src/kernel/*|Write:src/kernel/*",
         "hooks": [
           {
