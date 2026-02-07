@@ -17,6 +17,7 @@ import { registerAskCommand } from './commands/ask.js';
 import { registerTaskCommand } from './commands/task.js';
 import { registerNoteCommand } from './commands/note.js';
 import { registerRemindCommand } from './commands/remind.js';
+import { registerPlanCommand } from './commands/plan.js';
 
 const program = new Command();
 
@@ -42,5 +43,6 @@ registerAskCommand(program);
 registerTaskCommand(program);
 registerNoteCommand(program);
 registerRemindCommand(program);
+registerPlanCommand(program);
 
 program.parse();
