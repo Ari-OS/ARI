@@ -20,7 +20,7 @@
 <br>
 
 [![CI](https://github.com/Ari-OS/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/Ari-OS/ARI/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-3194%20passing-brightgreen)](https://github.com/Ari-OS/ARI)
+[![Tests](https://img.shields.io/badge/tests-3500%2B%20passing-brightgreen)](https://github.com/Ari-OS/ARI)
 [![Coverage](https://img.shields.io/badge/coverage-80%25%2B-brightgreen)](https://github.com/Ari-OS/ARI)
 
 </div>
@@ -116,7 +116,7 @@ ARI follows a seven-layer architecture with strict unidirectional dependencies. 
 | **Core** | Agent coordination and execution | Guardian (threat detection), Planner (task decomposition), Executor (tool invocation), Memory Manager (provenance tracking) |
 | **Strategic** | Governance and quality control | Council (15-member voting), Arbiter (6 constitutional rules), Overseer (5 quality gates) |
 | **Execution** | Process lifecycle | Daemon (macOS launchd integration) |
-| **Interfaces** | User interaction | CLI (12 commands), Dashboard (React), Integrations |
+| **Interfaces** | User interaction | CLI (18 commands), Dashboard (React), Integrations |
 
 ---
 
@@ -160,7 +160,7 @@ Messages with risk score ≥ 0.8 are automatically blocked.
 ARI implements constitutional governance through three components:
 
 ### Council
-A 15-member voting body that decides on proposals. Supports three threshold types:
+A multi-member voting body that decides on proposals. Supports three threshold types:
 - **Majority** (>50%) — Standard decisions
 - **Supermajority** (≥66%) — Significant changes
 - **Unanimous** (100%) — Critical changes
@@ -225,6 +225,18 @@ curl -X POST http://127.0.0.1:3141/message \
 
 # Verify audit chain integrity
 curl http://127.0.0.1:3141/api/audit/verify
+
+# Interactive AI conversation
+npx ari chat
+
+# Quick one-shot query
+npx ari ask "What's on my schedule?"
+
+# Task management
+npx ari task add "Review Q1 budget"
+
+# Planning
+npx ari plan "Prepare for product launch"
 ```
 
 ---
@@ -253,21 +265,46 @@ All endpoints are available only on `127.0.0.1:3141`.
 ## CLI Reference
 
 ```
+# Setup & Diagnostics
 ari onboard init              Initialize ARI (~/.ari/)
 ari doctor                    Run health checks
+
+# AI & Interaction
+ari chat                      Interactive AI conversation
+ari ask <query>               One-shot AI query
+
+# Productivity
+ari task [add|list|done]      Task management
+ari note [add|search]         Note-taking
+ari notes                     Alias for note command
+ari remind [add|list]         Reminder management
+ari plan <goal>               Planning and goal-setting
+
+# System Management
 ari gateway start             Start gateway (127.0.0.1:3141)
 ari gateway status            Check gateway status
-ari audit list                List recent audit events
-ari audit verify              Verify hash chain
-ari audit security            List security events
+ari daemon install            Install background service
+ari daemon status             Check daemon status
+ari daemon uninstall          Remove background service
+
+# Context & Memory
 ari context init              Initialize context system
 ari context list              List contexts
 ari context create <name>     Create context
 ari context select <id>       Select active context
+ari knowledge [query|stats]   Knowledge operations
+
+# Governance & Security
 ari governance show           Show governance structure
-ari daemon install            Install background service
-ari daemon status             Check daemon status
-ari daemon uninstall          Remove background service
+ari audit list                List recent audit events
+ari audit verify              Verify hash chain
+ari audit security            List security events
+ari audit-report              Generate audit reports
+
+# Advanced
+ari autonomous [start|stop]   Autonomous agent control
+ari cognitive [analyze]       Cognitive layer tools
+ari budget [show|reset]       Budget management
 ```
 
 ---

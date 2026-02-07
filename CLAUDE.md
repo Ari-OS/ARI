@@ -169,11 +169,16 @@ src/
 │   ├── storage.ts       # Context management
 │   └── types.ts         # Context, RouteResult
 ├── agents/              # Layer 3: Multi-agent coordination
-│   ├── core.ts          # Master orchestrator
+│   ├── core.ts          # Intent classification and routing
 │   ├── guardian.ts      # Threat detection
 │   ├── planner.ts       # Task decomposition, DAG
 │   ├── executor.ts      # Tool execution, permissions
 │   └── memory-manager.ts # Provenance-tracked memory
+├── ai/                  # AI orchestration and model management
+│   ├── orchestrator.ts  # Conversation routing and model selection
+│   ├── model-registry.ts # Model pricing, context limits
+│   ├── value-scorer.ts  # Decision quality scoring
+│   └── prompt-builder.ts # Prompt construction
 ├── governance/          # Layer 4: Constitutional enforcement
 │   ├── council.ts       # 15-member voting (simplified, no SOUL deliberation)
 │   ├── arbiter.ts       # 6 constitutional rules
@@ -182,7 +187,7 @@ src/
 ├── ops/                 # Layer 5: Infrastructure
 │   └── daemon.ts        # macOS launchd integration
 └── cli/                 # Layer 6: User interface
-    ├── commands/        # 14 CLI commands (includes chat, ask)
+    ├── commands/        # 18 CLI commands (chat, ask, task, note, remind, plan, etc.)
     └── index.ts         # Commander setup
 
 tests/

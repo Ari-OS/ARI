@@ -8,6 +8,10 @@ User interface for ARI operations using Commander.js.
 |---------|---------|
 | `ari chat` | Interactive AI conversation |
 | `ari ask` | One-shot AI query |
+| `ari task` | Task management |
+| `ari note` / `ari notes` | Note-taking and retrieval |
+| `ari remind` | Reminder management |
+| `ari plan` | Planning and goal-setting |
 | `ari daemon` | Start/stop/status of daemon |
 | `ari gateway` | Gateway management |
 | `ari audit` | Audit trail operations |
@@ -20,6 +24,8 @@ User interface for ARI operations using Commander.js.
 | `ari onboard` | Initial setup |
 | `ari budget` | Budget management |
 | `ari knowledge` | Knowledge operations |
+
+**Total: 18 commands**
 
 ## Command Pattern
 
