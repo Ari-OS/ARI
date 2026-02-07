@@ -3,6 +3,9 @@ import type { AuditLogger } from '../kernel/audit.js';
 import type { EventBus } from '../kernel/event-bus.js';
 import type { AgentId, Vote, VoteOption, VoteThreshold, VetoDomain, CouncilPillar } from '../kernel/types.js';
 import { VOTING_AGENTS, VETO_AUTHORITY } from '../kernel/types.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('council');
 
 /**
  * Voting behavior style
@@ -200,19 +203,19 @@ export class Council {
   ): boolean {
     const vote = this.votes.get(voteId);
     if (!vote) {
-      console.error(`Vote ${voteId} not found`);
+      log.error({ voteId }, 'Vote not found');
       return false;
     }
 
     // Check if vote is still open
     if (vote.status !== 'OPEN') {
-      console.error(`Vote ${voteId} is not open (status: ${vote.status})`);
+      log.error({ voteId, status: vote.status }, 'Vote is not open');
       return false;
     }
 
     // Check if agent is eligible to vote
     if (!VOTING_AGENTS.includes(agent)) {
-      console.error(`Agent ${agent} is not eligible to vote`);
+      log.error({ agent }, 'Agent is not eligible to vote');
       return false;
     }
 
@@ -284,19 +287,19 @@ export class Council {
   ): boolean {
     const vote = this.votes.get(voteId);
     if (!vote) {
-      console.error(`Vote ${voteId} not found`);
+      log.error({ voteId }, 'Vote not found for veto');
       return false;
     }
 
     // Check if vote is still open
     if (vote.status !== 'OPEN') {
-      console.error(`Vote ${voteId} is not open (status: ${vote.status})`);
+      log.error({ voteId, status: vote.status }, 'Vote is not open for veto');
       return false;
     }
 
     // Check if agent has veto authority for this domain
     if (!canVeto(agent, domain)) {
-      console.error(`Agent ${agent} does not have veto authority for domain ${domain}`);
+      log.error({ agent, domain }, 'Agent does not have veto authority for domain');
       return false;
     }
 
@@ -491,12 +494,12 @@ export class Council {
   closeVote(voteId: string, status: 'PASSED' | 'FAILED' | 'EXPIRED'): void {
     const vote = this.votes.get(voteId);
     if (!vote) {
-      console.error(`Vote ${voteId} not found`);
+      log.error({ voteId }, 'Vote not found for closing');
       return;
     }
 
     if (vote.status !== 'OPEN') {
-      console.error(`Vote ${voteId} is already closed (status: ${vote.status})`);
+      log.error({ voteId, status: vote.status }, 'Vote is already closed');
       return;
     }
 

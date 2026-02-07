@@ -1,6 +1,9 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
 import type { EventBus, EventMap } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('websocket');
 
 /**
  * WebSocket event broadcaster
@@ -255,7 +258,7 @@ export class WebSocketBroadcaster {
 
       // Handle errors
       ws.on('error', (error: Error) => {
-        console.error('WebSocket client error:', error);
+        log.error({ err: error }, 'WebSocket client error');
       });
 
       // Handle close
@@ -265,7 +268,7 @@ export class WebSocketBroadcaster {
     });
 
     this.wss.on('error', (error: Error) => {
-      console.error('WebSocket server error:', error);
+      log.error({ err: error }, 'WebSocket server error');
     });
   }
 

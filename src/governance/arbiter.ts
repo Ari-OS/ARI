@@ -7,6 +7,9 @@ import {
   RULE_LOOPBACK_ONLY,
   validateLoopbackOnly,
 } from '../kernel/constitutional-invariants.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('arbiter');
 
 interface Rule {
   id: string;
@@ -185,8 +188,9 @@ export class Arbiter {
     ];
 
     // Log initialization with constitutional reference
-    console.log(
-      `[Arbiter] Initialized with ${this.rules.length} constitutional rules (${CONSTITUTIONAL_RULES.length} from invariants)`
+    log.info(
+      { ruleCount: this.rules.length, invariantCount: CONSTITUTIONAL_RULES.length },
+      'Arbiter initialized with constitutional rules'
     );
   }
 
@@ -296,7 +300,7 @@ export class Arbiter {
    */
   start(): void {
     if (this.unsubscribe) {
-      console.error('Arbiter is already running');
+      log.warn('Arbiter is already running');
       return;
     }
 

@@ -5,6 +5,9 @@ import fastifyStatic from '@fastify/static';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createLogger } from '../../kernel/logger.js';
+
+const log = createLogger('dashboard-api');
 
 // Get __dirname equivalent for ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -39,9 +42,9 @@ export const dashboardRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
       // decorateReply defaults to true, enabling reply.sendFile()
     });
 
-    console.log(`Dashboard serving from: ${dashboardDistPath}`);
+    log.info({ path: dashboardDistPath }, 'Dashboard serving from path');
   } catch {
-    console.warn('Dashboard dist not found, using inline fallback');
+    log.warn('Dashboard dist not found, using inline fallback');
   }
 
   // ── Dashboard HTML endpoint ─────────────────────────────────────────────

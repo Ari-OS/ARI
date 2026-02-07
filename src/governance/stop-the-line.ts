@@ -1,5 +1,8 @@
 import type { AuditLogger } from '../kernel/audit.js';
 import type { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('stop-the-line');
 
 /**
  * Authority type for stop-the-line operations.
@@ -48,7 +51,7 @@ export class StopTheLine {
   halt(authority: StopAuthority, reason: string): void {
     if (this.halted) {
       // Already halted - log but don't error (idempotent)
-      console.warn(`System is already halted by ${this.haltedBy}`);
+      log.warn({ haltedBy: this.haltedBy }, 'System is already halted');
       return;
     }
 
@@ -87,12 +90,12 @@ export class StopTheLine {
   resume(authority: 'operator'): void {
     if (authority !== 'operator') {
       const error = 'Only operator can resume the system';
-      console.error(error);
+      log.error('Unauthorized resume attempt');
       throw new Error(error);
     }
 
     if (!this.halted) {
-      console.warn('System is not halted, nothing to resume');
+      log.warn('System is not halted, nothing to resume');
       return;
     }
 

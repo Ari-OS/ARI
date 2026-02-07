@@ -2,6 +2,9 @@ import type { Message } from '../kernel/types.js';
 import { EventBus } from '../kernel/event-bus.js';
 import { AuditLogger } from '../kernel/audit.js';
 import { matchContext } from './storage.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('system-router');
 
 /**
  * System Router — subscribes to kernel events and routes messages.
@@ -36,7 +39,7 @@ export class SystemRouter {
     this.unsubscribe = this.eventBus.on('message:accepted', (message) => {
       // Fire-and-forget async handler — errors caught internally
       this.handleMessage(message).catch((error) => {
-        console.error('SystemRouter: routing error', error);
+        log.error({ err: error, messageId: message.id }, 'Routing error');
       });
     });
   }

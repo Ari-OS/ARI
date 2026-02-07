@@ -1,4 +1,7 @@
 import type { Message, AuditEvent, SecurityEvent, AgentId, TrustLevel } from './types.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('event-bus');
 
 /**
  * EventMap interface defining event name to payload mappings.
@@ -492,8 +495,8 @@ export class EventBus {
         this.handlerErrors++;
         const errorMsg = error instanceof Error ? error.message : String(error);
 
-        // Log to console as fallback
-        console.error(`Error in event handler for '${String(event)}':`, error);
+        // Log error
+        log.error({ event: String(event), err: error }, 'Error in event handler');
 
         // Emit error event (guard against recursion from handler_error handlers)
         if (event !== 'system:handler_error' && event !== 'audit:log') {

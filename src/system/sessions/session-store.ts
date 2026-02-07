@@ -7,6 +7,9 @@ import {
   SessionQuery,
   createSessionKey,
 } from './types.js';
+import { createLogger } from '../../kernel/logger.js';
+
+const log = createLogger('session-store');
 
 /**
  * SessionStore
@@ -47,7 +50,7 @@ export class SessionStore {
           this.keyToId.set(key, session.id);
         } catch {
           // Skip invalid session files
-          console.warn(`Invalid session file: ${file}`);
+          log.warn({ file }, 'Invalid session file, skipping');
         }
       }
 

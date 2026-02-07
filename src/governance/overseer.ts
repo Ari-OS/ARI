@@ -1,5 +1,8 @@
 import type { AuditLogger } from '../kernel/audit.js';
 import type { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('overseer');
 
 interface QualityGate {
   id: string;
@@ -154,7 +157,7 @@ export class Overseer {
   evaluateGate(gateId: string, context: Record<string, unknown>): GateResult {
     const gate = this.gates.find(g => g.id === gateId);
     if (!gate) {
-      console.error(`Gate ${gateId} not found`);
+      log.error({ gateId }, 'Gate not found');
       return {
         passed: false,
         reason: `Gate ${gateId} not found`,
@@ -237,7 +240,7 @@ export class Overseer {
    */
   start(): void {
     if (this.unsubscribe) {
-      console.error('Overseer is already running');
+      log.warn('Overseer is already running');
       return;
     }
 
