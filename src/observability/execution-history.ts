@@ -10,6 +10,9 @@ import {
   type ExecutionResult,
   type TaskExecutionStats,
 } from './types.js';
+import { createLogger } from '../kernel/logger.js';
+
+const logger = createLogger('execution-history');
 
 const ARI_DIR = path.join(os.homedir(), '.ari');
 const HISTORY_FILE = path.join(ARI_DIR, 'execution-history.json');
@@ -154,8 +157,7 @@ export class ExecutionHistoryTracker {
 
     const parsed = ExecutionRecordSchema.safeParse(record);
     if (!parsed.success) {
-      // eslint-disable-next-line no-console
-      console.error('Invalid execution record:', parsed.error);
+      logger.error({ error: parsed.error }, 'Invalid execution record');
       return record;
     }
 
@@ -177,8 +179,7 @@ export class ExecutionHistoryTracker {
       this.executions = this.executions.slice(0, MAX_TOTAL_EXECUTIONS);
     }
 
-    // eslint-disable-next-line no-console
-    this.save().catch(console.error);
+    this.save().catch(err => logger.error({ err }, 'Failed to save execution history'));
   }
 
   /**

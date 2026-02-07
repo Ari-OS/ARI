@@ -13,6 +13,9 @@
 
 import { PushoverClient } from './pushover-client.js';
 import { dailyAudit, ThresholdConfig } from './daily-audit.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('alert-system');
 
 // Alert severity levels
 export type AlertSeverity = 'info' | 'warning' | 'critical';
@@ -295,8 +298,7 @@ export class AlertSystem {
    */
   private async sendAlert(request: AlertRequest): Promise<boolean> {
     if (!this.pushover) {
-      // eslint-disable-next-line no-console
-      console.error('Pushover not initialized');
+      log.error('Pushover not initialized');
       return false;
     }
 

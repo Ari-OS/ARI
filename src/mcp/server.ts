@@ -24,6 +24,9 @@ import { MemoryManager } from '../agents/memory-manager.js';
 import { Council } from '../governance/council.js';
 import { getCoworkBridge, pluginGenerator } from '../integrations/cowork/index.js';
 import type { TrustLevel } from '../kernel/types.js';
+import { createLogger } from '../kernel/logger.js';
+
+const logger = createLogger('mcp-server');
 
 // MCP Trust Level: operator (Claude Code runs as authenticated user)
 const MCP_TRUST_LEVEL: TrustLevel = 'operator';
@@ -731,6 +734,5 @@ export class ARIMCPServer {
 // Run server
 const server = new ARIMCPServer();
 server.run().catch((error: unknown) => {
-  // eslint-disable-next-line no-console
-  console.error('MCP Server error:', error);
+  logger.error({ err: error }, 'MCP Server error');
 });

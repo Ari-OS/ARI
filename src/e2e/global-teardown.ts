@@ -1,9 +1,12 @@
 import { FullConfig } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { createLogger } from '../kernel/logger.js';
+
+const logger = createLogger('e2e-teardown');
 
 async function globalTeardown(_config: FullConfig) {
-  console.log('E2E Global Teardown');
+  logger.info('E2E Global Teardown');
 
   const e2eDir = path.join(process.env.HOME || '~', '.ari', 'e2e');
 
@@ -25,7 +28,7 @@ async function globalTeardown(_config: FullConfig) {
         const stat = await fs.stat(path.join(reportsDir, entry.name));
         if (stat.mtime.getTime() < thirtyDaysAgo) {
           await fs.rm(path.join(reportsDir, entry.name), { recursive: true });
-          console.log(`Cleaned old report: ${entry.name}`);
+          logger.info({ report: entry.name }, 'Cleaned old report');
         }
       }
     }
@@ -33,7 +36,7 @@ async function globalTeardown(_config: FullConfig) {
     // Reports dir may not exist
   }
 
-  console.log('Teardown complete');
+  logger.info('Teardown complete');
 }
 
 export default globalTeardown;

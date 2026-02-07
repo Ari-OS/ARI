@@ -17,6 +17,9 @@ import { ClaudeClient } from '../../autonomous/claude-client.js';
 import { dailyAudit } from '../../autonomous/daily-audit.js';
 import { EventEmitter } from 'node:events';
 import type { SMSConfig } from '../../autonomous/types.js';
+import { createLogger } from '../../kernel/logger.js';
+
+const logger = createLogger('sms-conversation');
 
 export interface ConversationMessage {
   role: 'user' | 'assistant';
@@ -158,8 +161,7 @@ Always return valid JSON. The response field is what gets texted to user.`;
     await this.receiver.start();
     this.emit('started');
 
-    // eslint-disable-next-line no-console
-    console.log('[SMSConversation] Started - listening for SMS replies');
+    logger.info('Started - listening for SMS replies');
   }
 
   /**

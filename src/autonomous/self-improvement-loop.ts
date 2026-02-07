@@ -17,7 +17,10 @@
  */
 
 import { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
 import { DecisionJournal } from '../cognition/learning/decision-journal.js';
+
+const log = createLogger('self-improvement-loop');
 import type { Initiative, InitiativeCategory } from './initiative-engine.js';
 import type { CouncilInterface } from '../kernel/types.js';
 import type { BudgetTracker } from './budget-tracker.js';
@@ -573,8 +576,7 @@ export class SelfImprovementLoop {
           }
 
           this.persistState().catch((err: unknown) => {
-            // eslint-disable-next-line no-console
-            console.error('[SelfImprovement] Persist failed:', err);
+            log.error({ err }, 'Persist failed');
           });
         }
       }
@@ -693,8 +695,7 @@ export class SelfImprovementLoop {
       }
     } catch (err) {
       // Best-effort persistence — log but don't throw
-      // eslint-disable-next-line no-console
-      console.error('[SelfImprovement] State persistence failed:', err);
+      log.error({ err }, 'State persistence failed');
     }
   }
 

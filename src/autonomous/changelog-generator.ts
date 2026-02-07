@@ -13,6 +13,9 @@
 
 import { EventBus } from '../kernel/event-bus.js';
 import { execFile } from 'node:child_process';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('changelog-generator');
 import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -123,8 +126,7 @@ export class ChangelogGenerator {
 
       return commits;
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to get git commits:', error);
+      log.error({ err: error }, 'Failed to get git commits');
       return [];
     }
   }

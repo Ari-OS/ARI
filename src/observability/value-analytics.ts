@@ -3,6 +3,9 @@ import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { homedir } from 'node:os';
 import type { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
+
+const logger = createLogger('value-analytics');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FILE PATHS FOR PERSISTENCE
@@ -534,7 +537,7 @@ export class ValueAnalytics {
       await fs.writeFile(tempPath, JSON.stringify(this.data, null, 2));
       await fs.rename(tempPath, VALUE_ANALYTICS_PATH);
     } catch (error) {
-      console.error('[ValueAnalytics] Failed to persist:', error);
+      logger.error({ err: error }, 'Failed to persist');
     }
   }
 

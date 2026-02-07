@@ -20,6 +20,9 @@ import { homedir } from 'node:os';
 import type { EventBus } from '../kernel/event-bus.js';
 import type { ModelTier } from './types.js';
 import { ModelTierSchema } from './types.js';
+import { createLogger } from '../kernel/logger.js';
+
+const logger = createLogger('performance-tracker');
 
 // =============================================================================
 // Constants
@@ -188,8 +191,7 @@ export class PerformanceTracker {
     }
 
     this.persist().catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error('[PerformanceTracker] Persist failed:', err);
+      logger.error({ err }, 'Persist failed');
     });
   }
 
@@ -207,8 +209,7 @@ export class PerformanceTracker {
     }
 
     this.persist().catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error('[PerformanceTracker] Persist failed:', err);
+      logger.error({ err }, 'Persist failed');
     });
   }
 

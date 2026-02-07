@@ -13,6 +13,9 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('knowledge-fetcher');
 import { createHash } from 'node:crypto';
 import {
   KnowledgeSource,
@@ -62,8 +65,7 @@ export class KnowledgeFetcher {
   async fetchSource(source: KnowledgeSource): Promise<FetchedContent | null> {
     // Verify it's whitelisted
     if (!isWhitelistedUrl(source.url)) {
-      // eslint-disable-next-line no-console
-      console.error(`Refused to fetch non-whitelisted URL: ${source.url}`);
+      log.error({ url: source.url }, 'Refused to fetch non-whitelisted URL');
       return null;
     }
 
@@ -110,8 +112,7 @@ export class KnowledgeFetcher {
         category: source.category,
       };
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to fetch ${source.name}:`, error);
+      log.error({ source: source.name, err: error }, 'Failed to fetch source');
       return null;
     }
   }

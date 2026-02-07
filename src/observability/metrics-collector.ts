@@ -9,6 +9,9 @@ import {
   type MetricTimeSeries,
   type MetricDefinition,
 } from './types.js';
+import { createLogger } from '../kernel/logger.js';
+
+const logger = createLogger('metrics-collector');
 
 const ARI_DIR = path.join(os.homedir(), '.ari');
 const METRICS_FILE = path.join(ARI_DIR, 'metrics-history.json');
@@ -120,8 +123,7 @@ export class MetricsCollector {
 
     const parsed = MetricsSnapshotSchema.safeParse(snapshot);
     if (!parsed.success) {
-      // eslint-disable-next-line no-console
-      console.error('Invalid metrics snapshot:', parsed.error);
+      logger.error({ error: parsed.error }, 'Invalid metrics snapshot');
       return;
     }
 
@@ -133,8 +135,7 @@ export class MetricsCollector {
     }
 
     // Save async (don't await)
-    // eslint-disable-next-line no-console
-    this.save().catch(console.error);
+    this.save().catch(err => logger.error({ err }, 'Failed to save metrics'));
   }
 
   /**

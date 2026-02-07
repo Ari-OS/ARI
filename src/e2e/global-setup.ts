@@ -2,9 +2,12 @@ import { chromium, FullConfig } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { createLogger } from '../kernel/logger.js';
+
+const logger = createLogger('e2e-setup');
 
 async function globalSetup(config: FullConfig) {
-  console.log('E2E Global Setup');
+  logger.info('E2E Global Setup');
 
   // 1. Ensure output directories exist
   const e2eDir = path.join(process.env.HOME || '~', '.ari', 'e2e');
@@ -24,7 +27,7 @@ async function globalSetup(config: FullConfig) {
       const baseURL = config.projects[0]?.use?.baseURL || 'http://127.0.0.1:3141';
       const response = await page.request.get(`${baseURL}/api/health`);
       if (response.ok()) {
-        console.log('Gateway is ready');
+        logger.info('Gateway is ready');
         break;
       }
     } catch {
@@ -58,7 +61,7 @@ async function globalSetup(config: FullConfig) {
     }, null, 2)
   );
 
-  console.log(`Test run ${runId.slice(0, 8)} initialized`);
+  logger.info({ runId: runId.slice(0, 8) }, 'Test run initialized');
 }
 
 export default globalSetup;

@@ -5,6 +5,9 @@ import type {
   MessagePriority,
 } from '../types.js';
 import { BaseChannel } from './base.js';
+import { createLogger } from '../../kernel/logger.js';
+
+const logger = createLogger('pushover-channel');
 
 // GLOBAL KILL SWITCH - Disable ALL Pushover API calls
 // This was added to prevent API cost issues
@@ -80,8 +83,7 @@ export class PushoverChannel extends BaseChannel {
   async connect(): Promise<void> {
     // KILL SWITCH - Pushover is disabled to prevent API cost issues
     if (isPushoverChannelDisabled()) {
-      // eslint-disable-next-line no-console
-      console.log('[PUSHOVER CHANNEL DISABLED] Skipping connection');
+      logger.info('[PUSHOVER CHANNEL DISABLED] Skipping connection');
       this.setStatus('disconnected');
       return;
     }
@@ -140,8 +142,7 @@ export class PushoverChannel extends BaseChannel {
   protected async doSend(message: OutboundMessage): Promise<SendResult> {
     // KILL SWITCH - Pushover is disabled to prevent API cost issues
     if (isPushoverChannelDisabled()) {
-      // eslint-disable-next-line no-console
-      console.log('[PUSHOVER CHANNEL DISABLED] Would have sent:', message.content.slice(0, 50));
+      logger.info({ preview: message.content.slice(0, 50) }, '[PUSHOVER CHANNEL DISABLED] Would have sent');
       return this.createSendResult(false, undefined, 'Pushover disabled');
     }
 
@@ -227,8 +228,7 @@ export class PushoverChannel extends BaseChannel {
     this.pollTimer = setInterval(() => {
       this.pollMessages().catch((error) => {
         // Log but continue polling
-        // eslint-disable-next-line no-console
-        console.error('Pushover poll error:', error);
+        logger.error({ err: error }, 'Pushover poll error');
       });
     }, interval);
 

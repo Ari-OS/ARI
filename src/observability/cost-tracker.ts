@@ -5,6 +5,9 @@ import { homedir } from 'node:os';
 import type { EventBus } from '../kernel/event-bus.js';
 import type { AuditLogger } from '../kernel/audit.js';
 import type { AgentId } from '../kernel/types.js';
+import { createLogger } from '../kernel/logger.js';
+
+const logger = createLogger('cost-tracker');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FILE PATHS FOR PERSISTENCE
@@ -339,7 +342,7 @@ export class CostTracker {
       }
     } catch (error) {
       // No existing data or parse error - start fresh
-      console.warn('[CostTracker] Failed to load token usage:', error);
+      logger.warn({ err: error }, 'Failed to load token usage');
     }
 
     // Load profile if exists
@@ -355,7 +358,7 @@ export class CostTracker {
       }
     } catch (error) {
       // No profile - use defaults
-      console.warn('[CostTracker] Failed to load budget profile:', error);
+      logger.warn({ err: error }, 'Failed to load budget profile');
     }
   }
 
@@ -376,7 +379,7 @@ export class CostTracker {
 
       this.dirty = false;
     } catch (error) {
-      console.error('[CostTracker] Failed to persist token usage:', error);
+      logger.error({ err: error }, 'Failed to persist token usage');
     }
   }
 

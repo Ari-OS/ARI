@@ -6,8 +6,10 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { EventBus } from '../kernel/event-bus.js';
 import type { E2ETestRun, E2EScenarioResult, E2ERunnerConfig, RunOptions } from './types.js';
+import { createLogger } from '../kernel/logger.js';
 
 const execAsync = promisify(exec);
+const logger = createLogger('e2e-runner');
 
 export class E2ERunner {
   private eventBus: EventBus | null = null;
@@ -177,10 +179,9 @@ export class E2ERunner {
             const rawResults: unknown = JSON.parse(await fs.readFile(resultsPath, 'utf-8'));
             const scenarios = this.parsePlaywrightResults(rawResults);
             resolve(scenarios);
-          } catch {
+          } catch (error) {
             // Return empty results if parsing fails
-            // eslint-disable-next-line no-console
-            console.error('Failed to parse Playwright results');
+            logger.error({ err: error }, 'Failed to parse Playwright results');
             resolve([]);
           }
         })();
@@ -260,7 +261,7 @@ export class E2ERunner {
 
       return issueNumber;
     } catch (error) {
-      console.error('Failed to file GitHub issue:', error);
+      logger.error({ err: error }, 'Failed to file GitHub issue');
       return null;
     }
   }

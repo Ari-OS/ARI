@@ -5,6 +5,9 @@ import type {
   SendResult,
 } from '../types.js';
 import { BaseChannel } from './base.js';
+import { createLogger } from '../../kernel/logger.js';
+
+const logger = createLogger('slack-channel');
 
 /**
  * Slack-specific configuration
@@ -193,12 +196,10 @@ export class SlackChannel extends BaseChannel {
         return data;
       }
 
-      // eslint-disable-next-line no-console
-      console.error(`Slack API error: ${data.error}`);
+      logger.error({ error: data.error }, 'Slack API error');
       return null;
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Slack API call failed:', error);
+      logger.error({ err: error }, 'Slack API call failed');
       return null;
     }
   }

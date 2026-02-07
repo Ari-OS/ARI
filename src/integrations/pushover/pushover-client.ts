@@ -9,6 +9,9 @@
 
 import https from 'node:https';
 import { EventEmitter } from 'node:events';
+import { createLogger } from '../../kernel/logger.js';
+
+const logger = createLogger('pushover-client');
 
 // GLOBAL KILL SWITCH - Disable ALL Pushover API calls
 // This was added to prevent API cost issues
@@ -78,8 +81,7 @@ export class PushoverClient extends EventEmitter {
   async send(msg: PushoverMessage): Promise<PushoverResponse> {
     // KILL SWITCH - Pushover is disabled to prevent API cost issues
     if (isPushoverIntegrationDisabled()) {
-      // eslint-disable-next-line no-console
-      console.log('[PUSHOVER INTEGRATION DISABLED] Would have sent:', msg.title || 'notification');
+      logger.info({ title: msg.title || 'notification' }, '[PUSHOVER INTEGRATION DISABLED] Would have sent');
       return { success: false, error: 'Pushover disabled' };
     }
 

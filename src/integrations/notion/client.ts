@@ -11,6 +11,9 @@
 import { Client } from '@notionhq/client';
 import type { CreatePageParameters, UpdatePageParameters } from '@notionhq/client/build/src/api-endpoints.js';
 import type { NotionConfig } from '../../autonomous/types.js';
+import { createLogger } from '../../kernel/logger.js';
+
+const logger = createLogger('notion-client');
 
 export interface NotionPageContent {
   title: string;
@@ -154,8 +157,7 @@ export class NotionClient {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       // Log but don't throw - notification system should be resilient
-      // eslint-disable-next-line no-console
-      console.error('[Notion] Failed to create database entry:', message);
+      logger.error({ err: error }, 'Failed to create database entry');
       return null;
     }
   }

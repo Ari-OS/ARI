@@ -3,6 +3,9 @@ import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { homedir } from 'node:os';
 import type { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('approval-queue');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FILE PATHS
@@ -135,7 +138,7 @@ export class ApprovalQueue {
         return JSON.parse(content) as QueueData;
       }
     } catch (error) {
-      console.warn('[ApprovalQueue] Failed to load queue:', error);
+      log.warn({ err: error }, 'Failed to load queue');
     }
 
     // Return default empty queue
@@ -168,7 +171,7 @@ export class ApprovalQueue {
 
       this.dirty = false;
     } catch (error) {
-      console.error('[ApprovalQueue] Failed to persist queue:', error);
+      log.error({ err: error }, 'Failed to persist queue');
     }
   }
 
@@ -224,7 +227,7 @@ export class ApprovalQueue {
     );
 
     if (existing) {
-      console.log(`[ApprovalQueue] Duplicate item skipped: ${item.title}`);
+      log.info({ title: item.title }, 'Duplicate item skipped');
       return existing;
     }
 

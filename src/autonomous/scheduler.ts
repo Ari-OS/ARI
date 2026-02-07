@@ -13,6 +13,9 @@
  */
 
 import { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('scheduler');
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -449,8 +452,7 @@ export class Scheduler {
       if (handler) {
         await handler();
       } else {
-        // eslint-disable-next-line no-console
-        console.warn(`No handler registered for task: ${task.handler}`);
+        log.warn({ handler: task.handler }, 'No handler registered for task');
       }
 
       // Update task
@@ -469,8 +471,7 @@ export class Scheduler {
     } catch (error) {
       const duration = Date.now() - startTime.getTime();
 
-      // eslint-disable-next-line no-console
-      console.error(`Scheduler task ${taskId} failed:`, error);
+      log.error({ taskId, err: error }, 'Scheduler task failed');
 
       this.eventBus.emit('scheduler:task_complete', {
         taskId,

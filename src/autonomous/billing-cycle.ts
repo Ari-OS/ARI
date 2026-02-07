@@ -3,6 +3,9 @@ import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { homedir } from 'node:os';
 import type { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('billing-cycle');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FILE PATHS FOR PERSISTENCE
@@ -144,7 +147,7 @@ export class BillingCycleManager {
         }
       })
       .catch((error) => {
-        console.error('[BillingCycle] Operation failed:', error);
+        log.error({ err: error }, 'Operation failed');
       });
   }
 
@@ -509,7 +512,7 @@ export class BillingCycleManager {
       await fs.writeFile(tempPath, JSON.stringify(this.cycle, null, 2));
       await fs.rename(tempPath, BILLING_CYCLE_PATH);
     } catch (error) {
-      console.error('[BillingCycle] Failed to persist:', error);
+      log.error({ err: error }, 'Failed to persist');
     }
   }
 }

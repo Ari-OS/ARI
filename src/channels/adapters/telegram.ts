@@ -4,6 +4,9 @@ import type {
   SendResult,
 } from '../types.js';
 import { BaseChannel } from './base.js';
+import { createLogger } from '../../kernel/logger.js';
+
+const logger = createLogger('telegram-channel');
 
 /**
  * Telegram-specific configuration
@@ -200,12 +203,10 @@ export class TelegramChannel extends BaseChannel {
         return data.result;
       }
 
-      // eslint-disable-next-line no-console
-      console.error(`Telegram API error: ${data.description}`);
+      logger.error({ description: data.description }, 'Telegram API error');
       return null;
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Telegram API call failed:', error);
+      logger.error({ err: error }, 'Telegram API call failed');
       return null;
     }
   }
@@ -220,8 +221,7 @@ export class TelegramChannel extends BaseChannel {
 
     this.pollTimer = setInterval(() => {
       this.pollUpdates().catch((error) => {
-        // eslint-disable-next-line no-console
-        console.error('Telegram poll error:', error);
+        logger.error({ err: error }, 'Telegram poll error');
       });
     }, interval);
 

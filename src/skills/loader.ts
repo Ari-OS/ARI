@@ -11,6 +11,9 @@ import {
   computeSkillHash,
 } from './types.js';
 import { SkillValidator } from './validator.js';
+import { createLogger } from '../kernel/logger.js';
+
+const logger = createLogger('skill-loader');
 
 /**
  * SkillLoader
@@ -101,8 +104,7 @@ export class SkillLoader {
     } catch (error) {
       // Directory doesn't exist - not an error
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        // eslint-disable-next-line no-console
-        console.warn(`Failed to load skills from ${dirPath}:`, error);
+        logger.warn({ err: error, dirPath }, 'Failed to load skills');
       }
     }
 
@@ -119,8 +121,7 @@ export class SkillLoader {
       // Validate the skill
       const validation = this.validator.validateContent(content);
       if (!validation.valid || !validation.metadata) {
-        // eslint-disable-next-line no-console
-        console.warn(`Invalid skill at ${filePath}:`, validation.errors);
+        logger.warn({ filePath, errors: validation.errors }, 'Invalid skill');
         return null;
       }
 
@@ -138,8 +139,7 @@ export class SkillLoader {
       };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        // eslint-disable-next-line no-console
-        console.warn(`Failed to load skill from ${filePath}:`, error);
+        logger.warn({ err: error, filePath }, 'Failed to load skill');
       }
       return null;
     }

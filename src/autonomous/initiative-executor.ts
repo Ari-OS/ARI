@@ -33,7 +33,10 @@
  */
 
 import { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
 import { AgentSpawner } from './agent-spawner.js';
+
+const log = createLogger('initiative-executor');
 import { KnowledgeIndex } from './knowledge-index.js';
 import type { Initiative } from './initiative-engine.js';
 import fs from 'node:fs/promises';
@@ -206,8 +209,7 @@ export class InitiativeExecutor {
 
       // Step 3: Execute with caution if needed
       if (analysis.recommendation === 'CAUTION' && analysis.biasesDetected.length > 0) {
-        // eslint-disable-next-line no-console
-        console.log(`[Executor] Proceeding with caution: ${analysis.biasesDetected.join(', ')}`);
+        log.info({ biases: analysis.biasesDetected }, 'Proceeding with caution');
       }
 
       // Step 4: Execute

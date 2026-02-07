@@ -19,6 +19,9 @@ import path from 'node:path';
 import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import type { EventBus } from '../../kernel/event-bus.js';
+import { createLogger } from '../../kernel/logger.js';
+
+const logger = createLogger('decision-journal');
 
 // =============================================================================
 // Types
@@ -84,10 +87,7 @@ export class DecisionJournal {
     this.persistTimer = setInterval(() => {
       if (this.dirty) {
         this.persistToDisk().catch((err: unknown) => {
-          console.error(
-            'Decision journal persist failed:',
-            err instanceof Error ? err.message : String(err),
-          );
+          logger.error({ err }, 'Decision journal persist failed');
         });
       }
     }, this.PERSIST_DEBOUNCE_MS);
@@ -477,10 +477,7 @@ export class DecisionJournal {
         }
       }
     } catch (error) {
-      console.error(
-        'Failed to load decision journal:',
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.error({ err: error }, 'Failed to load decision journal');
     }
   }
 
@@ -508,10 +505,7 @@ export class DecisionJournal {
 
       this.dirty = false;
     } catch (error) {
-      console.error(
-        'Failed to persist decision journal:',
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.error({ err: error }, 'Failed to persist decision journal');
       throw error;
     }
   }

@@ -7,6 +7,9 @@
 
 import { dailyAudit, DailyAudit } from './daily-audit.js';
 import { notificationManager } from './notification-manager.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('audit-reporter');
 
 // ─── State Tracking ─────────────────────────────────────────────────────────
 
@@ -181,8 +184,7 @@ export async function maybeSendDailyReport(): Promise<boolean> {
     },
   });
 
-  // eslint-disable-next-line no-console
-  console.log(`[AuditReporter] Sent daily report for time slot: ${timeSlotKey}`);
+  log.info({ timeSlot: timeSlotKey }, 'Sent daily report');
 
   return true;
 }

@@ -3,6 +3,9 @@ import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { homedir } from 'node:os';
 import type { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
+
+const log = createLogger('adaptive-learner');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FILE PATHS FOR PERSISTENCE
@@ -559,7 +562,7 @@ export class AdaptiveLearner {
       await fs.writeFile(tempPath, JSON.stringify(this.data, null, 2));
       await fs.rename(tempPath, ADAPTIVE_LEARNING_PATH);
     } catch (error) {
-      console.error('[AdaptiveLearner] Failed to persist:', error);
+      log.error({ err: error }, 'Failed to persist');
     }
   }
 
