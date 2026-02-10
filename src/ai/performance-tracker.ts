@@ -19,7 +19,6 @@ import path from 'node:path';
 import { homedir } from 'node:os';
 import type { EventBus } from '../kernel/event-bus.js';
 import type { ModelTier } from './types.js';
-import { ModelTierSchema } from './types.js';
 import { createLogger } from '../kernel/logger.js';
 
 const logger = createLogger('performance-tracker');
@@ -153,10 +152,8 @@ export class PerformanceTracker {
     duration: number;
     success: boolean;
   }): void {
-    const modelResult = ModelTierSchema.safeParse(payload.model);
-    if (!modelResult.success) return;
-
-    const model = modelResult.data;
+    const model = payload.model;
+    if (!model || model.trim().length === 0) return;
     const category = payload.taskCategory ?? payload.taskType ?? 'unknown';
 
     let metric = this.data.metrics.find(

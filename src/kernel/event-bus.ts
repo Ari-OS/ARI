@@ -430,6 +430,78 @@ export interface EventMap {
   // ── Web Navigation events (simplified) ─────────────────────────────────
   'web:navigate': { callId: string; url: string; action: string; agent: AgentId; trustLevel: TrustLevel; timestamp: Date };
   'web:error': { callId: string; url: string; action: string; error: string; timestamp: Date };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PROVIDER LIFECYCLE events (Multi-Model LLM Routing)
+  // ═══════════════════════════════════════════════════════════════════════
+  'provider:connected': { providerId: string; models: string[]; latencyMs: number };
+  'provider:disconnected': { providerId: string; reason: string };
+  'provider:error': { providerId: string; error: string; model: string; retryable: boolean };
+  'provider:health_changed': { providerId: string; status: 'healthy' | 'degraded' | 'down' };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CASCADE ROUTING events (FrugalGPT)
+  // ═══════════════════════════════════════════════════════════════════════
+  'cascade:started': { chain: string; queryLength: number };
+  'cascade:step_complete': { chain: string; step: number; model: string; quality: number; escalated: boolean; costCents: number };
+  'cascade:complete': { chain: string; finalModel: string; totalSteps: number; totalCostCents: number; durationMs: number };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PLUGIN SYSTEM events
+  // ═══════════════════════════════════════════════════════════════════════
+  'plugin:registered': { pluginId: string; name: string; capabilities: string[] };
+  'plugin:initialized': { pluginId: string; durationMs: number };
+  'plugin:error': { pluginId: string; error: string; fatal: boolean };
+  'plugin:shutdown': { pluginId: string };
+  'plugin:health_changed': { pluginId: string; healthy: boolean; details?: string };
+  'plugin:briefing_contributed': { pluginId: string; section: string; type: 'morning' | 'evening' | 'weekly' };
+  'plugin:alert_generated': { pluginId: string; severity: 'info' | 'warning' | 'critical'; title: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CRYPTO PLUGIN events (CoinGecko)
+  // ═══════════════════════════════════════════════════════════════════════
+  'crypto:price_fetched': { coins: string[]; source: string; cached: boolean; timestamp: string };
+  'crypto:portfolio_updated': { totalValue: number; change24h: number; holdings: number; timestamp: string };
+  'crypto:alert_triggered': { coinId: string; type: 'above' | 'below'; price: number; threshold: number; timestamp: string };
+  'crypto:snapshot_saved': { totalValue: number; holdings: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // POKEMON TCG PLUGIN events
+  // ═══════════════════════════════════════════════════════════════════════
+  'pokemon:card_searched': { query: string; resultCount: number; cached: boolean; timestamp: string };
+  'pokemon:collection_updated': { totalCards: number; totalValue: number; timestamp: string };
+  'pokemon:alert_triggered': { cardId: string; cardName: string; type: 'above' | 'below'; price: number; threshold: number; timestamp: string };
+  'pokemon:snapshot_saved': { totalValue: number; totalCards: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // TTS PLUGIN events (ElevenLabs)
+  // ═══════════════════════════════════════════════════════════════════════
+  'tts:speech_generated': { textLength: number; cost: number; cached: boolean; voice: string; timestamp: string };
+  'tts:budget_rejected': { textLength: number; estimatedCost: number; dailyCap: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // TELEGRAM BOT PLUGIN events
+  // ═══════════════════════════════════════════════════════════════════════
+  'telegram:command_received': { command: string; userId: number; chatId: number; timestamp: string };
+  'telegram:message_sent': { chatId: number; type: 'text' | 'voice' | 'photo'; timestamp: string };
+  'telegram:auth_rejected': { userId: number; chatId: number; timestamp: string };
+  'telegram:rate_limited': { userId: number; chatId: number; timestamp: string };
+  'telegram:bot_started': { botUsername: string; timestamp: string };
+  'telegram:bot_stopped': { reason: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // KNOWLEDGE MANAGEMENT events (Cognitive Layer)
+  // ═══════════════════════════════════════════════════════════════════════
+  'knowledge:source_fetched': { sourceId: string; contentLength: number; timestamp: string };
+  'knowledge:validated': { sourceId: string; contentId: string; passed: boolean; stage: string; stageNumber: number };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // LEARNING LOOP events (Cognitive Layer)
+  // ═══════════════════════════════════════════════════════════════════════
+  'learning:review_complete': { grade: string; successRate: number; decisionsCount: number; timestamp: string };
+  'learning:gap_identified': { gapCount: number; topGapSeverity: string; timestamp: string };
+  'learning:assessment_complete': { grade: string; overallImprovement: number; trend: string; timestamp: string };
+  'learning:improvement_measured': { metric: string; previous: number; current: number; change: number };
 }
 
 /**

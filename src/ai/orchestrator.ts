@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import Anthropic from '@anthropic-ai/sdk';
 import type { EventBus } from '../kernel/event-bus.js';
 import type { CostTracker, ThrottleLevel } from '../observability/cost-tracker.js';
 import type {
@@ -13,6 +12,8 @@ import type {
 } from './types.js';
 import { AIRequestSchema, AIFeatureFlagsSchema } from './types.js';
 import { ModelRegistry } from './model-registry.js';
+import { ProviderRegistry } from './provider-registry.js';
+import { CascadeRouter } from './cascade-router.js';
 import { ValueScorer } from './value-scorer.js';
 import { CircuitBreaker } from './circuit-breaker.js';
 import { ResponseEvaluator } from './response-evaluator.js';
@@ -52,7 +53,8 @@ interface ParsedCommand {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export interface OrchestratorConfig {
-  apiKey: string;
+  apiKey?: string; // Deprecated — use providerRegistry instead
+  providerRegistry?: ProviderRegistry;
   defaultModel?: ModelTier;
   featureFlags?: Partial<AIFeatureFlags>;
   costTracker?: CostTracker;
@@ -78,7 +80,8 @@ export interface OrchestratorConfig {
  * - Emits llm:request_complete (THE CRITICAL FIX for BudgetTracker)
  */
 export class AIOrchestrator {
-  private readonly client: Anthropic;
+  private readonly providers: ProviderRegistry;
+  private readonly cascadeRouter: CascadeRouter;
   private readonly eventBus: EventBus;
   private readonly registry: ModelRegistry;
   private readonly scorer: ValueScorer;
@@ -98,14 +101,13 @@ export class AIOrchestrator {
   private readonly startedAt: number = Date.now();
 
   constructor(eventBus: EventBus, config: OrchestratorConfig) {
-    if (!config.apiKey || config.apiKey.trim().length < 10) {
-      throw new Error(
-        'Invalid Anthropic API key: key must be at least 10 characters',
-      );
-    }
-    this.client = new Anthropic({ apiKey: config.apiKey });
     this.eventBus = eventBus;
     this.registry = new ModelRegistry();
+
+    // Initialize ProviderRegistry (use provided or create empty)
+    this.providers = config.providerRegistry ?? new ProviderRegistry(eventBus, this.registry);
+    this.cascadeRouter = new CascadeRouter(eventBus, this.providers, this.registry);
+
     this.circuitBreaker = new CircuitBreaker();
     this.scorer = new ValueScorer(eventBus, this.registry, {
       performanceTracker: config.performanceTracker,
@@ -217,32 +219,36 @@ export class AIOrchestrator {
       estimatedTokens: Math.ceil(validated.content.length / 4),
     });
 
-    // Step 9: API CALL
+    // Step 9: API CALL (via ProviderRegistry — multi-provider routing)
     const startTime = Date.now();
     let response: AIResponse;
 
     try {
-      const apiResponse = await this.client.messages.create({
-        model: this.resolveModelId(selectedModel),
-        system: assembled.system,
-        messages: assembled.messages,
-        max_tokens: assembled.maxTokens,
+      const providerResponse = await this.providers.completeWithFallback({
+        model: selectedModel,
+        systemPrompt: assembled.system?.[0]?.type === 'text'
+          ? assembled.system[0].text
+          : typeof assembled.system === 'string' ? assembled.system : undefined,
+        messages: assembled.messages.map(m => ({
+          role: m.role as 'user' | 'assistant',
+          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+        })),
+        maxTokens: assembled.maxTokens,
+        cachingEnabled: this.featureFlags.AI_PROMPT_CACHING_ENABLED,
+        responseFormat: 'text',
       });
 
       const duration = Date.now() - startTime;
-      const content = apiResponse.content[0]?.type === 'text'
-        ? apiResponse.content[0].text
-        : '';
-
-      const inputTokens = apiResponse.usage.input_tokens;
-      const outputTokens = apiResponse.usage.output_tokens;
-      const cachedTokens = (apiResponse.usage as unknown as Record<string, unknown>).cache_read_input_tokens as number ?? 0;
-      const cost = this.registry.getCost(selectedModel, inputTokens, outputTokens, cachedTokens);
+      const content = providerResponse.content;
+      const inputTokens = providerResponse.inputTokens;
+      const outputTokens = providerResponse.outputTokens;
+      const cachedTokens = providerResponse.cachedInputTokens;
+      const cost = providerResponse.cost;
 
       response = {
         requestId,
         content,
-        model: selectedModel,
+        model: providerResponse.model,
         inputTokens,
         outputTokens,
         cost,
@@ -271,8 +277,8 @@ export class AIOrchestrator {
         this.costTracker.track({
           operation: validated.category,
           agent: validated.agent,
-          provider: 'anthropic',
-          model: selectedModel,
+          provider: providerResponse.provider,
+          model: providerResponse.model,
           inputTokens,
           outputTokens,
         });
@@ -456,18 +462,15 @@ export class AIOrchestrator {
 
   async testConnection(): Promise<boolean> {
     try {
-      await this.client.messages.create({
-        model: 'claude-haiku-4.5-20250514',
-        max_tokens: 10,
-        messages: [{ role: 'user', content: 'test' }],
-      });
-      return true;
+      const results = await this.providers.testAllProviders();
+      return Array.from(results.values()).some(r => r.connected);
     } catch {
       return false;
     }
   }
 
   async shutdown(): Promise<void> {
+    await this.providers.shutdownAll();
     if (this.costTracker) {
       await this.costTracker.shutdown();
     }
@@ -475,6 +478,14 @@ export class AIOrchestrator {
 
   getRegistry(): ModelRegistry {
     return this.registry;
+  }
+
+  getProviderRegistry(): ProviderRegistry {
+    return this.providers;
+  }
+
+  getCascadeRouter(): CascadeRouter {
+    return this.cascadeRouter;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -497,21 +508,26 @@ export class AIOrchestrator {
     const startTime = Date.now();
 
     try {
-      const apiResponse = await this.client.messages.create({
-        model: this.resolveModelId(higherTier),
-        system: assembled.system,
-        messages: assembled.messages,
-        max_tokens: assembled.maxTokens,
+      const providerResponse = await this.providers.completeWithFallback({
+        model: higherTier,
+        systemPrompt: assembled.system?.[0]?.type === 'text'
+          ? assembled.system[0].text
+          : typeof assembled.system === 'string' ? assembled.system : undefined,
+        messages: assembled.messages.map(m => ({
+          role: m.role as 'user' | 'assistant',
+          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+        })),
+        maxTokens: assembled.maxTokens,
+        cachingEnabled: this.featureFlags.AI_PROMPT_CACHING_ENABLED,
+        responseFormat: 'text',
       });
 
       const duration = Date.now() - startTime;
-      const content = apiResponse.content[0]?.type === 'text'
-        ? apiResponse.content[0].text
-        : '';
-      const inputTokens = apiResponse.usage.input_tokens;
-      const outputTokens = apiResponse.usage.output_tokens;
-      const cachedTokens = (apiResponse.usage as unknown as Record<string, unknown>).cache_read_input_tokens as number ?? 0;
-      const cost = this.registry.getCost(higherTier, inputTokens, outputTokens, cachedTokens);
+      const content = providerResponse.content;
+      const inputTokens = providerResponse.inputTokens;
+      const outputTokens = providerResponse.outputTokens;
+      const cachedTokens = providerResponse.cachedInputTokens;
+      const cost = providerResponse.cost;
 
       // Emit for escalated call
       this.eventBus.emit('llm:request_complete', {
@@ -530,8 +546,8 @@ export class AIOrchestrator {
         this.costTracker.track({
           operation: `${request.category}_escalated`,
           agent: request.agent,
-          provider: 'anthropic',
-          model: higherTier,
+          provider: providerResponse.provider,
+          model: providerResponse.model,
           inputTokens,
           outputTokens,
         });
@@ -584,7 +600,7 @@ export class AIOrchestrator {
       'claude-haiku-3',
       'claude-haiku-4.5',
       'claude-sonnet-4',
-      'claude-sonnet-5',
+      'claude-sonnet-4.5',
       'claude-opus-4.5',
       'claude-opus-4.6',
     ];
@@ -595,18 +611,6 @@ export class AIOrchestrator {
     }
 
     return hierarchy[currentIndex + 1];
-  }
-
-  private resolveModelId(tier: ModelTier): string {
-    const modelIdMap: Record<ModelTier, string> = {
-      'claude-opus-4.6': 'claude-opus-4-6-20260205',
-      'claude-opus-4.5': 'claude-opus-4-5-20251101',
-      'claude-sonnet-5': 'claude-sonnet-5-20250514',
-      'claude-sonnet-4': 'claude-sonnet-4-20250514',
-      'claude-haiku-4.5': 'claude-haiku-4-5-20250514',
-      'claude-haiku-3': 'claude-3-haiku-20240307',
-    };
-    return modelIdMap[tier] ?? tier;
   }
 
   private getBudgetState(): ThrottleLevel {

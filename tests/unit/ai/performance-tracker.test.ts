@@ -58,10 +58,10 @@ describe('PerformanceTracker', () => {
       expect(stats.overallErrorRate).toBe(1);
     });
 
-    it('should ignore unknown model IDs', () => {
+    it('should ignore empty model IDs', () => {
       eventBus.emit('llm:request_complete', {
         timestamp: new Date().toISOString(),
-        model: 'unknown-model-xyz',
+        model: '',
         inputTokens: 100,
         outputTokens: 50,
         cost: 0.001,
@@ -72,6 +72,22 @@ describe('PerformanceTracker', () => {
 
       const stats = tracker.getPerformanceStats();
       expect(stats.totalCalls).toBe(0);
+    });
+
+    it('should accept any non-empty model ID', () => {
+      eventBus.emit('llm:request_complete', {
+        timestamp: new Date().toISOString(),
+        model: 'gpt-5.2',
+        inputTokens: 100,
+        outputTokens: 50,
+        cost: 0.001,
+        taskType: 'chat',
+        duration: 1000,
+        success: true,
+      });
+
+      const stats = tracker.getPerformanceStats();
+      expect(stats.totalCalls).toBe(1);
     });
   });
 

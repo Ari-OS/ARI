@@ -28,6 +28,9 @@ import { BillingCycleManager } from '../../autonomous/billing-cycle.js';
 import { ValueAnalytics } from '../../observability/value-analytics.js';
 import { AdaptiveLearner } from '../../autonomous/adaptive-learner.js';
 
+// Cognitive Layer 0
+import { initializeCognition } from '../../cognition/index.js';
+
 interface GatewayStartOptions {
   port: string;
 }
@@ -100,6 +103,10 @@ export function registerGatewayCommand(program: Command): void {
       const adaptiveLearner = new AdaptiveLearner(eventBus);
       console.log('Budget and analytics components initialized');
 
+      // Initialize Cognitive Layer 0
+      const cognitionLayer = await initializeCognition(eventBus);
+      console.log('Cognitive Layer 0 initialized');
+
       // Initialize AI Orchestrator if API key is available
       let aiOrchestrator: AIOrchestrator | null = null;
       const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -155,6 +162,8 @@ export function registerGatewayCommand(program: Command): void {
             billingCycleManager,
             valueAnalytics,
             adaptiveLearner,
+            // Cognitive Layer 0
+            cognitionLayer,
           },
         });
         console.log('API routes registered');

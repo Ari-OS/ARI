@@ -6,6 +6,7 @@ import type { EventBus } from '../kernel/event-bus.js';
 import type { AuditLogger } from '../kernel/audit.js';
 import type { AgentId } from '../kernel/types.js';
 import { createLogger } from '../kernel/logger.js';
+import { ModelRegistry } from '../ai/model-registry.js';
 
 const logger = createLogger('cost-tracker');
 
@@ -18,35 +19,23 @@ const TOKEN_USAGE_PATH = path.join(ARI_DIR, 'token-usage.json');
 const BUDGET_CONFIG_PATH = path.join(ARI_DIR, 'budget-config.json');
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MODEL PRICING (per 1M tokens)
+// MODEL PRICING — Delegated to ModelRegistry (single source of truth)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Model pricing in dollars per 1 million tokens.
- * Aligned with ModelRegistry (src/ai/model-registry.ts) — the single source of truth.
- * Updated February 2026 to match Anthropic published rates.
- */
-export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  // Anthropic models — aligned with ModelRegistry
-  'claude-opus-4.6': { input: 5, output: 25 },
-  'claude-opus-4': { input: 5, output: 25 },
-  'claude-opus-4.5': { input: 5, output: 25 },
-  'claude-opus-4-20250514': { input: 5, output: 25 },
-  'claude-sonnet-5': { input: 3, output: 15 },
-  'claude-sonnet-4': { input: 3, output: 15 },
-  'claude-3-5-sonnet-20241022': { input: 3, output: 15 },
-  'claude-haiku': { input: 1, output: 5 },
-  'claude-haiku-4.5': { input: 1, output: 5 },
-  'claude-haiku-3': { input: 0.25, output: 1.25 },
-  'claude-3-haiku-20240307': { input: 0.25, output: 1.25 },
-  // OpenAI models
-  'gpt-4o': { input: 5, output: 15 },
-  'gpt-4o-mini': { input: 0.15, output: 0.6 },
-  // Other providers
-  'glm-4.7': { input: 2, output: 2 },
-  // Fallback for unknown models
-  'default': { input: 3, output: 15 },
-};
+/** @deprecated Use ModelRegistry.getPricing() instead. Kept for backward compatibility. */
+export const MODEL_PRICING: Record<string, { input: number; output: number }> =
+  (() => {
+    const registry = new ModelRegistry();
+    const result: Record<string, { input: number; output: number }> = {};
+    for (const model of registry.listModels()) {
+      result[model.id] = {
+        input: model.costPer1MInput,
+        output: model.costPer1MOutput,
+      };
+    }
+    result['default'] = { input: 3, output: 15 };
+    return result;
+  })();
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS

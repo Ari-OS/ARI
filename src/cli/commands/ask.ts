@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { AIOrchestrator } from '../../ai/orchestrator.js';
+import { ModelRegistry } from '../../ai/model-registry.js';
 import { EventBus } from '../../kernel/event-bus.js';
-import type { ModelTier } from '../../ai/types.js';
 
 // ── ANSI Colors ─────────────────────────────────────────────────────────────
 
@@ -42,18 +42,12 @@ export function registerAskCommand(program: Command): void {
         }
 
         // 2. Validate model if provided
-        const validModels: ModelTier[] = [
-          'claude-opus-4.6',
-          'claude-opus-4.5',
-          'claude-sonnet-5',
-          'claude-sonnet-4',
-          'claude-haiku-4.5',
-          'claude-haiku-3',
-        ];
+        const registry = new ModelRegistry();
+        const validModels = registry.listModels().map(m => m.id);
 
-        let selectedModel: ModelTier | undefined;
+        let selectedModel: string | undefined;
         if (options.model) {
-          if (!validModels.includes(options.model as ModelTier)) {
+          if (!validModels.includes(options.model)) {
             console.error(colorize(`Error: Invalid model '${options.model}'`, 'red'));
             console.error('');
             console.error('Valid models:');
@@ -62,7 +56,7 @@ export function registerAskCommand(program: Command): void {
             }
             process.exit(1);
           }
-          selectedModel = options.model as ModelTier;
+          selectedModel = options.model;
         }
 
         // 3. Create minimal pipeline (EventBus + AIOrchestrator)

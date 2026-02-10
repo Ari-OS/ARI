@@ -29,7 +29,7 @@ describe('Model Routing - Adaptive Behavior', () => {
       });
 
       const weight = valueScorer.getModelPerformanceWeight(
-        'claude-opus-4-6',
+        'claude-opus-4.6',
         'reasoning',
       );
       expect(weight).toBe(1.0);
@@ -38,7 +38,7 @@ describe('Model Routing - Adaptive Behavior', () => {
     it('should calculate weight from historical performance', () => {
       // Mock getPerformanceStats to return data with quality metrics
       vi.spyOn(performanceTracker, 'getPerformanceStats').mockReturnValue({
-        model: 'claude-opus-4-6',
+        model: 'claude-opus-4.6',
         categories: [
           {
             category: 'reasoning',
@@ -61,7 +61,7 @@ describe('Model Routing - Adaptive Behavior', () => {
       });
 
       const weight = valueScorer.getModelPerformanceWeight(
-        'claude-opus-4-6',
+        'claude-opus-4.6',
         'reasoning',
       );
       // Should be > 1.0 for high quality
@@ -190,25 +190,25 @@ describe('Model Routing - Adaptive Behavior', () => {
     });
 
     it('should toggle model availability', () => {
-      // Sonnet 5 should be unavailable by default
-      const sonnet5 = modelRegistry.getModel('claude-sonnet-5');
-      expect(sonnet5.isAvailable).toBe(false);
+      // gpt-5.2 should be unavailable by default (non-Anthropic)
+      const gpt52 = modelRegistry.getModel('gpt-5.2');
+      expect(gpt52.isAvailable).toBe(false);
 
       // Enable it
-      modelRegistry.setAvailability('claude-sonnet-5', true);
-      const updated = modelRegistry.getModel('claude-sonnet-5');
+      modelRegistry.setAvailability('gpt-5.2', true);
+      const updated = modelRegistry.getModel('gpt-5.2');
       expect(updated.isAvailable).toBe(true);
 
       // Disable it back
-      modelRegistry.setAvailability('claude-sonnet-5', false);
-      const reverted = modelRegistry.getModel('claude-sonnet-5');
+      modelRegistry.setAvailability('gpt-5.2', false);
+      const reverted = modelRegistry.getModel('gpt-5.2');
       expect(reverted.isAvailable).toBe(false);
     });
   });
 
   describe('Performance Tracker Integration', () => {
     it('should return empty stats for unknown model', () => {
-      const stats = performanceTracker.getPerformanceStats('claude-opus-4-6');
+      const stats = performanceTracker.getPerformanceStats('claude-opus-4.6');
       expect(stats.totalCalls).toBe(0);
       expect(stats.overallAvgQuality).toBe(0);
     });

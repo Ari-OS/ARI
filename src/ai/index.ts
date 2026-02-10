@@ -11,6 +11,7 @@
 export type {
   ModelTier,
   ModelDefinition,
+  ModelCapability,
   TaskComplexity,
   TaskCategory,
   AIPriority,
@@ -33,6 +34,7 @@ export type {
 export {
   ModelTierSchema,
   ModelDefinitionSchema,
+  ModelCapabilitySchema,
   TaskComplexitySchema,
   TaskCategorySchema,
   AIPrioritySchema,
@@ -51,12 +53,38 @@ export {
   RollbackThresholdsSchema,
 } from './types.js';
 
+// Provider types
+export type {
+  LLMProviderId,
+  LLMProviderConfig,
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+  LLMProvider,
+  ProviderHealthStatus,
+  ConnectionTestResult,
+} from './providers/types.js';
+
+export {
+  LLMProviderIdSchema,
+  LLMProviderConfigSchema,
+  LLMCompletionRequestSchema,
+} from './providers/types.js';
+
 // Components
 export { ModelRegistry } from './model-registry.js';
+export { ProviderRegistry } from './provider-registry.js';
+export { CascadeRouter } from './cascade-router.js';
+export type { CascadeChain, CascadeStep } from './cascade-router.js';
 export { ValueScorer } from './value-scorer.js';
 export { CircuitBreaker } from './circuit-breaker.js';
 export { ResponseEvaluator } from './response-evaluator.js';
 export { PromptAssembler } from './prompt-assembler.js';
 export { AIPolicyGovernor } from './ai-policy-governor.js';
 export { AIOrchestrator } from './orchestrator.js';
-export type { AIPolicyGovernorLike } from './orchestrator.js';
+export type { AIPolicyGovernorLike, OrchestratorConfig } from './orchestrator.js';
+
+// Provider implementations
+export { AnthropicProvider } from './providers/anthropic-provider.js';
+export { OpenAIProvider } from './providers/openai-provider.js';
+export { GoogleProvider } from './providers/google-provider.js';
+export { XAIProvider } from './providers/xai-provider.js';

@@ -30,15 +30,15 @@ describe('ModelRegistry', () => {
       expect(model.isAvailable).toBe(true);
     });
 
-    it('should return sonnet 5 as unavailable by default', () => {
-      const model = registry.getModel('claude-sonnet-5');
-      expect(model.id).toBe('claude-sonnet-5');
-      expect(model.isAvailable).toBe(false);
+    it('should return sonnet 4.5 as available by default', () => {
+      const model = registry.getModel('claude-sonnet-4.5');
+      expect(model.id).toBe('claude-sonnet-4.5');
+      expect(model.isAvailable).toBe(true);
     });
 
     it('should return sonnet 4 with correct specs', () => {
       const model = registry.getModel('claude-sonnet-4');
-      expect(model.quality).toBe(8);
+      expect(model.quality).toBe(7);
       expect(model.speed).toBe(7);
       expect(model.costPer1MInput).toBe(3.0);
       expect(model.isAvailable).toBe(true);
@@ -63,23 +63,23 @@ describe('ModelRegistry', () => {
   });
 
   describe('listModels', () => {
-    it('should list all 6 models', () => {
+    it('should list all 18 models', () => {
       const models = registry.listModels();
-      expect(models).toHaveLength(6);
+      expect(models).toHaveLength(18);
     });
 
     it('should filter available only', () => {
       const available = registry.listModels({ availableOnly: true });
-      // Sonnet 5 is unavailable by default
-      expect(available).toHaveLength(5);
+      // Only Anthropic models (6) are available by default
+      expect(available).toHaveLength(6);
       expect(available.every(m => m.isAvailable)).toBe(true);
     });
   });
 
   describe('setAvailability', () => {
-    it('should enable sonnet 5', () => {
-      registry.setAvailability('claude-sonnet-5', true);
-      const model = registry.getModel('claude-sonnet-5');
+    it('should enable gpt-5.2', () => {
+      registry.setAvailability('gpt-5.2', true);
+      const model = registry.getModel('gpt-5.2');
       expect(model.isAvailable).toBe(true);
     });
 
@@ -120,7 +120,8 @@ describe('ModelRegistry', () => {
     });
 
     it('should return false for unavailable models', () => {
-      expect(registry.isAvailable('claude-sonnet-5')).toBe(false);
+      expect(registry.isAvailable('gpt-5.2')).toBe(false);
+      expect(registry.isAvailable('gemini-2.5-pro')).toBe(false);
     });
   });
 
@@ -148,7 +149,7 @@ describe('ModelRegistry', () => {
       registry.setAvailability('claude-opus-4.6', false);
       registry.setAvailability('claude-opus-4.5', false);
       const best = registry.getHighestQualityAvailable();
-      expect(best.id).toBe('claude-sonnet-4');
+      expect(best.id).toBe('claude-sonnet-4.5');
     });
   });
 });

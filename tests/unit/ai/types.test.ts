@@ -28,8 +28,13 @@ describe('AI Types — Zod Schemas', () => {
       expect(ModelTierSchema.parse('claude-haiku-3')).toBe('claude-haiku-3');
     });
 
-    it('should reject invalid model tiers', () => {
-      expect(() => ModelTierSchema.parse('gpt-4')).toThrow();
+    it('should accept any non-empty model string', () => {
+      // ModelTierSchema is now z.string().min(1) to support multi-provider models
+      expect(ModelTierSchema.parse('gpt-4')).toBe('gpt-4');
+      expect(ModelTierSchema.parse('gemini-2.5-pro')).toBe('gemini-2.5-pro');
+    });
+
+    it('should reject empty model tiers', () => {
       expect(() => ModelTierSchema.parse('')).toThrow();
     });
   });

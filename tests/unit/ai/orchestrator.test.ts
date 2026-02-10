@@ -1,29 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventBus } from '../../../src/kernel/event-bus.js';
 import { AIOrchestrator } from '../../../src/ai/orchestrator.js';
+import { ProviderRegistry } from '../../../src/ai/provider-registry.js';
+import { ModelRegistry } from '../../../src/ai/model-registry.js';
 import type { AIRequest, AIResponse } from '../../../src/ai/types.js';
-
-// Mock the Anthropic SDK
-vi.mock('@anthropic-ai/sdk', () => {
-  return {
-    default: class MockAnthropic {
-      messages = {
-        create: vi.fn().mockResolvedValue({
-          content: [{ type: 'text', text: 'Mock response content' }],
-          usage: {
-            input_tokens: 100,
-            output_tokens: 50,
-            cache_read_input_tokens: 0,
-          },
-        }),
-      };
-    },
-  };
-});
+import type { LLMCompletionResponse } from '../../../src/ai/providers/types.js';
 
 describe('AIOrchestrator', () => {
   let eventBus: EventBus;
   let orchestrator: AIOrchestrator;
+  let mockProviderRegistry: ProviderRegistry;
+  let mockCompleteWithFallback: ReturnType<typeof vi.fn>;
 
   const makeRequest = (overrides?: Partial<AIRequest>): AIRequest => ({
     content: 'Test request',
@@ -36,32 +23,50 @@ describe('AIOrchestrator', () => {
     ...overrides,
   });
 
+  const makeMockResponse = (overrides?: Partial<LLMCompletionResponse>): LLMCompletionResponse => ({
+    content: 'Mock response content',
+    model: 'claude-haiku-3',
+    provider: 'anthropic',
+    inputTokens: 100,
+    outputTokens: 50,
+    cachedInputTokens: 0,
+    cacheWriteTokens: 0,
+    durationMs: 100,
+    cost: 0.001,
+    finishReason: 'stop',
+    ...overrides,
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     eventBus = new EventBus();
+
+    // Create mock ProviderRegistry with mocked completeWithFallback
+    const modelRegistry = new ModelRegistry();
+    mockProviderRegistry = new ProviderRegistry(eventBus, modelRegistry);
+    mockCompleteWithFallback = vi.fn().mockResolvedValue(makeMockResponse());
+    mockProviderRegistry.completeWithFallback = mockCompleteWithFallback;
+
+    // Also mock testAllProviders for testConnection
+    mockProviderRegistry.testAllProviders = vi.fn().mockResolvedValue(
+      new Map([['anthropic', { connected: true, latencyMs: 50 }]])
+    );
+
     orchestrator = new AIOrchestrator(eventBus, {
-      apiKey: 'test-api-key',
+      providerRegistry: mockProviderRegistry,
     });
   });
 
-  describe('constructor — API key validation', () => {
-    it('should reject empty API key', () => {
-      expect(() => new AIOrchestrator(eventBus, { apiKey: '' }))
-        .toThrow('Invalid Anthropic API key');
+  describe('constructor', () => {
+    it('should initialize without apiKey (uses providerRegistry)', () => {
+      expect(() => new AIOrchestrator(eventBus, {}))
+        .not.toThrow();
     });
 
-    it('should reject short API key', () => {
-      expect(() => new AIOrchestrator(eventBus, { apiKey: 'short' }))
-        .toThrow('Invalid Anthropic API key');
-    });
-
-    it('should reject whitespace-only API key', () => {
-      expect(() => new AIOrchestrator(eventBus, { apiKey: '          ' }))
-        .toThrow('Invalid Anthropic API key');
-    });
-
-    it('should accept valid API key format', () => {
-      expect(() => new AIOrchestrator(eventBus, { apiKey: 'test-api-key' }))
+    it('should accept providerRegistry', () => {
+      const modelRegistry = new ModelRegistry();
+      const registry = new ProviderRegistry(eventBus, modelRegistry);
+      expect(() => new AIOrchestrator(eventBus, { providerRegistry: registry }))
         .not.toThrow();
     });
   });
@@ -157,15 +162,7 @@ describe('AIOrchestrator', () => {
   describe('execute — circuit breaker', () => {
     it('should throw when circuit breaker is open', async () => {
       // Force circuit breaker open by triggering failures
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const mockCreate = vi.fn().mockRejectedValue(new Error('API error'));
-
-      orchestrator = new AIOrchestrator(eventBus, { apiKey: 'test-api-key-for-testing' });
-      // Access the mocked Anthropic instance
-      const client = (orchestrator as unknown as Record<string, unknown>).client as {
-        messages: { create: typeof mockCreate };
-      };
-      client.messages.create = mockCreate;
+      mockCompleteWithFallback.mockRejectedValue(new Error('API error'));
 
       // Trigger 5 failures
       for (let i = 0; i < 5; i++) {
@@ -238,20 +235,13 @@ describe('AIOrchestrator', () => {
       const reg = orchestrator.getRegistry();
       expect(reg).toBeDefined();
       const models = reg.listModels();
-      expect(models.length).toBe(6);
+      expect(models.length).toBe(18);
     });
   });
 
   describe('error handling', () => {
     it('should emit failed llm:request_complete on API error', async () => {
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const mockCreate = vi.fn().mockRejectedValue(new Error('API error'));
-
-      orchestrator = new AIOrchestrator(eventBus, { apiKey: 'test-api-key-for-testing' });
-      const client = (orchestrator as unknown as Record<string, unknown>).client as {
-        messages: { create: typeof mockCreate };
-      };
-      client.messages.create = mockCreate;
+      mockCompleteWithFallback.mockRejectedValue(new Error('API error'));
 
       const events: unknown[] = [];
       eventBus.on('llm:request_complete', (data) => events.push(data));

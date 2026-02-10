@@ -102,8 +102,8 @@ describe('ValueScorer', () => {
         },
         'normal',
       );
-      // Security-sensitive → minimum Sonnet (sonnet 4 preferred, sonnet 5 not available)
-      expect(['claude-sonnet-4', 'claude-sonnet-5']).toContain(result.recommendedTier);
+      // Security-sensitive → minimum Sonnet
+      expect(['claude-sonnet-4', 'claude-sonnet-4.5']).toContain(result.recommendedTier);
     });
 
     it('should downgrade to haiku in pause budget state', () => {
@@ -136,7 +136,7 @@ describe('ValueScorer', () => {
         'pause',
       );
       // Score >= 80 in pause → minimum sonnet
-      expect(['claude-sonnet-4', 'claude-sonnet-5']).toContain(result.recommendedTier);
+      expect(['claude-sonnet-4', 'claude-sonnet-4.5']).toContain(result.recommendedTier);
     });
 
     it('should use haiku 4.5 in reduce state for moderate scores', () => {
@@ -211,9 +211,9 @@ describe('ValueScorer', () => {
     });
   });
 
-  describe('sonnet 5 routing', () => {
-    it('should route to sonnet 5 when available and score is high', () => {
-      registry.setAvailability('claude-sonnet-5', true);
+  describe('sonnet 4.5 routing', () => {
+    it('should route to sonnet 4.5 when available and score is high', () => {
+      registry.setAvailability('claude-sonnet-4.5', true);
       const result = scorer.score(
         {
           complexity: 'complex',
@@ -226,8 +226,8 @@ describe('ValueScorer', () => {
         },
         'normal',
       );
-      // Should prefer sonnet 5 over sonnet 4 when both available
-      expect(result.recommendedTier).toBe('claude-sonnet-5');
+      // Should prefer sonnet 4.5 over sonnet 4 when both available
+      expect(result.recommendedTier).toBe('claude-sonnet-4.5');
     });
   });
 });

@@ -74,7 +74,7 @@ describe('CostTracker', () => {
 
   describe('calculateCost', () => {
     it('should calculate cost for known models', () => {
-      const cost = costTracker.calculateCost('claude-opus-4', 1000, 500);
+      const cost = costTracker.calculateCost('claude-opus-4.5', 1000, 500);
       // $5/1M input + $25/1M output = (1000 * 5 + 500 * 25) / 1_000_000
       expect(cost).toBeCloseTo(0.0175, 5);
     });
@@ -102,7 +102,7 @@ describe('CostTracker', () => {
         operation: 'op2',
         agent: 'planner',
         provider: 'anthropic',
-        model: 'claude-opus-4',
+        model: 'claude-opus-4.5',
         inputTokens: 500,
         outputTokens: 250,
       });
@@ -113,7 +113,7 @@ describe('CostTracker', () => {
       expect(summary.byAgent['executor']).toBeGreaterThan(0);
       expect(summary.byAgent['planner']).toBeGreaterThan(0);
       expect(summary.byModel['claude-sonnet-4']).toBeGreaterThan(0);
-      expect(summary.byModel['claude-opus-4']).toBeGreaterThan(0);
+      expect(summary.byModel['claude-opus-4.5']).toBeGreaterThan(0);
     });
 
     it('should calculate trend correctly', () => {
@@ -134,7 +134,7 @@ describe('CostTracker', () => {
         operation: 'expensive',
         agent: 'core',
         provider: 'anthropic',
-        model: 'claude-opus-4',
+        model: 'claude-opus-4.5',
         inputTokens: 300_000,
         outputTokens: 300_000,
       });
@@ -154,7 +154,7 @@ describe('CostTracker', () => {
         operation: 'expensive',
         agent: 'core',
         provider: 'anthropic',
-        model: 'claude-opus-4',
+        model: 'claude-opus-4.5',
         inputTokens: 500_000,
         outputTokens: 400_000,
       });
@@ -264,7 +264,7 @@ describe('CostTracker', () => {
         operation: 'op2',
         agent: 'executor',
         provider: 'anthropic',
-        model: 'claude-opus-4',
+        model: 'claude-opus-4.5',
         inputTokens: 500,
         outputTokens: 250,
       });
@@ -278,8 +278,8 @@ describe('CostTracker', () => {
 
   describe('estimateCost', () => {
     it('should estimate cost for planned operations', () => {
-      const estimate = costTracker.estimateCost('claude-opus-4', 10000, 5000);
-      
+      const estimate = costTracker.estimateCost('claude-opus-4.5', 10000, 5000);
+
       // $5/1M input + $25/1M output
       const expected = (10000 * 5 + 5000 * 25) / 1_000_000;
       expect(estimate).toBeCloseTo(expected, 5);

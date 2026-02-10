@@ -1,38 +1,47 @@
 import { z } from 'zod';
 import type { AgentId, VoteOption, VoteThreshold, VetoDomain } from '../kernel/types.js';
 import { AgentIdSchema, TrustLevelSchema } from '../kernel/types.js';
+import { LLMProviderIdSchema } from './providers/types.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODEL DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Available model tiers for routing.
- * Sonnet 5 included but starts as unavailable — flip when released.
+ * Model identifier — open string for multi-provider support.
+ *
+ * Previously z.enum([...claude models...]) — changed to open string
+ * so any provider's models can be registered dynamically.
  */
-export const ModelTierSchema = z.enum([
-  'claude-opus-4.6',
-  'claude-opus-4.5',
-  'claude-sonnet-5',
-  'claude-sonnet-4',
-  'claude-haiku-4.5',
-  'claude-haiku-3',
+export const ModelTierSchema = z.string().min(1);
+export type ModelTier = string;
+
+/**
+ * Model capability categories.
+ */
+export const ModelCapabilitySchema = z.enum([
+  'text', 'code', 'reasoning', 'vision', 'tools',
 ]);
-export type ModelTier = z.infer<typeof ModelTierSchema>;
+export type ModelCapability = z.infer<typeof ModelCapabilitySchema>;
 
 /**
  * Complete model definition with capabilities and pricing.
  */
 export const ModelDefinitionSchema = z.object({
-  id: ModelTierSchema,
+  id: z.string().min(1),
+  provider: LLMProviderIdSchema.default('anthropic'),
+  apiModelId: z.string().min(1).optional(),
   quality: z.number().min(0).max(10),
   speed: z.number().min(0).max(10),
   costPer1MInput: z.number().min(0),
   costPer1MOutput: z.number().min(0),
   costPer1MCacheRead: z.number().min(0),
+  costPer1MCacheWrite: z.number().min(0).default(0),
   maxContextTokens: z.number().positive(),
+  maxOutputTokens: z.number().positive().optional(),
   supportsCaching: z.boolean(),
   isAvailable: z.boolean(),
+  capabilities: z.array(ModelCapabilitySchema).default(['text']),
 });
 export type ModelDefinition = z.infer<typeof ModelDefinitionSchema>;
 

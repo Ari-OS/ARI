@@ -55,10 +55,16 @@ export * from './ethos/index.js';
 export * from './pathos/index.js';
 
 // =============================================================================
-// LEARNING EXPORTS (Decision Journal only)
+// LEARNING EXPORTS
 // =============================================================================
 
-export * from './learning/decision-journal.js';
+export * from './learning/index.js';
+
+// =============================================================================
+// KNOWLEDGE EXPORTS
+// =============================================================================
+
+export * from './knowledge/index.js';
 
 // =============================================================================
 // SYNTHESIS EXPORTS (Cross-Pillar Integration)
@@ -76,8 +82,15 @@ import type {
   CognitiveHealth,
   PillarHealth,
   LearningProgress,
+  PerformanceReview,
+  GapAnalysisResult,
+  SelfAssessment,
 } from './types.js';
 import { PILLAR_ICONS, PILLAR_NAMES, COGNITIVE_FRAMEWORKS } from './constants.js';
+import { LearningLoop } from './learning/learning-loop.js';
+import type { LearningLoopStatus } from './learning/learning-loop.js';
+import { SourceManager } from './knowledge/source-manager.js';
+import { getAllProfiles } from './knowledge/specializations.js';
 
 // =============================================================================
 // COGNITIVE METRICS — Event-driven tracking (replaces hardcoded TODOs)
@@ -205,6 +218,8 @@ export class CognitionLayer {
   private initialized: boolean = false;
   private initializationTime: Date | null = null;
   private metrics: CognitiveMetricsTracker = new CognitiveMetricsTracker();
+  private learningLoop: LearningLoop | null = null;
+  private sourceManager: SourceManager | null = null;
 
   // Pillar APIs (will be populated on init)
   public logos: typeof import('./logos/index.js') | null = null;
@@ -250,6 +265,10 @@ export class CognitionLayer {
 
       // Subscribe to cognitive events for real metrics tracking
       this.subscribeToCognitiveEvents();
+
+      // Initialize knowledge and learning subsystems
+      this.sourceManager = new SourceManager();
+      this.learningLoop = new LearningLoop();
 
       this.initialized = true;
       this.initializationTime = new Date();
@@ -356,11 +375,11 @@ export class CognitionLayer {
       overall,
       overallLevel,
       pillars,
-      learningLoopActive: false,
+      learningLoopActive: this.learningLoop !== null,
       learningLoopStage: 'PERFORMANCE_REVIEW',
-      knowledgeSources: 0,
-      knowledgeSourcesActive: 0,
-      councilProfilesLoaded: 0,
+      knowledgeSources: this.sourceManager?.getSources().length ?? 0,
+      knowledgeSourcesActive: this.sourceManager?.getEnabledSources().length ?? 0,
+      councilProfilesLoaded: getAllProfiles().length,
       lastUpdated: new Date(),
     };
   }
@@ -417,6 +436,41 @@ export class CognitionLayer {
       icon: PILLAR_ICONS[pillar],
       frameworks,
     };
+  }
+
+  /**
+   * Run a daily performance review via the learning loop.
+   */
+  public async runDailyReview(): Promise<PerformanceReview | null> {
+    return this.learningLoop?.runDailyReview() ?? null;
+  }
+
+  /**
+   * Run a weekly gap analysis via the learning loop.
+   */
+  public async runWeeklyGapAnalysis(): Promise<GapAnalysisResult | null> {
+    return this.learningLoop?.runWeeklyGapAnalysis() ?? null;
+  }
+
+  /**
+   * Run a monthly self-assessment via the learning loop.
+   */
+  public async runMonthlyAssessment(): Promise<SelfAssessment | null> {
+    return this.learningLoop?.runMonthlyAssessment() ?? null;
+  }
+
+  /**
+   * Get the learning loop status.
+   */
+  public getLearningStatus(): LearningLoopStatus | null {
+    return this.learningLoop?.getStatus() ?? null;
+  }
+
+  /**
+   * Get the source manager for knowledge source queries.
+   */
+  public getSourceManager(): SourceManager | null {
+    return this.sourceManager;
   }
 
   /**

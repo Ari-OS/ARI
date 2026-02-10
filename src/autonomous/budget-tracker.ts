@@ -5,6 +5,7 @@ import path from 'node:path';
 import { homedir } from 'node:os';
 import { z } from 'zod';
 import type { EventBus } from '../kernel/event-bus.js';
+import { ModelRegistry } from '../ai/model-registry.js';
 
 const log = createLogger('budget-tracker');
 
@@ -17,62 +18,29 @@ const BUDGET_DIR = path.join(ARI_DIR, 'budget');
 const BUDGET_STATE_PATH = path.join(BUDGET_DIR, 'state.json');
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MODEL PRICING (February 2026)
+// MODEL PRICING — Delegated to ModelRegistry (single source of truth)
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Claude model pricing in dollars per million tokens.
- * Intelligence score: 0.0-1.0, higher = more capable
+ * Model pricing derived from ModelRegistry.
+ * Intelligence score is derived from quality (0-10) → (0.0-1.0).
+ * @deprecated Use ModelRegistry directly for pricing lookups.
  */
-export const MODEL_PRICING = {
-  'claude-3-haiku': {
-    input: 0.25,
-    output: 1.25,
-    intelligence: 0.3,
-  },
-  'claude-3.5-haiku': {
-    input: 0.80,
-    output: 4.00,
-    intelligence: 0.5,
-  },
-  'claude-haiku-4.5': {
-    input: 1.00,
-    output: 5.00,
-    intelligence: 0.55,
-  },
-  'claude-3.5-sonnet': {
-    input: 6.00,
-    output: 30.00,
-    intelligence: 0.75,
-  },
-  'claude-sonnet-4': {
-    input: 3.00,
-    output: 15.00,
-    intelligence: 0.8,
-  },
-  'claude-sonnet-4.5': {
-    input: 3.00,
-    output: 15.00,
-    intelligence: 0.85,
-  },
-  'claude-opus-4': {
-    input: 15.00,
-    output: 75.00,
-    intelligence: 0.95,
-  },
-  'claude-opus-4.5': {
-    input: 5.00,
-    output: 25.00,
-    intelligence: 0.95,
-  },
-  'claude-opus-4.6': {
-    input: 5.00,
-    output: 25.00,
-    intelligence: 1.0,
-  },
-} as const;
+export const MODEL_PRICING: Record<string, { input: number; output: number; intelligence: number }> =
+  (() => {
+    const registry = new ModelRegistry();
+    const result: Record<string, { input: number; output: number; intelligence: number }> = {};
+    for (const model of registry.listModels()) {
+      result[model.id] = {
+        input: model.costPer1MInput,
+        output: model.costPer1MOutput,
+        intelligence: model.quality / 10, // Convert 0-10 → 0.0-1.0
+      };
+    }
+    return result;
+  })();
 
-export type ClaudeModel = keyof typeof MODEL_PRICING;
+export type ClaudeModel = string;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ZOD SCHEMAS
