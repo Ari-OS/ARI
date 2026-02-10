@@ -21,6 +21,7 @@ import type { ValueAnalytics } from '../../observability/value-analytics.js';
 import type { AdaptiveLearner } from '../../autonomous/adaptive-learner.js';
 import type { BudgetTracker } from '../../autonomous/budget-tracker.js';
 import type { E2ERunner } from '../../e2e/runner.js';
+import type { CognitionLayer } from '../../cognition/index.js';
 import { z } from 'zod';
 
 // ── Type Exports ────────────────────────────────────────────────────────────
@@ -47,6 +48,7 @@ export interface ApiDependencies {
   adaptiveLearner?: AdaptiveLearner;
   budgetTracker?: BudgetTracker;
   e2eRunner?: E2ERunner;
+  cognitionLayer?: CognitionLayer;
 }
 
 export interface ApiRouteOptions extends FastifyPluginOptions {

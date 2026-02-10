@@ -18,6 +18,7 @@ import { schedulerRoutes } from './routes/scheduler.js';
 import { subagentRoutes } from './routes/subagents.js';
 import { metricsRoutes } from './routes/metrics.js';
 import { alertRoutes } from './routes/alerts.js';
+import { cognitiveRoutes } from './routes/cognitive.js';
 
 // Re-export types from shared
 export type { ApiDependencies, ApiRouteOptions } from './routes/shared.js';
@@ -65,37 +66,8 @@ export const apiRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
   // Observability: Alerts
   await fastify.register(alertRoutes, options);
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // TEMPORARY: Inline routes not yet extracted to modules
-  // TODO: Move these to dedicated module files:
-  // - routes/cognitive.ts (lines 1137-1891 from original)
-  // - routes/budget.ts (lines 1893-2160)
-  // - routes/approval-queue.ts (lines 2161-2367)
-  // - routes/analytics.ts (lines 2369-2589)
-  // - routes/autonomous.ts (lines 2591-2825)
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // TODO: These endpoints are temporarily kept inline until fully extracted
-  // For now, I'm including just the critical cognitive endpoints as a demonstration
-  // The full migration requires moving ~1700 lines of endpoint code
-
-  // Stub cognitive health endpoint
-  fastify.get('/api/cognition/health', async () => {
-    return {
-      overall: 0.87,
-      pillars: [
-        { pillar: 'LOGOS', health: 0.92, apisActive: 6, apisTotal: 6 },
-        { pillar: 'ETHOS', health: 0.85, apisActive: 4, apisTotal: 5 },
-        { pillar: 'PATHOS', health: 0.84, apisActive: 5, apisTotal: 6 },
-      ],
-      learningLoopActive: true,
-      knowledgeSources: 0,
-    };
-  });
-
-  // Additional cognitive endpoints (placeholder)
-  // Full implementation: ~30 cognitive endpoints spanning 750+ lines
-  // See routes.ts.backup lines 1137-1891 for complete code
+  // Cognitive Layer 0
+  await fastify.register(cognitiveRoutes, options);
 
   // Budget endpoints (placeholder)
   fastify.get('/api/budget/status', async () => {

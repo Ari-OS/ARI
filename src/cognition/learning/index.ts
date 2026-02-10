@@ -14,3 +14,5 @@ export { SelfAssessor } from './self-assessment.js';
 export type { AssessmentInput } from './self-assessment.js';
 export { LearningLoop } from './learning-loop.js';
 export type { LearningLoopStatus } from './learning-loop.js';
+export { CalibrationTracker } from './calibration-tracker.js';
+export type { Prediction, CalibrationReport, CalibrationBucket } from './calibration-tracker.js';
