@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { EventBus } from '../kernel/event-bus.js';
 import type { AIOrchestrator } from '../ai/orchestrator.js';
 import type { CostTracker } from '../observability/cost-tracker.js';
+import type { PluginRegistry } from './registry.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PLUGIN SYSTEM TYPES
@@ -53,6 +54,7 @@ export interface PluginDependencies {
   config: Record<string, unknown>;
   dataDir: string;
   costTracker: CostTracker | null;
+  registry?: PluginRegistry;
 }
 
 // ── Briefing Contribution ────────────────────────────────────────────

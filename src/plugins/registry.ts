@@ -100,6 +100,7 @@ export class PluginRegistry {
           config: this.loadPluginConfig(pluginId),
           dataDir,
           costTracker: deps.costTracker,
+          registry: this,
         };
 
         await plugin.initialize(pluginDeps);
@@ -329,6 +330,7 @@ export class PluginRegistry {
         config: this.loadPluginConfig(id),
         dataDir,
         costTracker: deps.costTracker,
+        registry: this,
       });
       this.status.set(id, 'active');
     } catch (error) {

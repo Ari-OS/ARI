@@ -456,6 +456,38 @@ export interface EventMap {
   'plugin:health_changed': { pluginId: string; healthy: boolean; details?: string };
   'plugin:briefing_contributed': { pluginId: string; section: string; type: 'morning' | 'evening' | 'weekly' };
   'plugin:alert_generated': { pluginId: string; severity: 'info' | 'warning' | 'critical'; title: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CRYPTO PLUGIN events (CoinGecko)
+  // ═══════════════════════════════════════════════════════════════════════
+  'crypto:price_fetched': { coins: string[]; source: string; cached: boolean; timestamp: string };
+  'crypto:portfolio_updated': { totalValue: number; change24h: number; holdings: number; timestamp: string };
+  'crypto:alert_triggered': { coinId: string; type: 'above' | 'below'; price: number; threshold: number; timestamp: string };
+  'crypto:snapshot_saved': { totalValue: number; holdings: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // POKEMON TCG PLUGIN events
+  // ═══════════════════════════════════════════════════════════════════════
+  'pokemon:card_searched': { query: string; resultCount: number; cached: boolean; timestamp: string };
+  'pokemon:collection_updated': { totalCards: number; totalValue: number; timestamp: string };
+  'pokemon:alert_triggered': { cardId: string; cardName: string; type: 'above' | 'below'; price: number; threshold: number; timestamp: string };
+  'pokemon:snapshot_saved': { totalValue: number; totalCards: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // TTS PLUGIN events (ElevenLabs)
+  // ═══════════════════════════════════════════════════════════════════════
+  'tts:speech_generated': { textLength: number; cost: number; cached: boolean; voice: string; timestamp: string };
+  'tts:budget_rejected': { textLength: number; estimatedCost: number; dailyCap: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // TELEGRAM BOT PLUGIN events
+  // ═══════════════════════════════════════════════════════════════════════
+  'telegram:command_received': { command: string; userId: number; chatId: number; timestamp: string };
+  'telegram:message_sent': { chatId: number; type: 'text' | 'voice' | 'photo'; timestamp: string };
+  'telegram:auth_rejected': { userId: number; chatId: number; timestamp: string };
+  'telegram:rate_limited': { userId: number; chatId: number; timestamp: string };
+  'telegram:bot_started': { botUsername: string; timestamp: string };
+  'telegram:bot_stopped': { reason: string; timestamp: string };
 }
 
 /**
