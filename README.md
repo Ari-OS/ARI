@@ -20,8 +20,10 @@
 <br>
 
 [![CI](https://github.com/Ari-OS/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/Ari-OS/ARI/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-3500%2B%20passing-brightgreen)](https://github.com/Ari-OS/ARI)
+[![Tests](https://img.shields.io/badge/tests-3988%20passing-brightgreen)](https://github.com/Ari-OS/ARI)
 [![Coverage](https://img.shields.io/badge/coverage-80%25%2B-brightgreen)](https://github.com/Ari-OS/ARI)
+[![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)](https://nodejs.org)
+[![License](https://img.shields.io/badge/license-ARI%20v1.0-blue)](LICENSE)
 
 </div>
 
@@ -360,7 +362,7 @@ npm run dev                # Watch mode
 npm run clean              # Remove dist/
 
 # Test
-npm test                   # Run 3194 tests
+npm test                   # Run 3988 tests
 npm run test:watch         # Watch mode
 npm run test:coverage      # Coverage report
 
@@ -382,7 +384,7 @@ ARI stores all personal data locally in `~/.ari/`. This directory is **gitignore
 | `~/.ari/audit.json` — Your audit trail | Architecture docs |
 | `~/.ari/contexts/` — Your contexts | Security model |
 | `~/.ari/autonomous.json` — Your agent config | Test suite |
-| `~/.ari/autonomous.json` — Your agent config | CLI tools |
+| `~/.ari/token-usage.json` — Your usage data | CLI tools |
 
 **The code is a framework. Your instance is yours.**
 
@@ -402,7 +404,7 @@ ARI stores all personal data locally in `~/.ari/`. This directory is **gitignore
 
 ## License
 
-[MIT License](LICENSE)
+[ARI License v1.0](LICENSE) — Use, study, share, modify. Keep attribution.
 
 ---
 

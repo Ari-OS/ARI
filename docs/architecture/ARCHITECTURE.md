@@ -1,6 +1,6 @@
 # ARI Life OS Architecture
 
-Version 3.0.0 - Cognitive Layer Architecture (PROPOSED)
+Version 2.1.0 - Seven-Layer Cognitive Architecture
 
 ## Identity
 

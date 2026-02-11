@@ -10,6 +10,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Telegram-primary notification system replacing Pushover
+- TelegramSender (`src/integrations/telegram/sender.ts`) — lightweight Bot API sender
+- Multi-signal request classifier (`src/ai/request-classifier.ts`)
+- Time-block scheduling system (`src/autonomous/time-blocks.ts`)
+- Cascade router with research-backed model-aware routing
+- 12 new injection patterns (jailbreak, XSS, SQL, tag attacks)
+- Mac Mini deploy script (`scripts/deploy-mac-mini.sh`)
+- ARI Intelligence Guide (`docs/ARI-INTELLIGENCE-GUIDE.md`)
+
+### Changed
+- Notification routing: P0→SMS+Telegram+Notion, P1→Telegram+Notion, P2→Telegram(silent)+Notion
+- Test count increased from 3194 to 3988
+- xAI models updated to correct API model IDs, added grok-4-fast and grok-3-mini
+
+### Removed
+- Pushover integration (`src/autonomous/pushover-client.ts`, `src/channels/adapters/pushover.ts`, `src/integrations/pushover/`)
+- Legacy daemon script (`scripts/ari-daemon.ts`)
+- Legacy notify script (`scripts/notify.sh`)
+
+---
+
+## [2.2.0] — 2026-02-07 — Cognitive Awakening
+
+> *Layer 0 emerges. ARI learns to think about thinking.*
+
+### Added
 
 #### Cognitive Layer 0 (LOGOS/ETHOS/PATHOS)
 - **LOGOS (Reason)** — Bayesian reasoning, Expected Value, Kelly Criterion, Decision Trees, Systems Thinking, Antifragility
@@ -248,12 +274,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | v0.1.0 | **Genesis** | The beginning, first light | Shadow Integration — acknowledging origins |
 | v1.0.0 | **Kagemusha** | Shadow warrior, the guardian | Shadow Integration — the protective foundation |
 | v2.0.0 | **Aurora** | Dawn, new beginning | Radical Transparency — the Life OS emerges |
+| v2.2.0 | **Cognitive Awakening** | Layer 0 emerges | Ruthless Simplicity — thinking about thinking |
 
 ---
 
 ## Links
 
-[Unreleased]: https://github.com/ARI-OS/ARI/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/ARI-OS/ARI/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/ARI-OS/ARI/compare/v0.1.0...v1.0.0
-[0.1.0]: https://github.com/ARI-OS/ARI/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Ari-OS/ARI/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/Ari-OS/ARI/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/Ari-OS/ARI/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/Ari-OS/ARI/compare/v1.0.0...v2.0.0
+[1.0.0]: https://github.com/Ari-OS/ARI/compare/v0.1.0...v1.0.0
+[0.1.0]: https://github.com/Ari-OS/ARI/releases/tag/v0.1.0

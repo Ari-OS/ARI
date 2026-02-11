@@ -3,9 +3,12 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ApiRouteOptions } from './shared.js';
 
 /**
- * Approval Queue endpoints
+ * Approval Queue endpoints (stub for future route migration)
  *
- * TODO: Move these endpoints from routes.ts:
+ * These endpoints currently live in routes.ts. This file exists as a
+ * migration target for when routes.ts is decomposed into domain modules.
+ *
+ * Endpoints to migrate:
  * - GET /api/approval-queue
  * - GET /api/approval-queue/pending
  * - GET /api/approval-queue/stats
@@ -18,8 +21,7 @@ export const approvalQueueRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
   fastify,
   options
 ): Promise<void> => {
-  const { deps } = options;
-
-  // Placeholder - endpoints to be migrated from routes.ts (lines 2161-2367)
+  // Placeholder - endpoints to be migrated from routes.ts
   // For now, routes.ts still handles these endpoints
+  void options;
 };

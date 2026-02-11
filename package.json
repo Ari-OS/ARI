@@ -11,6 +11,19 @@
     "url": "https://github.com/Ari-OS/ARI.git"
   },
   "homepage": "https://github.com/Ari-OS/ARI",
+  "bugs": {
+    "url": "https://github.com/Ari-OS/ARI/issues"
+  },
+  "keywords": [
+    "ai",
+    "multi-agent",
+    "personal-ai",
+    "autonomous-agents",
+    "typescript",
+    "local-first",
+    "security",
+    "governance"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "bin": {

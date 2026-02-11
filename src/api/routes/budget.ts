@@ -3,9 +3,12 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { ApiRouteOptions } from './shared.js';
 
 /**
- * Budget endpoints
+ * Budget endpoints (stub for future route migration)
  *
- * TODO: Move these endpoints from routes.ts:
+ * These endpoints currently live in routes.ts. This file exists as a
+ * migration target for when routes.ts is decomposed into domain modules.
+ *
+ * Endpoints to migrate:
  * - GET /api/budget/status
  * - GET /api/budget/history
  * - POST /api/budget/profile
@@ -19,8 +22,7 @@ export const budgetRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
   fastify,
   options
 ): Promise<void> => {
-  const { deps } = options;
-
-  // Placeholder - endpoints to be migrated from routes.ts (lines 1893-2160)
+  // Placeholder - endpoints to be migrated from routes.ts
   // For now, routes.ts still handles these endpoints
+  void options;
 };

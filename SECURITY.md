@@ -4,6 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 2.1.x   | :white_check_mark: |
 | 2.0.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
@@ -190,7 +191,7 @@ ARI is designed for single-user, local operation. The following are known limita
 
 ## Security Updates
 
-Security updates will be released as patch versions (2.0.x). Critical vulnerabilities will be addressed within 7 days of confirmation.
+Security updates will be released as patch versions (2.1.x). Critical vulnerabilities will be addressed within 7 days of confirmation.
 
 ## Contact
 
@@ -201,5 +202,5 @@ For security-related questions or concerns:
 
 ---
 
-**Last Updated**: 2026-01-27
-**Version**: 2.0.0
+**Last Updated**: 2026-02-11
+**Version**: 2.1.0
