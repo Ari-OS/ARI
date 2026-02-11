@@ -43,6 +43,7 @@ Thumbs.db
 # Development artifacts
 .overhaul/
 .worktrees/
+ARI-2/
 *.local
 .claude/settings.local.json
 
