@@ -1,12 +1,6 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "enabled": true,
-
-  "pushover": {
-    "userKey": "${PUSHOVER_USER_KEY}",
-    "apiToken": "${PUSHOVER_API_TOKEN}",
-    "device": "ARI"
-  },
 
   "claude": {
     "apiKey": "${ANTHROPIC_API_KEY}",
@@ -34,18 +28,14 @@
     "P0": {
       "name": "Critical",
       "description": "System down, security breach, data loss risk",
-      "channels": ["pushover", "sms"],
-      "sound": "alien",
-      "retry": 60,
-      "expire": 3600,
+      "channels": ["telegram", "sms"],
       "bypassQuietHours": true,
       "requiresAck": true
     },
     "P1": {
       "name": "High",
       "description": "Important alerts, task completions, errors",
-      "channels": ["pushover", "notion"],
-      "sound": "siren",
+      "channels": ["telegram", "notion"],
       "escalateAfter": 3,
       "escalateTo": "P0",
       "delayDuringQuietHours": true
@@ -53,8 +43,7 @@
     "P2": {
       "name": "Normal",
       "description": "Standard notifications, updates",
-      "channels": ["pushover", "notion"],
-      "sound": "pushover",
+      "channels": ["telegram", "notion"],
       "delayDuringQuietHours": true
     },
     "P3": {
@@ -86,7 +75,7 @@
       "maxPerHour": 5,
       "exceptP0": true
     },
-    "pushover": {
+    "telegram": {
       "maxPerHour": 30,
       "exceptP0": true
     },
@@ -100,7 +89,7 @@
     "morning": {
       "enabled": true,
       "time": "07:00",
-      "channels": ["notion", "pushover"],
+      "channels": ["notion", "telegram"],
       "includeWeather": true,
       "includeCalendar": true,
       "includeTasks": true

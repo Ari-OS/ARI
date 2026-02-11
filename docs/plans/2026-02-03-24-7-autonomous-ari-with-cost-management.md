@@ -1639,10 +1639,8 @@ this.scheduler.registerHandler('user_daily_brief', async () => {
   await fs.mkdir(path.dirname(briefPath), { recursive: true });
   await fs.writeFile(briefPath, formatted);
 
-  // Notify user (if Pushover configured)
-  if (this.pushover) {
-    await notificationManager.insight('Daily Brief Ready', `Your daily brief is waiting: ${briefPath}`);
-  }
+  // Notify user via Telegram
+  await notificationManager.insight('Daily Brief Ready', `Your daily brief is waiting: ${briefPath}`);
 
   console.log('[Deliverables] Daily brief generated:', briefPath);
 });
@@ -2257,7 +2255,7 @@ Object.entries(usage.byTaskType).forEach(([type, data]) => {
 - [ ] Daily brief delivered and formatted
 - [ ] Evening summary includes approval queue
 - [ ] Dashboard shows all panels
-- [ ] Pushover notifications working
+- [ ] Telegram notifications working
 
 ## Phase 5 Validation
 

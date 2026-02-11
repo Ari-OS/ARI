@@ -2,7 +2,7 @@
  * ARI Autonomous Agent Types
  *
  * These types define the autonomous operation layer that allows ARI
- * to work independently and receive commands via Pushover.
+ * to work independently and receive commands via Telegram, queue, or schedule.
  */
 
 import { z } from 'zod';
@@ -15,7 +15,7 @@ export type TaskPriority = z.infer<typeof TaskPrioritySchema>;
 export const TaskStatusSchema = z.enum(['pending', 'processing', 'completed', 'failed', 'cancelled']);
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 
-export const TaskSourceSchema = z.enum(['pushover', 'queue', 'schedule', 'internal', 'api']);
+export const TaskSourceSchema = z.enum(['telegram', 'queue', 'schedule', 'internal', 'api']);
 export type TaskSource = z.infer<typeof TaskSourceSchema>;
 
 export const TaskSchema = z.object({
@@ -34,43 +34,12 @@ export const TaskSchema = z.object({
 
 export type Task = z.infer<typeof TaskSchema>;
 
-// ── Pushover Types ─────────────────────────────────────────────────────────
-
-export const PushoverMessageSchema = z.object({
-  id: z.number(),
-  message: z.string(),
-  app: z.string(),
-  aid: z.number(),
-  date: z.number(),
-  priority: z.number().optional(),
-  acked: z.number().optional(),
-  umid: z.number(),
-});
-
-export type PushoverMessage = z.infer<typeof PushoverMessageSchema>;
-
-export const PushoverResponseSchema = z.object({
-  status: z.number(),
-  request: z.string(),
-  messages: z.array(PushoverMessageSchema).optional(),
-  errors: z.array(z.string()).optional(),
-});
-
-export type PushoverResponse = z.infer<typeof PushoverResponseSchema>;
-
 // ── Agent Config ───────────────────────────────────────────────────────────
 
 export const AutonomousConfigSchema = z.object({
   enabled: z.boolean().default(false),
   pollIntervalMs: z.number().min(1000).default(5000),
   maxConcurrentTasks: z.number().min(1).max(5).default(1),
-  pushover: z.object({
-    enabled: z.boolean().default(false),
-    userKey: z.string().optional(),
-    apiToken: z.string().optional(),
-    deviceId: z.string().optional(),
-    secret: z.string().optional(),
-  }).optional(),
   claude: z.object({
     apiKey: z.string().optional(),
     model: z.string().default('claude-sonnet-4-20250514'),

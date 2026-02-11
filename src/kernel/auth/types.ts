@@ -33,7 +33,6 @@ export type CredentialStatus = z.infer<typeof CredentialStatusSchema>;
 export const ProviderTypeSchema = z.enum([
   'anthropic',
   'openai',
-  'pushover',
   'telegram',
   'slack',
   'notion',
@@ -197,13 +196,6 @@ export const PROVIDER_CONFIGS: Record<ProviderType, ProviderConfig> = {
     provider: 'openai',
     requiredFields: ['key'],
     optionalFields: [],
-    supportsRefresh: false,
-    typicalExpiryDays: 0,
-  },
-  pushover: {
-    provider: 'pushover',
-    requiredFields: ['key', 'secret'],
-    optionalFields: ['custom'],
     supportsRefresh: false,
     typicalExpiryDays: 0,
   },

@@ -13,7 +13,7 @@ describe('SessionStore', () => {
   // Helper to create a test session
   const createTestSession = (overrides?: Partial<Session>): Session => ({
     id: randomUUID(),
-    channel: 'pushover',
+    channel: 'telegram',
     senderId: 'user123',
     createdAt: new Date().toISOString(),
     lastActivity: new Date().toISOString(),
@@ -25,7 +25,7 @@ describe('SessionStore', () => {
       pendingResponses: [],
       lastMessageId: undefined,
     },
-    memoryPartition: `session:pushover:user123:${randomUUID().substring(0, 8)}`,
+    memoryPartition: `session:telegram:user123:${randomUUID().substring(0, 8)}`,
     trustLevel: 'standard',
     status: 'active',
     metadata: {
@@ -333,7 +333,7 @@ describe('SessionStore', () => {
       // Create test sessions
       const sessions = [
         createTestSession({
-          channel: 'pushover',
+          channel: 'telegram',
           senderId: 'user1',
           status: 'active',
           trustLevel: 'standard',
@@ -350,7 +350,7 @@ describe('SessionStore', () => {
           lastActivity: '2024-01-02T12:00:00.000Z',
         }),
         createTestSession({
-          channel: 'pushover',
+          channel: 'telegram',
           senderId: 'user3',
           status: 'suspended',
           trustLevel: 'operator',
@@ -370,9 +370,9 @@ describe('SessionStore', () => {
     });
 
     it('should filter by channel', () => {
-      const results = store.query({ channel: 'pushover' });
+      const results = store.query({ channel: 'telegram' });
       expect(results).toHaveLength(2);
-      expect(results.every(s => s.channel === 'pushover')).toBe(true);
+      expect(results.every(s => s.channel === 'telegram')).toBe(true);
     });
 
     it('should filter by senderId', () => {
@@ -438,12 +438,12 @@ describe('SessionStore', () => {
 
     it('should apply multiple filters', () => {
       const results = store.query({
-        channel: 'pushover',
+        channel: 'telegram',
         status: 'active',
       });
 
       expect(results).toHaveLength(1);
-      expect(results[0].channel).toBe('pushover');
+      expect(results[0].channel).toBe('telegram');
       expect(results[0].status).toBe('active');
     });
   });
@@ -466,13 +466,13 @@ describe('SessionStore', () => {
 
   describe('getByChannel', () => {
     it('should return sessions for channel', async () => {
-      await store.save(createTestSession({ channel: 'pushover' }));
-      await store.save(createTestSession({ channel: 'pushover' }));
+      await store.save(createTestSession({ channel: 'telegram' }));
+      await store.save(createTestSession({ channel: 'telegram' }));
       await store.save(createTestSession({ channel: 'slack' }));
 
-      const pushoverSessions = store.getByChannel('pushover');
-      expect(pushoverSessions).toHaveLength(2);
-      expect(pushoverSessions.every(s => s.channel === 'pushover')).toBe(true);
+      const telegramSessions = store.getByChannel('telegram');
+      expect(telegramSessions).toHaveLength(2);
+      expect(telegramSessions.every(s => s.channel === 'telegram')).toBe(true);
     });
 
     it('should return empty array for unknown channel', () => {
@@ -554,14 +554,14 @@ describe('SessionStore', () => {
 
   describe('countByChannel', () => {
     it('should return counts by channel', async () => {
-      await store.save(createTestSession({ channel: 'pushover' }));
-      await store.save(createTestSession({ channel: 'pushover' }));
+      await store.save(createTestSession({ channel: 'sms' }));
+      await store.save(createTestSession({ channel: 'sms' }));
       await store.save(createTestSession({ channel: 'slack' }));
       await store.save(createTestSession({ channel: 'telegram' }));
 
       const counts = store.countByChannel();
 
-      expect(counts.pushover).toBe(2);
+      expect(counts.sms).toBe(2);
       expect(counts.slack).toBe(1);
       expect(counts.telegram).toBe(1);
     });

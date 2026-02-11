@@ -7,7 +7,7 @@ Abstraction layer for multi-channel communication.
 | Component | Purpose |
 |-----------|---------|
 | base.ts | Base channel interface |
-| pushover.ts | Pushover notification channel |
+| telegram.ts | Telegram channel adapter |
 | email.ts | Email communication channel |
 | discord.ts | Discord integration |
 
@@ -28,7 +28,7 @@ interface Channel {
 import { ChannelManager } from './channels';
 
 const manager = new ChannelManager();
-await manager.register('pushover', pushoverChannel);
+await manager.register('telegram', telegramChannel);
 await manager.broadcast({
   content: 'Alert: High CPU usage',
   priority: 'high',

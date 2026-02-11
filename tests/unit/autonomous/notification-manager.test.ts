@@ -22,6 +22,21 @@ vi.mock('../../../src/integrations/sms/gmail-sms.js', () => ({
   })),
 }));
 
+// Mock TelegramSender
+const mockTelegramSend = vi.fn().mockResolvedValue({ sent: true, reason: 'Sent', messageId: 123 });
+const mockTelegramIsReady = vi.fn().mockReturnValue(true);
+const mockTelegramInit = vi.fn().mockResolvedValue(true);
+const mockTelegramGetStats = vi.fn().mockReturnValue({ sentThisHour: 5, rateLimitRemaining: 25 });
+
+vi.mock('../../../src/integrations/telegram/sender.js', () => ({
+  TelegramSender: vi.fn().mockImplementation(() => ({
+    init: mockTelegramInit,
+    isReady: mockTelegramIsReady,
+    send: mockTelegramSend,
+    getStats: mockTelegramGetStats,
+  })),
+}));
+
 // Mock NotionInbox
 const mockNotionInit = vi.fn().mockResolvedValue(true);
 const mockNotionIsReady = vi.fn().mockReturnValue(true);
@@ -92,10 +107,12 @@ describe('NotificationManager', () => {
     it('should initialize with channel configs', async () => {
       const result = await manager.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'secret-token' },
       });
 
       expect(result.sms).toBe(true);
+      expect(result.telegram).toBe(true);
       expect(result.notion).toBe(true);
       expect(manager.isReady()).toBe(true);
     });
@@ -103,10 +120,12 @@ describe('NotificationManager', () => {
     it('should handle disabled channels', async () => {
       const result = await manager.init({
         sms: { enabled: false, recipient: '' },
+        telegram: { enabled: false },
         notion: { enabled: false, databaseId: '', token: '' },
       });
 
       expect(result.sms).toBe(false);
+      expect(result.telegram).toBe(false);
       expect(result.notion).toBe(false);
     });
 
@@ -115,10 +134,12 @@ describe('NotificationManager', () => {
 
       const result = await manager.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'secret-token' },
       });
 
       expect(result.sms).toBe(false);
+      expect(result.telegram).toBe(true);
       expect(result.notion).toBe(true);
     });
   });
@@ -131,6 +152,7 @@ describe('NotificationManager', () => {
     it('should return true after init', async () => {
       await manager.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'token' },
       });
       expect(manager.isReady()).toBe(true);
@@ -141,6 +163,7 @@ describe('NotificationManager', () => {
     beforeEach(async () => {
       await manager.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'token' },
       });
     });
@@ -157,7 +180,7 @@ describe('NotificationManager', () => {
       expect(result.reason).toBe('Not initialized');
     });
 
-    it('should send P0 (critical) via SMS + Notion', async () => {
+    it('should send P0 (critical) via SMS + Telegram + Notion', async () => {
       const result = await manager.notify({
         category: 'security',
         title: 'Security Alert',
@@ -166,8 +189,9 @@ describe('NotificationManager', () => {
       });
 
       expect(result.sent).toBe(true);
-      expect(result.reason).toBe('P0: Immediate delivery');
+      expect(result.reason).toBe('P0: Immediate delivery (all channels)');
       expect(mockSmsSend).toHaveBeenCalled();
+      expect(mockTelegramSend).toHaveBeenCalled();
       expect(mockNotionCreateEntry).toHaveBeenCalled();
     });
 
@@ -180,7 +204,7 @@ describe('NotificationManager', () => {
       });
 
       expect(result.sent).toBe(true);
-      expect(result.reason).toBe('P1: Work hours delivery');
+      expect(result.reason).toBe('P1: Work hours delivery (Telegram + Notion)');
     });
 
     it('should queue P1 during quiet hours', async () => {
@@ -195,10 +219,10 @@ describe('NotificationManager', () => {
       });
 
       expect(result.sent).toBe(false);
-      expect(result.reason).toBe('P1: Queued for 7 AM (quiet hours)');
+      expect(result.reason).toBe('P1: Queued for 7 AM Telegram (quiet hours)');
     });
 
-    it('should send P2 to Notion only during work hours', async () => {
+    it('should send P2 to Telegram (silent) + Notion during work hours', async () => {
       const result = await manager.notify({
         category: 'milestone',
         title: 'Milestone',
@@ -207,7 +231,11 @@ describe('NotificationManager', () => {
       });
 
       expect(result.sent).toBe(true);
-      expect(result.reason).toBe('P2: Notion only');
+      expect(result.reason).toBe('P2: Telegram (silent) + Notion');
+      expect(mockTelegramSend).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ silent: true }),
+      );
       expect(mockNotionCreateEntry).toHaveBeenCalled();
     });
 
@@ -243,7 +271,7 @@ describe('NotificationManager', () => {
       });
 
       // Security defaults to critical = P0
-      expect(result.reason).toBe('P0: Immediate delivery');
+      expect(result.reason).toBe('P0: Immediate delivery (all channels)');
     });
 
     it('should generate notification ID when sent', async () => {
@@ -262,6 +290,7 @@ describe('NotificationManager', () => {
     beforeEach(async () => {
       await manager.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'token' },
       });
     });
@@ -302,8 +331,8 @@ describe('NotificationManager', () => {
         });
       }
 
-      // Tasks don't escalate
-      expect(mockSmsSend).toHaveBeenCalled();
+      // Tasks don't escalate — P1 goes to Telegram during work hours
+      expect(mockTelegramSend).toHaveBeenCalled();
     });
   });
 
@@ -311,6 +340,7 @@ describe('NotificationManager', () => {
     beforeEach(async () => {
       await manager.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'token' },
       });
     });
@@ -360,6 +390,7 @@ describe('NotificationManager', () => {
     beforeEach(async () => {
       await manager.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'token' },
       });
     });
@@ -407,6 +438,7 @@ describe('NotificationManager', () => {
     it('should count queued items', async () => {
       await manager.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'token' },
       });
 
@@ -427,6 +459,7 @@ describe('NotificationManager', () => {
       const status = manager.getStatus();
 
       expect(status.sms.ready).toBe(false);
+      expect(status.telegram.ready).toBe(false);
       expect(status.notion.ready).toBe(false);
       expect(status.queueSize).toBe(0);
     });
@@ -434,12 +467,14 @@ describe('NotificationManager', () => {
     it('should return status with channels ready', async () => {
       await manager.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'token' },
       });
 
       const status = manager.getStatus();
 
       expect(status.sms.ready).toBe(true);
+      expect(status.telegram.ready).toBe(true);
       expect(status.notion.ready).toBe(true);
     });
   });
@@ -448,6 +483,7 @@ describe('NotificationManager', () => {
     beforeEach(async () => {
       await manager.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'token' },
       });
     });
@@ -465,7 +501,7 @@ describe('NotificationManager', () => {
         const result = await manager.security('Security Alert', 'Details');
 
         expect(result.sent).toBe(true);
-        expect(result.reason).toBe('P0: Immediate delivery');
+        expect(result.reason).toBe('P0: Immediate delivery (all channels)');
       });
     });
 
@@ -646,6 +682,7 @@ describe('NotificationManager', () => {
 
       await manager.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'token' },
       });
 
@@ -671,6 +708,7 @@ describe('NotificationManager', () => {
 
       await mgr.init({
         sms: { enabled: true, recipient: '5551234567' },
+        telegram: { enabled: true, botToken: 'test-token', ownerChatId: 123 },
         notion: { enabled: true, databaseId: 'db-123', token: 'token' },
       });
 

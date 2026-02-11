@@ -274,6 +274,7 @@ export const AIFeatureFlagsSchema = z.object({
   AI_GOVERNANCE_ENABLED: z.boolean().default(false),
   AI_QUALITY_ESCALATION_ENABLED: z.boolean().default(false),
   AI_PROMPT_CACHING_ENABLED: z.boolean().default(true),
+  AI_CASCADE_ROUTING_ENABLED: z.boolean().default(true),
 });
 export type AIFeatureFlags = z.infer<typeof AIFeatureFlagsSchema>;
 

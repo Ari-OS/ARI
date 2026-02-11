@@ -67,7 +67,6 @@ export {
 
 // Adapters
 export { BaseChannel } from './adapters/base.js';
-export { PushoverChannel, createPushoverChannel, type PushoverConfig } from './adapters/pushover.js';
 export { TelegramChannel, createTelegramChannel, type TelegramConfig } from './adapters/telegram.js';
 export { SlackChannel, createSlackChannel, type SlackConfig } from './adapters/slack.js';
 export { WebhookChannel, createWebhookChannel, type WebhookConfig } from './adapters/webhook.js';

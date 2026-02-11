@@ -87,7 +87,7 @@ describe('SessionManager', () => {
       await fs.mkdir(testStoragePath, { recursive: true });
       const session: Session = {
         id: randomUUID(),
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
         createdAt: new Date().toISOString(),
         lastActivity: new Date().toISOString(),
@@ -99,7 +99,7 @@ describe('SessionManager', () => {
           pendingResponses: [],
           lastMessageId: undefined,
         },
-        memoryPartition: 'session:pushover:user123:abc',
+        memoryPartition: 'session:telegram:user123:abc',
         trustLevel: 'standard',
         status: 'active',
         metadata: { tags: [], custom: {} },
@@ -130,12 +130,12 @@ describe('SessionManager', () => {
 
     it('should create a new session', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
       expect(session.id).toBeDefined();
-      expect(session.channel).toBe('pushover');
+      expect(session.channel).toBe('telegram');
       expect(session.senderId).toBe('user123');
       expect(session.status).toBe('active');
     });
@@ -145,19 +145,19 @@ describe('SessionManager', () => {
       eventBus.on('session:started', handler);
 
       await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
       expect(handler).toHaveBeenCalledWith(expect.objectContaining({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       }));
     });
 
     it('should use provided trust level', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
         trustLevel: 'verified',
       });
@@ -167,7 +167,7 @@ describe('SessionManager', () => {
 
     it('should use default trust level if not provided', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -176,7 +176,7 @@ describe('SessionManager', () => {
 
     it('should set contextId if provided', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
         contextId: 'venture-001',
       });
@@ -186,7 +186,7 @@ describe('SessionManager', () => {
 
     it('should set metadata if provided', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
         metadata: { name: 'Test Session', tags: ['important'] },
       });
@@ -198,7 +198,7 @@ describe('SessionManager', () => {
     it('should set expiresAt if provided', async () => {
       const expiresAt = new Date(Date.now() + 3600000).toISOString();
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
         expiresAt,
       });
@@ -219,7 +219,7 @@ describe('SessionManager', () => {
     it('should resume existing non-closed session', async () => {
       // Create first session
       const first = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -228,7 +228,7 @@ describe('SessionManager', () => {
 
       // Create "new" session for same channel/sender
       const second = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -295,7 +295,7 @@ describe('SessionManager', () => {
 
     it('should return session by ID', async () => {
       const created = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -316,11 +316,11 @@ describe('SessionManager', () => {
 
     it('should return session by channel/senderId', async () => {
       const created = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
-      const found = manager.getSessionByKey('pushover', 'user123');
+      const found = manager.getSessionByKey('telegram', 'user123');
 
       expect(found?.id).toBe(created.id);
     });
@@ -349,12 +349,12 @@ describe('SessionManager', () => {
 
     it('should return existing session if found', async () => {
       const created = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
       const found = await manager.getOrCreateSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -363,7 +363,7 @@ describe('SessionManager', () => {
 
     it('should create new session if not found', async () => {
       const session = await manager.getOrCreateSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -373,7 +373,7 @@ describe('SessionManager', () => {
 
     it('should touch existing session', async () => {
       const created = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
       const originalActivity = created.lastActivity;
@@ -381,7 +381,7 @@ describe('SessionManager', () => {
       vi.advanceTimersByTime(5000);
 
       const found = await manager.getOrCreateSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -391,13 +391,13 @@ describe('SessionManager', () => {
 
     it('should create new session if existing is closed', async () => {
       const created = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
       await manager.closeSession(created.id, 'test');
 
       const newSession = await manager.getOrCreateSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -412,7 +412,7 @@ describe('SessionManager', () => {
 
     it('should update session status', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -425,7 +425,7 @@ describe('SessionManager', () => {
 
     it('should update trust level', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -438,7 +438,7 @@ describe('SessionManager', () => {
 
     it('should merge context updates', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
         contextId: 'original',
       });
@@ -453,7 +453,7 @@ describe('SessionManager', () => {
 
     it('should merge metadata updates', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
         metadata: { tags: ['original'] },
       });
@@ -468,7 +468,7 @@ describe('SessionManager', () => {
 
     it('should update expiresAt', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -482,7 +482,7 @@ describe('SessionManager', () => {
 
     it('should update lastActivity', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
       const originalActivity = session.lastActivity;
@@ -513,7 +513,7 @@ describe('SessionManager', () => {
 
     it('should update lastActivity', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
       const originalActivity = session.lastActivity;
@@ -528,7 +528,7 @@ describe('SessionManager', () => {
 
     it('should auto-resume idle session', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
       await manager.updateSession(session.id, { status: 'idle' });
@@ -551,7 +551,7 @@ describe('SessionManager', () => {
 
     it('should increment inbound message count', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -563,7 +563,7 @@ describe('SessionManager', () => {
 
     it('should update lastMessageId', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -585,7 +585,7 @@ describe('SessionManager', () => {
 
     it('should increment outbound message count', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -608,7 +608,7 @@ describe('SessionManager', () => {
 
     it('should track tool execution lifecycle', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -635,7 +635,7 @@ describe('SessionManager', () => {
 
     it('should close session', async () => {
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -650,7 +650,7 @@ describe('SessionManager', () => {
       eventBus.on('session:ended', handler);
 
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
       await manager.closeSession(session.id, 'user_request');
@@ -671,7 +671,7 @@ describe('SessionManager', () => {
       eventBus.on('session:ended', handler);
 
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
       await manager.closeSession(session.id);
@@ -688,14 +688,14 @@ describe('SessionManager', () => {
     });
 
     it('should query sessions with filters', async () => {
-      await manager.createSession({ channel: 'pushover', senderId: 'user1' });
+      await manager.createSession({ channel: 'telegram', senderId: 'user1' });
       await manager.createSession({ channel: 'slack', senderId: 'user2' });
-      await manager.createSession({ channel: 'pushover', senderId: 'user3' });
+      await manager.createSession({ channel: 'telegram', senderId: 'user3' });
 
-      const results = manager.querySessions({ channel: 'pushover' });
+      const results = manager.querySessions({ channel: 'telegram' });
 
       expect(results).toHaveLength(2);
-      expect(results.every(s => s.channel === 'pushover')).toBe(true);
+      expect(results.every(s => s.channel === 'telegram')).toBe(true);
     });
   });
 
@@ -722,13 +722,13 @@ describe('SessionManager', () => {
     });
 
     it('should return sessions for channel', async () => {
-      await manager.createSession({ channel: 'pushover', senderId: 'user1' });
+      await manager.createSession({ channel: 'telegram', senderId: 'user1' });
       await manager.createSession({ channel: 'slack', senderId: 'user2' });
-      await manager.createSession({ channel: 'pushover', senderId: 'user3' });
+      await manager.createSession({ channel: 'telegram', senderId: 'user3' });
 
-      const pushover = manager.getSessionsByChannel('pushover');
+      const telegram = manager.getSessionsByChannel('telegram');
 
-      expect(pushover).toHaveLength(2);
+      expect(telegram).toHaveLength(2);
     });
   });
 
@@ -754,7 +754,7 @@ describe('SessionManager', () => {
     });
 
     it('should return comprehensive stats', async () => {
-      const session1 = await manager.createSession({ channel: 'pushover', senderId: 'user1' });
+      const session1 = await manager.createSession({ channel: 'telegram', senderId: 'user1' });
       await manager.createSession({ channel: 'slack', senderId: 'user2' });
       await manager.updateSession(session1.id, { status: 'idle' });
 
@@ -763,7 +763,7 @@ describe('SessionManager', () => {
       expect(stats.total).toBe(2);
       expect(stats.byStatus.active).toBe(1);
       expect(stats.byStatus.idle).toBe(1);
-      expect(stats.byChannel.pushover).toBe(1);
+      expect(stats.byChannel.telegram).toBe(1);
       expect(stats.byChannel.slack).toBe(1);
     });
   });
@@ -778,7 +778,7 @@ describe('SessionManager', () => {
       // The actual timeout-based transition is tested in session-lifecycle.test.ts
       // Here we test that the manager's updateSession can change status
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -799,7 +799,7 @@ describe('SessionManager', () => {
       eventBus.on('session:activity', handler);
 
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
@@ -820,7 +820,7 @@ describe('SessionManager', () => {
       eventBus.on('session:ended', handler);
 
       const session = await manager.createSession({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 

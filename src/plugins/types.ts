@@ -25,7 +25,7 @@ export type PluginStatus = z.infer<typeof PluginStatusSchema>;
 export const PluginCapabilitySchema = z.enum([
   'briefing',     // Can contribute to morning/evening/weekly briefings
   'scheduling',   // Has cron-scheduled tasks
-  'alerting',     // Can generate alerts (→ Pushover/Telegram)
+  'alerting',     // Can generate alerts (→ Telegram/Notion/SMS)
   'cli',          // Registers CLI commands
   'api',          // Registers API routes
   'initiative',   // Can discover autonomous work initiatives

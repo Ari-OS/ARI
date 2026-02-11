@@ -527,12 +527,6 @@ describe('createChannelRateLimiter', () => {
 });
 
 describe('CHANNEL_RATE_LIMITS', () => {
-  it('should have predefined limits for pushover', () => {
-    expect(CHANNEL_RATE_LIMITS.pushover).toBeDefined();
-    expect(CHANNEL_RATE_LIMITS.pushover.maxMessages).toBe(7500);
-    expect(CHANNEL_RATE_LIMITS.pushover.strategy).toBe('queue');
-  });
-
   it('should have predefined limits for telegram', () => {
     expect(CHANNEL_RATE_LIMITS.telegram).toBeDefined();
     expect(CHANNEL_RATE_LIMITS.telegram.maxMessages).toBe(30);

@@ -19,7 +19,7 @@
 ### Environment Prepared
 - [ ] Mac Mini accessible via SSH (ari@100.81.73.34)
 - [ ] Anthropic API key ready
-- [ ] Pushover credentials (optional but recommended)
+- [ ] Telegram bot credentials (TELEGRAM_BOT_TOKEN + TELEGRAM_OWNER_USER_ID)
 - [ ] GitHub repo access verified
 - [ ] Local development environment ready
 - [ ] All existing tests passing: `npm test`
@@ -621,7 +621,7 @@ Month 1 Comprehensive Review:
 - [ ] Anthropic API access (Claude 3 family)
 - [ ] Anthropic API key with billing enabled
 - [ ] SSH access to Mac Mini (ari@100.81.73.34)
-- [ ] Pushover account (optional, for notifications)
+- [ ] Telegram bot (TELEGRAM_BOT_TOKEN + TELEGRAM_OWNER_USER_ID)
 - [ ] Tailscale for remote access (already set up)
 
 ### Internal

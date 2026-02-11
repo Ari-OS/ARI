@@ -7,11 +7,16 @@ import {
   AlertCategory,
 } from '../../../src/autonomous/alert-system.js';
 
-// Mock PushoverClient
-const mockPushoverSend = vi.fn().mockResolvedValue(true);
-const mockPushover = {
-  send: mockPushoverSend,
-} as any;
+// Mock NotificationManager
+const { mockNotify } = vi.hoisted(() => ({
+  mockNotify: vi.fn().mockResolvedValue({ sent: true }),
+}));
+
+vi.mock('../../../src/autonomous/notification-manager.js', () => ({
+  notificationManager: {
+    notify: mockNotify,
+  },
+}));
 
 // Mock dailyAudit
 vi.mock('../../../src/autonomous/daily-audit.js', () => ({
@@ -35,7 +40,6 @@ describe('AlertSystem', () => {
     // Set to a normal hour (14:00 / 2 PM)
     vi.setSystemTime(new Date('2026-01-31T14:00:00Z'));
     alertSystem = new AlertSystem();
-    alertSystem.init(mockPushover);
   });
 
   afterEach(() => {
@@ -50,14 +54,6 @@ describe('AlertSystem', () => {
 
     it('should merge custom config with defaults', () => {
       const system = new AlertSystem({ maxAlertsPerHour: 10 });
-      expect(system).toBeDefined();
-    });
-  });
-
-  describe('init()', () => {
-    it('should initialize with Pushover client', () => {
-      const system = new AlertSystem();
-      system.init(mockPushover);
       expect(system).toBeDefined();
     });
   });
@@ -78,7 +74,7 @@ describe('AlertSystem', () => {
       expect(decision.finalDecision).toBe('send');
       expect(decision.reasoning).toBe('Critical alert - bypassed council');
       expect(decision.totalScore).toBe(1.0);
-      expect(mockPushoverSend).toHaveBeenCalled();
+      expect(mockNotify).toHaveBeenCalled();
     });
 
     it('should batch alerts during quiet hours', async () => {
@@ -117,7 +113,7 @@ describe('AlertSystem', () => {
       const decision = await alertSystem.processAlert(request);
 
       expect(decision.finalDecision).toBe('send');
-      expect(mockPushoverSend).toHaveBeenCalled();
+      expect(mockNotify).toHaveBeenCalled();
     });
 
     it('should process council voting for non-critical alerts', async () => {
@@ -140,7 +136,6 @@ describe('AlertSystem', () => {
     it('should batch alerts when council score is low', async () => {
       // Create system with high threshold to force batching
       const strictSystem = new AlertSystem({ councilThreshold: 0.99 });
-      strictSystem.init(mockPushover);
 
       const request: AlertRequest = {
         category: 'completion',
@@ -159,7 +154,7 @@ describe('AlertSystem', () => {
     it('should rate limit when max alerts per hour reached', async () => {
       // Send max alerts per hour (default 5)
       for (let i = 0; i < 5; i++) {
-        mockPushoverSend.mockResolvedValueOnce(true);
+        mockNotify.mockResolvedValueOnce({ sent: true });
         await alertSystem.processAlert({
           category: 'opportunity',
           severity: 'warning',
@@ -304,7 +299,7 @@ describe('AlertSystem', () => {
       // Set to 2 AM
       vi.setSystemTime(new Date('2026-01-31T02:00:00Z'));
       const system = new AlertSystem();
-      system.init(mockPushover);
+      
 
       const request: AlertRequest = {
         category: 'info',
@@ -322,9 +317,8 @@ describe('AlertSystem', () => {
   });
 
   describe('sendAlert()', () => {
-    it('should return false when pushover not initialized', async () => {
+    it('should send alerts via NotificationManager', async () => {
       const system = new AlertSystem();
-      // Don't call init()
 
       const request: AlertRequest = {
         category: 'error',
@@ -337,8 +331,8 @@ describe('AlertSystem', () => {
 
       const decision = await system.processAlert(request);
 
-      // Should still process the alert request and return a decision
       expect(decision).toBeDefined();
+      expect(mockNotify).toHaveBeenCalled();
     });
 
     it('should track recent alerts after sending', async () => {
@@ -353,11 +347,10 @@ describe('AlertSystem', () => {
 
       await alertSystem.processAlert(request);
 
-      // Should have tracked the alert
-      expect(mockPushoverSend).toHaveBeenCalled();
+      expect(mockNotify).toHaveBeenCalled();
     });
 
-    it('should use correct priority for severity levels', async () => {
+    it('should map severity to correct notification priority', async () => {
       const criticalRequest: AlertRequest = {
         category: 'error',
         severity: 'critical',
@@ -369,16 +362,15 @@ describe('AlertSystem', () => {
 
       await alertSystem.processAlert(criticalRequest);
 
-      expect(mockPushoverSend).toHaveBeenCalledWith(
-        'Test',
+      expect(mockNotify).toHaveBeenCalledWith(
         expect.objectContaining({
-          priority: 1,
-          sound: 'siren',
+          title: 'Critical',
+          priority: 'critical',
         })
       );
     });
 
-    it('should use cosmic sound for non-critical', async () => {
+    it('should map category to notification category', async () => {
       const request: AlertRequest = {
         category: 'opportunity',
         severity: 'warning',
@@ -390,10 +382,10 @@ describe('AlertSystem', () => {
 
       await alertSystem.processAlert(request);
 
-      expect(mockPushoverSend).toHaveBeenCalledWith(
-        'Test',
+      expect(mockNotify).toHaveBeenCalledWith(
         expect.objectContaining({
-          sound: 'cosmic',
+          category: 'opportunity',
+          priority: 'high',
         })
       );
     });
@@ -403,14 +395,14 @@ describe('AlertSystem', () => {
     it('should do nothing when no batched alerts', async () => {
       await alertSystem.sendBatchedAlerts();
       // No calls because nothing batched
-      expect(mockPushoverSend).not.toHaveBeenCalled();
+      expect(mockNotify).not.toHaveBeenCalled();
     });
 
     it('should send summary of batched alerts', async () => {
       // Set to quiet hours to force batching
       vi.setSystemTime(new Date('2026-01-31T23:00:00Z'));
       const system = new AlertSystem();
-      system.init(mockPushover);
+      
 
       // Batch some alerts
       await system.processAlert({
@@ -432,21 +424,23 @@ describe('AlertSystem', () => {
       });
 
       // Clear send calls from batching
-      mockPushoverSend.mockClear();
+      mockNotify.mockClear();
 
       // Send batched
       await system.sendBatchedAlerts();
 
-      expect(mockPushoverSend).toHaveBeenCalledWith(
-        expect.stringContaining('batched updates'),
-        expect.objectContaining({ title: 'ARI: Daily Summary' })
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: 'daily',
+          title: 'Batched Alerts Summary',
+        })
       );
     });
 
     it('should clear batched alerts after sending', async () => {
       vi.setSystemTime(new Date('2026-01-31T23:00:00Z'));
       const system = new AlertSystem();
-      system.init(mockPushover);
+      
 
       await system.processAlert({
         category: 'info',
@@ -464,15 +458,15 @@ describe('AlertSystem', () => {
       expect(system.getBatchedCount()).toBe(0);
     });
 
-    it('should do nothing when pushover not initialized', async () => {
+    it('should send batched alerts via NotificationManager', async () => {
       const system = new AlertSystem();
       vi.setSystemTime(new Date('2026-01-31T23:00:00Z'));
 
       // Force batch an alert by accessing internal state
-      (system as any).batchedAlerts = [{ title: 'Test' }];
+      (system as any).batchedAlerts = [{ title: 'Test', message: 'Body' }];
 
       await system.sendBatchedAlerts();
-      // Should not throw
+      expect(mockNotify).toHaveBeenCalled();
     });
   });
 
@@ -480,7 +474,7 @@ describe('AlertSystem', () => {
     it('should detect quiet hours (late night)', async () => {
       vi.setSystemTime(new Date('2026-01-31T23:30:00Z'));
       const system = new AlertSystem();
-      system.init(mockPushover);
+      
 
       const request: AlertRequest = {
         category: 'info',
@@ -498,7 +492,7 @@ describe('AlertSystem', () => {
     it('should detect quiet hours (early morning)', async () => {
       vi.setSystemTime(new Date('2026-01-31T05:00:00Z'));
       const system = new AlertSystem();
-      system.init(mockPushover);
+      
 
       const request: AlertRequest = {
         category: 'info',
@@ -516,7 +510,7 @@ describe('AlertSystem', () => {
     it('should not be quiet hours during day', async () => {
       vi.setSystemTime(new Date('2026-01-31T14:00:00Z'));
       const system = new AlertSystem();
-      system.init(mockPushover);
+      
 
       const request: AlertRequest = {
         category: 'opportunity',
@@ -537,7 +531,7 @@ describe('AlertSystem', () => {
         quietHoursStart: 13,
         quietHoursEnd: 15,
       });
-      system.init(mockPushover);
+      
 
       vi.setSystemTime(new Date('2026-01-31T14:00:00Z'));
 
@@ -558,7 +552,7 @@ describe('AlertSystem', () => {
   describe('isRateLimited()', () => {
     it('should rate limit after max hourly alerts', async () => {
       const system = new AlertSystem({ maxAlertsPerHour: 2, maxAlertsPerDay: 10 });
-      system.init(mockPushover);
+      
 
       // Send 2 alerts
       for (let i = 0; i < 2; i++) {
@@ -588,7 +582,7 @@ describe('AlertSystem', () => {
 
     it('should clear old alerts from rate limit tracking', async () => {
       const system = new AlertSystem({ maxAlertsPerHour: 2, maxAlertsPerDay: 10 });
-      system.init(mockPushover);
+      
 
       // Send 2 alerts
       for (let i = 0; i < 2; i++) {
@@ -633,9 +627,10 @@ describe('AlertSystem', () => {
 
       await alertSystem.triggerThresholdAlert(threshold, 150);
 
-      expect(mockPushoverSend).toHaveBeenCalledWith(
-        expect.stringContaining('Daily spending limit'),
-        expect.any(Object)
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.stringContaining('Daily spending limit'),
+        })
       );
     });
 
@@ -652,9 +647,10 @@ describe('AlertSystem', () => {
 
       await alertSystem.triggerThresholdAlert(threshold, 10);
 
-      expect(mockPushoverSend).toHaveBeenCalledWith(
-        expect.stringContaining('Current: 10'),
-        expect.any(Object)
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.stringContaining('Current: 10'),
+        })
       );
     });
   });
@@ -667,7 +663,7 @@ describe('AlertSystem', () => {
     it('should return count of batched alerts', async () => {
       vi.setSystemTime(new Date('2026-01-31T23:00:00Z'));
       const system = new AlertSystem();
-      system.init(mockPushover);
+      
 
       await system.processAlert({
         category: 'info',
@@ -695,7 +691,7 @@ describe('AlertSystem', () => {
     it('should suppress alerts with very low scores', async () => {
       // Create system with normal threshold but send low-value alert
       const system = new AlertSystem({ councilThreshold: 0.8 });
-      system.init(mockPushover);
+      
 
       const request: AlertRequest = {
         category: 'completion',

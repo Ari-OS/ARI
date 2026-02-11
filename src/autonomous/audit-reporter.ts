@@ -19,7 +19,7 @@ let lastDailyReportSent: string | null = null;
 // ─── Report Formatting ───────────────────────────────────────────────────────
 
 /**
- * Generate a formatted daily report for Pushover
+ * Generate a formatted daily report
  */
 export async function generateDailyReport(): Promise<string> {
   const audit = await dailyAudit.getTodayAudit();

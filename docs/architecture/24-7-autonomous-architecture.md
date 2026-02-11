@@ -43,8 +43,8 @@ Three-component architecture:
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        USER INTERFACE                                │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
-│  │   Dashboard  │  │ Morning Brief│  │Pushover Alerts│               │
-│  │  (Real-time) │  │  (7:30 AM)   │  │  (Critical)   │               │
+│  │   Dashboard  │  │ Morning Brief│  │Telegram Alerts│               │
+│  │  (Real-time) │  │  (7:30 AM)   │  │  (Primary)    │               │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬────────┘               │
 └─────────┼──────────────────┼──────────────────┼────────────────────────┘
           │                  │                  │
@@ -139,7 +139,7 @@ Three-component architecture:
 7:30 AM - Brief Delivered
    ↓
    ├─ Save to ~/.ari/briefs/brief-2026-02-03.md
-   ├─ Send Pushover notification (if configured)
+   ├─ Send Telegram notification
    └─ Display in dashboard
    ↓
 YOU WAKE UP - Brief waiting for you to read (2 min)
@@ -437,7 +437,7 @@ Day 2-4: Same metrics
 
 ### Alert Levels
 
-**CRITICAL (Immediate Pushover Notification):**
+**CRITICAL (Immediate SMS + Telegram Notification):**
 - Budget exceeded by >20%
 - Daemon crashed
 - Security event detected
@@ -574,7 +574,7 @@ Budget Overruns:
 2. Multiple throttle checkpoints (80%, 95%, 100%)
 3. Real-time cost monitoring with alerts
 4. Daily email summary of spend
-5. Emergency kill switch accessible via Pushover
+5. Emergency kill switch accessible via Telegram
 
 **Recovery:**
 - Daemon auto-pauses at budget limit
@@ -618,7 +618,7 @@ Budget Overruns:
 **Scenario:** Too many alerts cause fatigue
 
 **Mitigations:**
-1. Critical-only Pushover notifications
+1. Critical-only Telegram + SMS notifications
 2. Batched morning/evening summaries
 3. Dashboard for non-urgent info
 4. Configurable alert thresholds

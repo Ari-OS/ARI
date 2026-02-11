@@ -4,8 +4,6 @@ import {
   TaskStatusSchema,
   TaskSourceSchema,
   TaskSchema,
-  PushoverMessageSchema,
-  PushoverResponseSchema,
   AutonomousConfigSchema,
   CommandTypeSchema,
   NotificationPrioritySchema,
@@ -47,7 +45,7 @@ describe('Autonomous Types', () => {
 
   describe('TaskSourceSchema', () => {
     it('should accept valid sources', () => {
-      expect(TaskSourceSchema.parse('pushover')).toBe('pushover');
+      expect(TaskSourceSchema.parse('telegram')).toBe('telegram');
       expect(TaskSourceSchema.parse('queue')).toBe('queue');
       expect(TaskSourceSchema.parse('schedule')).toBe('schedule');
       expect(TaskSourceSchema.parse('internal')).toBe('internal');
@@ -129,75 +127,6 @@ describe('Autonomous Types', () => {
     });
   });
 
-  describe('PushoverMessageSchema', () => {
-    it('should validate pushover message', () => {
-      const message = {
-        id: 12345,
-        message: 'Hello',
-        app: 'ARI',
-        aid: 67890,
-        date: 1706600000,
-        umid: 11111,
-      };
-
-      const result = PushoverMessageSchema.parse(message);
-      expect(result.id).toBe(12345);
-      expect(result.message).toBe('Hello');
-    });
-
-    it('should accept optional priority and acked', () => {
-      const message = {
-        id: 12345,
-        message: 'Urgent',
-        app: 'ARI',
-        aid: 67890,
-        date: 1706600000,
-        umid: 11111,
-        priority: 2,
-        acked: 1,
-      };
-
-      const result = PushoverMessageSchema.parse(message);
-      expect(result.priority).toBe(2);
-      expect(result.acked).toBe(1);
-    });
-  });
-
-  describe('PushoverResponseSchema', () => {
-    it('should validate success response', () => {
-      const response = {
-        status: 1,
-        request: 'abc123',
-        messages: [
-          {
-            id: 1,
-            message: 'Test',
-            app: 'ARI',
-            aid: 100,
-            date: 1706600000,
-            umid: 200,
-          },
-        ],
-      };
-
-      const result = PushoverResponseSchema.parse(response);
-      expect(result.status).toBe(1);
-      expect(result.messages).toHaveLength(1);
-    });
-
-    it('should validate error response', () => {
-      const response = {
-        status: 0,
-        request: 'abc123',
-        errors: ['Invalid token'],
-      };
-
-      const result = PushoverResponseSchema.parse(response);
-      expect(result.status).toBe(0);
-      expect(result.errors).toContain('Invalid token');
-    });
-  });
-
   describe('AutonomousConfigSchema', () => {
     it('should apply all defaults', () => {
       const config = {};
@@ -213,11 +142,6 @@ describe('Autonomous Types', () => {
         enabled: true,
         pollIntervalMs: 10000,
         maxConcurrentTasks: 3,
-        pushover: {
-          enabled: true,
-          userKey: 'user123',
-          apiToken: 'token456',
-        },
         claude: {
           apiKey: 'sk-ant-xxx',
           model: 'claude-sonnet-4-20250514',
@@ -232,7 +156,6 @@ describe('Autonomous Types', () => {
 
       const result = AutonomousConfigSchema.parse(config);
       expect(result.enabled).toBe(true);
-      expect(result.pushover?.enabled).toBe(true);
       expect(result.claude?.maxTokens).toBe(8192);
       expect(result.security?.allowedCommands).toContain('status');
     });

@@ -59,7 +59,7 @@ describe('Auth Types Zod Schemas', () => {
   describe('ProviderTypeSchema', () => {
     it('should accept valid provider types', () => {
       const validProviders: ProviderType[] = [
-        'anthropic', 'openai', 'pushover', 'telegram',
+        'anthropic', 'openai', 'telegram',
         'slack', 'notion', 'github', 'custom'
       ];
 
@@ -344,7 +344,7 @@ describe('Auth Types Zod Schemas', () => {
   describe('PROVIDER_CONFIGS', () => {
     it('should have configuration for all provider types', () => {
       const providerTypes: ProviderType[] = [
-        'anthropic', 'openai', 'pushover', 'telegram',
+        'anthropic', 'openai', 'telegram',
         'slack', 'notion', 'github', 'custom'
       ];
 
@@ -365,12 +365,6 @@ describe('Auth Types Zod Schemas', () => {
       const config = PROVIDER_CONFIGS.openai;
       expect(config.requiredFields).toContain('key');
       expect(config.supportsRefresh).toBe(false);
-    });
-
-    it('should have correct pushover config', () => {
-      const config = PROVIDER_CONFIGS.pushover;
-      expect(config.requiredFields).toContain('key');
-      expect(config.requiredFields).toContain('secret');
     });
 
     it('should have correct slack config with refresh support', () => {

@@ -65,7 +65,7 @@ export const SessionSchema = z.object({
   /** Unique session identifier (UUID) */
   id: z.string().uuid(),
 
-  /** Channel identifier (pushover, telegram, slack, etc.) */
+  /** Channel identifier (telegram, slack, etc.) */
   channel: z.string(),
 
   /** User identifier within the channel */

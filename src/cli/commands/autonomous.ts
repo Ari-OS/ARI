@@ -12,7 +12,6 @@ import ora from 'ora';
 
 const CONFIG_PATH = path.join(process.env.HOME || '~', '.ari', 'autonomous.json');
 const STATE_PATH = path.join(process.env.HOME || '~', '.ari', 'agent-state.json');
-const PUSHOVER_PATH = path.join(process.env.HOME || '~', '.ari', 'pushover.conf');
 
 interface AgentState {
   running: boolean;
@@ -20,12 +19,6 @@ interface AgentState {
   tasksProcessed: number;
   lastActivity: string | null;
   errors: number;
-}
-
-interface PushoverConfig {
-  enabled: boolean;
-  userKey: string;
-  apiToken: string;
 }
 
 interface ClaudeConfig {
@@ -44,7 +37,6 @@ interface AutonomousConfig {
   enabled: boolean;
   pollIntervalMs: number;
   maxConcurrentTasks: number;
-  pushover?: PushoverConfig;
   claude?: ClaudeConfig;
   security?: SecurityConfig;
 }
@@ -100,23 +92,6 @@ export function createAutonomousCommand(): Command {
           // Start fresh
         }
 
-        // Load Pushover credentials if available
-        try {
-          const pushoverConf = await fs.readFile(PUSHOVER_PATH, 'utf-8');
-          const userMatch = pushoverConf.match(/PUSHOVER_USER="([^"]+)"/);
-          const tokenMatch = pushoverConf.match(/PUSHOVER_TOKEN="([^"]+)"/);
-
-          if (userMatch && tokenMatch) {
-            config.pushover = {
-              enabled: true,
-              userKey: userMatch[1],
-              apiToken: tokenMatch[1],
-            };
-          }
-        } catch {
-          // No Pushover config
-        }
-
         // Apply options
         if (options.claudeKey) {
           config.claude = {
@@ -150,7 +125,6 @@ export function createAutonomousCommand(): Command {
 
         console.log(chalk.bold('\nConfiguration:'));
         console.log(`  Enabled:   ${config.enabled ? chalk.green('Yes') : chalk.yellow('No')}`);
-        console.log(`  Pushover:  ${config.pushover?.enabled ? chalk.green('Yes') : chalk.yellow('No')}`);
         console.log(`  Claude:    ${config.claude?.apiKey ? chalk.green('Configured') : chalk.yellow('Not set')}`);
 
         if (!config.enabled) {
@@ -222,31 +196,6 @@ export function createAutonomousCommand(): Command {
         const config = JSON.parse(await fs.readFile(CONFIG_PATH, 'utf-8')) as Partial<AutonomousConfig>;
         const results: string[] = [];
 
-        // Test Pushover
-        if (config.pushover?.userKey && config.pushover?.apiToken) {
-          spinner.text = 'Testing Pushover...';
-
-          const response = await fetch('https://api.pushover.net/1/messages.json', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              token: config.pushover.apiToken,
-              user: config.pushover.userKey,
-              message: 'ARI autonomous test',
-              title: 'ARI: Test',
-            }).toString(),
-          });
-
-          const result = await response.json() as { status: number };
-          if (result.status === 1) {
-            results.push(chalk.green('✓ Pushover: Connected'));
-          } else {
-            results.push(chalk.red('✗ Pushover: Failed'));
-          }
-        } else {
-          results.push(chalk.yellow('○ Pushover: Not configured'));
-        }
-
         // Test Claude
         if (config.claude?.apiKey) {
           spinner.text = 'Testing Claude API...';
@@ -276,40 +225,6 @@ export function createAutonomousCommand(): Command {
       } catch (error) {
         spinner.fail('Test failed');
         console.error(error);
-      }
-    });
-
-  cmd
-    .command('send <message>')
-    .description('Send a test notification')
-    .action(async (message: string) => {
-      try {
-        const config = JSON.parse(await fs.readFile(CONFIG_PATH, 'utf-8')) as Partial<AutonomousConfig>;
-
-        if (!config.pushover?.userKey || !config.pushover?.apiToken) {
-          console.error(chalk.red('Pushover not configured'));
-          return;
-        }
-
-        const response = await fetch('https://api.pushover.net/1/messages.json', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            token: config.pushover.apiToken,
-            user: config.pushover.userKey,
-            message: message,
-            title: 'ARI',
-          }).toString(),
-        });
-
-        const result = await response.json() as { status: number };
-        if (result.status === 1) {
-          console.log(chalk.green('✓ Notification sent'));
-        } else {
-          console.error(chalk.red('Failed to send notification'));
-        }
-      } catch (error) {
-        console.error('Error:', error);
       }
     });
 

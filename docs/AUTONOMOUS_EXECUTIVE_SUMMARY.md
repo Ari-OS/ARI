@@ -628,7 +628,7 @@ Every identified risk has multiple mitigations:
 ```
 ┌─────────────────────────────────────────────────────┐
 │                    USER LAYER                        │
-│  Dashboard • Morning Brief • Pushover • Approval UI  │
+│  Dashboard • Morning Brief • Telegram • Approval UI   │
 └────────────────────┬────────────────────────────────┘
                      │
 ┌────────────────────▼────────────────────────────────┐

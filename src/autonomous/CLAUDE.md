@@ -63,7 +63,6 @@ await spawner.checkAgents();
 ```typescript
 // In agent.ts poll():
 await this.scheduler.checkAndRun();
-await this.checkPushoverMessages();
 await this.processNextTask();
 ```
 

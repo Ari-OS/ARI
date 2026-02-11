@@ -8,7 +8,7 @@ describe('SessionLifecycleManager', () => {
   // Helper to create a test session
   const createTestSession = (overrides?: Partial<Session>): Session => ({
     id: '550e8400-e29b-41d4-a716-446655440000',
-    channel: 'pushover',
+    channel: 'telegram',
     senderId: 'user123',
     createdAt: '2024-01-01T00:00:00.000Z',
     lastActivity: new Date().toISOString(),
@@ -20,7 +20,7 @@ describe('SessionLifecycleManager', () => {
       pendingResponses: [],
       lastMessageId: undefined,
     },
-    memoryPartition: 'session:pushover:user123:abc123',
+    memoryPartition: 'session:telegram:user123:abc123',
     trustLevel: 'standard',
     status: 'active',
     metadata: {

@@ -123,7 +123,7 @@ describe('Session Types', () => {
   describe('SessionSchema', () => {
     const validSession = {
       id: '550e8400-e29b-41d4-a716-446655440000',
-      channel: 'pushover',
+      channel: 'telegram',
       senderId: 'user123',
       createdAt: '2024-01-01T00:00:00.000Z',
       lastActivity: '2024-01-01T00:00:00.000Z',
@@ -131,7 +131,7 @@ describe('Session Types', () => {
         activeTools: [],
         pendingResponses: [],
       },
-      memoryPartition: 'session:pushover:user123:abc123',
+      memoryPartition: 'session:telegram:user123:abc123',
       trustLevel: 'standard',
       status: 'active',
       metadata: {
@@ -151,7 +151,7 @@ describe('Session Types', () => {
       const result = SessionSchema.parse(validSession);
 
       expect(result.id).toBe(validSession.id);
-      expect(result.channel).toBe('pushover');
+      expect(result.channel).toBe('telegram');
       expect(result.senderId).toBe('user123');
       expect(result.status).toBe('active');
     });
@@ -209,11 +209,11 @@ describe('Session Types', () => {
   describe('CreateSessionInputSchema', () => {
     it('should parse valid input', () => {
       const result = CreateSessionInputSchema.parse({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
       });
 
-      expect(result.channel).toBe('pushover');
+      expect(result.channel).toBe('telegram');
       expect(result.senderId).toBe('user123');
     });
 
@@ -298,7 +298,7 @@ describe('Session Types', () => {
 
     it('should parse query with filters', () => {
       const result = SessionQuerySchema.parse({
-        channel: 'pushover',
+        channel: 'telegram',
         senderId: 'user123',
         status: 'active',
         trustLevel: 'standard',
@@ -306,7 +306,7 @@ describe('Session Types', () => {
         offset: 5,
       });
 
-      expect(result.channel).toBe('pushover');
+      expect(result.channel).toBe('telegram');
       expect(result.senderId).toBe('user123');
       expect(result.status).toBe('active');
       expect(result.trustLevel).toBe('standard');
@@ -338,8 +338,8 @@ describe('Session Types', () => {
 
   describe('createSessionKey', () => {
     it('should create key without groupId', () => {
-      const key = createSessionKey('pushover', 'user123');
-      expect(key).toBe('pushover:user123');
+      const key = createSessionKey('telegram', 'user123');
+      expect(key).toBe('telegram:user123');
     });
 
     it('should create key with groupId', () => {
@@ -355,9 +355,9 @@ describe('Session Types', () => {
 
   describe('parseSessionKey', () => {
     it('should parse key without groupId', () => {
-      const result = parseSessionKey('pushover:user123');
+      const result = parseSessionKey('telegram:user123');
 
-      expect(result.channel).toBe('pushover');
+      expect(result.channel).toBe('telegram');
       expect(result.senderId).toBe('user123');
       expect(result.groupId).toBeUndefined();
     });

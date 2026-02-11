@@ -341,11 +341,6 @@ export function createChannelRateLimiter(
  * Default rate limits by channel type
  */
 export const CHANNEL_RATE_LIMITS: Record<string, Partial<RateLimiterConfig>> = {
-  pushover: {
-    maxMessages: 7500,  // Pushover limit per month, we'll use a conservative daily rate
-    windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    strategy: 'queue',
-  },
   telegram: {
     maxMessages: 30,
     windowMs: 1000, // 30 messages per second

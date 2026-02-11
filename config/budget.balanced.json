@@ -101,8 +101,8 @@
   },
   "monitoring": {
     "alerts": {
-      "critical": { "enabled": true, "channels": ["pushover", "dashboard"] },
-      "warning": { "enabled": true, "channels": ["pushover", "dashboard"] },
+      "critical": { "enabled": true, "channels": ["telegram", "dashboard"] },
+      "warning": { "enabled": true, "channels": ["telegram", "dashboard"] },
       "info": { "enabled": true, "channels": ["dashboard"] }
     },
     "verboseLogging": false

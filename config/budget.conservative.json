@@ -93,7 +93,7 @@
   },
   "monitoring": {
     "alerts": {
-      "critical": { "enabled": true, "channels": ["pushover", "dashboard"] },
+      "critical": { "enabled": true, "channels": ["telegram", "dashboard"] },
       "warning": { "enabled": true, "channels": ["dashboard"] },
       "info": { "enabled": false, "channels": [] }
     },

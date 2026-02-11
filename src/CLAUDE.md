@@ -21,7 +21,7 @@ Additional directories:
 - `prompts/` — Prompt building utilities
 - `observability/` — Metrics, alerts, execution history
 - `api/` — REST routes (modular) and WebSocket server
-- `channels/` — Communication channels (Pushover, etc.)
+- `channels/` — Communication channels (Telegram, Slack, Webhook, etc.)
 - `skills/` — Skill definitions
 
 ## Quick Rules

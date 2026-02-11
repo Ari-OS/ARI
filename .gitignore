@@ -12,7 +12,6 @@ dashboard/dist/
 !.env.example
 
 # Credentials (NEVER commit)
-pushover.conf
 autonomous.json
 config/autonomous.json
 agent-state.json

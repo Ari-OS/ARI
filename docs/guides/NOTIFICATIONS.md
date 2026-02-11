@@ -4,7 +4,11 @@ How to configure ARI's multi-channel notification system.
 
 ## Overview
 
-ARI supports multiple notification channels with intelligent routing based on priority.
+ARI routes notifications through three channels based on priority, time of day, and urgency:
+
+- **Telegram** — Primary real-time notifications (rich formatting, 4096 char limit)
+- **SMS** — Emergency backup for P0 critical alerts only
+- **Notion** — Persistent record-keeping for all priorities
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -24,11 +28,11 @@ ARI supports multiple notification channels with intelligent routing based on pr
 │   P0       P1       P2       P3             P4                 │
 │   │        │        │        │              │                  │
 │   ▼        ▼        ▼        ▼              ▼                  │
-│  SMS +   SMS +    Notion   Batched      Suppressed            │
-│ Notion  Notion    Only     at 7 AM                             │
-│   │        │        │        │                                  │
-│   │    Work hrs  Work hrs    │                                  │
-│   │     only     only        │                                  │
+│  SMS +   Telegram  Telegram  Batched     Suppressed            │
+│ Telegram + Notion  + Notion  to Notion                         │
+│ + Notion   │      (silent)   at 7 AM                           │
+│   │     Work hrs  Work hrs    │                                │
+│   │      only     only        │                                │
 │   │                                                             │
 │   └─────► Bypasses quiet hours                                  │
 │                                                                 │
@@ -37,13 +41,32 @@ ARI supports multiple notification channels with intelligent routing based on pr
 
 ## Quick Setup
 
-### 1. SMS via Gmail (Recommended)
+### 1. Telegram Bot (Primary)
 
-Uses Gmail SMTP to send SMS via carrier gateways. Free and reliable.
+Telegram is ARI's primary notification channel. Set up a bot via @BotFather.
 
 ```bash
-# Set environment variables in ~/.bashrc or ~/.zshrc
+# Set environment variables
+export TELEGRAM_BOT_TOKEN="123456:ABC-DEF..."       # From @BotFather
+export TELEGRAM_OWNER_USER_ID="123456789"            # Your numeric user ID
+```
 
+**Get your user ID:**
+1. Message @userinfobot on Telegram
+2. It replies with your numeric ID
+3. Set as `TELEGRAM_OWNER_USER_ID`
+
+**Create a bot:**
+1. Message @BotFather on Telegram
+2. Send `/newbot` and follow prompts
+3. Copy the bot token
+4. Message your new bot (required to start receiving messages)
+
+### 2. SMS via Gmail (Emergency Backup)
+
+SMS is only used for P0 critical alerts as a backup to Telegram. Uses Gmail SMTP to carrier gateways.
+
+```bash
 export GMAIL_USER="your.email@gmail.com"
 export GMAIL_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"  # 16-character app password
 export PHONE_NUMBER="1234567890"                  # Your phone number
@@ -69,9 +92,9 @@ export CARRIER_GATEWAY="vtext.com"                # See carrier list below
 | Cricket | sms.cricketwireless.net |
 | Boost | sms.myboostmobile.com |
 
-### 2. Notion Integration
+### 3. Notion Integration (Record-Keeping)
 
-Creates pages in your Notion inbox for notifications.
+Creates pages in your Notion inbox for all notification records.
 
 ```bash
 # Get your API key from https://www.notion.so/my-integrations
@@ -87,7 +110,7 @@ export NOTION_INBOX_DB_ID="your-database-id"
 2. Add properties: Title (title), Priority (select), Category (select), Status (select)
 3. Share with your integration
 
-### 3. Dashboard Notifications
+### 4. Dashboard Notifications
 
 Built-in, no configuration required. Shows alerts in the web dashboard.
 
@@ -99,10 +122,10 @@ http://127.0.0.1:3141
 
 | Priority | Name | Channels | Behavior |
 |----------|------|----------|----------|
-| **P0** | Critical | SMS + Notion | Immediate, bypasses quiet hours |
-| **P1** | High | SMS + Notion | Work hours only, queued otherwise |
-| **P2** | Normal | Notion only | Work hours only |
-| **P3** | Low | Batched | Delivered at 7 AM |
+| **P0** | Critical | SMS + Telegram + Notion | Immediate, bypasses quiet hours |
+| **P1** | High | Telegram + Notion | Work hours only, queued otherwise |
+| **P2** | Normal | Telegram (silent) + Notion | Work hours only |
+| **P3** | Low | Notion (batched) | Delivered at 7 AM |
 | **P4** | Silent | None | Logged only, no notification |
 
 ### When Each Priority Is Used
@@ -136,9 +159,9 @@ http://127.0.0.1:3141
 
 Notifications (except P0) are held during quiet hours:
 
-- **Default quiet hours:** 10 PM - 7 AM (local time)
-- **P0 alerts:** Always delivered immediately
-- **P1-P3 alerts:** Queued and delivered at 7 AM
+- **Default quiet hours:** 10 PM - 7 AM (Indiana time)
+- **P0 alerts:** Always delivered immediately via SMS + Telegram + Notion
+- **P1-P3 alerts:** Queued and delivered at 7 AM via Telegram
 
 ### Configure Quiet Hours
 
@@ -164,11 +187,16 @@ Prevents notification spam:
 | P2 | 20 | 100 |
 | P3 | 5 (batched) | 20 |
 
+Telegram sender has its own rate limit of 30 messages/hour (configurable).
+
 ## Testing Notifications
 
 ### Via CLI
 
 ```bash
+# Test Telegram
+npx ari notify test --channel telegram
+
 # Test SMS
 npx ari notify test --channel sms
 
@@ -192,6 +220,16 @@ curl -X POST http://127.0.0.1:3141/api/alerts/test
 ```
 
 ## Troubleshooting
+
+### Telegram Not Delivering
+
+1. **Verify bot token** - Must be from @BotFather
+2. **Check owner user ID** - Must be numeric, from @userinfobot
+3. **Message the bot first** - You must /start the bot before it can message you
+4. **Test connection:**
+   ```bash
+   npx ari doctor --check telegram
+   ```
 
 ### SMS Not Arriving
 
@@ -241,7 +279,7 @@ Override default routing for specific categories:
   "notifications": {
     "categoryOverrides": {
       "security": {
-        "channels": ["sms", "notion", "dashboard"],
+        "channels": ["sms", "telegram", "notion", "dashboard"],
         "minPriority": "P0"
       },
       "learning": {
@@ -281,6 +319,11 @@ Customize message format:
 {
   "notifications": {
     "templates": {
+      "telegram": {
+        "maxLength": 4096,
+        "parseMode": "HTML",
+        "format": "<b>{title}</b>\n{message}"
+      },
       "sms": {
         "maxLength": 160,
         "format": "[ARI {priority}] {title}: {message}"
@@ -332,9 +375,9 @@ Alerts are categorized for better organization:
 
 ## Best Practices
 
-1. **Use P0 sparingly** - Only for true emergencies
+1. **Use P0 sparingly** - Only for true emergencies (triggers SMS + Telegram)
 2. **Batch low-priority** - Use P3 for non-urgent items
-3. **Test before production** - Verify channels work
+3. **Test before production** - Verify Telegram bot connection works
 4. **Review weekly** - Check alert patterns
 5. **Acknowledge promptly** - Keep alert count low
 6. **Use categories** - Helps filtering and routing

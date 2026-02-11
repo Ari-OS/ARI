@@ -72,7 +72,7 @@
     "alerts": {
       "critical": {
         "enabled": true,
-        "channels": ["pushover"],
+        "channels": ["telegram"],
         "conditions": {
           "budgetExceededBy": 0.20,
           "errorRate": 10,
@@ -81,7 +81,7 @@
       },
       "warning": {
         "enabled": true,
-        "channels": ["dashboard", "pushover"],
+        "channels": ["dashboard", "telegram"],
         "conditions": {
           "budgetAt": 0.80,
           "approvalQueueSize": 5,

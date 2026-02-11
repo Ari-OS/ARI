@@ -45,7 +45,7 @@ describe('TaskQueue', () => {
     });
 
     it('should add a task with custom priority', async () => {
-      const task = await queue.add('Urgent task', 'pushover', 'urgent');
+      const task = await queue.add('Urgent task', 'telegram', 'urgent');
 
       expect(task.priority).toBe('urgent');
     });

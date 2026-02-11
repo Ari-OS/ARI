@@ -6,7 +6,7 @@ describe('SessionContextManager', () => {
   // Helper to create a test session
   const createTestSession = (overrides?: Partial<Session>): Session => ({
     id: '550e8400-e29b-41d4-a716-446655440000',
-    channel: 'pushover',
+    channel: 'telegram',
     senderId: 'user123',
     createdAt: '2024-01-01T00:00:00.000Z',
     lastActivity: '2024-01-01T00:00:00.000Z',
@@ -18,7 +18,7 @@ describe('SessionContextManager', () => {
       pendingResponses: [],
       lastMessageId: undefined,
     },
-    memoryPartition: 'session:pushover:user123:abc123',
+    memoryPartition: 'session:telegram:user123:abc123',
     trustLevel: 'standard',
     status: 'active',
     metadata: {
@@ -474,11 +474,11 @@ describe('SessionContextManager', () => {
 
   describe('generateMemoryPartition', () => {
     it('should generate unique partition', () => {
-      const partition1 = SessionContextManager.generateMemoryPartition('pushover', 'user1');
-      const partition2 = SessionContextManager.generateMemoryPartition('pushover', 'user1');
+      const partition1 = SessionContextManager.generateMemoryPartition('telegram', 'user1');
+      const partition2 = SessionContextManager.generateMemoryPartition('telegram', 'user1');
 
-      expect(partition1).toMatch(/^session:pushover:user1:[a-f0-9]+$/);
-      expect(partition2).toMatch(/^session:pushover:user1:[a-f0-9]+$/);
+      expect(partition1).toMatch(/^session:telegram:user1:[a-f0-9]+$/);
+      expect(partition2).toMatch(/^session:telegram:user1:[a-f0-9]+$/);
       expect(partition1).not.toBe(partition2); // Different due to UUID
     });
   });

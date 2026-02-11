@@ -7,8 +7,6 @@ const {
   mockQueueGetNext,
   mockQueueUpdateStatus,
   mockQueueCleanup,
-  mockPushoverFetchMessages,
-  mockPushoverDeleteMessages,
   mockClaudeParseCommand,
   mockClaudeProcessCommand,
   mockClaudeSummarize,
@@ -32,8 +30,6 @@ const {
   mockQueueGetNext: vi.fn(),
   mockQueueUpdateStatus: vi.fn(),
   mockQueueCleanup: vi.fn(),
-  mockPushoverFetchMessages: vi.fn(),
-  mockPushoverDeleteMessages: vi.fn(),
   mockClaudeParseCommand: vi.fn(),
   mockClaudeProcessCommand: vi.fn(),
   mockClaudeSummarize: vi.fn(),
@@ -63,15 +59,6 @@ vi.mock('../../../src/autonomous/task-queue.js', () => ({
     updateStatus: mockQueueUpdateStatus,
     cleanup: mockQueueCleanup,
   },
-}));
-
-// Mock PushoverClient
-vi.mock('../../../src/autonomous/pushover-client.js', () => ({
-  PushoverClient: vi.fn().mockImplementation(() => ({
-    fetchMessages: mockPushoverFetchMessages,
-    deleteMessages: mockPushoverDeleteMessages,
-    send: vi.fn().mockResolvedValue(true),
-  })),
 }));
 
 // Mock ClaudeClient
@@ -147,8 +134,6 @@ describe('AutonomousAgent', () => {
     mockQueueGetNext.mockResolvedValue(null);
     mockQueueUpdateStatus.mockResolvedValue(undefined);
     mockQueueCleanup.mockResolvedValue(0);
-    mockPushoverFetchMessages.mockResolvedValue([]);
-    mockPushoverDeleteMessages.mockResolvedValue(true);
     mockClaudeParseCommand.mockResolvedValue({ type: 'query', content: 'test', requiresConfirmation: false });
     mockClaudeProcessCommand.mockResolvedValue({ success: true, message: 'Done!' });
     mockClaudeSummarize.mockResolvedValue('Task completed');
@@ -212,15 +197,9 @@ describe('AutonomousAgent', () => {
       expect(status.tasksProcessed).toBe(50);
     });
 
-    it('should initialize Pushover if configured', async () => {
+    it('should initialize notification manager', async () => {
       mockReadFile.mockResolvedValueOnce(JSON.stringify({
         enabled: true,
-        pushover: {
-          userKey: 'user-key',
-          apiToken: 'api-token',
-          deviceId: 'device-id',
-          secret: 'secret',
-        },
       }));
 
       await agent.init();
@@ -367,49 +346,10 @@ describe('AutonomousAgent', () => {
       mockReadFile.mockResolvedValue(JSON.stringify({
         enabled: true,
         pollIntervalMs: 1000,
-        pushover: {
-          userKey: 'user',
-          apiToken: 'token',
-          deviceId: 'device',
-          secret: 'secret',
-        },
         claude: {
           apiKey: 'claude-key',
         },
       }));
-    });
-
-    it('should check for Pushover messages', async () => {
-      await agent.start();
-
-      // First poll happens immediately
-      await vi.advanceTimersByTimeAsync(100);
-
-      expect(mockPushoverFetchMessages).toHaveBeenCalled();
-
-      await agent.stop();
-    });
-
-    it('should process Pushover messages as tasks', async () => {
-      mockPushoverFetchMessages.mockResolvedValueOnce([
-        { id: 1, message: 'Do this', umid: 100, date: Date.now(), app: 'test', aid: 1 },
-      ]);
-
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-      await agent.start();
-      await vi.advanceTimersByTimeAsync(100);
-
-      expect(mockQueueAdd).toHaveBeenCalledWith(
-        'Do this',
-        'pushover',
-        'normal',
-        expect.any(Object)
-      );
-      expect(mockPushoverDeleteMessages).toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
-      await agent.stop();
     });
 
     it('should process pending tasks', async () => {
@@ -492,7 +432,7 @@ describe('AutonomousAgent', () => {
     });
 
     it('should handle poll errors', async () => {
-      mockPushoverFetchMessages.mockRejectedValueOnce(new Error('Network error'));
+      mockQueueGetNext.mockRejectedValueOnce(new Error('Queue error'));
 
       await agent.start();
 
@@ -508,7 +448,7 @@ describe('AutonomousAgent', () => {
     });
 
     it('should notify after 10 accumulated errors', async () => {
-      mockPushoverFetchMessages.mockRejectedValue(new Error('Network error'));
+      mockQueueGetNext.mockRejectedValue(new Error('Queue error'));
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 

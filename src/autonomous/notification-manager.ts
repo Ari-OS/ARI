@@ -2,22 +2,23 @@
  * ARI Multi-Channel Notification Manager
  *
  * Intelligent notification system that routes notifications through
- * SMS (via Gmail/Verizon gateway) and Notion based on priority,
- * time of day, and rate limits.
+ * Telegram (primary), SMS (emergency backup), and Notion (record-keeping)
+ * based on priority, time of day, and rate limits.
  *
  * Channel Decision Matrix:
- * | Priority | Work Hours (7a-10p) | Quiet Hours (10p-7a) |
- * |----------|---------------------|----------------------|
- * | P0       | SMS + Notion        | SMS + Notion         |
- * | P1       | SMS + Notion        | Queue for 7AM        |
- * | P2       | Notion only         | Queue                |
- * | P3-P4    | Notion (batched)    | Queue                |
+ * | Priority | Work Hours (7a-10p)    | Quiet Hours (10p-7a)     |
+ * |----------|------------------------|--------------------------|
+ * | P0       | SMS + Telegram + Notion| SMS + Telegram + Notion  |
+ * | P1       | Telegram + Notion      | Queue for 7AM Telegram   |
+ * | P2       | Telegram + Notion      | Queue                    |
+ * | P3-P4    | Notion (batched)       | Queue                    |
  *
  * Philosophy: Notify only when it adds value to the operator's life.
  */
 
 import { GmailSMS, type SMSResult } from '../integrations/sms/gmail-sms.js';
 import { NotionInbox } from '../integrations/notion/inbox.js';
+import { TelegramSender, type TelegramSendResult, type TelegramSenderConfig } from '../integrations/telegram/sender.js';
 import { dailyAudit } from './daily-audit.js';
 import type {
   SMSConfig,
@@ -67,6 +68,7 @@ export interface NotificationResult {
   queuedForBatch?: boolean;
   channels?: {
     sms?: SMSResult;
+    telegram?: TelegramSendResult;
     notion?: { pageId?: string };
   };
 }
@@ -91,6 +93,7 @@ interface NotificationConfig {
 
 interface ChannelConfig {
   sms: SMSConfig;
+  telegram?: TelegramSenderConfig;
   notion: NotionConfig;
 }
 
@@ -155,6 +158,7 @@ const PRIORITY_TO_P: Record<InternalPriority, TypedPriority> = {
 
 export class NotificationManager {
   private sms: GmailSMS | null = null;
+  private telegram: TelegramSender | null = null;
   private notion: NotionInbox | null = null;
   private config: NotificationConfig;
   private history: NotificationHistory[] = [];
@@ -168,22 +172,20 @@ export class NotificationManager {
   }
 
   /**
-   * Legacy init for backward compatibility with Pushover-based systems
-   * @deprecated Use init(channels) instead
+   * Quick init for environments where channels are configured later
+   * Marks as initialized so notify() works in degraded mode (log-only)
    */
   initLegacy(): void {
-    // Mark as initialized but with no channels
-    // This allows the notify() method to work in degraded mode
     this.initialized = true;
   }
 
   /**
    * Initialize with channel configurations
    */
-  async init(channels: ChannelConfig): Promise<{ sms: boolean; notion: boolean }> {
-    const results = { sms: false, notion: false };
+  async init(channels: ChannelConfig): Promise<{ sms: boolean; telegram: boolean; notion: boolean }> {
+    const results = { sms: false, telegram: false, notion: false };
 
-    // Initialize SMS
+    // Initialize SMS (emergency backup)
     if (channels.sms.enabled) {
       this.sms = new GmailSMS(channels.sms);
       results.sms = this.sms.init();
@@ -192,13 +194,19 @@ export class NotificationManager {
       }
     }
 
-    // Initialize Notion
+    // Initialize Telegram (primary channel)
+    if (channels.telegram?.enabled) {
+      this.telegram = new TelegramSender(channels.telegram);
+      results.telegram = await this.telegram.init();
+    }
+
+    // Initialize Notion (record-keeping)
     if (channels.notion.enabled) {
       this.notion = new NotionInbox(channels.notion);
       results.notion = await this.notion.init();
     }
 
-    this.initialized = results.sms || results.notion;
+    this.initialized = results.telegram || results.sms || results.notion;
     return results;
   }
 
@@ -235,6 +243,8 @@ export class NotificationManager {
 
   /**
    * Route notification to appropriate channels
+   *
+   * Strategy: Telegram = primary, SMS = P0 emergency backup, Notion = record-keeping
    */
   private async routeNotification(
     request: NotificationRequest,
@@ -246,32 +256,34 @@ export class NotificationManager {
     let sent = false;
     let reason = '';
 
-    // P0 (critical): Always SMS + Notion
+    // P0 (critical): SMS + Telegram + Notion — bypasses quiet hours
     if (pLevel === 'P0') {
       channels.sms = await this.sendSMS(request, true);
+      channels.telegram = await this.sendTelegram(request, true);
       channels.notion = await this.sendNotion(request, pLevel);
-      sent = (channels.sms?.sent ?? false) || !!channels.notion?.pageId;
-      reason = 'P0: Immediate delivery';
+      sent = (channels.telegram?.sent ?? false) || (channels.sms?.sent ?? false) || !!channels.notion?.pageId;
+      reason = 'P0: Immediate delivery (all channels)';
     }
-    // P1 during work hours: SMS + Notion
+    // P1 during work hours: Telegram + Notion
     else if (pLevel === 'P1' && !isQuiet) {
-      channels.sms = await this.sendSMS(request, false);
+      channels.telegram = await this.sendTelegram(request, false);
       channels.notion = await this.sendNotion(request, pLevel);
-      sent = (channels.sms?.sent ?? false) || !!channels.notion?.pageId;
-      reason = 'P1: Work hours delivery';
+      sent = (channels.telegram?.sent ?? false) || !!channels.notion?.pageId;
+      reason = 'P1: Work hours delivery (Telegram + Notion)';
     }
-    // P1 during quiet hours: Queue for morning
+    // P1 during quiet hours: Queue for morning Telegram
     else if (pLevel === 'P1' && isQuiet) {
       this.queueForMorning(request, pLevel, 'quiet_hours_p1');
       channels.notion = await this.sendNotion(request, pLevel); // Still log to Notion
       sent = false;
-      reason = 'P1: Queued for 7 AM (quiet hours)';
+      reason = 'P1: Queued for 7 AM Telegram (quiet hours)';
     }
-    // P2 during work hours: Notion only
+    // P2 during work hours: Telegram + Notion
     else if (pLevel === 'P2' && !isQuiet) {
+      channels.telegram = await this.sendTelegram(request, false, true); // silent push
       channels.notion = await this.sendNotion(request, pLevel);
-      sent = !!channels.notion?.pageId;
-      reason = 'P2: Notion only';
+      sent = (channels.telegram?.sent ?? false) || !!channels.notion?.pageId;
+      reason = 'P2: Telegram (silent) + Notion';
     }
     // P2+ during quiet hours: Queue
     else if (isQuiet) {
@@ -326,6 +338,34 @@ export class NotificationManager {
     const message = `${icon} ${request.title}\n${request.body.slice(0, 100)}`;
 
     return await this.sms.send(message, { forceDelivery: force });
+  }
+
+  /**
+   * Send Telegram notification
+   */
+  private async sendTelegram(
+    request: NotificationRequest,
+    force: boolean,
+    silent = false
+  ): Promise<TelegramSendResult | undefined> {
+    if (!this.telegram?.isReady()) {
+      return undefined;
+    }
+
+    const icon = this.getCategoryIcon(request.category);
+    const message = `${icon} <b>${this.escapeHtml(request.title)}</b>\n${this.escapeHtml(request.body)}`;
+
+    return await this.telegram.send(message, { forceDelivery: force, silent });
+  }
+
+  /**
+   * Escape HTML special characters for Telegram parse_mode=HTML
+   */
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
   /**
@@ -521,13 +561,14 @@ export class NotificationManager {
     const p1Items = toProcess.filter((q) => q.entry.priority === 'P1');
     const otherItems = toProcess.filter((q) => q.entry.priority !== 'P1');
 
-    // Send P1 items individually via SMS
+    // Send P1 items individually via Telegram
     for (const item of p1Items) {
-      const smsResult = await this.sms?.send(
-        `${this.getCategoryIcon(item.entry.category as NotificationCategory)} ${item.entry.title}`,
+      const icon = this.getCategoryIcon(item.entry.category as NotificationCategory);
+      const telegramResult = await this.telegram?.send(
+        `${icon} <b>${this.escapeHtml(item.entry.title)}</b>\n${this.escapeHtml(item.entry.body)}`,
         { forceDelivery: false }
       );
-      if (smsResult?.sent) sent++;
+      if (telegramResult?.sent) sent++;
     }
 
     // Batch other items to Notion
@@ -537,10 +578,10 @@ export class NotificationManager {
       sent += otherItems.length;
     }
 
-    // Send morning summary SMS if there were items
-    if (toProcess.length > 0 && this.sms?.isReady()) {
-      const summary = `Morning: ${toProcess.length} items (${p1Items.length} important). Check Notion.`;
-      await this.sms.send(summary, { forceDelivery: false, subject: 'ARI Morning' });
+    // Send morning summary via Telegram
+    if (toProcess.length > 0 && this.telegram?.isReady()) {
+      const summary = `▫ <b>Morning Summary</b>\n${toProcess.length} items (${p1Items.length} important). Check Notion for details.`;
+      await this.telegram.send(summary, { forceDelivery: false });
     }
 
     // Remove processed items
@@ -595,8 +636,13 @@ export class NotificationManager {
 
     const summary = this.formatLegacyBatchSummary();
 
-    // Try to send via SMS if available
-    if (this.sms?.isReady()) {
+    // Send via Telegram (primary) or SMS (fallback)
+    if (this.telegram?.isReady()) {
+      await this.telegram.send(
+        `▫ <b>${this.escapeHtml(summary.title)}</b>\n${this.escapeHtml(summary.body)}`,
+        { forceDelivery: false }
+      );
+    } else if (this.sms?.isReady()) {
       await this.sms.send(summary.body.slice(0, 160), { forceDelivery: false });
     }
 
@@ -664,6 +710,7 @@ export class NotificationManager {
    */
   getStatus(): {
     sms: { ready: boolean; stats?: ReturnType<GmailSMS['getStats']> };
+    telegram: { ready: boolean; stats?: ReturnType<TelegramSender['getStats']> };
     notion: { ready: boolean; stats?: Awaited<ReturnType<NotionInbox['getStats']>> };
     queueSize: number;
   } {
@@ -671,6 +718,10 @@ export class NotificationManager {
       sms: {
         ready: this.sms?.isReady() ?? false,
         stats: this.sms?.getStats(),
+      },
+      telegram: {
+        ready: this.telegram?.isReady() ?? false,
+        stats: this.telegram?.getStats(),
       },
       notion: {
         ready: this.notion?.isReady() ?? false,

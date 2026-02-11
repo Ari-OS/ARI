@@ -7,16 +7,12 @@
  * Flow:
  * 1. Threshold triggered or important event occurs
  * 2. Council votes on whether to notify
- * 3. If approved, notification sent via Pushover
+ * 3. If approved, notification sent via NotificationManager
  * 4. Activity logged to daily audit
  */
 
-import { PushoverClient } from './pushover-client.js';
+import { notificationManager } from './notification-manager.js';
 import { dailyAudit, ThresholdConfig } from './daily-audit.js';
-import { createLogger } from '../kernel/logger.js';
-
-const log = createLogger('alert-system');
-
 // Alert severity levels
 export type AlertSeverity = 'info' | 'warning' | 'critical';
 
@@ -86,6 +82,25 @@ const DEFAULT_CONFIG: AlertConfig = {
   maxAlertsPerDay: 15,
   councilThreshold: 0.6,
   batchedAlertTime: 8,
+};
+
+// Map alert categories to notification categories
+const ALERT_TO_NOTIFICATION_CATEGORY: Record<AlertCategory, string> = {
+  threshold: 'system',
+  opportunity: 'opportunity',
+  completion: 'task',
+  error: 'error',
+  security: 'security',
+  insight: 'insight',
+  reminder: 'reminder',
+  question: 'question',
+};
+
+// Map alert severity to notification priority
+const SEVERITY_TO_PRIORITY: Record<AlertSeverity, 'critical' | 'high' | 'normal'> = {
+  critical: 'critical',
+  warning: 'high',
+  info: 'normal',
 };
 
 // The Council - multiple perspectives evaluate each alert
@@ -167,19 +182,11 @@ const COUNCIL: CouncilVoter[] = [
  */
 export class AlertSystem {
   private config: AlertConfig;
-  private pushover: PushoverClient | null = null;
   private recentAlerts: { timestamp: number; category: AlertCategory }[] = [];
   private batchedAlerts: AlertRequest[] = [];
 
   constructor(config: Partial<AlertConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-  }
-
-  /**
-   * Initialize with Pushover client
-   */
-  init(pushover: PushoverClient): void {
-    this.pushover = pushover;
   }
 
   /**
@@ -294,27 +301,20 @@ export class AlertSystem {
   }
 
   /**
-   * Send an alert via Pushover
+   * Send an alert via NotificationManager
    */
   private async sendAlert(request: AlertRequest): Promise<boolean> {
-    if (!this.pushover) {
-      log.error('Pushover not initialized');
-      return false;
-    }
+    const category = ALERT_TO_NOTIFICATION_CATEGORY[request.category] ?? 'system';
+    const priority = SEVERITY_TO_PRIORITY[request.severity];
 
-    const priorityMap: Record<AlertSeverity, -1 | 0 | 1> = {
-      info: -1,
-      warning: 0,
-      critical: 1,
-    };
-
-    const success = await this.pushover.send(request.message, {
-      title: `ARI: ${request.title}`,
-      priority: priorityMap[request.severity],
-      sound: request.severity === 'critical' ? 'siren' : 'cosmic',
+    const result = await notificationManager.notify({
+      category: category as Parameters<typeof notificationManager.notify>[0]['category'],
+      title: request.title,
+      body: request.message,
+      priority,
     });
 
-    if (success) {
+    if (result.sent) {
       this.recentAlerts.push({
         timestamp: Date.now(),
         category: request.category,
@@ -328,23 +328,25 @@ export class AlertSystem {
       );
     }
 
-    return success;
+    return result.sent;
   }
 
   /**
    * Send batched alerts as a summary
    */
   async sendBatchedAlerts(): Promise<void> {
-    if (this.batchedAlerts.length === 0 || !this.pushover) return;
+    if (this.batchedAlerts.length === 0) return;
 
     const summary = this.batchedAlerts
       .map(a => `• ${a.title}`)
       .join('\n');
 
-    await this.pushover.send(
-      `${this.batchedAlerts.length} batched updates:\n\n${summary}`,
-      { title: 'ARI: Daily Summary', priority: 0 }
-    );
+    await notificationManager.notify({
+      category: 'daily',
+      title: 'Batched Alerts Summary',
+      body: `${this.batchedAlerts.length} batched updates:\n\n${summary}`,
+      priority: 'normal',
+    });
 
     await dailyAudit.logActivity(
       'notification_sent',

@@ -306,7 +306,6 @@ export function registerGatewayCommand(program: Command): void {
 
         // Start autonomous agent for 24/7 operation
         try {
-          // Initialize alert system with the autonomous agent's pushover
           await autonomousAgent.start();
           console.log('Autonomous agent started');
         } catch (error) {

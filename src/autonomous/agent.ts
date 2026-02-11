@@ -2,10 +2,10 @@
  * ARI Autonomous Agent
  *
  * The main agent loop that:
- * 1. Polls for new tasks (from Pushover, queue, schedule)
+ * 1. Polls for new tasks (from queue, schedule, Telegram)
  * 2. Processes them through Claude API
  * 3. Executes approved actions
- * 4. Reports results via Pushover
+ * 4. Reports results via NotificationManager (Telegram + Notion + SMS emergency)
  *
  * This is what makes ARI truly autonomous.
  */
@@ -13,9 +13,8 @@
 import { createLogger } from '../kernel/logger.js';
 import { EventBus } from '../kernel/event-bus.js';
 import { TaskQueue, taskQueue } from './task-queue.js';
-import { PushoverClient } from './pushover-client.js';
 import { ClaudeClient } from './claude-client.js';
-import { AutonomousConfig, Task, PushoverMessage } from './types.js';
+import { AutonomousConfig, Task } from './types.js';
 import { notificationManager } from './notification-manager.js';
 import { auditReporter } from './audit-reporter.js';
 import { dailyAudit } from './daily-audit.js';
@@ -49,7 +48,6 @@ interface AgentState {
 export class AutonomousAgent {
   private eventBus: EventBus;
   private queue: TaskQueue;
-  private pushover: PushoverClient | null = null;
   private claude: ClaudeClient | null = null;
   private config: AutonomousConfig;
   private state: AgentState;
@@ -163,18 +161,8 @@ export class AutonomousAgent {
     const throttleStatus = this.costTracker.getThrottleStatus();
     log.info({ usagePercent: throttleStatus.usagePercent.toFixed(1), level: throttleStatus.level }, 'Budget initialized');
 
-    // Initialize Pushover if configured
-    if (this.config.pushover?.userKey && this.config.pushover?.apiToken) {
-      this.pushover = new PushoverClient({
-        userKey: this.config.pushover.userKey,
-        apiToken: this.config.pushover.apiToken,
-        deviceId: this.config.pushover.deviceId,
-        secret: this.config.pushover.secret,
-      });
-
-      // Initialize notification manager (legacy mode)
-      notificationManager.initLegacy();
-    }
+    // Initialize notification manager
+    notificationManager.initLegacy();
 
     // Initialize Claude if configured
     if (this.config.claude?.apiKey) {
@@ -321,9 +309,6 @@ export class AutonomousAgent {
         // PAUSE: Only user interactions allowed (URGENT priority)
         log.warn('95%+ consumed - autonomous work paused until midnight reset');
 
-        // Still process user messages (these are URGENT priority)
-        await this.checkPushoverMessages();
-
         // Process pending tasks that came from user (URGENT)
         // These bypass budget checks
         await this.processNextTask();
@@ -340,9 +325,6 @@ export class AutonomousAgent {
 
         // Run scheduler with essential-only flag
         await this.scheduler.checkAndRun({ essentialOnly: true });
-
-        // Process user messages (always)
-        await this.checkPushoverMessages();
 
         // Process pending tasks (STANDARD priority)
         await this.processNextTask();
@@ -368,9 +350,6 @@ export class AutonomousAgent {
 
       // Check scheduled tasks first
       await this.scheduler.checkAndRun();
-
-      // Check for Pushover messages
-      await this.checkPushoverMessages();
 
       // Process pending tasks
       await this.processNextTask();
@@ -523,39 +502,6 @@ export class AutonomousAgent {
 
     // Schedule next poll
     this.pollTimer = setTimeout(() => { void this.poll(); }, this.config.pollIntervalMs);
-  }
-
-  /**
-   * Check for incoming Pushover messages
-   */
-  private async checkPushoverMessages(): Promise<void> {
-    if (!this.pushover || !this.config.pushover?.secret) return;
-
-    const messages = await this.pushover.fetchMessages();
-
-    for (const msg of messages) {
-      await this.handlePushoverMessage(msg);
-    }
-  }
-
-  /**
-   * Handle an incoming Pushover message as a command
-   */
-  private async handlePushoverMessage(msg: PushoverMessage): Promise<void> {
-    // Add to task queue
-    const task = await this.queue.add(
-      msg.message,
-      'pushover',
-      msg.priority && msg.priority >= 1 ? 'high' : 'normal',
-      { pushoverMessageId: msg.id, umid: msg.umid }
-    );
-
-    // Acknowledge message
-    if (this.pushover) {
-      await this.pushover.deleteMessages(msg.id);
-    }
-
-    log.info({ taskId: task.id }, 'Received Pushover command');
   }
 
   /**
@@ -778,6 +724,7 @@ export class AutonomousAgent {
     // ==========================================================================
 
     // Daily Performance Review at 9 PM
+    // eslint-disable-next-line @typescript-eslint/require-await
     this.scheduler.registerHandler('cognitive_performance_review', async () => {
       try {
         // Stub - learning module removed
@@ -794,6 +741,7 @@ export class AutonomousAgent {
     });
 
     // Weekly Gap Analysis on Sunday 8 PM
+    // eslint-disable-next-line @typescript-eslint/require-await
     this.scheduler.registerHandler('cognitive_gap_analysis', async () => {
       try {
         // Stub - learning module removed
@@ -810,6 +758,7 @@ export class AutonomousAgent {
     });
 
     // Monthly Self-Assessment on 1st at 9 AM
+    // eslint-disable-next-line @typescript-eslint/require-await
     this.scheduler.registerHandler('cognitive_self_assessment', async () => {
       try {
         // Stub - learning module removed
@@ -826,6 +775,7 @@ export class AutonomousAgent {
     });
 
     // Daily spaced repetition review at 8 AM
+    // eslint-disable-next-line @typescript-eslint/require-await
     this.scheduler.registerHandler('spaced_repetition_review', async () => {
       try {
         // Stub - learning module removed

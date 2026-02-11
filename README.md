@@ -381,7 +381,7 @@ ARI stores all personal data locally in `~/.ari/`. This directory is **gitignore
 | `~/.ari/config.json` — Your settings | Source code |
 | `~/.ari/audit.json` — Your audit trail | Architecture docs |
 | `~/.ari/contexts/` — Your contexts | Security model |
-| `~/.ari/pushover.conf` — Your API keys | Test suite |
+| `~/.ari/autonomous.json` — Your agent config | Test suite |
 | `~/.ari/autonomous.json` — Your agent config | CLI tools |
 
 **The code is a framework. Your instance is yours.**

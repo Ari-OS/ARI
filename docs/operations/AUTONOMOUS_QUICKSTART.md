@@ -6,7 +6,7 @@ Before deploying autonomous mode to your Mac Mini, ensure:
 
 - [ ] Mac Mini is online and accessible via SSH (ari@100.81.73.34)
 - [ ] Anthropic API key is configured in `~/.ari/autonomous.json` on Mac Mini
-- [ ] Pushover credentials configured (optional, for notifications)
+- [ ] Telegram bot configured (TELEGRAM_BOT_TOKEN + TELEGRAM_OWNER_USER_ID)
 - [ ] Latest code is committed and pushed to GitHub
 - [ ] All tests passing locally: `npm test`
 - [ ] Budget profile selected: conservative, balanced, or aggressive
@@ -191,7 +191,7 @@ ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "tail -f ~/Library/Logs/ari-gateway.lo
 ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "cat ~/.ari/briefs/brief-$(date +%Y-%m-%d).md"
 
 # Or check dashboard
-# Or get Pushover notification
+# Or get Telegram notification
 ```
 
 **2. Review Overnight Work**
