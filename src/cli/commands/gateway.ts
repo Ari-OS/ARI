@@ -33,6 +33,13 @@ import { AdaptiveLearner } from '../../autonomous/adaptive-learner.js';
 // Cognitive Layer 0
 import { initializeCognition } from '../../cognition/index.js';
 
+// Plugin system
+import { PluginRegistry } from '../../plugins/registry.js';
+import { TelegramBotPlugin } from '../../plugins/telegram-bot/index.js';
+import { TtsPlugin } from '../../plugins/tts/index.js';
+import { CryptoPlugin } from '../../plugins/crypto/index.js';
+import { PokemonTcgPlugin } from '../../plugins/pokemon-tcg/index.js';
+
 interface GatewayStartOptions {
   port: string;
 }
@@ -134,6 +141,30 @@ export function registerGatewayCommand(program: Command): void {
         console.warn('ARI will continue without AI-powered responses');
       }
 
+      // Initialize Plugin System (requires AI Orchestrator for chat-capable plugins)
+      const pluginRegistry = new PluginRegistry(eventBus);
+      if (aiOrchestrator) {
+        try {
+          await pluginRegistry.register(new TelegramBotPlugin());
+          await pluginRegistry.register(new TtsPlugin());
+          await pluginRegistry.register(new CryptoPlugin());
+          await pluginRegistry.register(new PokemonTcgPlugin());
+
+          await pluginRegistry.initializeAll({
+            eventBus,
+            orchestrator: aiOrchestrator,
+            costTracker,
+          });
+
+          const activePlugins = pluginRegistry.listPlugins().filter(p => p.status === 'active');
+          console.log(`Plugin system initialized — ${activePlugins.length} active plugin(s): ${activePlugins.map(p => p.name).join(', ')}`);
+        } catch (error) {
+          console.warn('Plugin system failed to initialize:', error);
+        }
+      } else {
+        console.log('Plugins skipped — no AI Orchestrator available');
+      }
+
       // Initialize heartbeat monitor
       const heartbeat = new HeartbeatMonitor(eventBus);
       // eslint-disable-next-line @typescript-eslint/require-await
@@ -196,6 +227,9 @@ export function registerGatewayCommand(program: Command): void {
         try {
           // Stop autonomous agent first
           await autonomousAgent.stop();
+
+          // Shutdown plugins
+          await pluginRegistry.shutdownAll();
 
           // Shutdown AI Orchestrator
           if (aiOrchestrator) {
