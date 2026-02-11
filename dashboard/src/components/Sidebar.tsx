@@ -80,7 +80,7 @@ export function Sidebar({ currentPage, onNavigate, wsStatus = 'disconnected' }: 
   // Real data from API
   const agentCount = detailedHealth?.agents.activeCount ?? 0;
   const councilCount = detailedHealth?.governance.councilMembers ?? 0;
-  const patternCount = detailedHealth?.sanitizer.patternsLoaded ?? 21;
+  const patternCount = detailedHealth?.sanitizer.patternsLoaded ?? 39;
 
   // Dynamic description for agents page
   const pagesWithData = pages.map((page) => {

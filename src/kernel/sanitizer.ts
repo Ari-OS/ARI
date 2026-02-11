@@ -93,10 +93,10 @@ export const INJECTION_PATTERNS: readonly InjectionPattern[] = [
     description: 'Attempt to reveal system prompt',
   },
   {
-    pattern: /show\s+(your|the)\s+(system\s+)?(instructions|prompt)/i,
+    pattern: /(show|print|display|output|dump)\s+(your|the)\s+(system\s+)?(instructions|prompt|rules)/i,
     category: 'Prompt Extraction',
     severity: 'medium',
-    description: 'Attempt to show system instructions',
+    description: 'Attempt to extract system instructions',
   },
   {
     pattern: /what\s+are\s+your\s+(instructions|rules)/i,
@@ -193,6 +193,86 @@ export const INJECTION_PATTERNS: readonly InjectionPattern[] = [
     category: 'XML Injection',
     severity: 'high',
     description: 'XML entity/CDATA injection detected',
+  },
+
+  // Jailbreak patterns
+  {
+    pattern: /\bDAN\s+mode\b/i,
+    category: 'Jailbreak',
+    severity: 'critical',
+    description: 'DAN jailbreak attempt detected',
+  },
+  {
+    pattern: /\b(developer|god|admin|debug)\s+mode\s+(enabled|activated|on)\b/i,
+    category: 'Jailbreak',
+    severity: 'critical',
+    description: 'Privilege escalation jailbreak detected',
+  },
+  {
+    pattern: /\bjailbreak(ed)?\b/i,
+    category: 'Jailbreak',
+    severity: 'critical',
+    description: 'Explicit jailbreak keyword detected',
+  },
+
+  // HTML/Tag Injection patterns
+  {
+    pattern: /<\s*(system|script|iframe|object|embed|form|input|meta|link|base)\b/i,
+    category: 'Tag Injection',
+    severity: 'high',
+    description: 'Dangerous HTML/XML tag injection detected',
+  },
+  {
+    pattern: /on(load|error|click|mouseover|focus|blur|submit)\s*=/i,
+    category: 'Tag Injection',
+    severity: 'high',
+    description: 'HTML event handler injection detected',
+  },
+
+  // JavaScript Injection patterns (detection only — these regexes DETECT attacks)
+  {
+    pattern: /\beval\s*\(/i,
+    category: 'Script Injection',
+    severity: 'critical',
+    description: 'JavaScript eval injection detected',
+  },
+  {
+    pattern: /\b(atob|btoa)\s*\(/i,
+    category: 'Script Injection',
+    severity: 'high',
+    description: 'Base64 encoding/decoding function detected',
+  },
+  {
+    pattern: /javascript\s*:/i,
+    category: 'Script Injection',
+    severity: 'critical',
+    description: 'JavaScript protocol injection detected',
+  },
+
+  // SQL Injection patterns
+  {
+    pattern: /'\s*(OR|AND)\s+('|1\s*=\s*1|true)/i,
+    category: 'SQL Injection',
+    severity: 'critical',
+    description: 'SQL boolean injection detected',
+  },
+  {
+    pattern: /;\s*(DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|TRUNCATE)\s/i,
+    category: 'SQL Injection',
+    severity: 'critical',
+    description: 'SQL command injection detected',
+  },
+  {
+    pattern: /UNION\s+(ALL\s+)?SELECT/i,
+    category: 'SQL Injection',
+    severity: 'critical',
+    description: 'SQL UNION injection detected',
+  },
+  {
+    pattern: /--\s*$/m,
+    category: 'SQL Injection',
+    severity: 'medium',
+    description: 'SQL comment terminator detected',
   },
 ] as const;
 

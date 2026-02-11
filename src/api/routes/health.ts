@@ -45,7 +45,7 @@ export const healthRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
       },
       sanitizer: {
         status: 'healthy' as const,
-        patternsLoaded: 21,
+        patternsLoaded: 39,
       },
       agents: {
         status: coreStatus?.overall ?? 'healthy',
