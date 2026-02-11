@@ -389,7 +389,6 @@ export interface EventMap {
     failures: number;
     timestamp: string;
   };
-
   // ═══════════════════════════════════════════════════════════════════════
   // LLM REQUEST events (Token & Cost Tracking)
   // ═══════════════════════════════════════════════════════════════════════
@@ -449,6 +448,21 @@ export interface EventMap {
   'cascade:started': { chain: string; queryLength: number };
   'cascade:step_complete': { chain: string; step: number; model: string; quality: number; escalated: boolean; costCents: number };
   'cascade:complete': { chain: string; finalModel: string; totalSteps: number; totalCostCents: number; durationMs: number };
+  'ai:cascade_routing_used': {
+    requestId: string;
+    chainId: string;
+    baseChainId: string;
+    finalModel: string;
+    timeBlock: string;
+    timestamp: string;
+  };
+  'ai:cascade_routing_failed': {
+    requestId: string;
+    chainId: string;
+    error: string;
+    fallingBackToModel: string;
+    timestamp: string;
+  };
 
   // ═══════════════════════════════════════════════════════════════════════
   // PLUGIN SYSTEM events

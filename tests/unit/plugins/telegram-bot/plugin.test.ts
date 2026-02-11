@@ -36,16 +36,23 @@ describe('TelegramBotPlugin', () => {
     });
 
     it('should set error status when no token', async () => {
-      const deps: PluginDependencies = {
-        eventBus,
-        orchestrator: null as never,
-        config: { botToken: undefined },
-        dataDir: tempDir,
-        costTracker: null,
-      };
+      const originalToken = process.env.TELEGRAM_BOT_TOKEN;
+      delete process.env.TELEGRAM_BOT_TOKEN;
 
-      await plugin.initialize(deps);
-      expect(plugin.getStatus()).toBe('error');
+      try {
+        const deps: PluginDependencies = {
+          eventBus,
+          orchestrator: null as never,
+          config: { botToken: undefined },
+          dataDir: tempDir,
+          costTracker: null,
+        };
+
+        await plugin.initialize(deps);
+        expect(plugin.getStatus()).toBe('error');
+      } finally {
+        if (originalToken) process.env.TELEGRAM_BOT_TOKEN = originalToken;
+      }
     });
 
     it('should shutdown cleanly without init', async () => {

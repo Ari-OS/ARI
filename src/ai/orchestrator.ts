@@ -20,6 +20,11 @@ import { ResponseEvaluator } from './response-evaluator.js';
 import { PromptAssembler } from './prompt-assembler.js';
 import type { PerformanceTracker } from './performance-tracker.js';
 import { RequestClassifier } from './request-classifier.js';
+import {
+  getCurrentTimeBlock,
+  getBlockAdjustedChain,
+  shouldAvoidModel,
+} from '../autonomous/time-blocks.js';
 
 /**
  * AIPolicyGovernor interface for dependency injection.
@@ -226,24 +231,92 @@ export class AIOrchestrator {
       estimatedTokens: Math.ceil(validated.content.length / 4),
     });
 
-    // Step 9: API CALL (via ProviderRegistry — multi-provider routing)
+    // Step 9: API CALL (via CascadeRouter or ProviderRegistry fallback)
     const startTime = Date.now();
     let response: AIResponse;
 
     try {
-      const providerResponse = await this.providers.completeWithFallback({
-        model: selectedModel,
-        systemPrompt: assembled.system?.[0]?.type === 'text'
-          ? assembled.system[0].text
-          : typeof assembled.system === 'string' ? assembled.system : undefined,
-        messages: assembled.messages.map(m => ({
-          role: m.role,
-          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-        })),
-        maxTokens: assembled.maxTokens,
-        cachingEnabled: this.featureFlags.AI_PROMPT_CACHING_ENABLED,
-        responseFormat: 'text',
-      });
+      let providerResponse;
+
+      // Use CascadeRouter if enabled (Gap 1 fix)
+      if (this.featureFlags.AI_CASCADE_ROUTING_ENABLED) {
+        // Get time-block adjusted chain
+        const currentBlock = getCurrentTimeBlock();
+        const baseChainId = classification.suggestedChain ?? 'frugal';
+        const adjustedChainId = getBlockAdjustedChain(baseChainId, currentBlock);
+
+        // Build the cascade request (omit model field)
+        const cascadeRequest = {
+          systemPrompt: assembled.system?.[0]?.type === 'text'
+            ? assembled.system[0].text
+            : typeof assembled.system === 'string' ? assembled.system : undefined,
+          messages: assembled.messages.map(m => ({
+            role: m.role,
+            content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+          })),
+          maxTokens: assembled.maxTokens,
+          cachingEnabled: this.featureFlags.AI_PROMPT_CACHING_ENABLED,
+          responseFormat: 'text' as const,
+        };
+
+        // Execute cascade routing
+        try {
+          providerResponse = await this.cascadeRouter.execute(cascadeRequest, adjustedChainId);
+
+          // Emit cascade routing success
+          this.eventBus.emit('ai:cascade_routing_used', {
+            requestId,
+            chainId: adjustedChainId,
+            baseChainId,
+            finalModel: providerResponse.model,
+            timeBlock: currentBlock.id,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (cascadeError) {
+          // Cascade routing failed — fall back to single-model selection
+          this.eventBus.emit('ai:cascade_routing_failed', {
+            requestId,
+            chainId: adjustedChainId,
+            error: cascadeError instanceof Error ? cascadeError.message : String(cascadeError),
+            fallingBackToModel: selectedModel,
+            timestamp: new Date().toISOString(),
+          });
+
+          // Check if selected model should be avoided in current time block
+          let finalModel = selectedModel;
+          if (shouldAvoidModel(selectedModel)) {
+            const prefs = currentBlock;
+            finalModel = prefs.preferredChains[0] ?
+              this.registry.listModels()[0]?.id ?? selectedModel :
+              selectedModel;
+          }
+
+          // Fall back to single-model call
+          providerResponse = await this.providers.completeWithFallback({
+            model: finalModel,
+            systemPrompt: cascadeRequest.systemPrompt,
+            messages: cascadeRequest.messages,
+            maxTokens: cascadeRequest.maxTokens,
+            cachingEnabled: cascadeRequest.cachingEnabled,
+            responseFormat: cascadeRequest.responseFormat,
+          });
+        }
+      } else {
+        // Cascade routing disabled — use original single-model logic
+        providerResponse = await this.providers.completeWithFallback({
+          model: selectedModel,
+          systemPrompt: assembled.system?.[0]?.type === 'text'
+            ? assembled.system[0].text
+            : typeof assembled.system === 'string' ? assembled.system : undefined,
+          messages: assembled.messages.map(m => ({
+            role: m.role,
+            content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+          })),
+          maxTokens: assembled.maxTokens,
+          cachingEnabled: this.featureFlags.AI_PROMPT_CACHING_ENABLED,
+          responseFormat: 'text',
+        });
+      }
 
       const duration = Date.now() - startTime;
       const content = providerResponse.content;
