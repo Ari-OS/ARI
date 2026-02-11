@@ -8,7 +8,7 @@ import { ModelRegistry } from './model-registry.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * CascadeRouter — FrugalGPT-inspired cost optimization.
+ * CascadeRouter — FrugalGPT-inspired cost optimization with model-aware routing.
  *
  * Queries LLMs from cheapest to most expensive, stopping when a heuristic
  * quality scorer rates confidence above a per-step threshold.
@@ -16,14 +16,26 @@ import { ModelRegistry } from './model-registry.js';
  * Based on: Chen, Zaharia, Zou — "FrugalGPT" (Stanford 2023)
  * Combined with: LMSys RouteLLM (ICLR 2025) insights
  *
- * Pre-configured chains cover common use cases:
- * - frugal:    cheapest-first for general queries
- * - balanced:  Claude-only chain
- * - quality:   minimum Sonnet quality
- * - code:      code generation/review
- * - bulk:      high-volume, cost-sensitive
- * - reasoning: deep reasoning tasks
- * - security:  never cheaper than Sonnet
+ * Model selection rationale (research-backed):
+ * - grok-4-fast:      $0.20/M — non-reasoning, 164 t/s, fast general queries
+ * - grok-4.1-fast:    $0.20/M — reasoning + agentic tool-use trained, 178 t/s, 2M context
+ * - gemini-2.5-flash-lite: $0.10/M — cheapest available, 1M context, bulk specialist
+ * - gemini-2.5-flash: $0.30/M — 237 t/s, thinking mode, best price-performance
+ * - claude-haiku-4.5: $1.00/M — 106 t/s, Sonnet-4-class intelligence, full tools
+ * - claude-sonnet-4.5: $3.00/M — SOTA coding (77% SWE-bench), extended thinking
+ * - claude-opus-4.6:  $5.00/M — maximum intelligence, 30+ hour agent focus
+ *
+ * Chains match task types to model design purposes:
+ * - frugal:      general queries → cheapest non-reasoning first
+ * - balanced:    Claude-only chain for quality assurance
+ * - quality:     minimum Sonnet quality for important tasks
+ * - code:        coding tasks → reasoning models + Sonnet coding SOTA
+ * - bulk:        high-volume → cheapest models with large context
+ * - reasoning:   deep analysis → dedicated reasoning models
+ * - security:    threat analysis → never cheaper than Sonnet
+ * - agentic:     tool-use workflows → Grok 4.1 (designed for it)
+ * - creative:    writing/summary → diverse provider mix
+ * - long-context: massive documents → 1M-2M context models
  */
 
 // ── Cascade Chain Definitions ────────────────────────────────────────
@@ -40,11 +52,16 @@ export interface CascadeChain {
 }
 
 const DEFAULT_CHAINS: CascadeChain[] = [
+  // ── General Purpose ──────────────────────────────────────────────
   {
     id: 'frugal',
     name: 'Frugal (cheapest-first)',
+    // Why: grok-4-fast has no thinking overhead (164 t/s) for simple queries.
+    // Flash-lite is cheapest for anything needing more context.
+    // Haiku is the safety net with Sonnet-4-class intelligence.
     steps: [
-      { model: 'gemini-2.5-flash-lite', threshold: 0.7 },
+      { model: 'grok-4-fast', threshold: 0.7 },
+      { model: 'gemini-2.5-flash-lite', threshold: 0.65 },
       { model: 'claude-haiku-4.5', threshold: 0.5 },
       { model: 'claude-sonnet-4.5', threshold: 0.0 },
     ],
@@ -52,6 +69,8 @@ const DEFAULT_CHAINS: CascadeChain[] = [
   {
     id: 'balanced',
     name: 'Balanced (Claude-only)',
+    // Why: When you need Claude-quality guarantees. Haiku 4.5 matches
+    // Sonnet 4 intelligence at 33% cost. Sonnet 4.5 is SOTA coding.
     steps: [
       { model: 'claude-haiku-4.5', threshold: 0.7 },
       { model: 'claude-sonnet-4.5', threshold: 0.5 },
@@ -61,41 +80,93 @@ const DEFAULT_CHAINS: CascadeChain[] = [
   {
     id: 'quality',
     name: 'Quality (minimum Sonnet)',
+    // Why: Important tasks that need frontier quality. Sonnet 4.5 handles
+    // 95% of hard tasks; Opus only for the remaining 5%.
     steps: [
       { model: 'claude-sonnet-4.5', threshold: 0.5 },
       { model: 'claude-opus-4.6', threshold: 0.0 },
     ],
   },
+  // ── Specialized Task Chains ──────────────────────────────────────
   {
     id: 'code',
     name: 'Code Generation',
+    // Why: Grok 4.1 Fast (reasoning mode) handles multi-step code tasks
+    // at $0.20/M. Haiku 4.5 is great at coding at 106 t/s.
+    // Sonnet 4.5 is SOTA (77.2% SWE-bench) for hard coding tasks.
     steps: [
-      { model: 'gpt-4.1-mini', threshold: 0.7 },
-      { model: 'claude-sonnet-4.5', threshold: 0.5 },
-      { model: 'claude-opus-4.6', threshold: 0.0 },
-    ],
-  },
-  {
-    id: 'bulk',
-    name: 'Bulk Processing',
-    steps: [
-      { model: 'gemini-2.5-flash-lite', threshold: 0.6 },
-      { model: 'grok-4.1-fast', threshold: 0.5 },
-      { model: 'gemini-2.5-flash', threshold: 0.0 },
+      { model: 'grok-4.1-fast', threshold: 0.75 },
+      { model: 'claude-haiku-4.5', threshold: 0.6 },
+      { model: 'claude-sonnet-4.5', threshold: 0.0 },
     ],
   },
   {
     id: 'reasoning',
     name: 'Deep Reasoning',
+    // Why: Grok 4.1 Fast has reasoning mode at $0.20/M — try it first.
+    // o4-mini is a dedicated reasoning model (STEM-optimized).
+    // Opus for the hardest reasoning requiring maximum intelligence.
     steps: [
-      { model: 'o4-mini', threshold: 0.7 },
-      { model: 'o3', threshold: 0.5 },
+      { model: 'grok-4.1-fast', threshold: 0.75 },
+      { model: 'o4-mini', threshold: 0.6 },
       { model: 'claude-opus-4.6', threshold: 0.0 },
     ],
   },
   {
+    id: 'agentic',
+    name: 'Agentic Tool Use',
+    // Why: Grok 4.1 Fast was SPECIFICALLY designed for agentic tool-use
+    // workflows (trained with long-horizon RL, #1 on LMArena Search).
+    // Haiku 4.5 has full tool support. Sonnet for complex agent chains.
+    steps: [
+      { model: 'grok-4.1-fast', threshold: 0.7 },
+      { model: 'claude-haiku-4.5', threshold: 0.5 },
+      { model: 'claude-sonnet-4.5', threshold: 0.0 },
+    ],
+  },
+  {
+    id: 'bulk',
+    name: 'Bulk Processing',
+    // Why: Flash-lite is cheapest ($0.10/M), 1M context for large docs.
+    // grok-4-fast is fast non-reasoning for throughput.
+    // Flash with thinking mode for bulk tasks needing more quality.
+    steps: [
+      { model: 'gemini-2.5-flash-lite', threshold: 0.6 },
+      { model: 'grok-4-fast', threshold: 0.5 },
+      { model: 'gemini-2.5-flash', threshold: 0.0 },
+    ],
+  },
+  {
+    id: 'creative',
+    name: 'Creative & Writing',
+    // Why: grok-4-fast is good at creative text (no reasoning overhead).
+    // Flash has good creative output at low cost.
+    // Haiku for nuanced creative work. Sonnet for the best writing.
+    steps: [
+      { model: 'grok-4-fast', threshold: 0.75 },
+      { model: 'gemini-2.5-flash', threshold: 0.65 },
+      { model: 'claude-haiku-4.5', threshold: 0.5 },
+      { model: 'claude-sonnet-4.5', threshold: 0.0 },
+    ],
+  },
+  {
+    id: 'long-context',
+    name: 'Long Context Analysis',
+    // Why: Grok 4.1 Fast has 2M context (largest available).
+    // Gemini Flash has 1M context at $0.30/M. Pro has 1M with best quality.
+    steps: [
+      { model: 'grok-4.1-fast', threshold: 0.7 },
+      { model: 'gemini-2.5-flash', threshold: 0.55 },
+      { model: 'gemini-2.5-pro', threshold: 0.0 },
+    ],
+  },
+  // ── Security (never compromise) ──────────────────────────────────
+  {
     id: 'security',
     name: 'Security Analysis',
+    // Why: Security analysis requires careful, thorough reasoning.
+    // Never route to cheap models that might miss vulnerabilities.
+    // Sonnet 4.5 has strong analytical capabilities; Opus for maximum.
     steps: [
       { model: 'claude-sonnet-4.5', threshold: 0.5 },
       { model: 'claude-opus-4.6', threshold: 0.0 },
@@ -319,6 +390,15 @@ export class CascadeRouter {
 
   /**
    * Select the best cascade chain for a given task category and complexity.
+   *
+   * Routing rationale — matches task types to model design purposes:
+   * - code tasks → code chain (Grok reasoning + Sonnet SOTA coding)
+   * - reasoning  → reasoning chain (Grok reasoning + o4-mini STEM)
+   * - tool use   → agentic chain (Grok 4.1 designed for it)
+   * - bulk work  → bulk chain (Flash-lite cheapest at $0.10/M)
+   * - creative   → creative chain (diverse providers for style)
+   * - long docs  → long-context chain (2M Grok, 1M Gemini)
+   * - security   → security chain (never cheaper than Sonnet)
    */
   selectChain(
     category: string,
@@ -328,23 +408,46 @@ export class CascadeRouter {
     // Security-sensitive tasks always use the security chain
     if (securitySensitive) return 'security';
 
-    // Map categories to chains
+    // Map categories to chains based on model design purposes
     const categoryChainMap: Record<string, string> = {
+      // Coding — Grok reasoning mode + Sonnet SOTA coding
       code_generation: 'code',
       code_review: 'code',
-      security: 'security',
+      debugging: 'code',
+      refactoring: 'code',
+      // Reasoning — dedicated reasoning models (Grok, o4-mini)
       planning: 'reasoning',
-      analysis: 'balanced',
-      chat: 'frugal',
-      query: 'frugal',
-      summarize: 'bulk',
+      math: 'reasoning',
+      analysis: 'reasoning',
+      research: 'reasoning',
+      // Agentic — Grok 4.1 Fast designed for tool-use workflows
+      tool_use: 'agentic',
+      automation: 'agentic',
+      web_search: 'agentic',
+      // Creative — diverse providers for writing quality
+      creative: 'creative',
+      writing: 'creative',
+      summarize: 'creative',
+      // Bulk — cheapest models for high-volume
+      classification: 'bulk',
+      tagging: 'bulk',
+      extraction: 'bulk',
       parse_command: 'bulk',
       heartbeat: 'bulk',
+      // Long context — 2M/1M context models
+      document_analysis: 'long-context',
+      long_context: 'long-context',
+      // General — frugal cascade
+      chat: 'frugal',
+      query: 'frugal',
+      // Security — never compromise
+      security: 'security',
+      threat_assessment: 'security',
     };
 
     const chainFromCategory = categoryChainMap[category];
 
-    // Override based on complexity
+    // Override based on complexity — critical tasks go to quality chain
     if (complexity === 'critical') return 'quality';
     if (complexity === 'complex' && !chainFromCategory) return 'balanced';
 

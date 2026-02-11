@@ -56,7 +56,7 @@ describe('CascadeRouter', () => {
   describe('execute', () => {
     it('should stop at first model when quality is high enough', async () => {
       const responses = new Map([
-        ['gemini-2.5-flash-lite', mockResponse('gemini-2.5-flash-lite', 'Here is a detailed answer with step 1, step 2, and step 3 for your question about the topic.', 0.001)],
+        ['grok-4-fast', mockResponse('grok-4-fast', 'Here is a detailed answer with step 1, step 2, and step 3 for your question about the topic.', 0.001)],
       ]);
 
       const providers = createMockProviderRegistry(responses);
@@ -79,7 +79,7 @@ describe('CascadeRouter', () => {
       expect(completeSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           chain: 'frugal',
-          finalModel: 'gemini-2.5-flash-lite',
+          finalModel: 'grok-4-fast',
           totalSteps: 1,
         }),
       );
@@ -87,8 +87,8 @@ describe('CascadeRouter', () => {
 
     it('should escalate when quality is too low', async () => {
       const responses = new Map([
-        ['gemini-2.5-flash-lite', mockResponse('gemini-2.5-flash-lite', 'I am not sure.', 0.001)],
-        ['claude-haiku-4.5', mockResponse('claude-haiku-4.5', 'Here is a comprehensive answer with all the details you need about TypeScript.', 0.01)],
+        ['grok-4-fast', mockResponse('grok-4-fast', 'I am not sure.', 0.001)],
+        ['gemini-2.5-flash-lite', mockResponse('gemini-2.5-flash-lite', 'Here is a comprehensive answer with all the details you need about TypeScript.', 0.01)],
       ]);
 
       const providers = createMockProviderRegistry(responses);
@@ -112,7 +112,7 @@ describe('CascadeRouter', () => {
         expect.objectContaining({ step: 0, escalated: true }),
       );
       // Final result should be from the second model
-      expect(result.model).toBe('claude-haiku-4.5');
+      expect(result.model).toBe('gemini-2.5-flash-lite');
     });
 
     it('should always accept last model in chain', async () => {
@@ -159,7 +159,7 @@ describe('CascadeRouter', () => {
 
     it('should skip unavailable models and try next', async () => {
       const responses = new Map([
-        // gemini-2.5-flash-lite NOT available (not in map)
+        // grok-4-fast and gemini-2.5-flash-lite NOT available (not in map)
         ['claude-haiku-4.5', mockResponse('claude-haiku-4.5', 'Here is a good answer.', 0.01)],
       ]);
 
@@ -216,9 +216,18 @@ describe('CascadeRouter', () => {
       const router = new CascadeRouter(eventBus, providers, modelRegistry);
 
       const chains = router.listChains();
-      expect(chains.length).toBeGreaterThanOrEqual(7);
-      expect(chains.map(c => c.id)).toContain('frugal');
-      expect(chains.map(c => c.id)).toContain('security');
+      expect(chains.length).toBe(10);
+      const ids = chains.map(c => c.id);
+      expect(ids).toContain('frugal');
+      expect(ids).toContain('balanced');
+      expect(ids).toContain('quality');
+      expect(ids).toContain('code');
+      expect(ids).toContain('reasoning');
+      expect(ids).toContain('agentic');
+      expect(ids).toContain('bulk');
+      expect(ids).toContain('creative');
+      expect(ids).toContain('long-context');
+      expect(ids).toContain('security');
     });
 
     it('should allow registering custom chains', () => {
