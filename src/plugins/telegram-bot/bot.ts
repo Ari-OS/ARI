@@ -114,5 +114,18 @@ export function createBot(deps: BotDependencies): Bot {
     }
   });
 
+  // ── Voice message handler ──────────────────────────────────────────
+  bot.on('message:voice', async (ctx) => {
+    await ctx.reply(
+      'Voice messages aren\'t supported yet — text me instead and I\'ll handle it.',
+    );
+  });
+
+  bot.on('message:audio', async (ctx) => {
+    await ctx.reply(
+      'Audio files aren\'t supported yet — text me instead and I\'ll handle it.',
+    );
+  });
+
   return bot;
 }

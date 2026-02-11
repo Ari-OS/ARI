@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { getE2ERuns, type E2ERunsResponse } from '../api/client';
 import { useWebSocket, type WebSocketMessage } from './useWebSocket';
 

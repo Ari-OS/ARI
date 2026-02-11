@@ -99,7 +99,9 @@ export function Budget() {
   }, [subscribe]);
 
   // Merge live updates with fetched data
-  const currentStatus = liveStatus ? { ...status, ...liveStatus } : status;
+  const currentStatus: BudgetStatus | undefined = liveStatus
+    ? { ...status, ...liveStatus } as BudgetStatus
+    : status;
 
   if (statusLoading) {
     return (

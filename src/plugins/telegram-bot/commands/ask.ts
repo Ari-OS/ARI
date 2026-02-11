@@ -24,7 +24,7 @@ export async function handleAsk(
 
   try {
     await ctx.reply('Thinking...');
-    const response = await orchestrator.query(query, 'telegram');
+    const response = await orchestrator.query(query, 'core');
     await ctx.reply(response || 'No response generated.', { parse_mode: 'HTML' });
   } catch (error) {
     await ctx.reply(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
