@@ -1,7 +1,28 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { CostTracker, MODEL_PRICING } from '../../../src/observability/cost-tracker.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EventBus } from '../../../src/kernel/event-bus.js';
 import { AuditLogger } from '../../../src/kernel/audit.js';
+
+// Mock filesystem to prevent loading real ~/.ari/token-usage.json
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    existsSync: vi.fn().mockReturnValue(false),
+    mkdirSync: vi.fn(),
+  };
+});
+
+vi.mock('node:fs/promises', () => ({
+  default: {
+    mkdir: vi.fn().mockResolvedValue(undefined),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+    rename: vi.fn().mockResolvedValue(undefined),
+    readFile: vi.fn().mockResolvedValue('{}'),
+  },
+}));
+
+// Import after mocks are set up
+const { CostTracker, MODEL_PRICING } = await import('../../../src/observability/cost-tracker.js');
 
 describe('CostTracker', () => {
   let costTracker: CostTracker;
@@ -16,6 +37,10 @@ describe('CostTracker', () => {
       weekly: 50,
       monthly: 200,
     });
+  });
+
+  afterEach(async () => {
+    await costTracker.shutdown();
   });
 
   describe('track', () => {
