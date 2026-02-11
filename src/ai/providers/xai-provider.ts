@@ -19,7 +19,7 @@ import type {
  * Features:
  * - OpenAI-compatible REST API
  * - Automatic prefix caching — 75% off input pricing
- * - Models: grok-4, grok-4-1-fast-reasoning
+ * - Models: grok-4-0709, grok-4-1-fast-reasoning, grok-4-fast-non-reasoning, grok-3-mini
  * - Streaming via client.chat.completions.create({ stream: true })
  */
 export class XAIProvider implements LLMProvider {
@@ -34,8 +34,10 @@ export class XAIProvider implements LLMProvider {
   private lastLatencyMs = 0;
 
   private static readonly SUPPORTED_MODELS = [
-    'grok-4',
+    'grok-4-0709',
     'grok-4-1-fast-reasoning',
+    'grok-4-fast-non-reasoning',
+    'grok-3-mini',
   ];
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -150,7 +152,7 @@ export class XAIProvider implements LLMProvider {
     const startTime = Date.now();
     try {
       await this.client.chat.completions.create({
-        model: 'grok-4-1-fast-reasoning',
+        model: 'grok-4-fast-non-reasoning',
         max_tokens: 10,
         messages: [{ role: 'user', content: 'ping' }],
       });
