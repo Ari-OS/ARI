@@ -30,12 +30,17 @@ mkdir -p "$LOG_DIR"
 echo "   ✓ Log directory created: $LOG_DIR"
 echo ""
 
-# Step 3: Copy plist to LaunchAgents
+# Step 3: Copy plist to LaunchAgents (with placeholder substitution)
 echo "3. Installing LaunchAgent..."
 mkdir -p "$LAUNCH_AGENTS_DIR"
 if [ -f "$SCRIPT_DIR/com.ari.gateway.plist" ]; then
-    cp "$SCRIPT_DIR/com.ari.gateway.plist" "$PLIST_PATH"
+    NODE_BIN="$(which node 2>/dev/null || echo '/usr/local/bin/node')"
+    sed -e "s|__PROJECT_ROOT__|$PROJECT_ROOT|g" \
+        -e "s|__HOME__|$HOME|g" \
+        -e "s|/usr/local/bin/node|$NODE_BIN|g" \
+        "$SCRIPT_DIR/com.ari.gateway.plist" > "$PLIST_PATH"
     echo "   ✓ Plist installed: $PLIST_PATH"
+    echo "   ✓ Node: $NODE_BIN"
 else
     echo "Error: Plist template not found at $SCRIPT_DIR/com.ari.gateway.plist"
     exit 1
