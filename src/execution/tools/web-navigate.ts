@@ -247,7 +247,11 @@ export const webNavigateHandler: ToolHandler = async (
   const timeout = Math.min(Number(params.timeout || 30000), 60000);
   const viewport = params.viewport as { width?: number; height?: number } | undefined;
 
-  // Validate action-specific parameters BEFORE launching browser
+  // Validate action and parameters BEFORE launching browser
+  const VALID_ACTIONS = ['navigate', 'screenshot', 'click', 'type', 'fill', 'select', 'scroll', 'wait', 'evaluate'];
+  if (!VALID_ACTIONS.includes(action)) {
+    throw new Error(`Unknown action: ${action}`);
+  }
   if (['click', 'type', 'fill', 'select', 'wait'].includes(action) && !selector) {
     throw new Error(`selector required for ${action} action`);
   }
