@@ -180,6 +180,7 @@ describe('LearningLoop', () => {
       const firstGapResult = await learningLoop.runWeeklyGapAnalysis();
 
       await learningLoop.runDailyReview();
+      await new Promise((r) => setTimeout(r, 2));
       const secondGapResult = await learningLoop.runWeeklyGapAnalysis();
 
       expect(firstGapResult).toBeDefined();
