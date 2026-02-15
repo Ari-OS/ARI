@@ -13,10 +13,9 @@
 import { GmailReceiver, type IncomingSMS } from './gmail-receiver.js';
 import { GmailSMS } from './gmail-sms.js';
 import { smsExecutor } from './sms-executor.js';
-import { ClaudeClient } from '../../autonomous/claude-client.js';
 import { dailyAudit } from '../../autonomous/daily-audit.js';
 import { EventEmitter } from 'node:events';
-import type { SMSConfig } from '../../autonomous/types.js';
+import type { SMSConfig, AutonomousAIProvider } from '../../autonomous/types.js';
 import { createLogger } from '../../kernel/logger.js';
 
 const logger = createLogger('sms-conversation');
@@ -35,11 +34,7 @@ export interface ConversationContext {
 
 export interface SMSConversationConfig {
   sms: SMSConfig;
-  claude: {
-    apiKey: string;
-    model?: string;
-    maxTokens?: number;
-  };
+  aiProvider: AutonomousAIProvider;
   maxContextMessages?: number;
   contextTimeoutMinutes?: number;
   systemPrompt?: string;
@@ -48,7 +43,7 @@ export interface SMSConversationConfig {
 export class SMSConversation extends EventEmitter {
   private receiver: GmailReceiver | null = null;
   private sender: GmailSMS;
-  private claude: ClaudeClient;
+  private aiProvider: AutonomousAIProvider;
   private config: SMSConversationConfig;
   private context: ConversationContext;
   private processing = false;
@@ -64,7 +59,7 @@ export class SMSConversation extends EventEmitter {
     };
 
     this.sender = new GmailSMS(config.sms);
-    this.claude = new ClaudeClient(config.claude);
+    this.aiProvider = config.aiProvider;
 
     this.context = {
       messages: [],
@@ -313,7 +308,7 @@ Always return valid JSON. The response field is what gets texted to user.`;
       `Provide additional details, but still keep it under 160 characters if possible. ` +
       `If you need more space, you can use up to 300 characters.`;
 
-    const response = await this.claude.chat([
+    const response = await this.aiProvider.chat([
       { role: 'user', content: expandPrompt },
     ], this.config.systemPrompt);
 
@@ -348,7 +343,7 @@ Always return valid JSON. The response field is what gets texted to user.`;
     try {
       // STEP 1: Ask Claude what to do
       const decisionPrompt = this.config.systemPrompt ?? this.getDefaultSystemPrompt();
-      const claudeResponse = await this.claude.chat(messages, decisionPrompt);
+      const claudeResponse = await this.aiProvider.chat(messages, decisionPrompt);
 
       // STEP 2: Parse Claude's decision
       type ClaudeDecision = {

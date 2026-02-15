@@ -28,10 +28,6 @@ vi.mock('../../../../src/integrations/sms/sms-executor.js', () => ({
   },
 }));
 
-vi.mock('../../../../src/autonomous/claude-client.js', () => ({
-  ClaudeClient: vi.fn(),
-}));
-
 vi.mock('../../../../src/autonomous/daily-audit.js', () => ({
   dailyAudit: {
     logActivity: vi.fn().mockResolvedValue(undefined),
@@ -41,7 +37,6 @@ vi.mock('../../../../src/autonomous/daily-audit.js', () => ({
 import { GmailReceiver } from '../../../../src/integrations/sms/gmail-receiver.js';
 import { GmailSMS } from '../../../../src/integrations/sms/gmail-sms.js';
 import { smsExecutor } from '../../../../src/integrations/sms/sms-executor.js';
-import { ClaudeClient } from '../../../../src/autonomous/claude-client.js';
 import { dailyAudit } from '../../../../src/autonomous/daily-audit.js';
 import { SMSConversation, createSMSConversation, type SMSConversationConfig } from '../../../../src/integrations/sms/sms-conversation.js';
 
@@ -58,11 +53,13 @@ describe('SMSConversation', () => {
     send: Mock;
     getStats: Mock;
   };
-  let mockClaude: {
+  let mockAIProvider: {
+    query: Mock;
+    summarize: Mock;
     chat: Mock;
   };
 
-  const defaultConfig: SMSConversationConfig = {
+  const createDefaultConfig = (): SMSConversationConfig => ({
     sms: {
       enabled: true,
       gmailUser: 'test@gmail.com',
@@ -74,14 +71,10 @@ describe('SMSConversation', () => {
       maxPerHour: 5,
       timezone: 'America/Indiana/Indianapolis',
     },
-    claude: {
-      apiKey: 'test-api-key',
-      model: 'claude-sonnet-4-20250514',
-      maxTokens: 4096,
-    },
+    aiProvider: mockAIProvider,
     maxContextMessages: 10,
     contextTimeoutMinutes: 30,
-  };
+  });
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -102,8 +95,10 @@ describe('SMSConversation', () => {
       getStats: vi.fn().mockReturnValue({ sentThisHour: 0, rateLimitRemaining: 5, isQuietHours: false }),
     };
 
-    // Create mock Claude client
-    mockClaude = {
+    // Create mock AI provider (replaces ClaudeClient)
+    mockAIProvider = {
+      query: vi.fn().mockResolvedValue('Test response'),
+      summarize: vi.fn().mockResolvedValue('Summary'),
       chat: vi.fn().mockResolvedValue('{"actions": [{"type": "respond_only"}], "response": "Test response"}'),
     };
 
@@ -111,7 +106,6 @@ describe('SMSConversation', () => {
     (GmailReceiver as unknown as Mock).mockImplementation(() => mockReceiver);
     (GmailReceiver as any).fromSMSConfig = vi.fn().mockReturnValue(mockReceiver);
     (GmailSMS as unknown as Mock).mockImplementation(() => mockSender);
-    (ClaudeClient as unknown as Mock).mockImplementation(() => mockClaude);
 
     vi.mocked(smsExecutor.execute).mockResolvedValue({
       success: true,
@@ -119,7 +113,7 @@ describe('SMSConversation', () => {
       action: 'shell',
     });
 
-    conversation = new SMSConversation(defaultConfig);
+    conversation = new SMSConversation(createDefaultConfig());
   });
 
   afterEach(() => {
@@ -135,7 +129,7 @@ describe('SMSConversation', () => {
 
     it('should use provided config values', () => {
       const customConfig: SMSConversationConfig = {
-        ...defaultConfig,
+        ...createDefaultConfig(),
         maxContextMessages: 20,
         contextTimeoutMinutes: 60,
         systemPrompt: 'Custom prompt',
@@ -399,7 +393,7 @@ describe('SMSConversation', () => {
 
       await vi.runAllTimersAsync();
 
-      expect(mockClaude.chat).toHaveBeenCalled();
+      expect(mockAIProvider.chat).toHaveBeenCalled();
     });
 
     it('should pass "note" commands to Claude', async () => {
@@ -415,7 +409,7 @@ describe('SMSConversation', () => {
 
       await vi.runAllTimersAsync();
 
-      expect(mockClaude.chat).toHaveBeenCalled();
+      expect(mockAIProvider.chat).toHaveBeenCalled();
     });
   });
 
@@ -433,7 +427,7 @@ describe('SMSConversation', () => {
 
       await vi.runAllTimersAsync();
 
-      expect(mockClaude.chat).toHaveBeenCalledWith(
+      expect(mockAIProvider.chat).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({ role: 'user', content: 'What is the weather like?' }),
         ]),
@@ -442,7 +436,7 @@ describe('SMSConversation', () => {
     });
 
     it('should send Claude response via SMS', async () => {
-      mockClaude.chat.mockResolvedValue('{"actions": [{"type": "respond_only"}], "response": "The weather is sunny!"}');
+      mockAIProvider.chat.mockResolvedValue('{"actions": [{"type": "respond_only"}], "response": "The weather is sunny!"}');
 
       conversation.init();
       await conversation.start();
@@ -463,7 +457,7 @@ describe('SMSConversation', () => {
     });
 
     it('should execute actions when Claude specifies them', async () => {
-      mockClaude.chat.mockResolvedValue('{"actions": [{"type": "shell", "command": "git status"}], "response": "Checking git status"}');
+      mockAIProvider.chat.mockResolvedValue('{"actions": [{"type": "shell", "command": "git status"}], "response": "Checking git status"}');
 
       conversation.init();
       await conversation.start();
@@ -549,7 +543,7 @@ describe('SMSConversation', () => {
     });
 
     it('should handle non-JSON Claude responses', async () => {
-      mockClaude.chat.mockResolvedValue('Just a plain text response');
+      mockAIProvider.chat.mockResolvedValue('Just a plain text response');
 
       conversation.init();
       await conversation.start();
@@ -570,7 +564,7 @@ describe('SMSConversation', () => {
     });
 
     it('should handle malformed JSON from Claude', async () => {
-      mockClaude.chat.mockResolvedValue('{"invalid json');
+      mockAIProvider.chat.mockResolvedValue('{"invalid json');
 
       conversation.init();
       await conversation.start();
@@ -616,7 +610,7 @@ describe('SMSConversation', () => {
       await vi.runAllTimersAsync();
 
       // Should have sent context with both messages
-      const lastCall = mockClaude.chat.mock.calls[mockClaude.chat.mock.calls.length - 1];
+      const lastCall = mockAIProvider.chat.mock.calls[mockAIProvider.chat.mock.calls.length - 1];
       expect(lastCall[0]).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ role: 'user', content: 'My name is John' }),
@@ -628,7 +622,7 @@ describe('SMSConversation', () => {
 
     it('should trim context when exceeding maxContextMessages', async () => {
       const smallContextConfig = {
-        ...defaultConfig,
+        ...createDefaultConfig(),
         maxContextMessages: 3,
       };
       const smallConversation = new SMSConversation(smallContextConfig);
@@ -685,7 +679,7 @@ describe('SMSConversation', () => {
       await vi.runAllTimersAsync();
 
       // Context should have been cleared
-      const lastCall = mockClaude.chat.mock.calls[mockClaude.chat.mock.calls.length - 1];
+      const lastCall = mockAIProvider.chat.mock.calls[mockAIProvider.chat.mock.calls.length - 1];
       expect(lastCall[0].length).toBe(1); // Only the new message
     });
 
@@ -700,7 +694,7 @@ describe('SMSConversation', () => {
 
   describe('more command', () => {
     it('should expand on last response', async () => {
-      mockClaude.chat
+      mockAIProvider.chat
         .mockResolvedValueOnce('{"response": "Short answer"}')
         .mockResolvedValueOnce('Expanded detailed answer');
 
@@ -725,7 +719,7 @@ describe('SMSConversation', () => {
       });
       await vi.runAllTimersAsync();
 
-      expect(mockClaude.chat).toHaveBeenCalledTimes(2);
+      expect(mockAIProvider.chat).toHaveBeenCalledTimes(2);
     });
 
     it('should handle more command with no previous message', async () => {
@@ -755,7 +749,7 @@ describe('SMSConversation', () => {
         resolveFirst = resolve;
       });
 
-      mockClaude.chat
+      mockAIProvider.chat
         .mockImplementationOnce(() => firstPromise)
         .mockResolvedValueOnce('{"response": "Second response"}');
 
@@ -788,13 +782,13 @@ describe('SMSConversation', () => {
       await vi.runAllTimersAsync();
 
       // Both should have been processed
-      expect(mockClaude.chat).toHaveBeenCalledTimes(2);
+      expect(mockAIProvider.chat).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('error handling', () => {
     it('should send error message on processing failure', async () => {
-      mockClaude.chat.mockRejectedValue(new Error('API error'));
+      mockAIProvider.chat.mockRejectedValue(new Error('API error'));
 
       conversation.init();
       await conversation.start();
@@ -814,7 +808,7 @@ describe('SMSConversation', () => {
     });
 
     it('should log error and send recovery message on processing failure', async () => {
-      mockClaude.chat.mockRejectedValue(new Error('API error'));
+      mockAIProvider.chat.mockRejectedValue(new Error('API error'));
 
       conversation.init();
       await conversation.start();
@@ -844,7 +838,7 @@ describe('SMSConversation', () => {
     });
 
     it('should log errors to daily audit', async () => {
-      mockClaude.chat.mockRejectedValue(new Error('API error'));
+      mockAIProvider.chat.mockRejectedValue(new Error('API error'));
 
       conversation.init();
       await conversation.start();
@@ -868,7 +862,7 @@ describe('SMSConversation', () => {
 
   describe('action execution', () => {
     it('should emit action_executing event', async () => {
-      mockClaude.chat.mockResolvedValue('{"actions": [{"type": "shell", "command": "ls"}], "response": "Listing files"}');
+      mockAIProvider.chat.mockResolvedValue('{"actions": [{"type": "shell", "command": "ls"}], "response": "Listing files"}');
 
       conversation.init();
       await conversation.start();
@@ -888,7 +882,7 @@ describe('SMSConversation', () => {
     });
 
     it('should emit action_completed event', async () => {
-      mockClaude.chat.mockResolvedValue('{"actions": [{"type": "shell", "command": "ls"}], "response": "Listing files"}');
+      mockAIProvider.chat.mockResolvedValue('{"actions": [{"type": "shell", "command": "ls"}], "response": "Listing files"}');
 
       conversation.init();
       await conversation.start();
@@ -908,7 +902,7 @@ describe('SMSConversation', () => {
     });
 
     it('should skip respond_only actions', async () => {
-      mockClaude.chat.mockResolvedValue('{"actions": [{"type": "respond_only"}], "response": "Just responding"}');
+      mockAIProvider.chat.mockResolvedValue('{"actions": [{"type": "respond_only"}], "response": "Just responding"}');
 
       conversation.init();
       await conversation.start();
@@ -925,7 +919,7 @@ describe('SMSConversation', () => {
     });
 
     it('should execute multiple actions', async () => {
-      mockClaude.chat.mockResolvedValue('{"actions": [{"type": "shell", "command": "git status"}, {"type": "status"}], "response": "Status check"}');
+      mockAIProvider.chat.mockResolvedValue('{"actions": [{"type": "shell", "command": "git status"}, {"type": "status"}], "response": "Status check"}');
 
       conversation.init();
       await conversation.start();
@@ -980,7 +974,7 @@ describe('SMSConversation', () => {
   describe('response truncation', () => {
     it('should truncate responses over 160 characters', async () => {
       const longResponse = 'A'.repeat(200);
-      mockClaude.chat.mockResolvedValue(`{"response": "${longResponse}"}`);
+      mockAIProvider.chat.mockResolvedValue(`{"response": "${longResponse}"}`);
 
       conversation.init();
       await conversation.start();
@@ -1001,7 +995,7 @@ describe('SMSConversation', () => {
 
   describe('factory function', () => {
     it('should create SMSConversation instance', () => {
-      const created = createSMSConversation(defaultConfig);
+      const created = createSMSConversation(createDefaultConfig());
       expect(created).toBeInstanceOf(SMSConversation);
     });
   });
@@ -1048,7 +1042,7 @@ describe('SMSConversation', () => {
     });
 
     it('should log action results', async () => {
-      mockClaude.chat.mockResolvedValue('{"actions": [{"type": "shell", "command": "ls"}], "response": "Done"}');
+      mockAIProvider.chat.mockResolvedValue('{"actions": [{"type": "shell", "command": "ls"}], "response": "Done"}');
 
       conversation.init();
       await conversation.start();
