@@ -6,3 +6,10 @@
  */
 
 export { TelegramSender, type TelegramSendResult, type TelegramSenderConfig } from './sender.js';
+export {
+  TelegramTopicManager,
+  type TopicKey,
+  type TopicConfig,
+  type TopicSendOptions,
+  type TopicSendResult,
+} from './topic-manager.js';

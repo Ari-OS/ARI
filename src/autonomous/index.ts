@@ -25,3 +25,4 @@ export * from './time-blocks.js';
 export * from './initiative-engine.js';
 export * from './self-improvement-loop.js';
 export * from './user-deliverables.js';
+export * from './backup-manager.js';

@@ -520,6 +520,40 @@ export interface EventMap {
   'learning:gap_identified': { gapCount: number; topGapSeverity: string; timestamp: string };
   'learning:assessment_complete': { grade: string; overallImprovement: number; trend: string; timestamp: string };
   'learning:improvement_measured': { metric: string; previous: number; current: number; change: number };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // MARKET MONITOR events (Investment Intelligence)
+  // ═══════════════════════════════════════════════════════════════════════
+  'market:snapshot_complete': { snapshots: number; timestamp: string };
+  'market:price_alert': {
+    asset: string;
+    alertType: 'price_spike' | 'price_drop' | 'volume_anomaly' | 'trend_reversal' | 'new_high' | 'new_low';
+    severity: 'info' | 'notable' | 'significant' | 'critical';
+    message: string;
+    data: {
+      currentPrice: number;
+      previousPrice: number;
+      changePercent: number;
+      threshold: number;
+    };
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PORTFOLIO TRACKER events (Investment Intelligence)
+  // ═══════════════════════════════════════════════════════════════════════
+  'investment:portfolio_update': { action: string; timestamp: string; [key: string]: unknown };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // KNOWLEDGE INGESTION events (RAG Pipeline)
+  // ═══════════════════════════════════════════════════════════════════════
+  'knowledge:ingested': { documentId: string; source: string; sourceType: string; chunkCount: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // BACKUP & OPS events
+  // ═══════════════════════════════════════════════════════════════════════
+  'backup:completed': { backupPath: string; fileCount: number; duration: number };
+  'backup:failed': { backupPath: string; error: string; duration: number };
+  'backup:pruned': { prunedCount: number; remainingCount: number; duration: number };
 }
 
 /**
