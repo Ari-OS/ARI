@@ -56,11 +56,13 @@ export class Gateway {
     this.audit = audit ?? new AuditLogger();
     this.eventBus = eventBus ?? new EventBus();
 
-    // Resolve API key
+    // Resolve API key: explicit option > env var > Keychain > auto-generate
     if (options?.apiKey === false) {
       this.apiKey = null; // Auth disabled (testing)
     } else if (typeof options?.apiKey === 'string') {
       this.apiKey = options.apiKey; // Explicit key provided
+    } else if (process.env.ARI_API_KEY) {
+      this.apiKey = process.env.ARI_API_KEY; // From environment
     } else {
       // Production: load from Keychain or generate + store
       const result = Gateway.loadOrCreateApiKey();
