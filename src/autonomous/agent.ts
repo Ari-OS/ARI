@@ -13,8 +13,7 @@
 import { createLogger } from '../kernel/logger.js';
 import { EventBus } from '../kernel/event-bus.js';
 import { TaskQueue, taskQueue } from './task-queue.js';
-import { ClaudeClient } from './claude-client.js';
-import { AutonomousConfig, Task, SMSConfigSchema, NotionConfigSchema } from './types.js';
+import { AutonomousConfig, AutonomousAIProvider, Task, SMSConfigSchema, NotionConfigSchema } from './types.js';
 import { notificationManager } from './notification-manager.js';
 import { auditReporter } from './audit-reporter.js';
 import { dailyAudit } from './daily-audit.js';
@@ -34,6 +33,28 @@ import path from 'node:path';
 
 const log = createLogger('autonomous-agent');
 
+const AUTONOMOUS_SYSTEM_PROMPT = `You are ARI (Artificial Reasoning Intelligence), a personal AI assistant running on a local machine.
+
+Your capabilities:
+- Answer questions and provide information
+- Execute system commands when authorized
+- Manage tasks and schedules
+- Monitor system health
+- Report status
+
+Your constraints:
+- You run locally at 127.0.0.1:3141 - loopback only
+- All operations are audited
+- Destructive operations require confirmation
+- You never expose sensitive data (keys, tokens, passwords)
+- You follow constitutional governance rules
+
+When responding:
+1. Understand the intent
+2. Provide a clear, actionable response
+3. Be concise — responses may be sent via push notification
+Maximum response: 500 characters unless specifically asked for detail.`;
+
 const CONFIG_PATH = path.join(process.env.HOME || '~', '.ari', 'autonomous.json');
 const STATE_PATH = path.join(process.env.HOME || '~', '.ari', 'agent-state.json');
 
@@ -48,7 +69,7 @@ interface AgentState {
 export class AutonomousAgent {
   private eventBus: EventBus;
   private queue: TaskQueue;
-  private claude: ClaudeClient | null = null;
+  private aiProvider: AutonomousAIProvider | null = null;
   private config: AutonomousConfig;
   private state: AgentState;
   private running = false;
@@ -66,9 +87,10 @@ export class AutonomousAgent {
   private approvalQueue: ApprovalQueue | null = null;
   private lastThrottleLevel: ThrottleLevel = 'normal';
 
-  constructor(eventBus: EventBus, config?: Partial<AutonomousConfig>) {
+  constructor(eventBus: EventBus, config?: Partial<AutonomousConfig>, aiProvider?: AutonomousAIProvider) {
     this.eventBus = eventBus;
     this.queue = taskQueue;
+    this.aiProvider = aiProvider ?? null;
     this.config = {
       enabled: false,
       pollIntervalMs: 5000,
@@ -101,6 +123,13 @@ export class AutonomousAgent {
     // Note: CostTracker and ApprovalQueue will be fully initialized in init()
     // once we have access to the AuditLogger
     this.approvalQueue = new ApprovalQueue(eventBus);
+  }
+
+  /**
+   * Set the AI provider after construction (e.g. for late binding)
+   */
+  setAIProvider(provider: AutonomousAIProvider): void {
+    this.aiProvider = provider;
   }
 
   /**
@@ -171,20 +200,23 @@ export class AutonomousAgent {
         botToken: telegramToken,
         ownerChatId: telegramOwnerId ? Number(telegramOwnerId) : undefined,
       },
-      notion: NotionConfigSchema.parse({ enabled: false }),
+      notion: NotionConfigSchema.parse({
+        enabled: !!(process.env.NOTION_API_KEY && process.env.NOTION_INBOX_DATABASE_ID),
+        apiKey: process.env.NOTION_API_KEY,
+        inboxDatabaseId: process.env.NOTION_INBOX_DATABASE_ID,
+        dailyLogParentId: process.env.NOTION_DAILY_LOG_PARENT_ID,
+      }),
     });
     log.info({ telegram: notifResults.telegram, sms: notifResults.sms, notion: notifResults.notion }, 'Notification channels initialized');
 
     // Initialize briefing generator for scheduled reports
     this.briefingGenerator = new BriefingGenerator(notificationManager, this.eventBus);
 
-    // Initialize Claude if configured
-    if (this.config.claude?.apiKey) {
-      this.claude = new ClaudeClient({
-        apiKey: this.config.claude.apiKey,
-        model: this.config.claude.model,
-        maxTokens: this.config.claude.maxTokens,
-      });
+    // AI provider is injected via constructor — no local initialization needed
+    if (this.aiProvider) {
+      log.info('AI provider connected via injection');
+    } else {
+      log.warn('No AI provider — task processing will be unavailable');
     }
 
     this.eventBus.emit('agent:started', {
@@ -529,14 +561,12 @@ export class AutonomousAgent {
   }
 
   /**
-   * Process a single task
+   * Process a single task through the injected AI provider
    */
   private async processTask(task: Task): Promise<void> {
     log.info({ taskId: task.id }, 'Processing task');
-
     await this.queue.updateStatus(task.id, 'processing');
 
-    // Log task start to daily audit
     await dailyAudit.logActivity(
       'task_completed',
       `Processing: ${task.content.slice(0, 50)}`,
@@ -545,55 +575,41 @@ export class AutonomousAgent {
     );
 
     try {
-      if (!this.claude) {
-        throw new Error('Claude API not configured');
+      if (!this.aiProvider) {
+        throw new Error('AI provider not configured — no orchestrator injected');
       }
 
-      // Parse the command
-      const command = await this.claude.parseCommand(task.content);
-
-      // Check if confirmation is required
-      if (command.requiresConfirmation && this.config.security?.requireConfirmation) {
-        // For now, auto-confirm queries, require manual confirm for executes
-        if (command.type !== 'query' && command.type !== 'status' && command.type !== 'help') {
-          // Use notification manager for confirmation request
-          await notificationManager.question(
-            `Confirm action: ${command.content.slice(0, 200)}`,
-            ['Yes, proceed', 'No, cancel']
-          );
-          // Mark as pending confirmation
-          await this.queue.updateStatus(task.id, 'pending', 'Awaiting confirmation');
-          return;
-        }
+      // Check if confirmation is required (heuristic-based, no LLM call needed)
+      if (this.config.security?.requireConfirmation && this.requiresConfirmation(task.content)) {
+        await notificationManager.question(
+          `Confirm action: ${task.content.slice(0, 200)}`,
+          ['Yes, proceed', 'No, cancel']
+        );
+        await this.queue.updateStatus(task.id, 'pending', 'Awaiting confirmation');
+        return;
       }
 
-      // Process the command
-      const response = await this.claude.processCommand(command);
+      // Process the task through AI (single call — replaces parseCommand + processCommand)
+      const prompt = AUTONOMOUS_SYSTEM_PROMPT + '\n\nTask: ' + task.content;
+      const responseMessage = await this.aiProvider.query(prompt, 'autonomous');
 
-      // Update task
-      await this.queue.updateStatus(
-        task.id,
-        response.success ? 'completed' : 'failed',
-        response.message,
-        response.success ? undefined : response.message
-      );
+      // Update task as completed
+      await this.queue.updateStatus(task.id, 'completed', responseMessage);
 
       // Log to audit
       await dailyAudit.logActivity(
-        response.success ? 'task_completed' : 'task_failed',
+        'task_completed',
         task.content.slice(0, 50),
-        response.message,
-        { outcome: response.success ? 'success' : 'failure' }
+        responseMessage,
+        { outcome: 'success' }
       );
-
-      // Record task in session
       dailyAudit.recordSessionTask();
 
-      // Notify completion using notification manager (it will decide if/when to send)
-      const summary = await this.claude.summarize(response.message, 400);
+      // Notify completion
+      const summary = await this.aiProvider.summarize(responseMessage, 400, 'autonomous');
       await notificationManager.taskComplete(
         task.content.slice(0, 30),
-        response.success,
+        true,
         summary
       );
 
@@ -602,10 +618,8 @@ export class AutonomousAgent {
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-
       await this.queue.updateStatus(task.id, 'failed', undefined, errorMsg);
 
-      // Log error to audit
       await dailyAudit.logActivity(
         'error_occurred',
         'Task Processing Error',
@@ -613,12 +627,19 @@ export class AutonomousAgent {
         { outcome: 'failure', details: { taskId: task.id } }
       );
 
-      // Use notification manager for errors
       await notificationManager.error('Task Failed', errorMsg.slice(0, 200));
-
       this.state.errors++;
       await this.saveState();
     }
+  }
+
+  /**
+   * Heuristic check for dangerous operations that need user confirmation.
+   * Avoids an extra LLM call just to determine intent.
+   */
+  private requiresConfirmation(content: string): boolean {
+    const dangerous = /\b(delete|remove|shutdown|restart|kill|drop|truncate|destroy|format|wipe)\b/i;
+    return dangerous.test(content);
   }
 
   /**
@@ -730,72 +751,6 @@ export class AutonomousAgent {
       const running = this.agentSpawner.getAgentsByStatus('running');
       if (running.length > 0) {
         log.info({ count: running.length }, 'Agents still running');
-      }
-    });
-
-    // ==========================================================================
-    // COGNITIVE LAYER 0: LEARNING LOOP HANDLERS
-    // ==========================================================================
-
-    // Daily Performance Review at 9 PM
-    // eslint-disable-next-line @typescript-eslint/require-await
-    this.scheduler.registerHandler('cognitive_performance_review', async () => {
-      try {
-        // Stub - learning module removed
-        this.eventBus.emit('audit:log', {
-          action: 'cognitive:performance_review_skipped',
-          agent: 'autonomous',
-          trustLevel: 'system',
-          details: { reason: 'Learning module removed' },
-        });
-        return;
-      } catch (error) {
-        log.error({ error }, 'Cognitive performance review failed');
-      }
-    });
-
-    // Weekly Gap Analysis on Sunday 8 PM
-    // eslint-disable-next-line @typescript-eslint/require-await
-    this.scheduler.registerHandler('cognitive_gap_analysis', async () => {
-      try {
-        // Stub - learning module removed
-        this.eventBus.emit('audit:log', {
-          action: 'cognitive:gap_analysis_skipped',
-          agent: 'autonomous',
-          trustLevel: 'system',
-          details: { reason: 'Learning module removed' },
-        });
-        return;
-      } catch (error) {
-        log.error({ error }, 'Cognitive gap analysis failed');
-      }
-    });
-
-    // Monthly Self-Assessment on 1st at 9 AM
-    // eslint-disable-next-line @typescript-eslint/require-await
-    this.scheduler.registerHandler('cognitive_self_assessment', async () => {
-      try {
-        // Stub - learning module removed
-        this.eventBus.emit('audit:log', {
-          action: 'cognitive:self_assessment_skipped',
-          agent: 'autonomous',
-          trustLevel: 'system',
-          details: { reason: 'Learning module removed' },
-        });
-        return;
-      } catch (error) {
-        log.error({ error }, 'Cognitive self-assessment failed');
-      }
-    });
-
-    // Daily spaced repetition review at 8 AM
-    // eslint-disable-next-line @typescript-eslint/require-await
-    this.scheduler.registerHandler('spaced_repetition_review', async () => {
-      try {
-        // Stub - learning module removed
-        return;
-      } catch (error) {
-        log.error({ error }, 'Spaced repetition review failed');
       }
     });
 

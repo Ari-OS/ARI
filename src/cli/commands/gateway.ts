@@ -187,6 +187,9 @@ export function registerGatewayCommand(program: Command): void {
         console.warn('Warning: API key authentication disabled');
       }
 
+      // Autonomous agent (for 24/7 operation) — created before API routes so health endpoint can reference it
+      const autonomousAgent = new AutonomousAgent(eventBus, undefined, aiOrchestrator ?? undefined);
+
       // Register API routes plugin BEFORE starting the server
       try {
         await gatewayInstance.registerPlugin(apiRoutes, {
@@ -208,6 +211,8 @@ export function registerGatewayCommand(program: Command): void {
             billingCycleManager,
             valueAnalytics,
             adaptiveLearner,
+            // Autonomous agent
+            autonomousAgent,
             // Cognitive Layer 0
             cognitionLayer,
           },
@@ -223,9 +228,6 @@ export function registerGatewayCommand(program: Command): void {
 
       // Vote expiration interval (ADR-006: 1-hour proposal expiration)
       let voteExpirationInterval: ReturnType<typeof setInterval> | null = null;
-
-      // Autonomous agent (for 24/7 operation)
-      const autonomousAgent = new AutonomousAgent(eventBus);
 
       // Graceful shutdown handlers
       const shutdown = async (signal: string) => {

@@ -62,6 +62,10 @@ export const healthRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
         activeVotes: 0,
         councilMembers: 13,
       },
+      autonomous: deps.autonomousAgent ? {
+        ...deps.autonomousAgent.getStatus(),
+        aiProvider: deps.autonomousAgent.getStatus().running ? 'connected' : 'disconnected',
+      } : { status: 'not initialized' },
     };
   });
 };

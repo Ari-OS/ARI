@@ -7,9 +7,9 @@ const {
   mockQueueGetNext,
   mockQueueUpdateStatus,
   mockQueueCleanup,
-  mockClaudeParseCommand,
-  mockClaudeProcessCommand,
-  mockClaudeSummarize,
+  mockAIQuery,
+  mockAISummarize,
+  mockAIChat,
   mockNotifyTaskComplete,
   mockNotifyError,
   mockNotifyQuestion,
@@ -30,9 +30,9 @@ const {
   mockQueueGetNext: vi.fn(),
   mockQueueUpdateStatus: vi.fn(),
   mockQueueCleanup: vi.fn(),
-  mockClaudeParseCommand: vi.fn(),
-  mockClaudeProcessCommand: vi.fn(),
-  mockClaudeSummarize: vi.fn(),
+  mockAIQuery: vi.fn(),
+  mockAISummarize: vi.fn(),
+  mockAIChat: vi.fn(),
   mockNotifyTaskComplete: vi.fn(),
   mockNotifyError: vi.fn(),
   mockNotifyQuestion: vi.fn(),
@@ -59,15 +59,6 @@ vi.mock('../../../src/autonomous/task-queue.js', () => ({
     updateStatus: mockQueueUpdateStatus,
     cleanup: mockQueueCleanup,
   },
-}));
-
-// Mock ClaudeClient
-vi.mock('../../../src/autonomous/claude-client.js', () => ({
-  ClaudeClient: vi.fn().mockImplementation(() => ({
-    parseCommand: mockClaudeParseCommand,
-    processCommand: mockClaudeProcessCommand,
-    summarize: mockClaudeSummarize,
-  })),
 }));
 
 // Mock NotificationManager
@@ -135,9 +126,9 @@ describe('AutonomousAgent', () => {
     mockQueueGetNext.mockResolvedValue(null);
     mockQueueUpdateStatus.mockResolvedValue(undefined);
     mockQueueCleanup.mockResolvedValue(0);
-    mockClaudeParseCommand.mockResolvedValue({ type: 'query', content: 'test', requiresConfirmation: false });
-    mockClaudeProcessCommand.mockResolvedValue({ success: true, message: 'Done!' });
-    mockClaudeSummarize.mockResolvedValue('Task completed');
+    mockAIQuery.mockResolvedValue('Done!');
+    mockAISummarize.mockResolvedValue('Task completed');
+    mockAIChat.mockResolvedValue('Chat response');
     mockNotifyTaskComplete.mockResolvedValue({ sent: true });
     mockNotifyError.mockResolvedValue({ sent: true });
     mockNotifyQuestion.mockResolvedValue({ sent: true });
@@ -152,8 +143,14 @@ describe('AutonomousAgent', () => {
     mockWriteFile.mockResolvedValue(undefined);
     mockMkdir.mockResolvedValue(undefined);
 
+    const mockAIProvider = {
+      query: mockAIQuery,
+      summarize: mockAISummarize,
+      chat: mockAIChat,
+    };
+
     eventBus = new EventBus();
-    agent = new AutonomousAgent(eventBus);
+    agent = new AutonomousAgent(eventBus, undefined, mockAIProvider);
   });
 
   afterEach(() => {
@@ -347,9 +344,6 @@ describe('AutonomousAgent', () => {
       mockReadFile.mockResolvedValue(JSON.stringify({
         enabled: true,
         pollIntervalMs: 1000,
-        claude: {
-          apiKey: 'claude-key',
-        },
       }));
     });
 
@@ -367,8 +361,8 @@ describe('AutonomousAgent', () => {
       await agent.start();
       await vi.advanceTimersByTimeAsync(100);
 
-      expect(mockClaudeParseCommand).toHaveBeenCalledWith('Test task');
-      expect(mockClaudeProcessCommand).toHaveBeenCalled();
+      expect(mockAIQuery).toHaveBeenCalledWith(expect.stringContaining('Test task'), 'autonomous');
+      expect(mockAISummarize).toHaveBeenCalled();
 
       consoleSpy.mockRestore();
       await agent.stop();
@@ -382,7 +376,7 @@ describe('AutonomousAgent', () => {
         source: 'api',
         priority: 'normal',
       });
-      mockClaudeProcessCommand.mockRejectedValueOnce(new Error('API Error'));
+      mockAIQuery.mockRejectedValueOnce(new Error('API Error'));
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -466,25 +460,19 @@ describe('AutonomousAgent', () => {
       await agent.stop();
     });
 
-    it('should require confirmation for non-query commands', async () => {
+    it('should require confirmation for dangerous commands', async () => {
       mockReadFile.mockResolvedValue(JSON.stringify({
         enabled: true,
         pollIntervalMs: 1000,
         security: { requireConfirmation: true },
-        claude: { apiKey: 'key' },
       }));
 
       mockQueueGetNext.mockResolvedValueOnce({
         id: 'task-1',
-        content: 'Execute something dangerous',
+        content: 'delete all temporary files',
         status: 'pending',
         source: 'api',
         priority: 'normal',
-      });
-      mockClaudeParseCommand.mockResolvedValueOnce({
-        type: 'execute',
-        content: 'dangerous',
-        requiresConfirmation: true,
       });
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -505,7 +493,6 @@ describe('AutonomousAgent', () => {
       mockReadFile.mockResolvedValue(JSON.stringify({
         enabled: true,
         pollIntervalMs: 1000,
-        claude: { apiKey: 'key' },
       }));
     });
 
@@ -523,7 +510,7 @@ describe('AutonomousAgent', () => {
       await agent.start();
       await vi.advanceTimersByTimeAsync(100);
 
-      expect(mockQueueUpdateStatus).toHaveBeenCalledWith('task-1', 'completed', 'Done!', undefined);
+      expect(mockQueueUpdateStatus).toHaveBeenCalledWith('task-1', 'completed', 'Done!');
 
       consoleSpy.mockRestore();
       await agent.stop();

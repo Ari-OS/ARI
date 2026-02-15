@@ -84,6 +84,22 @@ export interface AgentResponse {
   duration?: number;
 }
 
+// ── AI Provider Interface ─────────────────────────────────────────────────
+
+/**
+ * AI capabilities required by AutonomousAgent.
+ * AIOrchestrator satisfies this interface natively.
+ */
+export interface AutonomousAIProvider {
+  query(question: string, agent?: string): Promise<string>;
+  summarize(text: string, maxLength?: number, agent?: string): Promise<string>;
+  chat(
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    systemPrompt?: string,
+    agent?: string,
+  ): Promise<string>;
+}
+
 // ── Notification Channel Types ─────────────────────────────────────────────
 
 export const NotificationPrioritySchema = z.enum(['P0', 'P1', 'P2', 'P3', 'P4']);

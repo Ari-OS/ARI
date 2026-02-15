@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
 import type { FastifyPluginOptions } from 'fastify';
 import type { AuditLogger } from '../../kernel/audit.js';
 import type { EventBus } from '../../kernel/event-bus.js';
@@ -21,6 +20,7 @@ import type { ValueAnalytics } from '../../observability/value-analytics.js';
 import type { AdaptiveLearner } from '../../autonomous/adaptive-learner.js';
 import type { BudgetTracker } from '../../autonomous/budget-tracker.js';
 import type { E2ERunner } from '../../e2e/runner.js';
+import type { AutonomousAgent } from '../../autonomous/agent.js';
 import type { CognitionLayer } from '../../cognition/index.js';
 import { z } from 'zod';
 
@@ -48,6 +48,7 @@ export interface ApiDependencies {
   adaptiveLearner?: AdaptiveLearner;
   budgetTracker?: BudgetTracker;
   e2eRunner?: E2ERunner;
+  autonomousAgent?: AutonomousAgent;
   cognitionLayer?: CognitionLayer;
 }
 

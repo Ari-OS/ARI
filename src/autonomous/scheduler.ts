@@ -224,58 +224,6 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     },
   },
 
-  // ==========================================================================
-  // COGNITIVE LAYER 0: LEARNING LOOP TASKS (NON-ESSENTIAL - Background)
-  // ==========================================================================
-
-  {
-    id: 'cognitive-performance-review',
-    name: 'Cognitive Performance Review',
-    cron: '0 21 * * *', // 9:00 PM daily
-    handler: 'cognitive_performance_review',
-    enabled: true,
-    essential: false, // Background learning task
-    metadata: {
-      pillar: 'LEARNING',
-      description: 'Analyze decisions made in the past 24 hours',
-    },
-  },
-  {
-    id: 'cognitive-gap-analysis',
-    name: 'Cognitive Gap Analysis',
-    cron: '0 20 * * 0', // Sunday 8:00 PM
-    handler: 'cognitive_gap_analysis',
-    enabled: true,
-    essential: false,
-    metadata: {
-      pillar: 'LEARNING',
-      description: 'Identify knowledge gaps from the past week',
-    },
-  },
-  {
-    id: 'cognitive-self-assessment',
-    name: 'Cognitive Self-Assessment',
-    cron: '0 9 1 * *', // 1st of month, 9:00 AM
-    handler: 'cognitive_self_assessment',
-    enabled: true,
-    essential: false,
-    metadata: {
-      pillar: 'LEARNING',
-      description: 'Monthly comprehensive self-evaluation',
-    },
-  },
-  {
-    id: 'spaced-repetition-review',
-    name: 'Daily Concept Review',
-    cron: '0 8 * * *', // 8:00 AM daily
-    handler: 'spaced_repetition_review',
-    enabled: true,
-    essential: false,
-    metadata: {
-      pillar: 'LEARNING',
-      description: 'Daily spaced-repetition review for due concept cards',
-    },
-  },
 
   // ==========================================================================
   // INITIATIVE ENGINE: Proactive autonomy and user deliverables

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
 import type { FastifyPluginAsync } from 'fastify';
 import type { ApiRouteOptions } from './shared.js';
 import fastifyStatic from '@fastify/static';
@@ -304,5 +303,13 @@ export const dashboardRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
 </html>`;
 
     reply.type('text/html').send(html);
+  });
+
+  // SPA fallback: serve index.html for any non-API route (client-side routing)
+  fastify.setNotFoundHandler(async (request, reply) => {
+    if (!request.url.startsWith('/api/') && !request.url.startsWith('/ws') && dashboardAvailable) {
+      return reply.sendFile('index.html');
+    }
+    return reply.status(404).send({ error: 'Not found' });
   });
 };
