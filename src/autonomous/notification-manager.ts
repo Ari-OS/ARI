@@ -237,6 +237,15 @@ export class NotificationManager {
       return { sent: false, reason: 'Notification expired' };
     }
 
+    // Check cooldown (skip for critical, escalated P0, or active escalation tracking)
+    const inEscalationSequence = this.isInEscalationSequence(request);
+    if (priority !== 'critical' && finalPLevel !== 'P0' && !inEscalationSequence) {
+      const cooldownResult = this.checkCooldown(request);
+      if (cooldownResult) {
+        return cooldownResult;
+      }
+    }
+
     // Route based on priority and time
     return this.routeNotification(request, priority, finalPLevel);
   }
@@ -501,6 +510,46 @@ export class NotificationManager {
       if (now - v.firstSeen > windowMs) {
         this.escalationTracker.delete(k);
       }
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if this notification is part of an active escalation tracking sequence.
+   * If so, cooldowns should not apply — we need escalation to work for repeated errors.
+   */
+  private isInEscalationSequence(request: NotificationRequest): boolean {
+    if (request.category !== 'error') return false;
+    const key = request.dedupKey ?? `${request.category}:${request.title}`;
+    return this.escalationTracker.has(key);
+  }
+
+  /**
+   * Check if notification is within cooldown period for its category.
+   * Returns a result if cooled down (should skip), null if clear to send.
+   */
+  private checkCooldown(request: NotificationRequest): NotificationResult | null {
+    const cooldownMinutes = this.config.cooldowns[request.category];
+    if (cooldownMinutes === 0) return null; // No cooldown for this category
+
+    const cooldownMs = cooldownMinutes * 60 * 1000;
+    const now = Date.now();
+
+    // Check dedup key first (more specific), then fall back to category match
+    const recentMatch = this.history.find((h) => {
+      if (now - h.sentAt > cooldownMs) return false;
+      if (request.dedupKey && h.dedupKey) return h.dedupKey === request.dedupKey;
+      return h.category === request.category;
+    });
+
+    if (recentMatch) {
+      const minutesAgo = Math.round((now - recentMatch.sentAt) / 60_000);
+      return {
+        sent: false,
+        reason: `Cooldown: ${request.category} sent ${minutesAgo}m ago (limit: ${cooldownMinutes}m)`,
+        queuedForBatch: false,
+      };
     }
 
     return null;

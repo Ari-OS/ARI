@@ -44,10 +44,10 @@ export interface AIPolicyGovernorLike {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PARSED COMMAND TYPE (for backward compatibility with ClaudeClient)
+// PARSED COMMAND TYPE (legacy convenience method — canonical type in autonomous/types.ts)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-interface ParsedCommand {
+interface OrchestratorParsedCommand {
   intent: string;
   entities: Record<string, string>;
   confidence: number;
@@ -497,7 +497,7 @@ export class AIOrchestrator {
   async parseCommand(
     input: string,
     agent: string = 'core',
-  ): Promise<ParsedCommand> {
+  ): Promise<OrchestratorParsedCommand> {
     const response = await this.execute({
       content: `Parse this command and return JSON with intent, entities, and confidence:\n\n${input}`,
       category: 'parse_command',
@@ -509,7 +509,7 @@ export class AIOrchestrator {
     });
 
     try {
-      return JSON.parse(response.content) as ParsedCommand;
+      return JSON.parse(response.content) as OrchestratorParsedCommand;
     } catch {
       return {
         intent: 'unknown',

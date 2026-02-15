@@ -6,7 +6,6 @@
 
 export * from './types.js';
 export * from './task-queue.js';
-export * from './claude-client.js';
 export * from './agent.js';
 export * from './knowledge-sources.js';
 export * from './knowledge-fetcher.js';
@@ -15,3 +14,14 @@ export * from './alert-system.js';
 export * from './message-formatter.js';
 export * from './notification-manager.js';
 export * from './audit-reporter.js';
+export * from './scheduler.js';
+export * from './briefings.js';
+export * from './agent-spawner.js';
+export * from './approval-queue.js';
+export * from './billing-cycle.js';
+export * from './adaptive-learner.js';
+export * from './budget-tracker.js';
+export * from './time-blocks.js';
+export * from './initiative-engine.js';
+export * from './self-improvement-loop.js';
+export * from './user-deliverables.js';

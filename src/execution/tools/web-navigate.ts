@@ -247,6 +247,23 @@ export const webNavigateHandler: ToolHandler = async (
   const timeout = Math.min(Number(params.timeout || 30000), 60000);
   const viewport = params.viewport as { width?: number; height?: number } | undefined;
 
+  // Validate action-specific parameters BEFORE launching browser
+  if (['click', 'type', 'fill', 'select', 'wait'].includes(action) && !selector) {
+    throw new Error(`selector required for ${action} action`);
+  }
+  if (['type', 'fill'].includes(action) && !text) {
+    throw new Error(`text required for ${action} action`);
+  }
+  if (action === 'select' && !selector) {
+    throw new Error('selector required for select action');
+  }
+  if (action === 'select' && !params.value && !text) {
+    throw new Error('value required for select action');
+  }
+  if (action === 'evaluate' && !params.script) {
+    throw new Error('script required for evaluate action');
+  }
+
   const browser = await getBrowser();
   let context: BrowserContext | null = null;
   let page: Page | null = null;
