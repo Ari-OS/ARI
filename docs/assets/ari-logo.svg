@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Glow filters -->
+    <filter id="glow-gold" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="1 0 0 0 0.08
+                0 0.8 0 0 0.05
+                0 0 0.2 0 0
+                0 0 0 0.6 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glow-blue" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="0.3 0 0 0 0
+                0 0.4 0 0 0.02
+                0 0 1 0 0.05
+                0 0 0 0.6 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glow-rose" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="1 0 0 0 0.05
+                0 0.3 0 0 0
+                0 0 0.4 0 0.02
+                0 0 0 0.6 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="core-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="soft-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3"/>
+    </filter>
+
+    <!-- Core radial gradient -->
+    <radialGradient id="core-gradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF5E6" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#F5E6C8" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#D4A843" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Outer ambient glow -->
+    <radialGradient id="ambient-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF5E6" stop-opacity="0.08"/>
+      <stop offset="60%" stop-color="#6B8EC2" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="#0D1117" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Strand gradients for depth -->
+    <linearGradient id="gold-strand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E8C05A"/>
+      <stop offset="50%" stop-color="#D4A843"/>
+      <stop offset="100%" stop-color="#B8902E"/>
+    </linearGradient>
+    <linearGradient id="blue-strand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#85A8DA"/>
+      <stop offset="50%" stop-color="#6B8EC2"/>
+      <stop offset="100%" stop-color="#5278AA"/>
+    </linearGradient>
+    <linearGradient id="rose-strand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D48A96"/>
+      <stop offset="50%" stop-color="#C4727F"/>
+      <stop offset="100%" stop-color="#A85D69"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="#0D1117"/>
+
+  <!-- Ambient light -->
+  <circle cx="256" cy="256" r="200" fill="url(#ambient-glow)"/>
+
+  <!-- === LOGOS strand (Gold) — Reason === -->
+  <!-- Outer arc, sweeping from top-right, spiraling inward -->
+  <g filter="url(#glow-gold)">
+    <!-- Outer spiral arm -->
+    <path d="M 310 108
+             C 388 130, 420 200, 408 268
+             C 396 336, 340 380, 290 370
+             C 240 360, 220 310, 240 272
+             C 260 234, 290 228, 288 256"
+          fill="none" stroke="url(#gold-strand)" stroke-width="10"
+          stroke-linecap="round" opacity="0.95"/>
+    <!-- Inner taper toward center -->
+    <path d="M 288 256
+             C 286 270, 274 274, 266 264
+             C 258 254, 260 244, 264 248"
+          fill="none" stroke="#D4A843" stroke-width="6"
+          stroke-linecap="round" opacity="0.9"/>
+  </g>
+
+  <!-- === ETHOS strand (Silver-Blue) — Ethics === -->
+  <!-- Offset 120deg from gold, sweeping from bottom-left -->
+  <g filter="url(#glow-blue)">
+    <path d="M 142 340
+             C 100 272, 108 190, 168 142
+             C 228 94, 310 110, 330 168
+             C 350 226, 310 280, 272 278
+             C 234 276, 224 252, 248 242"
+          fill="none" stroke="url(#blue-strand)" stroke-width="10"
+          stroke-linecap="round" opacity="0.95"/>
+    <path d="M 248 242
+             C 258 236, 266 244, 262 254
+             C 258 264, 252 260, 254 254"
+          fill="none" stroke="#6B8EC2" stroke-width="6"
+          stroke-linecap="round" opacity="0.9"/>
+  </g>
+
+  <!-- === PATHOS strand (Rose) — Growth === -->
+  <!-- Offset 240deg from gold, sweeping from bottom-right -->
+  <g filter="url(#glow-rose)">
+    <path d="M 230 400
+             C 160 392, 106 324, 120 252
+             C 134 180, 196 132, 260 140
+             C 324 148, 348 212, 310 254
+             C 272 296, 242 278, 254 254"
+          fill="none" stroke="url(#rose-strand)" stroke-width="10"
+          stroke-linecap="round" opacity="0.95"/>
+    <path d="M 254 254
+             C 260 246, 268 250, 264 258
+             C 260 266, 254 262, 256 256"
+          fill="none" stroke="#C4727F" stroke-width="6"
+          stroke-linecap="round" opacity="0.9"/>
+  </g>
+
+  <!-- === Overlap glow accents === -->
+  <!-- Gold + Blue intersection = champagne -->
+  <circle cx="320 " cy="178" r="12" fill="#E8D5A0" opacity="0.12" filter="url(#soft-glow)"/>
+  <!-- Blue + Rose intersection = lavender -->
+  <circle cx="170" cy="230" r="12" fill="#A888B8" opacity="0.12" filter="url(#soft-glow)"/>
+  <!-- Rose + Gold intersection = peach -->
+  <circle cx="268" cy="368" r="12" fill="#D8A090" opacity="0.12" filter="url(#soft-glow)"/>
+
+  <!-- === Core convergence point === -->
+  <circle cx="258" cy="254" r="28" fill="url(#core-gradient)" filter="url(#core-glow)" opacity="0.9"/>
+  <circle cx="258" cy="254" r="8" fill="#FFF5E6" opacity="0.95"/>
+
+  <!-- Subtle outer ring to define the iris boundary -->
+  <circle cx="256" cy="256" r="178" fill="none" stroke="#FFF5E6" stroke-width="0.5" opacity="0.08"/>
+</svg>

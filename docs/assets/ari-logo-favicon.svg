@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="fc" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" stop-color="#FFF5E6"/>
+      <stop offset="100%" stop-color="#D4A843" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="fg" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5"/>
+    </filter>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="#0D1117"/>
+
+  <!-- Simplified three-segment spiral -->
+  <!-- Gold (LOGOS) -->
+  <path d="M 38 12 C 52 16, 56 30, 50 38 C 44 46, 36 44, 34 36"
+        fill="none" stroke="#D4A843" stroke-width="3.5" stroke-linecap="round" opacity="0.9"/>
+
+  <!-- Blue (ETHOS) -->
+  <path d="M 14 42 C 10 30, 18 18, 28 14 C 38 10, 44 20, 38 30"
+        fill="none" stroke="#6B8EC2" stroke-width="3.5" stroke-linecap="round" opacity="0.9"/>
+
+  <!-- Rose (PATHOS) -->
+  <path d="M 34 54 C 22 54, 12 44, 14 34 C 16 24, 26 22, 32 30"
+        fill="none" stroke="#C4727F" stroke-width="3.5" stroke-linecap="round" opacity="0.9"/>
+
+  <!-- Core -->
+  <circle cx="33" cy="32" r="6" fill="url(#fc)" filter="url(#fg)" opacity="0.85"/>
+  <circle cx="33" cy="32" r="2" fill="#FFF5E6"/>
+</svg>

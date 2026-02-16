@@ -48,21 +48,57 @@ The three strands glow subtly — they are luminous but not neon. Think biolumin
 
 ---
 
+## SVG Reference Implementation
+
+An SVG version of the logo is available for direct use:
+
+- **Full size (512px):** `docs/assets/ari-logo.svg`
+- **Favicon (64px):** `docs/assets/ari-logo-favicon.svg`
+
+These SVGs implement the exact triple-helix iris design and can be used directly in the README, website, or as a reference when evaluating AI-generated versions.
+
+---
+
 ## Production-Ready Prompts
 
-### DALL-E 3 / GPT-4o
+### DALL-E 3 / GPT Image Gen (2026)
 
-> Minimalist logo mark on a pure black background. A perfectly circular abstract iris composed of three luminous ribbon-like strands that spiral and intertwine in a triple-helix pattern, converging toward a warm glowing center point. The three strands are: warm amber-gold (#D4A843), cool silver-blue (#6B8EC2), and soft rose-coral (#C4727F). The strands are smooth, flowing, and organic — like bioluminescent silk ribbons frozen in a spiral dance. Where the strands overlap, they produce subtle secondary color blends (champagne, lavender, peach). The center convergence point glows with a warm white-gold light (#FFF5E6) that softly illuminates the inner curves of the strands. The overall silhouette is a clean circle. The style is ultra-refined vector-quality with subtle luminous depth — think Pentagram meets Olafur Eliasson. No text. No letters. No mechanical or circuit elements. No brain imagery. No robot face. No chat bubble. No generic AI iconography. The mark should feel alive, warm, intelligent, and protective — like a guardian's watchful eye rendered as pure light geometry. Flat black (#0D1117) background with no gradients or textures on the background itself. The mark should be perfectly centered and occupy 70% of the canvas.
+**Primary prompt — structured for best DALL-E 3 output:**
 
-### Midjourney v6+
+> A single logo mark centered on a solid black (#0D1117) background. The mark is an abstract circular iris shape — NOT a realistic eye — formed by exactly three flowing ribbon-like strands that spiral inward in a triple-helix formation, converging on a warm glowing center point.
+>
+> The three ribbon strands and their exact colors:
+> 1. Warm amber-gold (#D4A843) — represents reason and logic
+> 2. Cool silver-blue (#6B8EC2) — represents ethics and integrity
+> 3. Soft rose-coral (#C4727F) — represents growth and empathy
+>
+> The strands are smooth, organic, and flowing — like bioluminescent silk ribbons frozen mid-spiral. They have subtle luminous glow along their edges. Where two strands cross, soft secondary colors appear: champagne (gold+blue), lavender (blue+rose), warm peach (rose+gold).
+>
+> The center convergence point glows with warm white-gold (#FFF5E6) light that illuminates the inner curves. The overall silhouette is a clean circle occupying 70% of the canvas.
+>
+> Style: ultra-refined vector-quality mark with luminous depth. Think Pentagram brand identity meets Olafur Eliasson light art. Premium, sophisticated, alive.
+>
+> ABSOLUTELY NO: text, letters, words, circuit boards, brain imagery, robot faces, chat bubbles, neural networks, gears, cogs, binary code, mechanical elements, realistic human eye features (no pupil, no eyelashes, no sclera). This is pure abstract light geometry.
 
-> /imagine prompt: minimalist logo mark, pure black background, abstract circular iris made of three intertwined bioluminescent ribbon strands in triple-helix formation spiraling toward warm glowing center, strand colors warm amber-gold and cool silver-blue and soft rose-coral, smooth organic flowing silk-like ribbons, subtle glow where strands overlap creating champagne lavender peach secondary colors, warm white-gold center convergence point, clean circular silhouette, ultra-refined vector quality with luminous depth, Pentagram meets Olafur Eliasson, alive warm intelligent protective, guardian's eye as pure light geometry, no text no letters no circuit no brain no robot no chat bubble no mechanical elements --ar 1:1 --s 750 --style raw --no text letters words circuit brain robot mechanical gear cog neural network chat bubble generic AI imagery wireframe grid
+**Variation prompt — trefoil knot alternative:**
 
-### Ideogram / Stable Diffusion
+> Same as above but replace "circular iris shape" with: "triple-helix trefoil knot — three ribbons intertwining into a continuous loop with no beginning and no end, inspired by a Celtic trinity knot but rendered with flowing luminous silk ribbons instead of rigid lines."
 
-> Logo design, minimalist mark on solid black (#0D1117) background. An abstract iris-shaped symbol composed of three luminous ribbons spiraling in a triple-helix pattern toward a warm glowing center. The three ribbons are amber-gold, silver-blue, and rose-coral, intertwining with organic fluidity like bioluminescent silk. Where they overlap: champagne, lavender, and peach secondary tones. The center glows warm white-gold. Clean circular silhouette. Vector-quality rendering with subtle luminous depth. No text, no letters, no circuitry, no brain, no robot, no neural network, no chat bubble. The feeling is alive, warm, intelligent, protective. Style: premium brand identity, Pentagram quality.
+### Midjourney v7
 
-**Negative prompt:** text, letters, words, typography, font, circuit board, brain, neural network, robot, mechanical, gears, cogs, chat bubble, speech bubble, binary code, matrix, wireframe, grid, generic AI imagery, photorealistic, photograph, human face, human eye, realistic eye, eyeball, pupil, eyelashes, cold, clinical, sterile, neon, cyberpunk, harsh lighting, busy, cluttered, gradients on background
+> /imagine prompt: minimalist premium logo mark on solid black background, abstract circular iris composed of three intertwined bioluminescent silk ribbon strands in triple-helix spiral formation converging toward warm glowing center, strand one warm amber-gold, strand two cool silver-blue, strand three soft rose-coral, smooth organic flowing ribbons with subtle luminous glow, secondary color blends at intersections champagne lavender peach, warm white-gold center convergence point, clean circular silhouette, vector-quality rendering with luminous depth, premium brand identity mark, Pentagram quality, alive warm intelligent protective, pure light geometry --ar 1:1 --s 800 --style raw --q 2 --no text letters words typography font circuit brain neural network robot mechanical gear cog chat bubble speech bubble binary matrix wireframe grid realistic eye eyeball pupil eyelash photograph human face neon cyberpunk
+
+### Ideogram 2.0
+
+> **Prompt:** Premium brand logo mark, solid black (#0D1117) background. Abstract iris-shaped symbol: three luminous ribbon strands spiral in triple-helix formation toward warm glowing center. Strand colors: amber-gold (#D4A843), silver-blue (#6B8EC2), rose-coral (#C4727F). Smooth organic bioluminescent silk ribbons. Secondary overlap colors: champagne, lavender, peach. Center: warm white-gold (#FFF5E6) glow. Clean circular silhouette. Ultra-refined vector quality with luminous depth. Premium, Pentagram-quality brand identity. Alive, warm, intelligent.
+
+> **Negative prompt:** text, letters, words, typography, font, circuit board, brain, neural network, robot, mechanical, gears, cogs, chat bubble, speech bubble, binary code, matrix, wireframe, grid, generic AI imagery, photorealistic, photograph, human face, human eye, realistic eye, eyeball, pupil, eyelashes, iris detail, sclera, cold, clinical, sterile, neon, cyberpunk, harsh lighting, busy, cluttered, background gradients, background textures, multiple objects, border, frame
+
+### Flux / Stable Diffusion 3.5
+
+> **Prompt:** logo design, single mark on pure black background, abstract circular iris symbol made of three glowing ribbon strands spiraling in triple helix toward warm center, amber gold and silver blue and rose coral ribbons, bioluminescent silk texture, soft glow at strand overlaps creating champagne lavender peach secondary colors, warm white gold center convergence, clean circle silhouette, vector quality, premium brand mark, luminous depth, Pentagram quality
+
+> **Negative prompt:** text, words, letters, circuit, brain, neural, robot, mechanical, gears, chat bubble, binary, wireframe, grid, realistic eye, pupil, eyelash, photograph, human, neon, cyberpunk, harsh, cluttered, busy, multiple objects, frame, border
 
 ---
 
@@ -70,7 +106,19 @@ The three strands glow subtly — they are luminous but not neon. Think biolumin
 
 If the iris feels too eye-like, the same triple-helix can be rendered as a **triple-helix knot** — a trefoil-like form where three ribbons intertwine into a continuous loop with no beginning and no end. Think of it as a three-colored Celtic trinity knot reimagined with flowing luminous ribbons instead of rigid lines. Same colors, same philosophy, same scaling behavior — but reads as a knot/loop rather than an eye.
 
-Prompt modification: replace "abstract circular iris" with "abstract triple-helix trefoil knot, three ribbons intertwining into a continuous loop with no beginning and no end, inspired by Celtic trinity knot but rendered with flowing luminous silk ribbons."
+For any prompt above, replace "abstract circular iris" with:
+> "abstract triple-helix trefoil knot, three ribbons intertwining into a continuous loop with no beginning and no end, inspired by Celtic trinity knot but rendered with flowing luminous silk ribbons."
+
+---
+
+## Generation Tips
+
+1. **Run each prompt 4x** — pick the best from the batch. Logo generation is high-variance.
+2. **DALL-E 3 tends to add text** — if it sneaks in letters, append "I repeat: absolutely no text of any kind" to the end.
+3. **Midjourney v7 --style raw** prevents it from adding its own artistic interpretation. Use it.
+4. **If strands merge visually**, try adding: "each strand is a distinctly separate ribbon with clear space between them."
+5. **If too eye-like** (with pupil/iris detail), add: "this is NOT a realistic eye, it is a geometric pattern of flowing ribbons."
+6. **Post-processing:** Upscale the best result with Topaz Gigapixel or similar. Then trace in Figma/Illustrator for final vector.
 
 ---
 
