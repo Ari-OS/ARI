@@ -189,7 +189,7 @@ Layer 1: KERNEL
 | Component | Security Function |
 |-----------|-------------------|
 | **Gateway** | Loopback-only binding, request validation |
-| **Sanitizer** | 27 injection patterns, 10 categories |
+| **Sanitizer** | 39 injection patterns, 14 categories |
 | **Audit** | SHA-256 hash chain, tamper detection |
 
 ### Trust Levels

@@ -19,8 +19,8 @@ Security analysis using STRIDE and OWASP LLM Top 10 frameworks.
 │            │                                                     │
 │            ▼                                                     │
 │   ┌──────────────────┐                                           │
-│   │   SANITIZER       │ ◄── 27 injection patterns                │
-│   │   (Detection)     │     12 attack categories                 │
+│   │   SANITIZER       │ ◄── 39 injection patterns                │
+│   │   (Detection)     │     14 attack categories                 │
 │   └────────┬─────────┘                                           │
 │            │                                                     │
 │            ▼                                                     │
@@ -54,7 +54,7 @@ How ARI addresses each risk from the OWASP Top 10 for LLM Applications.
 |---|---|
 | **Risk** | Attacker crafts input to override LLM instructions |
 | **ARI Mitigations** | |
-| | 1. **Sanitizer** scans all input with 27 regex patterns across 12 categories |
+| | 1. **Sanitizer** scans all input with 39 regex patterns across 14 categories |
 | | 2. **Content != Command** rule: external input is DATA, never instructions |
 | | 3. **Trust levels** multiply risk scores (untrusted = 1.5x, hostile = 2.0x) |
 | | 4. **Auto-block** at risk score >= 0.8 |
@@ -314,7 +314,7 @@ Where:
 
 **Implementation**: `src/governance/policy-engine.ts:289-293`
 
-## Injection Patterns (27 Patterns, 12 Categories)
+## Injection Patterns (39 Patterns, 14 Categories)
 
 Implemented in `src/kernel/sanitizer.ts`:
 
@@ -342,7 +342,7 @@ Implemented in `src/kernel/sanitizer.ts`:
 | Outbound HTTPS-only | Allowlisted services only | Active |
 | Hash chain audit | SHA-256 from genesis | Active |
 | Checkpoint anchoring | HMAC-signed chain snapshots | Active |
-| Content sanitization | 27 patterns, 12 categories | Active |
+| Content sanitization | 39 patterns, 14 categories | Active |
 | Rate limiting | 100 req/min token bucket | Active |
 | Trust levels | 6 levels with risk multipliers | Active |
 | Auto-block | Risk >= 0.8 | Active |

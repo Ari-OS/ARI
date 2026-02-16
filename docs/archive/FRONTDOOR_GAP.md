@@ -66,7 +66,7 @@ await this.app.listen({ port: this.port, host: '127.0.0.1' });
 
 ### 2. Content ≠ Command
 **Location**: `src/kernel/sanitizer.ts`
-**Status**: ✅ Enforced — 27 injection patterns, binary accept/reject
+**Status**: ✅ Enforced — 39 injection patterns, binary accept/reject
 
 ### 3. Audit Immutable
 **Location**: `src/kernel/audit.ts`
@@ -89,7 +89,7 @@ await this.app.listen({ port: this.port, host: '127.0.0.1' });
 | Layer | Component | Status | Notes |
 |-------|-----------|--------|-------|
 | Kernel | Gateway | ✅ Complete | Fastify, loopback-only |
-| Kernel | Sanitizer | ✅ Complete | 27 patterns, 10 categories |
+| Kernel | Sanitizer | ✅ Complete | 39 patterns, 14 categories |
 | Kernel | Audit | ✅ Complete | SHA-256 hash chain |
 | Kernel | EventBus | ✅ Complete | Typed pub/sub |
 | Kernel | Config | ✅ Complete | Zod-validated |

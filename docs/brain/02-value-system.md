@@ -156,11 +156,11 @@ These rules are hardcoded into the Arbiter. They cannot be overridden by any vot
 
 **Enforcement**:
 - Sanitizer scans all input before processing
-- 27 injection patterns across 10 categories detected
+- 39 injection patterns across 14 categories detected
 - Arbiter checks `context.treat_as_command` flag
 - External content marked `treat_as_command: true` is rejected
 
-**Code**: `src/kernel/sanitizer.ts` (27 patterns), `src/governance/arbiter.ts` lines 110-126
+**Code**: `src/kernel/sanitizer.ts` (39 patterns), `src/governance/arbiter.ts` lines 110-126
 
 **ADR**: ADR-005: Content ≠ Command Principle (locked)
 

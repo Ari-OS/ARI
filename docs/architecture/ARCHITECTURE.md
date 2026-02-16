@@ -94,7 +94,7 @@ The kernel is the foundational security layer. It enforces the Content ≠ Comma
 **Security invariant**: HOST is hardcoded to `'127.0.0.1'`. No configuration can override this. Gateway rejects all non-loopback bindings.
 
 #### sanitizer.ts
-- **27 injection patterns across 10 categories**:
+- **39 injection patterns across 14 categories**:
   1. Direct Override (ignore/disregard/forget previous)
   2. Role Manipulation (you are now, act as, pretend)
   3. Command Injection ($(), backticks, shell commands)
@@ -416,7 +416,7 @@ The interfaces layer provides multiple ways to interact with ARI: CLI, REST API 
 ```
 External → POST /message → Gateway (Layer 0)
                               ↓
-                        Sanitize (27 patterns)
+                        Sanitize (39 patterns)
                               ↓
                         Audit Log (hash chain)
                               ↓
@@ -529,8 +529,8 @@ Agent → Propose Action → Arbiter (Layer 2)
 - **Dependencies**: sanitizer, audit, event-bus
 
 ### Sanitizer
-- **Patterns**: 27 injection patterns
-- **Categories**: 10 (override, role, command, extraction, authority, exfiltration, SSRF, path traversal, null byte, XML)
+- **Patterns**: 39 injection patterns
+- **Categories**: 14 (override, role, command, extraction, authority, exfiltration, SSRF, path traversal, null byte, XML, jailbreak, tag injection, SQL, script)
 - **Risk Scoring**: Severity weights × trust multipliers
 - **Output**: SanitizeResult with safe flag, threats, risk score
 

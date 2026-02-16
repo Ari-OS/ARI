@@ -138,7 +138,7 @@ ARI follows a seven-layer architecture with strict unidirectional dependencies. 
 | **Core** | Agent coordination and execution | Guardian (threat detection), Planner (task decomposition), Executor (tool invocation), Memory Manager (provenance tracking) |
 | **Strategic** | Governance and quality control | Council (15-member voting), Arbiter (6 constitutional rules), Overseer (5 quality gates) |
 | **Execution** | Process lifecycle | Daemon (macOS launchd integration) |
-| **Interfaces** | User interaction | CLI (18 commands), Dashboard (React), Integrations |
+| **Interfaces** | User interaction | CLI (23 commands), Dashboard (React), Integrations |
 
 ---
 
@@ -367,7 +367,7 @@ src/
 │   └── git-sync.ts   # Repository synchronization
 │
 └── cli/              # Layer 6: User interface
-    └── commands/     # 12 CLI commands
+    └── commands/     # 23 CLI commands
 
 tests/
 ├── unit/             # Component tests by layer
@@ -386,7 +386,7 @@ npm run dev                # Watch mode
 npm run clean              # Remove dist/
 
 # Test
-npm test                   # Run 4654 tests
+npm test                   # Run 4885 tests
 npm run test:watch         # Watch mode
 npm run test:coverage      # Coverage report
 

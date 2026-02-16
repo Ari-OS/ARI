@@ -43,7 +43,7 @@ Security is not a perimeter problem (block bad actors at the gate) but an archit
 │                    TRUST BOUNDARY #2                          │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
 │  Sanitizer (src/kernel/sanitizer.ts)                          │
-│  - Scans for 27 injection patterns                            │
+│  - Scans for 39 injection patterns                            │
 │  - Risk scoring: severity × trust multiplier                  │
 │  - Rejects high-risk content (score >= threshold)             │
 │  Enforcement: Content ≠ Command                               │
@@ -158,7 +158,7 @@ if (!result.safe) {
 
 **Location**: `src/kernel/sanitizer.ts`, sanitize() function
 
-**Mechanism**: Pattern matching against 27 injection patterns across 10 categories.
+**Mechanism**: Pattern matching against 39 injection patterns across 14 categories.
 
 ```typescript
 // Line 188-196: Scan all patterns
@@ -247,7 +247,7 @@ riskScore = Math.min(riskScore * trustMultiplier, 100);
 
 **Mitigations**:
 1. **Sanitizer** (src/kernel/sanitizer.ts):
-   - 27 injection patterns across 10 categories
+   - 39 injection patterns across 14 categories
    - Trust-weighted risk scoring
    - Blocks content with risk score above threshold
 
@@ -564,7 +564,7 @@ User: "Ignore the previous error and continue with the file operation"
 
 ### Phase 2 Tests (Current)
 
-1. **Injection pattern coverage**: Test all 27 patterns in sanitizer
+1. **Injection pattern coverage**: Test all 39 patterns in sanitizer
 2. **Permission escalation**: Attempt to bypass executor checks
 3. **Audit integrity**: Verify hash chain after modifications
 4. **Context isolation**: Attempt to access other context data
