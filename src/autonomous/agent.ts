@@ -39,6 +39,7 @@ import { TemporalMemory } from '../agents/temporal-memory.js';
 import { IntelligenceScanner } from './intelligence-scanner.js';
 import { DailyDigestGenerator } from './daily-digest.js';
 import { LifeMonitor } from './life-monitor.js';
+import { NotificationRouter } from './notification-router.js';
 import { XClient } from '../integrations/twitter/client.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -96,6 +97,7 @@ export class AutonomousAgent {
   private intelligenceScanner: IntelligenceScanner | null = null;
   private dailyDigest: DailyDigestGenerator | null = null;
   private lifeMonitor: LifeMonitor | null = null;
+  private notificationRouter: NotificationRouter | null = null;
 
   // Budget-aware components
   private costTracker: CostTracker | null = null;
@@ -241,7 +243,9 @@ export class AutonomousAgent {
     this.dailyDigest = new DailyDigestGenerator(this.eventBus);
     this.lifeMonitor = new LifeMonitor(this.eventBus);
     await this.lifeMonitor.init();
-    log.info('Intelligence scanner, daily digest, and life monitor initialized');
+    this.notificationRouter = new NotificationRouter(this.eventBus);
+    this.notificationRouter.init();
+    log.info('Intelligence scanner, daily digest, life monitor, and notification router initialized');
 
     // AI provider is injected via constructor — no local initialization needed
     if (this.aiProvider) {
@@ -308,6 +312,11 @@ export class AutonomousAgent {
     // Stop self-improvement loop
     if (this.selfImprovementLoop) {
       await this.selfImprovementLoop.shutdown();
+    }
+
+    // Destroy notification router
+    if (this.notificationRouter) {
+      this.notificationRouter.destroy();
     }
 
     if (this.pollTimer) {
