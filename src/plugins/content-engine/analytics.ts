@@ -79,11 +79,13 @@ export class ContentAnalytics {
   /**
    * Get top performing content by engagement rate
    */
-  getTopPerformers(count: number): ContentMetric[] {
+  async getTopPerformers(count: number): Promise<ContentMetric[]> {
     const allMetrics = [...this.metrics.values()];
-    return allMetrics
-      .sort((a, b) => b.performanceScore - a.performanceScore)
-      .slice(0, count);
+    return Promise.resolve(
+      allMetrics
+        .sort((a, b) => b.performanceScore - a.performanceScore)
+        .slice(0, count)
+    );
   }
 
   /**

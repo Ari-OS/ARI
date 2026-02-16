@@ -91,11 +91,11 @@ describe('EngagementBot', () => {
       tweets: [
         {
           id: 'tweet-789',
-          text: 'Building an AI agent system for solopreneurs. Here\'s my detailed approach and architecture... https://blog.example.com with lots of substantive content and details.',
+          text: 'Building an AI automation system for indie hackers and solopreneurs in TypeScript. Here\'s my detailed approach with multi-agent architecture design patterns https://blog.example.com explaining the coordination layer for AI agents.',
           authorId: 'user-3',
           authorUsername: 'ai_expert',
           createdAt: new Date().toISOString(),
-          metrics: { likes: 100, retweets: 50, replies: 25, impressions: 5000 },
+          metrics: { likes: 500, retweets: 250, replies: 125, impressions: 10000 },
           urls: ['https://blog.example.com'],
           hashtags: ['AI', 'automation'],
         },

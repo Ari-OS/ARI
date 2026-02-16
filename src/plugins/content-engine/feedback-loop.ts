@@ -22,8 +22,8 @@ export class FeedbackLoop {
   /**
    * Analyze content performance and generate insights
    */
-  analyze(): FeedbackInsight[] {
-    const topPerformers = this.analytics.getTopPerformers(10);
+  async analyze(): Promise<FeedbackInsight[]> {
+    const topPerformers = await this.analytics.getTopPerformers(10);
     const avgPerformance = this.analytics.getAveragePerformance();
 
     if (topPerformers.length === 0) {
@@ -99,7 +99,7 @@ export class FeedbackLoop {
       category: 'hook',
       insight: 'Top-performing content shows strong opening hooks',
       evidence: [`Average top 3 score: ${topAvg.toFixed(1)}`, `Average overall: ${avgPerformance.toFixed(1)}`],
-      recommendation: 'Lead with questions, bold claims, or pattern interrupts. Avoid generic openings.',
+      recommendation: 'Lead with strong hooks: questions, bold claims, or pattern interrupts. Avoid generic openings.',
       confidence: Math.min(improvement * 2, 100),
       generatedAt: new Date().toISOString(),
     });
