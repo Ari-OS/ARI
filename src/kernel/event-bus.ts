@@ -273,6 +273,7 @@ export interface EventMap {
   // Value-generating events (tracked for scoring)
   'briefing:morning_delivered': { date: string };
   'briefing:evening_delivered': { date: string };
+  'briefing:weekly_delivered': { date: string; weekNumber: number };
   'test:generated': { file: string; testCount: number };
   'doc:written': { file: string; wordCount: number };
   'bug:fixed': { description: string; file: string };

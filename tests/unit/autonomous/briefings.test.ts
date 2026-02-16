@@ -512,6 +512,148 @@ describe('BriefingGenerator', () => {
   });
 });
 
+describe('EventBus integration', () => {
+  let generatorWithBus: BriefingGenerator;
+  let mockEmit: ReturnType<typeof vi.fn>;
+  let mockEventBus: { emit: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-31T12:00:00Z'));
+
+    mockEmit = vi.fn();
+    mockEventBus = { emit: mockEmit, on: vi.fn() } as unknown as typeof mockEventBus;
+
+    mockProcessQueue.mockResolvedValue({ processed: 0, sent: 0 });
+    mockNotify.mockResolvedValue({ sent: true });
+    mockLogActivity.mockResolvedValue(undefined);
+    mockGetTodayAudit.mockResolvedValue({
+      date: '2026-01-31',
+      activities: [{ title: 'Task 1', outcome: 'success', type: 'task' }],
+      highlights: [],
+      issues: [],
+    });
+
+    generatorWithBus = new BriefingGenerator(
+      mockNotificationManager,
+      mockEventBus as unknown as import('../../../src/kernel/event-bus.js').EventBus,
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('should emit briefing:morning_delivered after morning briefing', async () => {
+    await generatorWithBus.morningBriefing();
+
+    expect(mockEmit).toHaveBeenCalledWith('briefing:morning_delivered', {
+      date: '2026-01-31',
+    });
+  });
+
+  it('should emit briefing:evening_delivered after evening summary', async () => {
+    mockNotionGetTodayEntries.mockResolvedValue([]);
+
+    await generatorWithBus.eveningSummary();
+
+    expect(mockEmit).toHaveBeenCalledWith('briefing:evening_delivered', {
+      date: '2026-01-31',
+    });
+  });
+
+  it('should emit briefing:weekly_delivered after weekly review', async () => {
+    mockNotionIsReady.mockReturnValue(false);
+
+    await generatorWithBus.weeklyReview();
+
+    expect(mockEmit).toHaveBeenCalledWith('briefing:weekly_delivered', expect.objectContaining({
+      date: '2026-01-31',
+      weekNumber: expect.any(Number),
+    }));
+  });
+
+  it('should not emit events when eventBus is not provided', async () => {
+    const genNobus = new BriefingGenerator(mockNotificationManager);
+    await genNobus.morningBriefing();
+
+    // No emit calls since no eventBus
+    expect(mockEmit).not.toHaveBeenCalled();
+  });
+});
+
+describe('evening Telegram delivery', () => {
+  let generator: BriefingGenerator;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-31T12:00:00Z'));
+
+    mockProcessQueue.mockResolvedValue({ processed: 0, sent: 0 });
+    mockNotify.mockResolvedValue({ sent: true });
+    mockLogActivity.mockResolvedValue(undefined);
+    mockGetTodayAudit.mockResolvedValue({
+      date: '2026-01-31',
+      activities: [
+        { title: 'Task 1', outcome: 'success', type: 'task' },
+        { title: 'Task 2', outcome: 'failure', type: 'task' },
+      ],
+      highlights: ['Big feature done'],
+      issues: [],
+    });
+    mockNotionGetTodayEntries.mockResolvedValue([]);
+
+    generator = new BriefingGenerator(mockNotificationManager);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('should send evening summary via Telegram', async () => {
+    await generator.eveningSummary();
+
+    expect(mockNotify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: 'daily',
+        title: 'Evening Summary',
+        priority: 'low',
+      })
+    );
+  });
+
+  it('should include highlights in evening Telegram message', async () => {
+    await generator.eveningSummary();
+
+    expect(mockNotify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.stringContaining('Big feature done'),
+      })
+    );
+  });
+
+  it('should include open issues in evening Telegram message', async () => {
+    mockGetTodayAudit.mockResolvedValueOnce({
+      date: '2026-01-31',
+      activities: [
+        { title: 'Deploy Failed', outcome: 'failure', type: 'task' },
+      ],
+      highlights: [],
+      issues: [],
+    });
+
+    await generator.eveningSummary();
+
+    expect(mockNotify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.stringContaining('failed'),
+      })
+    );
+  });
+});
+
 describe('createBriefingGenerator()', () => {
   it('should create BriefingGenerator instance', () => {
     const manager = {} as NotificationManager;

@@ -45,6 +45,7 @@ export interface BriefingResult {
 
 export class BriefingGenerator {
   private notificationManager: NotificationManager;
+  private eventBus: EventBus | null = null;
   private notion: NotionInbox | null = null;
   private changelogGenerator: ChangelogGenerator | null = null;
   private timezone = 'America/Indiana/Indianapolis';
@@ -52,6 +53,7 @@ export class BriefingGenerator {
   constructor(notificationManager: NotificationManager, eventBus?: EventBus) {
     this.notificationManager = notificationManager;
     if (eventBus) {
+      this.eventBus = eventBus;
       this.changelogGenerator = new ChangelogGenerator(eventBus, process.cwd());
     }
   }
@@ -126,6 +128,11 @@ export class BriefingGenerator {
       }
     );
 
+    // Emit event so value analytics and other systems can track delivery
+    this.eventBus?.emit('briefing:morning_delivered', {
+      date: now.toISOString().split('T')[0],
+    });
+
     return {
       success: true,
       notionPageId,
@@ -147,10 +154,9 @@ export class BriefingGenerator {
       metrics: this.buildDayMetrics(auditData),
     };
 
-    // Evening is Notion only (no SMS during quiet hours transition)
+    // Append to Notion daily log if available
     let notionPageId: string | undefined;
     if (this.notion?.isReady()) {
-      // Append to today's log instead of creating new
       const todayEntries = await this.notion.getTodayEntries();
       if (todayEntries.length > 0) {
         await this.notion.addNote(
@@ -161,6 +167,15 @@ export class BriefingGenerator {
       }
     }
 
+    // Send evening summary via Telegram for build session prep
+    const eveningMessage = this.formatEveningSummary(content);
+    await this.notificationManager.notify({
+      category: 'daily',
+      title: 'Evening Summary',
+      body: eveningMessage,
+      priority: 'low',
+    });
+
     await dailyAudit.logActivity(
       'system_event',
       'Evening Summary',
@@ -170,6 +185,11 @@ export class BriefingGenerator {
         details: { type: 'evening', notionPageId },
       }
     );
+
+    // Emit event for value analytics tracking
+    this.eventBus?.emit('briefing:evening_delivered', {
+      date: new Date().toISOString().split('T')[0],
+    });
 
     return {
       success: true,
@@ -205,6 +225,14 @@ export class BriefingGenerator {
       })) ?? undefined;
     }
 
+    // Send weekly review via Telegram
+    await this.notificationManager.notify({
+      category: 'daily',
+      title: 'Weekly Review',
+      body: `${content.summary}\n\n${content.actionItems?.map(a => `- ${a}`).join('\n') ?? ''}`,
+      priority: 'normal',
+    });
+
     await dailyAudit.logActivity(
       'system_event',
       'Weekly Review',
@@ -214,6 +242,16 @@ export class BriefingGenerator {
         details: { type: 'weekly', notionPageId },
       }
     );
+
+    // Emit event for value analytics tracking
+    const now = new Date();
+    const weekNumber = Math.ceil(
+      (now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)
+    );
+    this.eventBus?.emit('briefing:weekly_delivered', {
+      date: now.toISOString().split('T')[0],
+      weekNumber,
+    });
 
     return {
       success: true,
@@ -401,6 +439,30 @@ export class BriefingGenerator {
     // Dedupe and suggest top 3
     const unique = [...new Set(failedTasks)];
     return unique.slice(0, 3).map((t) => `Retry: ${t}`);
+  }
+
+  private formatEveningSummary(content: BriefingContent): string {
+    const parts: string[] = [];
+
+    parts.push(content.summary);
+
+    if (content.highlights.length > 0) {
+      parts.push('');
+      parts.push('Highlights:');
+      content.highlights.slice(0, 3).forEach(h => {
+        parts.push(`- ${h}`);
+      });
+    }
+
+    if (content.issues.length > 0) {
+      parts.push('');
+      parts.push('Open issues:');
+      content.issues.slice(0, 3).forEach(i => {
+        parts.push(`- ${i}`);
+      });
+    }
+
+    return parts.join('\n');
   }
 
   private formatMorningSMS(

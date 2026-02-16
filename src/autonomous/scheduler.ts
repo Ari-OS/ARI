@@ -136,7 +136,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'morning-briefing',
     name: 'Morning Briefing',
-    cron: '0 7 * * *', // 7:00 AM daily
+    cron: '30 6 * * *', // 6:30 AM daily
     handler: 'morning_briefing',
     enabled: true,
     essential: true, // User-facing deliverable

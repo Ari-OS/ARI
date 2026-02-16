@@ -229,6 +229,17 @@ export class AutonomousAgent {
     // Initialize briefing generator for scheduled reports
     this.briefingGenerator = new BriefingGenerator(notificationManager, this.eventBus);
 
+    // Wire Notion daily logs into briefing generator if configured
+    if (process.env.NOTION_API_KEY && process.env.NOTION_DAILY_LOG_PARENT_ID) {
+      const notionReady = await this.briefingGenerator.initNotion({
+        enabled: true,
+        apiKey: process.env.NOTION_API_KEY,
+        inboxDatabaseId: process.env.NOTION_INBOX_DATABASE_ID,
+        dailyLogParentId: process.env.NOTION_DAILY_LOG_PARENT_ID,
+      });
+      log.info({ notionReady }, 'Briefing Notion integration initialized');
+    }
+
     // Initialize intelligence scanner + daily digest
     const xClient = new XClient({
       enabled: !!process.env.X_BEARER_TOKEN,
