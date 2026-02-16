@@ -87,6 +87,7 @@ export async function installDaemon(options: DaemonOptions = {}): Promise<void> 
     'NOTION_API_KEY', 'NOTION_INBOX_DATABASE_ID', 'NOTION_DAILY_LOG_PARENT_ID', 'NOTION_TASKS_DATABASE_ID',
     'X_BEARER_TOKEN', 'X_USER_ID', 'ALPHA_VANTAGE_API_KEY', 'ELEVENLABS_API_KEY', 'COINGECKO_API_KEY',
     'GITHUB_TOKEN', 'WEATHER_API_KEY', 'PERPLEXITY_API_KEY', 'WEATHER_LOCATION',
+    'GMAIL_EMAIL', 'GMAIL_APP_PASSWORD',
   ];
   let envPlistEntries = '';
   try {

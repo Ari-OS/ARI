@@ -69,7 +69,7 @@ export class DraftQueue {
     const updated: ContentDraft = {
       ...draft,
       status,
-      reviewedAt: ['approved', 'rejected', 'edited'].includes(status) ? now : draft.reviewedAt,
+      reviewedAt: ['approved', 'rejected', 'edited', 'scheduled'].includes(status) ? now : draft.reviewedAt,
       publishedAt: status === 'published' ? now : draft.publishedAt,
       rejectionReason: status === 'rejected' ? reason : draft.rejectionReason,
     };
@@ -102,6 +102,10 @@ export class DraftQueue {
 
   getApproved(): ContentDraft[] {
     return [...this.drafts.values()].filter((d) => d.status === 'approved');
+  }
+
+  getScheduled(): ContentDraft[] {
+    return [...this.drafts.values()].filter((d) => d.status === 'scheduled');
   }
 
   getAll(): ContentDraft[] {

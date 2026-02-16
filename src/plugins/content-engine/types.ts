@@ -10,6 +10,7 @@ export const DraftStatusSchema = z.enum([
   'approved',        // Pryce approved
   'edited',          // Pryce requested edits
   'rejected',        // Pryce rejected
+  'scheduled',       // Approved and scheduled for publishing
   'published',       // Posted to platform
   'archived',        // Done
 ]);
@@ -109,3 +110,75 @@ export const PLATFORM_CONSTRAINTS: Record<ContentPlatform, { maxChars: number; m
   blog_outline: { maxChars: 3000, maxParts: 1 },
   quick_take: { maxChars: 280, maxParts: 1 },
 };
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Buying intent monitoring
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const BuyingIntentMatchSchema = z.object({
+  id: z.string(),
+  tweetId: z.string(),
+  authorUsername: z.string(),
+  authorFollowers: z.number(),
+  tweetText: z.string(),
+  matchedKeywords: z.array(z.string()),
+  score: z.number().min(0).max(100),
+  detectedAt: z.string(),
+  status: z.enum(['pending', 'drafted', 'approved', 'replied', 'skipped']),
+  draftReplyId: z.string().optional(),
+});
+export type BuyingIntentMatch = z.infer<typeof BuyingIntentMatchSchema>;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Content analytics
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const ContentMetricSchema = z.object({
+  id: z.string(),
+  draftId: z.string(),
+  platform: ContentPlatformSchema,
+  publishedIds: z.array(z.string()),
+  publishedAt: z.string(),
+  collectedAt: z.string(),
+  metrics: z.object({
+    impressions: z.number(),
+    likes: z.number(),
+    retweets: z.number(),
+    replies: z.number(),
+    engagementRate: z.number(),
+  }),
+  performanceScore: z.number().min(0).max(100),
+});
+export type ContentMetric = z.infer<typeof ContentMetricSchema>;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Feedback insights
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const FeedbackInsightSchema = z.object({
+  id: z.string(),
+  category: z.enum(['topic', 'hook', 'format', 'timing', 'cta']),
+  insight: z.string(),
+  evidence: z.array(z.string()),
+  recommendation: z.string(),
+  confidence: z.number().min(0).max(100),
+  generatedAt: z.string(),
+});
+export type FeedbackInsight = z.infer<typeof FeedbackInsightSchema>;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Engagement opportunities
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const EngagementOpportunitySchema = z.object({
+  id: z.string(),
+  type: z.enum(['like', 'retweet', 'quote_tweet', 'reply']),
+  tweetId: z.string(),
+  authorUsername: z.string(),
+  tweetText: z.string(),
+  relevanceScore: z.number().min(0).max(100),
+  draftedAction: z.string().optional(),
+  status: z.enum(['pending', 'approved', 'executed', 'skipped']),
+  detectedAt: z.string(),
+});
+export type EngagementOpportunity = z.infer<typeof EngagementOpportunitySchema>;
