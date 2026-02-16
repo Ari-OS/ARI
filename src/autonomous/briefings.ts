@@ -35,6 +35,7 @@ import { EventBus } from '../kernel/event-bus.js';
 import type { NotionConfig } from './types.js';
 import type { DailyDigest } from './daily-digest.js';
 import type { LifeMonitorReport } from './life-monitor.js';
+import type { GovernanceSnapshot } from './governance-reporter.js';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -63,6 +64,7 @@ export interface MorningBriefingContext {
     matchScore: number;
     remote: boolean;
   }> | null;
+  governance?: GovernanceSnapshot | null;
 }
 
 export interface EveningContext {
@@ -407,6 +409,64 @@ export class BriefingGenerator {
         lines.push(`▸ ${this.esc(issue)}`);
       }
       lines.push('');
+    }
+
+    // ── Governance Activity ──
+    if (context?.governance) {
+      const gov = context.governance;
+      const totalVotes = gov.council.votesCompleted;
+      const { passed, failed, vetoed } = gov.council.outcomes;
+      const hasActivity = totalVotes > 0 || gov.arbiter.evaluations > 0 || gov.overseer.gatesChecked > 0;
+
+      if (hasActivity) {
+        lines.push('<b>⚖️ Governance</b>');
+
+        // Council vote summary
+        if (totalVotes > 0) {
+          const parts: string[] = [];
+          if (passed > 0) parts.push(`${passed} passed`);
+          if (failed > 0) parts.push(`${failed} failed`);
+          if (vetoed > 0) parts.push(`${vetoed} vetoed`);
+          lines.push(`▸ Council: ${totalVotes} vote${totalVotes !== 1 ? 's' : ''} (${parts.join(', ')})`);
+        }
+
+        // Veto details
+        for (const veto of gov.council.vetoes.slice(0, 2)) {
+          lines.push(`▸ Veto: ${this.esc(veto.vetoer)} blocked ${this.esc(veto.domain)} — ${this.esc(veto.reason.slice(0, 80))}`);
+        }
+
+        // Open votes needing attention
+        const urgentVotes = gov.council.openVotes.filter(v => v.deadlineMs < 24 * 60 * 60 * 1000);
+        if (urgentVotes.length > 0) {
+          lines.push(`▸ ⏰ ${urgentVotes.length} open vote${urgentVotes.length !== 1 ? 's' : ''} (deadline &lt; 24h)`);
+        }
+
+        // Arbiter compliance
+        if (gov.arbiter.evaluations > 0) {
+          const rate = Math.round(gov.arbiter.complianceRate * 100);
+          if (gov.arbiter.violations > 0) {
+            lines.push(`▸ Arbiter: ${gov.arbiter.violations} violation${gov.arbiter.violations !== 1 ? 's' : ''} (${rate}% compliant)`);
+          } else {
+            lines.push(`▸ Arbiter: ${gov.arbiter.evaluations} eval${gov.arbiter.evaluations !== 1 ? 's' : ''}, ${rate}% compliant`);
+          }
+        }
+
+        // Quality gates
+        if (gov.overseer.gatesChecked > 0) {
+          if (gov.overseer.gatesFailed > 0) {
+            lines.push(`▸ 🔴 ${gov.overseer.gatesFailed} quality gate${gov.overseer.gatesFailed !== 1 ? 's' : ''} failing`);
+          } else {
+            lines.push(`▸ Gates: ${gov.overseer.gatesPassed}/${gov.overseer.gatesChecked} passing`);
+          }
+        }
+
+        // Pipeline throughput
+        if (gov.pipeline.totalEvents > 10) {
+          lines.push(`▸ Pipeline: ${gov.pipeline.totalEvents} governance events`);
+        }
+
+        lines.push('');
+      }
     }
 
     // ── Closing ──

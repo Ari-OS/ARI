@@ -207,6 +207,65 @@ describe('BriefingGenerator', () => {
       expect(result.success).toBe(true);
     });
 
+    it('should include governance section when snapshot provided', async () => {
+      await generator.morningBriefing({
+        governance: {
+          period: { start: Date.now() - 86400000, end: Date.now() },
+          council: {
+            votesCreated: 3,
+            votesCompleted: 3,
+            outcomes: { passed: 2, failed: 0, expired: 0, vetoed: 1 },
+            openVotes: [],
+            vetoes: [{ vetoer: 'AEGIS', domain: 'security', reason: 'Risk too high' }],
+            topicsSummary: ['Deploy change', 'Config update', 'API expansion'],
+          },
+          arbiter: { evaluations: 12, violations: 0, violationsByRule: {}, complianceRate: 1.0 },
+          overseer: { gatesChecked: 5, gatesPassed: 5, gatesFailed: 0, failedGates: [] },
+          pipeline: { totalEvents: 47, eventsByType: {} },
+        },
+      });
+
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          telegramHtml: expect.stringContaining('Governance'),
+        })
+      );
+      // Check council votes rendered
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          telegramHtml: expect.stringContaining('2 passed'),
+        })
+      );
+      // Check veto rendered
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          telegramHtml: expect.stringContaining('AEGIS'),
+        })
+      );
+    });
+
+    it('should omit governance section when no activity', async () => {
+      await generator.morningBriefing({
+        governance: {
+          period: { start: Date.now() - 86400000, end: Date.now() },
+          council: {
+            votesCreated: 0, votesCompleted: 0,
+            outcomes: { passed: 0, failed: 0, expired: 0, vetoed: 0 },
+            openVotes: [], vetoes: [], topicsSummary: [],
+          },
+          arbiter: { evaluations: 0, violations: 0, violationsByRule: {}, complianceRate: 1.0 },
+          overseer: { gatesChecked: 0, gatesPassed: 0, gatesFailed: 0, failedGates: [] },
+          pipeline: { totalEvents: 0, eventsByType: {} },
+        },
+      });
+
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          telegramHtml: expect.not.stringContaining('Governance'),
+        })
+      );
+    });
+
     it('should set higher priority when issues exist', async () => {
       mockGetTodayAudit.mockResolvedValueOnce({
         date: '2026-01-31',
