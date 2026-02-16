@@ -292,6 +292,7 @@ export class AutonomousAgent {
     // Initialize market monitor with Pryce's watchlist
     this.marketMonitor = new MarketMonitor(this.eventBus, {
       alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY,
+      cryptoApiKey: process.env.COINGECKO_API_KEY,
     });
     // Bootstrap watchlist with tracked assets
     const watchlistAssets: Array<{ asset: string; assetClass: string }> = [
