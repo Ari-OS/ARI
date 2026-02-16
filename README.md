@@ -1,17 +1,10 @@
 <div align="center">
 
-<pre>
- █████╗ ██████╗ ██╗
-██╔══██╗██╔══██╗██║
-███████║██████╔╝██║
-██╔══██║██╔══██╗██║
-██║  ██║██║  ██║██║
-╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
-</pre>
+<img src="assets/branding/ari-logo.jpg" alt="ARI — Triple-Helix Iris" width="200">
 
-**Artificial Reasoning Intelligence**
+### Artificial Reasoning Intelligence
 
-*Your Life Operating System*
+**Your Life Operating System**
 
 <br>
 
@@ -94,8 +87,8 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 
 **Developer Experience**
 - 24 CLI commands
-- 5,460+ tests across 218 files
-- 310+ TypeScript files
+- 5,600+ tests across 238 files
+- 333 TypeScript source files
 - 100,000+ lines of code
 - Cognitive layer (LOGOS/ETHOS/PATHOS)
 
@@ -516,27 +509,10 @@ See our [Code of Conduct](CODE_OF_CONDUCT.md) for community standards.
 
 <br>
 
-<table>
-<tr>
-<td align="center">
-
-***"The shadow reveals truth."***
-
-What you suppress controls you.<br>
-What you observe, you can understand.<br>
-What you understand, you can master.
-
-ARI doesn't hide failures.<br>
-Every one is logged, learned from, and moved past.
-
-</td>
-</tr>
-</table>
+*"The shadow reveals truth. What you suppress controls you. What you observe, you can understand. What you understand, you can master."*
 
 <br>
 
-**[Pryce Hedrick](https://github.com/PryceHedrick)** — Creator
-
-**[Pryceless Solutions](https://prycehedrick.com)**
+Built by **[Pryce Hedrick](https://github.com/PryceHedrick)** · **[Pryceless Solutions](https://prycehedrick.com)**
 
 </div>
