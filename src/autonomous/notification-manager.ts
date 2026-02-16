@@ -49,7 +49,8 @@ export type NotificationCategory =
   | 'budget'          // Budget thresholds and alerts
   | 'billing'         // Billing cycle events
   | 'value'           // Value analytics
-  | 'adaptive';       // Adaptive learning recommendations
+  | 'adaptive'        // Adaptive learning recommendations
+  | 'governance';     // Council votes, arbiter rulings, oversight
 
 export interface NotificationRequest {
   category: NotificationCategory;
@@ -124,6 +125,7 @@ const DEFAULT_CONFIG: NotificationConfig = {
     billing: 1440,     // Once per day
     value: 720,        // Twice per day max
     adaptive: 1440,    // Once per day
+    governance: 60,    // Once per hour
   },
 };
 
@@ -674,6 +676,7 @@ export class NotificationManager {
       billing: '📊',
       value: '📈',
       adaptive: '🧠',
+      governance: '⚖️',
     };
     return icons[category];
   }

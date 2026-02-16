@@ -35,6 +35,7 @@ export class NotificationRouter {
     this.subscribeMarketEvents();
     this.subscribeOpsEvents();
     this.subscribeCareerEvents();
+    this.subscribeGovernanceEvents();
 
     log.info('NotificationRouter initialized — %d event subscriptions active', this.unsubscribers.length);
   }
@@ -139,6 +140,36 @@ export class NotificationRouter {
           );
           log.info('Routed career:new_matches → Telegram (%d matches)', payload.count);
         }
+      }),
+    );
+  }
+
+  // ── Governance Events ─────────────────────────────────────────────
+
+  private subscribeGovernanceEvents(): void {
+    this.unsubscribers.push(
+      this.eventBus.on('vote:completed', (payload) => {
+        void notificationManager.notify({
+          category: 'governance',
+          title: `Vote: ${payload.status}`,
+          body: `Vote ${payload.voteId} resolved: ${payload.status}`,
+          priority: payload.status === 'VETOED' ? 'high' : 'normal',
+          dedupKey: `vote_${payload.voteId}`,
+        });
+        log.info('Routed vote:completed → Telegram (status: %s)', payload.status);
+      }),
+    );
+
+    this.unsubscribers.push(
+      this.eventBus.on('vote:vetoed', (payload) => {
+        void notificationManager.notify({
+          category: 'governance',
+          title: `Veto: ${payload.domain}`,
+          body: `${payload.vetoer} vetoed ${payload.domain}: ${payload.reason}`,
+          priority: 'high',
+          dedupKey: `veto_${payload.voteId}`,
+        });
+        log.warn('Routed vote:vetoed → Telegram (vetoer: %s)', payload.vetoer);
       }),
     );
   }

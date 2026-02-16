@@ -55,6 +55,14 @@ export interface BriefingResult {
   error?: string;
 }
 
+export interface BriefingPortfolio {
+  totalValue: number;
+  dailyChange: number;
+  dailyChangePercent: number;
+  topGainers: Array<{ asset: string; changePercent: number }>;
+  topLosers: Array<{ asset: string; changePercent: number }>;
+}
+
 export interface MorningBriefingContext {
   digest?: DailyDigest | null;
   lifeMonitorReport?: LifeMonitorReport | null;
@@ -65,6 +73,8 @@ export interface MorningBriefingContext {
     remote: boolean;
   }> | null;
   governance?: GovernanceSnapshot | null;
+  portfolio?: BriefingPortfolio | null;
+  marketAlerts?: Array<{ asset: string; change: string; severity: string }> | null;
 }
 
 export interface EveningContext {
@@ -74,6 +84,7 @@ export interface EveningContext {
     company: string;
     matchScore: number;
   }> | null;
+  portfolio?: BriefingPortfolio | null;
 }
 
 // ─── Briefing Generator ─────────────────────────────────────────────────────
@@ -391,6 +402,34 @@ export class BriefingGenerator {
       lines.push('');
     }
 
+    // ── Portfolio Snapshot ──
+    if (context?.portfolio) {
+      const p = context.portfolio;
+      const dir = p.dailyChangePercent >= 0 ? '📈' : '📉';
+      const sign = p.dailyChangePercent >= 0 ? '+' : '';
+      lines.push(`<b>${dir} Portfolio</b>`);
+      lines.push(`▸ $${p.totalValue.toLocaleString()} (${sign}${p.dailyChangePercent.toFixed(1)}% today)`);
+      if (p.topGainers.length > 0) {
+        const top = p.topGainers[0];
+        lines.push(`▸ Top: ${this.esc(top.asset)} +${top.changePercent.toFixed(1)}%`);
+      }
+      if (p.topLosers.length > 0) {
+        const worst = p.topLosers[0];
+        lines.push(`▸ Dip: ${this.esc(worst.asset)} ${worst.changePercent.toFixed(1)}%`);
+      }
+      lines.push('');
+    }
+
+    // ── Market Alerts ──
+    if (context?.marketAlerts && context.marketAlerts.length > 0) {
+      lines.push('<b>🔔 Market Alerts</b>');
+      for (const alert of context.marketAlerts.slice(0, 3)) {
+        const icon = alert.severity === 'critical' ? '🚨' : '▸';
+        lines.push(`${icon} ${this.esc(alert.asset)}: ${this.esc(alert.change)}`);
+      }
+      lines.push('');
+    }
+
     // ── Career Matches ──
     if (context?.careerMatches && context.careerMatches.length > 0) {
       lines.push('<b>💼 Career Matches</b>');
@@ -528,6 +567,16 @@ export class BriefingGenerator {
       for (const task of context.suggestedTasks.slice(0, 3)) {
         lines.push(`▸ ${this.esc(task)}`);
       }
+      lines.push('');
+    }
+
+    // ── Portfolio P&L ──
+    if (context?.portfolio) {
+      const p = context.portfolio;
+      const dir = p.dailyChangePercent >= 0 ? '📈' : '📉';
+      const sign = p.dailyChangePercent >= 0 ? '+' : '';
+      lines.push(`<b>${dir} Today's P&amp;L</b>`);
+      lines.push(`▸ ${sign}$${Math.abs(p.dailyChange).toLocaleString()} (${sign}${p.dailyChangePercent.toFixed(1)}%)`);
       lines.push('');
     }
 

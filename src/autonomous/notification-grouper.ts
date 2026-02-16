@@ -291,6 +291,7 @@ export class NotificationGrouper {
       billing: 'Billing',
       value: 'Value',
       adaptive: 'Adaptive',
+      governance: 'Governance',
     };
 
     const label = categoryLabels[category] ?? category;

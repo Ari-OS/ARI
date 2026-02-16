@@ -104,6 +104,8 @@ export class AutonomousAgent {
   private lastDigest: import('./daily-digest.js').DailyDigest | null = null;
   private lastLifeMonitorReport: import('./life-monitor.js').LifeMonitorReport | null = null;
   private lastCareerMatches: Array<{ title: string; company: string; matchScore: number; remote: boolean }> = [];
+  private lastPortfolio: import('./briefings.js').BriefingPortfolio | null = null;
+  private lastMarketAlerts: Array<{ asset: string; change: string; severity: string }> = [];
 
   // Budget-aware components
   private costTracker: CostTracker | null = null;
@@ -791,6 +793,8 @@ export class AutonomousAgent {
           lifeMonitorReport: this.lastLifeMonitorReport,
           careerMatches: this.lastCareerMatches.length > 0 ? this.lastCareerMatches : null,
           governance,
+          portfolio: this.lastPortfolio,
+          marketAlerts: this.lastMarketAlerts.length > 0 ? this.lastMarketAlerts : null,
         });
       }
       log.info('Morning briefing completed (unified report)');
@@ -821,6 +825,7 @@ export class AutonomousAgent {
           careerMatches: this.lastCareerMatches.length > 0
             ? this.lastCareerMatches.map(m => ({ title: m.title, company: m.company, matchScore: m.matchScore }))
             : null,
+          portfolio: this.lastPortfolio,
         });
       }
       log.info('Evening summary completed');
@@ -1050,6 +1055,15 @@ export class AutonomousAgent {
         const alerts = await monitor.checkAlerts();
         log.info({ alertCount: alerts.length }, 'Market price check completed');
 
+        // Cache alerts for morning briefing
+        if (alerts.length > 0) {
+          this.lastMarketAlerts = alerts.map(a => ({
+            asset: a.asset,
+            change: `${a.data.changePercent > 0 ? '+' : ''}${a.data.changePercent.toFixed(1)}%`,
+            severity: a.severity,
+          }));
+        }
+
         for (const alert of alerts) {
           const pct = alert.data.changePercent;
           await notificationManager.finance(
@@ -1209,21 +1223,60 @@ export class AutonomousAgent {
       return Promise.resolve();
     });
 
-    // AI Council nightly review at 10 PM
-    this.scheduler.registerHandler('ai_council_nightly', () => {
+    // AI Council nightly review at 10 PM — governance summary to Telegram
+    this.scheduler.registerHandler('ai_council_nightly', async () => {
       try {
         log.info('AI Council nightly review started');
+
+        // Generate governance snapshot for the last 24 hours
+        const snapshot = governanceReporter.generateSnapshot();
+        const formatted = governanceReporter.formatForBriefing(snapshot);
+
+        // Build council summary with system metrics
+        const lines: string[] = ['<b>🏛️ Council Nightly Review</b>', ''];
+
+        // Governance activity
+        lines.push(formatted);
+        lines.push('');
+
+        // System health summary
+        lines.push('<b>📊 System Status</b>');
+        lines.push(`▸ Tasks processed: ${this.state.tasksProcessed}`);
+        lines.push(`▸ Errors today: ${this.state.errors}`);
+        if (this.costTracker) {
+          const status = this.costTracker.getThrottleStatus();
+          lines.push(`▸ Budget: ${status.usagePercent.toFixed(0)}% used (${status.level})`);
+        }
+        lines.push('');
+
+        lines.push('Council session complete. ⚖️');
+
+        // Send to Telegram
+        if (notificationManager.isReady()) {
+          await notificationManager.notify({
+            category: 'governance',
+            title: 'Council Nightly Review',
+            body: lines.join('\n'),
+            priority: 'normal',
+            telegramHtml: lines.join('\n'),
+          });
+        }
+
         this.eventBus.emit('audit:log', {
           action: 'ai_council:nightly_review',
           agent: 'COUNCIL',
           trustLevel: 'system' as const,
-          details: { type: 'nightly_strategic_review' },
+          details: {
+            type: 'nightly_strategic_review',
+            totalEvents: snapshot.pipeline.totalEvents,
+            votesCompleted: snapshot.council.votesCompleted,
+            complianceRate: snapshot.arbiter.complianceRate,
+          },
         });
-        log.info('AI Council nightly review completed');
+        log.info({ events: snapshot.pipeline.totalEvents }, 'AI Council nightly review completed');
       } catch (error) {
         log.error({ error }, 'AI Council nightly review failed');
       }
-      return Promise.resolve();
     });
 
     // E2E daily test run (placeholder)
