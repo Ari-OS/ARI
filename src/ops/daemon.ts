@@ -91,7 +91,7 @@ export async function installDaemon(options: DaemonOptions = {}): Promise<void> 
   try {
     const envContent = await readFile(join(homedir(), '.ari', '.env'), 'utf-8');
     for (const key of envVarsToInject) {
-      const match = envContent.match(new RegExp(`^${key}=(.+)$`, 'm'));
+      const match = envContent.match(new RegExp(`^(?:export\\s+)?${key}=["']?(.+?)["']?$`, 'm'));
       if (match?.[1]) {
         const value = match[1].trim();
         envPlistEntries += `
