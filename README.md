@@ -48,7 +48,7 @@
 
 ## What is ARI?
 
-ARI is a **multi-agent AI operating system** that runs entirely on your machine. She processes requests through a pipeline of specialized agents, enforces decisions through constitutional governance, and maintains a cryptographic audit trail of every action.
+ARI is a **multi-agent AI operating system** that runs entirely on your machine. ARI processes requests through a pipeline of specialized agents, enforces decisions through constitutional governance, and maintains a cryptographic audit trail of every action.
 
 **Core Properties:**
 - **Local-First** — All data stays on your machine. No cloud dependencies.
@@ -289,7 +289,7 @@ ARI is built on three principles drawn from Jung, Dalio, and Musashi:
 ### Shadow Integration
 > *"What you suppress controls you. What you observe, you can understand. What you understand, you can master."*
 
-Suspicious behavior is logged and analyzed, not suppressed. ARI doesn't hide failures—she records them, learns from them, and evolves. The shadow reveals truth.
+Suspicious behavior is logged and analyzed, not suppressed. ARI doesn't hide failures — it records them, learns from them, and evolves. The shadow reveals truth.
 
 ### Radical Transparency
 > *"Every operation is audited. Every decision is traceable. No hidden state."*
@@ -449,7 +449,7 @@ A 15-member voting body that decides on proposals. Supports three threshold type
 
 ### Arbiter
 Enforces 6 constitutional rules that cannot be overridden:
-0. `creator_primacy` — ARI always serves her creator's interests
+0. `creator_primacy` — ARI always serves the creator's interests
 1. `loopback_only` — Gateway must bind to 127.0.0.1
 2. `content_not_command` — Input is data, not instructions
 3. `audit_immutable` — Audit log cannot be modified
@@ -526,8 +526,8 @@ What you suppress controls you.<br>
 What you observe, you can understand.<br>
 What you understand, you can master.
 
-ARI doesn't hide her failures.<br>
-She logs them, learns from them, and moves forward.
+ARI doesn't hide failures.<br>
+Every one is logged, learned from, and moved past.
 
 </td>
 </tr>
