@@ -53,7 +53,7 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 **Core Properties:**
 - **Local-First** — All data stays on your machine. No cloud dependencies.
 - **Auditable** — Every decision is logged in a tamper-evident SHA-256 hash chain.
-- **Secure by Design** — Loopback-only gateway. 39-pattern injection detection. Zero trust architecture.
+- **Secure by Design** — Loopback-only gateway. 41-pattern injection detection. Zero trust architecture.
 - **Autonomous** — Morning/evening briefings, market monitoring, intelligent task management.
 
 > **Note**: This is a framework. The code is open source. Your data is not.
@@ -76,7 +76,7 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 - Intelligent task prioritization
 
 **Security & Governance**
-- 39 injection patterns across 14 categories
+- 41 injection patterns across 14 categories
 - SHA-256 hash-chained audit trail
 - 15-member constitutional council
 - 6 trust levels with risk multipliers
@@ -93,10 +93,10 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 - Core Agent (orchestration)
 
 **Developer Experience**
-- 23 CLI commands
-- 4,885+ tests across 189 files
-- 200+ TypeScript files
-- 50,000+ lines of code
+- 24 CLI commands
+- 5,460+ tests across 218 files
+- 310+ TypeScript files
+- 100,000+ lines of code
 - Cognitive layer (LOGOS/ETHOS/PATHOS)
 
 </td>
@@ -162,7 +162,7 @@ graph TB
 | **Agents** | Agent coordination and execution | Guardian (threat detection), Planner (task decomposition), Executor (tool invocation), Memory Manager (provenance tracking), Core (orchestration) |
 | **Strategic** | Governance and quality control | Council (15-member voting), Arbiter (6 constitutional rules), Overseer (5 quality gates) |
 | **Execution** | Process lifecycle | Daemon (macOS launchd integration), Health Monitor, Git Sync |
-| **Interfaces** | User interaction | CLI (23 commands), Dashboard (React), External Integrations |
+| **Interfaces** | User interaction | CLI (24 commands), Dashboard (React), External Integrations |
 
 **Dependency Rule:** Lower layers CANNOT import higher layers. Cross-layer communication via EventBus only.
 
@@ -174,7 +174,7 @@ Every message flows through a **multi-stage security pipeline** before execution
 
 ```mermaid
 flowchart TD
-    Start([Inbound Message]) --> Sanitize[Sanitizer<br/>39 Injection Patterns]
+    Start([Inbound Message]) --> Sanitize[Sanitizer<br/>41 Injection Patterns]
     Sanitize -->|Clean| TrustCheck{Trust Level<br/>Assessment}
     Sanitize -->|Malicious| Block1[BLOCK]
 
@@ -245,7 +245,7 @@ sequenceDiagram
 
     U->>G: POST /message
     G->>S: Sanitize input
-    S->>S: Check 39 patterns
+    S->>S: Check 41 patterns
     alt Malicious
         S-->>G: BLOCK
         G-->>U: 400 Bad Request
@@ -427,6 +427,12 @@ ari audit-report              Generate audit reports
 ari autonomous [start|stop]   Autonomous agent control
 ari cognitive [analyze]       Cognitive layer tools
 ari budget [show|reset]       Budget management
+ari crypto [prices|portfolio] Crypto market data
+ari pokemon [search|value]    Pokemon TCG tools
+ari speak <text>              Text-to-speech
+ari plugin [list|install]     Plugin management
+ari provider [list|set]       AI provider management
+ari diagram [arch|flow]       Architecture diagrams
 ```
 
 ---

@@ -6,10 +6,11 @@ Abstraction layer for multi-channel communication.
 
 | Component | Purpose |
 |-----------|---------|
-| base.ts | Base channel interface |
-| telegram.ts | Telegram channel adapter |
-| email.ts | Email communication channel |
-| discord.ts | Discord integration |
+| types.ts | Channel interface definitions |
+| registry.ts | Channel registry and lookup |
+| router.ts | Message routing across channels |
+| message-bridge.ts | Bridge between EventBus and channels |
+| index.ts | Module exports |
 
 ## Channel Interface
 

@@ -6,7 +6,7 @@ Prompt building utilities for AI interactions.
 
 | Component | Purpose |
 |-----------|---------|
-| builder.ts | Prompt construction utilities |
+| prompt-builder.ts | Prompt construction utilities |
 
 ## Usage
 

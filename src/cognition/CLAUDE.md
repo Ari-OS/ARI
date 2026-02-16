@@ -18,11 +18,9 @@ Layer 0: Cognitive (trimmed to essentials)
 └── index.ts    — Barrel exports
 ```
 
-**Removed modules** (Phase 2 simplification):
-- `knowledge/` — 92 curated sources (not connected to core pipeline)
-- `learning/` — 27-file educational platform (kept only decision-journal.ts)
-- `ux/` — 12-file visualization system
-- `visualization/` — Insight formatters
+**Additional modules** (active):
+- `knowledge/` — Cognitive source management (5 files: cognitive-sources, content-validator, source-manager, specializations, index)
+- `learning/` — Self-improvement subsystem (7 files: decision-journal, calibration-tracker, gap-analysis, learning-loop, performance-review, self-assessment, index)
 
 ## Three Pillars
 

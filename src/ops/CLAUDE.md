@@ -7,6 +7,9 @@ Process lifecycle and infrastructure management for ARI.
 | Component | Purpose |
 |-----------|---------|
 | daemon.ts | macOS launchd daemon integration |
+| health-monitor.ts | System health checks and alerting |
+| git-sync.ts | Automated git synchronization |
+| index.ts | Module exports |
 
 ## Daemon Management
 
@@ -30,8 +33,15 @@ Daemon uses macOS launchd for process management:
 Daemon performs periodic health checks:
 - Gateway connectivity
 - Audit chain integrity
-- Memory usage monitoring
+- Memory usage monitoring (vm_stat for macOS)
 - Agent responsiveness
+
+## Git Sync
+
+Automated hourly git sync:
+- Commits uncommitted changes
+- Pushes to configured remotes
+- Handles merge conflicts gracefully
 
 ## Configuration
 

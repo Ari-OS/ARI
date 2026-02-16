@@ -6,13 +6,19 @@ Testing with Vitest for ARI's 80%+ coverage requirement.
 
 ```
 tests/
-├── unit/           # Component tests (~3,500 tests total)
+├── unit/           # Component tests (5,460+ tests across 218 files)
 │   ├── kernel/     # sanitizer, audit, event-bus
 │   ├── system/     # router, context-loader
 │   ├── agents/     # core, guardian, executor, planner, memory
 │   ├── governance/ # council, arbiter, overseer, policy-engine
+│   ├── ai/         # orchestrator, model-registry, value-scorer, batch-processor
+│   ├── autonomous/ # market-monitor, briefings, scheduler
+│   ├── plugins/    # content-engine, telegram-bot, crypto, pokemon
+│   ├── integrations/ # notion, apple, anki, github, rss, weather, etc.
+│   ├── ops/        # health-monitor, daemon
 │   ├── cli/        # CLI command tests (cognitive, etc.)
-│   └── api/        # API route tests
+│   ├── api/        # API route tests
+│   └── skills/     # diagram-generator, etc.
 ├── integration/    # Full pipeline tests (cognitive-pipeline, learning-loop)
 └── security/       # Injection defense tests (cognitive-injection, model-routing)
 ```
@@ -66,7 +72,7 @@ npm run test:coverage    # With coverage
 ## Security Tests
 
 Security paths require explicit testing of all attack vectors.
-Test each of the 27 injection patterns in sanitizer.ts.
+Test each of the 41 injection patterns in sanitizer.ts.
 
 Example pattern:
 ```typescript

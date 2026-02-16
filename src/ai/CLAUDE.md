@@ -24,14 +24,21 @@ AIOrchestrator.execute(request)
 
 | File | Purpose |
 |------|---------|
+| orchestrator.ts | THE single entry point |
 | types.ts | All Zod schemas (ADR-006) |
-| model-registry.ts | Single source of truth for models + pricing |
+| model-registry.ts | Single source of truth for 20 models + pricing |
 | value-scorer.ts | ValueScore algorithm + task classification |
 | circuit-breaker.ts | Three-state failure protection |
 | response-evaluator.ts | Post-response quality assessment |
 | prompt-assembler.ts | Prompt construction with cache_control |
 | ai-policy-governor.ts | Council governance bridge |
-| orchestrator.ts | THE single entry point |
+| provider-registry.ts | Multi-provider management (Anthropic, OpenAI, Google, xAI) |
+| cascade-router.ts | Cascade model routing |
+| request-classifier.ts | Request classification and routing |
+| embedding-service.ts | Text embedding generation |
+| performance-tracker.ts | Model performance tracking |
+| batch-processor.ts | Batch API processing |
+| index.ts | Module exports |
 
 ## Layer Rules
 

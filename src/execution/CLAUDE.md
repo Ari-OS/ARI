@@ -7,8 +7,10 @@ Tool registry and executor for ARI's capability invocation.
 | Component | Purpose |
 |-----------|---------|
 | tool-registry.ts | Register and manage available tools |
-| executor.ts | Execute tools with permission checks |
+| tool-executor.ts | Execute tools with permission checks |
+| model-router.ts | Route requests to appropriate AI models |
 | types.ts | Tool and execution type definitions |
+| index.ts | Module exports |
 
 ## Tool Categories
 

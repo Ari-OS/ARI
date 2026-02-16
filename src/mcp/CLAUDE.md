@@ -6,8 +6,8 @@ Model Context Protocol server for Claude integration.
 
 | Component | Purpose |
 |-----------|---------|
-| server.ts | MCP server implementation |
-| tools.ts | Tool definitions for Claude |
+| server.ts | MCP server implementation with tool definitions |
+| index.ts | Module exports |
 
 ## MCP Tools
 

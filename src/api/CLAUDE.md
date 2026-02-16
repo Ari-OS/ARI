@@ -6,7 +6,7 @@ REST API and WebSocket endpoints for ARI operations.
 
 | Component | Purpose |
 |-----------|---------|
-| routes/ | Modular Fastify route plugins |
+| routes/ | Modular Fastify route plugins (15 route files) |
 | ws.ts | WebSocket event broadcaster |
 | index.ts | API initialization and exports |
 
@@ -20,6 +20,14 @@ Routes are split into modular files under `routes/`:
 - `audit.ts` — `/api/audit/*`
 - `budget.ts` — `/api/budget/*`
 - `autonomous.ts` — `/api/autonomous/*`
+- `alerts.ts` — `/api/alerts/*`
+- `analytics.ts` — `/api/analytics/*`
+- `approval-queue.ts` — `/api/approval-queue/*`
+- `dashboard.ts` — `/api/dashboard/*`
+- `metrics.ts` — `/api/metrics/*`
+- `scheduler.ts` — `/api/scheduler/*`
+- `subagents.ts` — `/api/subagents/*`
+- `shared.ts` — Shared `ApiDependencies` type
 
 ## Endpoints
 

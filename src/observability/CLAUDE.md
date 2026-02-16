@@ -7,8 +7,11 @@ Real-time monitoring, alerting, and metrics for ARI operations.
 | Component | Purpose |
 |-----------|---------|
 | alert-manager.ts | Alert rules and notifications |
-| alert-types.ts | Alert type definitions |
+| cost-tracker.ts | AI token cost tracking and budgets |
 | execution-history.ts | Track execution history |
+| metrics-collector.ts | System and application metrics |
+| value-analytics.ts | Value scoring analytics |
+| types.ts | Alert and metrics type definitions |
 | index.ts | Module exports |
 
 ## Alert Severities
@@ -27,6 +30,7 @@ Real-time monitoring, alerting, and metrics for ARI operations.
 - Audit chain integrity
 - Agent activity counts
 - Memory usage
+- AI token costs and budget utilization
 
 ## Dashboard Integration
 
