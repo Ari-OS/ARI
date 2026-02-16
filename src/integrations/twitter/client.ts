@@ -19,6 +19,26 @@ const log = createLogger('twitter-client');
 
 const X_API_BASE = 'https://api.x.com/2';
 
+// ─── Security: Redact sensitive data from error responses ────────────────────
+
+/**
+ * Sanitize error response body before logging.
+ * Removes potential token fragments and sensitive data.
+ */
+function sanitizeErrorBody(body: string): string {
+  return body
+    // Redact bearer tokens
+    .replace(/Bearer\s+[\w-]+/gi, 'Bearer [REDACTED]')
+    // Redact API keys
+    .replace(/api[_-]?key["']?\s*[:=]\s*["']?[\w-]+/gi, 'api_key: [REDACTED]')
+    // Redact tokens in JSON
+    .replace(/"(token|key|secret|password|bearer)":\s*"[^"]+"/gi, '"$1": "[REDACTED]"')
+    // Redact authorization headers
+    .replace(/authorization["']?\s*[:=]\s*["']?[^"',}\s]+/gi, 'authorization: [REDACTED]')
+    // Limit length to prevent log bloat
+    .slice(0, 500);
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface XClientConfig {
@@ -275,6 +295,86 @@ export class XClient {
     return data?.deleted ?? false;
   }
 
+  /**
+   * Reply to a tweet
+   */
+  async replyToTweet(tweetId: string, text: string): Promise<XPostResult> {
+    if (!this.isReady()) {
+      throw new Error('X client not initialized');
+    }
+
+    const body = {
+      text,
+      reply: { in_reply_to_tweet_id: tweetId },
+    };
+
+    const response = await this.apiPost('/tweets', body);
+    const data = response.data as { id?: string; text?: string } | undefined;
+    return {
+      id: data?.id ?? '',
+      text: data?.text ?? text,
+    };
+  }
+
+  /**
+   * Like a tweet
+   */
+  async likeTweet(tweetId: string): Promise<boolean> {
+    if (!this.isReady()) {
+      throw new Error('X client not initialized');
+    }
+
+    const response = await this.apiPost(`/users/${this.config.userId}/likes`, {
+      tweet_id: tweetId,
+    });
+    const data = response.data as { liked?: boolean } | undefined;
+    return data?.liked ?? false;
+  }
+
+  /**
+   * Bookmark a tweet
+   */
+  async bookmarkTweet(tweetId: string): Promise<boolean> {
+    if (!this.isReady()) {
+      throw new Error('X client not initialized');
+    }
+
+    const response = await this.apiPost(`/users/${this.config.userId}/bookmarks`, {
+      tweet_id: tweetId,
+    });
+    const data = response.data as { bookmarked?: boolean } | undefined;
+    return data?.bookmarked ?? false;
+  }
+
+  /**
+   * Get a user's recent tweets by username
+   */
+  async getUserTimeline(username: string, maxResults?: number): Promise<XFetchResult> {
+    if (!this.isReady()) {
+      return { tweets: [], fetchedAt: new Date().toISOString(), source: 'list' };
+    }
+
+    // First get user ID from username
+    const userResponse = await this.apiCall(`/users/by/username/${username}`, {});
+    const userData = userResponse.data as Array<{ id?: string }> | undefined;
+    const userId = userData?.[0]?.id ?? (userResponse as unknown as { data?: { id?: string } })?.data?.id;
+
+    if (!userId) {
+      log.warn({ username }, 'User not found');
+      return { tweets: [], fetchedAt: new Date().toISOString(), source: 'list' };
+    }
+
+    // Then get their tweets
+    const response = await this.apiCall(`/users/${userId}/tweets`, {
+      max_results: String(maxResults ?? 10),
+      'tweet.fields': 'created_at,public_metrics,entities,referenced_tweets',
+      expansions: 'author_id',
+      'user.fields': 'username,name',
+    });
+
+    return this.parseResponse(response, 'list');
+  }
+
   // ─── Private ─────────────────────────────────────────────────────────────
 
   private async apiPost(
@@ -307,7 +407,7 @@ export class XClient {
 
     if (!response.ok) {
       const text = await response.text();
-      log.error({ status: response.status, body: text }, 'X API POST error');
+      log.error({ status: response.status, body: sanitizeErrorBody(text) }, 'X API POST error');
       throw new Error(`X API POST ${endpoint} failed: ${response.status}`);
     }
 
@@ -339,7 +439,7 @@ export class XClient {
 
     if (!response.ok) {
       const text = await response.text();
-      log.error({ status: response.status, body: text }, 'X API DELETE error');
+      log.error({ status: response.status, body: sanitizeErrorBody(text) }, 'X API DELETE error');
       throw new Error(`X API DELETE ${endpoint} failed: ${response.status}`);
     }
 
@@ -377,7 +477,7 @@ export class XClient {
 
     if (!response.ok) {
       const text = await response.text();
-      log.error({ status: response.status, body: text }, 'X API error');
+      log.error({ status: response.status, body: sanitizeErrorBody(text) }, 'X API error');
       return {};
     }
 

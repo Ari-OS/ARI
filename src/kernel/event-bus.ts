@@ -654,6 +654,15 @@ export interface EventMap {
   // PERPLEXITY events (AI Research)
   // ═══════════════════════════════════════════════════════════════════════
   'integration:perplexity_ready': { timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // X API CREDIT TRACKING events (Pay-Per-Use Model)
+  // ═══════════════════════════════════════════════════════════════════════
+  'x:cost_tracked': { operation: string; endpoint: string; cost: number; itemCount: number; deduplicated: number; timestamp: string };
+  'x:limit_approaching': { percentUsed: number; spent: number; limit: number; level: 'warning' | 'critical'; timestamp: string };
+  'x:operation_skipped': { operation: string; reason: string; priority: number; timestamp: string };
+  'x:daily_reset': { previousDate: string; previousSpent: number; newDate: string; timestamp: string };
+  'x:request_deduplicated': { operation: string; originalCount: number; deduplicatedCount: number; savedCost: number; timestamp: string };
 }
 
 /**

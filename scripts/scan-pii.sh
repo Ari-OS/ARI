@@ -50,6 +50,9 @@ EXCLUDE_PATTERNS=(
     "CLAUDE.md"            # Creator credit belongs here
     "CONTRIBUTING.md"      # May reference creator
     ".claude"              # Claude Code local config (not committed)
+    "docs"                 # Documentation may contain example paths
+    "tests"                # Test files may contain example paths
+    "MAC-MINI-HANDOFF-PROMPT.md"  # Deployment docs with paths
 )
 
 # Build exclude arguments for grep
