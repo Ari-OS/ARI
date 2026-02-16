@@ -15,6 +15,9 @@ import { handleCrypto } from './commands/crypto.js';
 import { handlePokemon } from './commands/pokemon.js';
 import { handleSpeak } from './commands/speak.js';
 import { handleDev } from './commands/dev.js';
+import { handleContent } from './commands/content.js';
+import { handleDiagram } from './commands/diagram.js';
+import { handleTask } from './commands/task.js';
 import { parseCallbackData, generateAckedKeyboard } from '../../autonomous/notification-keyboard.js';
 import { notificationLifecycle } from '../../autonomous/notification-lifecycle.js';
 import { priorityScorer } from '../../autonomous/priority-scorer.js';
@@ -29,6 +32,7 @@ export interface BotDependencies {
   costTracker: CostTracker | null;
   registry: PluginRegistry | null;
   config: TelegramBotConfig;
+  notionInbox?: import('../../integrations/notion/inbox.js').NotionInbox | null;
 }
 
 /**
@@ -38,7 +42,7 @@ export interface BotDependencies {
  * Uses long polling (NOT webhook) — ADR-001 loopback-only compliance.
  */
 export function createBot(deps: BotDependencies): Bot {
-  const { eventBus, orchestrator, costTracker, registry, config } = deps;
+  const { eventBus, orchestrator, costTracker, registry, config, notionInbox } = deps;
 
   if (!config.botToken) {
     throw new Error('Telegram bot token not configured. Set TELEGRAM_BOT_TOKEN.');
@@ -68,8 +72,11 @@ export function createBot(deps: BotDependencies): Bot {
       '/budget — Budget overview\n' +
       '/briefing — On-demand briefing\n' +
       '/crypto — Crypto prices &amp; portfolio\n' +
+      '/content — Content pipeline\n' +
+      '/task — Quick task capture\n' +
       '/pokemon — Pokemon TCG cards\n' +
       '/speak — Text to speech\n' +
+      '/diagram — Architecture diagrams\n' +
       '/dev — Developer tools',
       { parse_mode: 'HTML' },
     );
@@ -90,6 +97,16 @@ export function createBot(deps: BotDependencies): Bot {
       '<b>Pokemon TCG</b>\n' +
       '/pokemon search &lt;query&gt;\n' +
       '/pokemon collection\n\n' +
+      '<b>Content</b>\n' +
+      '/content drafts — View queue\n' +
+      '/content approve &lt;id&gt;\n' +
+      '/content reject &lt;id&gt;\n\n' +
+      '<b>Tasks</b>\n' +
+      '/task &lt;name&gt; — Quick capture\n' +
+      '/task list — Pending tasks\n' +
+      '/task done &lt;id&gt; — Complete\n\n' +
+      '<b>Architecture</b>\n' +
+      '/diagram layers|scheduler|notifications|data-flow|eventbus\n\n' +
       '<b>Other</b>\n' +
       '/speak &lt;text&gt; — Text to speech\n' +
       '/dev — Developer tools',
@@ -104,6 +121,9 @@ export function createBot(deps: BotDependencies): Bot {
   bot.command('crypto', (ctx) => handleCrypto(ctx, registry));
   bot.command('pokemon', (ctx) => handlePokemon(ctx, registry));
   bot.command('speak', (ctx) => handleSpeak(ctx, registry));
+  bot.command('content', (ctx) => handleContent(ctx, registry));
+  bot.command('task', (ctx) => handleTask(ctx, notionInbox ?? null));
+  bot.command('diagram', (ctx) => handleDiagram(ctx));
   bot.command('dev', (ctx) => handleDev(ctx));
 
   // ── Natural language fallback ──────────────────────────────────────

@@ -48,6 +48,7 @@ ARI-2/
 
 # Temporary files
 tmp/
+tmp-reference/
 temp/
 *.tmp
 .cursorrules

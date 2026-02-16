@@ -30,6 +30,7 @@ import { registerProviderCommand } from './commands/provider.js';
 import { registerCryptoCommand } from './commands/crypto.js';
 import { registerPokemonCommand } from './commands/pokemon.js';
 import { registerSpeakCommand } from './commands/speak.js';
+import { registerDiagramCommand } from './commands/diagram.js';
 
 const program = new Command();
 
@@ -61,5 +62,6 @@ registerProviderCommand(program);
 registerCryptoCommand(program);
 registerPokemonCommand(program);
 registerSpeakCommand(program);
+registerDiagramCommand(program);
 
 program.parse();
