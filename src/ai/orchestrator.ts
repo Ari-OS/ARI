@@ -106,13 +106,22 @@ export class AIOrchestrator {
   private totalLatencyMs: number = 0;
   private modelUsage: Record<string, number> = {};
   private readonly startedAt: number = Date.now();
+  private providersInitialized: boolean = false;
+  private readonly autoRegisterProviders: boolean;
 
   constructor(eventBus: EventBus, config: OrchestratorConfig) {
     this.eventBus = eventBus;
     this.registry = new ModelRegistry();
 
-    // Initialize ProviderRegistry (use provided or create empty)
-    this.providers = config.providerRegistry ?? new ProviderRegistry(eventBus, this.registry);
+    // Initialize ProviderRegistry (use provided or auto-register from env)
+    if (config.providerRegistry) {
+      this.providers = config.providerRegistry;
+      this.providersInitialized = true;
+      this.autoRegisterProviders = false;
+    } else {
+      this.providers = new ProviderRegistry(eventBus, this.registry);
+      this.autoRegisterProviders = true;
+    }
     this.cascadeRouter = new CascadeRouter(eventBus, this.providers, this.registry);
 
     this.circuitBreaker = new CircuitBreaker();
@@ -137,6 +146,12 @@ export class AIOrchestrator {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async execute(request: AIRequest): Promise<AIResponse> {
+    // Auto-register providers from environment on first call
+    if (this.autoRegisterProviders && !this.providersInitialized) {
+      await this.providers.registerFromEnv();
+      this.providersInitialized = true;
+    }
+
     const requestId = request.requestId ?? randomUUID();
 
     // Step 1: VALIDATE
