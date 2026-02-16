@@ -141,6 +141,29 @@ export function registerGatewayCommand(program: Command): void {
         console.warn('ARI will continue without AI-powered responses');
       }
 
+      // Initialize Notion inbox if configured (needed by Telegram bot /task command)
+      let notionInbox: import('../../integrations/notion/inbox.js').NotionInbox | null = null;
+      if (process.env.NOTION_API_KEY && process.env.NOTION_INBOX_DATABASE_ID) {
+        try {
+          const { NotionInbox } = await import('../../integrations/notion/inbox.js');
+          notionInbox = new NotionInbox({
+            enabled: true,
+            apiKey: process.env.NOTION_API_KEY,
+            inboxDatabaseId: process.env.NOTION_INBOX_DATABASE_ID,
+            dailyLogParentId: process.env.NOTION_DAILY_LOG_PARENT_ID,
+          });
+          const ready = await notionInbox.init();
+          if (ready) {
+            console.log('Notion inbox initialized for task capture');
+          } else {
+            notionInbox = null;
+          }
+        } catch (error) {
+          console.warn('Notion inbox initialization failed:', error);
+          notionInbox = null;
+        }
+      }
+
       // Initialize Plugin System (requires AI Orchestrator for chat-capable plugins)
       const pluginRegistry = new PluginRegistry(eventBus);
       if (aiOrchestrator) {
@@ -154,6 +177,7 @@ export function registerGatewayCommand(program: Command): void {
             eventBus,
             orchestrator: aiOrchestrator,
             costTracker,
+            notionInbox,
           });
 
           const activePlugins = pluginRegistry.listPlugins().filter(p => p.status === 'active');

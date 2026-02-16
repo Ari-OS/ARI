@@ -55,6 +55,7 @@ export interface PluginDependencies {
   dataDir: string;
   costTracker: CostTracker | null;
   registry?: PluginRegistry;
+  notionInbox?: unknown;
 }
 
 // ── Briefing Contribution ────────────────────────────────────────────

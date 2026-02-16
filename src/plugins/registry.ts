@@ -75,6 +75,7 @@ export class PluginRegistry {
     eventBus: EventBus;
     orchestrator: AIOrchestrator;
     costTracker: CostTracker | null;
+    notionInbox?: unknown;
   }): Promise<void> {
     const initOrder = this.resolveDependencyOrder();
 
@@ -101,6 +102,7 @@ export class PluginRegistry {
           dataDir,
           costTracker: deps.costTracker,
           registry: this,
+          notionInbox: deps.notionInbox,
         };
 
         await plugin.initialize(pluginDeps);
@@ -312,6 +314,7 @@ export class PluginRegistry {
       eventBus: EventBus;
       orchestrator: AIOrchestrator;
       costTracker: CostTracker | null;
+      notionInbox?: unknown;
     },
   ): Promise<void> {
     const plugin = this.plugins.get(id);
@@ -331,6 +334,7 @@ export class PluginRegistry {
         dataDir,
         costTracker: deps.costTracker,
         registry: this,
+        notionInbox: deps.notionInbox,
       });
       this.status.set(id, 'active');
     } catch (error) {

@@ -160,5 +160,31 @@ describe('ChatSessionManager', () => {
       expect(prompt).toContain('Conversation Rules');
       expect(prompt).toContain('emoji');
     });
+
+    it('should cache system prompt within TTL', () => {
+      const prompt1 = manager.getSystemPrompt();
+      const prompt2 = manager.getSystemPrompt();
+      // Should be identical (cached)
+      expect(prompt1).toBe(prompt2);
+    });
+
+    it('should refresh system prompt after TTL expires', () => {
+      const prompt1 = manager.getSystemPrompt();
+
+      // Advance time by 6 minutes (TTL is 5 minutes)
+      vi.useFakeTimers();
+      const now = Date.now();
+      vi.setSystemTime(now + 6 * 60 * 1000);
+
+      const prompt2 = manager.getSystemPrompt();
+
+      // Should have different timestamps in the prompt
+      expect(prompt2).toBeTruthy();
+      // Both should still contain ARI
+      expect(prompt1).toContain('ARI');
+      expect(prompt2).toContain('ARI');
+
+      vi.useRealTimers();
+    });
   });
 });

@@ -56,12 +56,25 @@ export class TelegramBotPlugin implements DomainPlugin {
     }
 
     try {
+      // Optionally instantiate PerplexityClient if API key is available
+      let perplexityClient: import('../../integrations/perplexity/client.js').PerplexityClient | null = null;
+      if (process.env.PERPLEXITY_API_KEY) {
+        try {
+          const { PerplexityClient } = await import('../../integrations/perplexity/client.js');
+          perplexityClient = new PerplexityClient(process.env.PERPLEXITY_API_KEY);
+        } catch {
+          // Perplexity not available — /search will show config message
+        }
+      }
+
       this.bot = createBot({
         eventBus: deps.eventBus,
         orchestrator: deps.orchestrator,
         costTracker: deps.costTracker,
         registry: deps.registry ?? null,
         config: this.config,
+        notionInbox: deps.notionInbox as import('../../integrations/notion/inbox.js').NotionInbox | null | undefined ?? null,
+        perplexityClient,
       });
 
       // Start long polling (non-blocking)

@@ -27,10 +27,12 @@ const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes of inactivity clears sessio
  */
 export class ChatSessionManager {
   private readonly sessions: Map<number, Session> = new Map();
-  private readonly systemPrompt: string;
+  private cachedPrompt: string | null = null;
+  private promptCacheTime = 0;
+  private static readonly PROMPT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
-    this.systemPrompt = buildSystemPrompt();
+    // System prompt built on-demand with TTL cache
   }
 
   /**
@@ -56,9 +58,15 @@ export class ChatSessionManager {
 
   /**
    * Get the system prompt built from workspace files.
+   * Cached for 5 minutes to avoid rebuilding on every message.
    */
   getSystemPrompt(): string {
-    return this.systemPrompt;
+    const now = Date.now();
+    if (!this.cachedPrompt || (now - this.promptCacheTime) > ChatSessionManager.PROMPT_CACHE_TTL) {
+      this.cachedPrompt = buildSystemPrompt();
+      this.promptCacheTime = now;
+    }
+    return this.cachedPrompt;
   }
 
   /**
