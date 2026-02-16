@@ -1,9 +1,5 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/Ari-OS/ARI/main/docs/assets/ari-logo.jpg" alt="ARI — Triple-Helix Iris" width="180" height="180" />
-
-<br>
-
 <pre>
  █████╗ ██████╗ ██╗
 ██╔══██╗██╔══██╗██║
@@ -32,16 +28,17 @@
 
 ## Table of Contents
 
-- [What is this?](#what-is-this)
-- [Philosophy](#philosophy)
+- [What is ARI?](#what-is-ari)
+- [Features](#features)
+- [What Makes ARI Different](#what-makes-ari-different)
 - [Architecture](#architecture)
-- [Security Model](#security-model)
-- [Governance](#governance)
+- [Security Pipeline](#security-pipeline)
+- [Message Flow](#message-flow)
+- [Philosophy](#philosophy)
 - [Getting Started](#getting-started)
 - [API Reference](#api-reference)
 - [CLI Reference](#cli-reference)
-- [Project Structure](#project-structure)
-- [Development](#development)
+- [Governance](#governance)
 - [Your Data Stays Private](#your-data-stays-private)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
@@ -49,18 +46,239 @@
 
 ---
 
-## What is this?
+## What is ARI?
 
-ARI is a multi-agent system that runs entirely on your machine. It processes requests through a pipeline of specialized agents, enforces decisions through constitutional governance, and maintains a cryptographic audit trail of every action.
+ARI is a **multi-agent AI operating system** that runs entirely on your machine. She processes requests through a pipeline of specialized agents, enforces decisions through constitutional governance, and maintains a cryptographic audit trail of every action.
 
-**Key properties:**
-- **Local-first** — All data stays on your machine. No cloud dependencies.
-- **Auditable** — Every decision is logged in a tamper-evident hash chain.
-- **Secure by design** — Loopback-only gateway. No external network access.
+**Core Properties:**
+- **Local-First** — All data stays on your machine. No cloud dependencies.
+- **Auditable** — Every decision is logged in a tamper-evident SHA-256 hash chain.
+- **Secure by Design** — Loopback-only gateway. 39-pattern injection detection. Zero trust architecture.
+- **Autonomous** — Morning/evening briefings, market monitoring, intelligent task management.
 
 > **Note**: This is a framework. The code is open source. Your data is not.
 >
 > Everything in `~/.ari/` stays on your machine — config, audit logs, memory, contexts. The architecture is shareable. The relationship you build with your instance is yours alone.
+
+---
+
+## Features
+
+<table>
+<tr>
+<td width="50%">
+
+**Autonomous Intelligence**
+- Morning briefings at 6:30 AM via Telegram
+- Evening summaries at 9:00 PM
+- Weekly reports every Sunday
+- Market monitoring and portfolio tracking
+- Intelligent task prioritization
+
+**Security & Governance**
+- 39 injection patterns across 14 categories
+- SHA-256 hash-chained audit trail
+- 15-member constitutional council
+- 6 trust levels with risk multipliers
+- Loopback-only gateway (127.0.0.1)
+
+</td>
+<td width="50%">
+
+**Multi-Agent Orchestration**
+- Guardian (threat detection)
+- Planner (task decomposition)
+- Executor (tool invocation)
+- Memory Manager (provenance tracking)
+- Core Agent (orchestration)
+
+**Developer Experience**
+- 23 CLI commands
+- 4,885+ tests across 189 files
+- 200+ TypeScript files
+- 50,000+ lines of code
+- Cognitive layer (LOGOS/ETHOS/PATHOS)
+
+</td>
+</tr>
+</table>
+
+---
+
+## What Makes ARI Different
+
+**Most AI assistants are stateless, cloud-dependent, and opaque.** ARI is the opposite:
+
+| Traditional AI | ARI |
+|----------------|-----|
+| Cloud-based, data leaves your machine | 100% local, data never leaves `~/.ari/` |
+| Black box decision-making | Every decision logged in immutable audit chain |
+| Single-agent, context-less | 5-agent pipeline with persistent memory |
+| No governance or oversight | 15-member constitutional council + 6 rules |
+| Generic responses | Autonomous briefings tailored to your schedule |
+| Trust the vendor | Trust the code (open source + audit trail) |
+
+**ARI is an operating system for your digital life**, not just another chatbot.
+
+---
+
+## Architecture
+
+ARI follows a **seven-layer architecture** with strict unidirectional dependencies. Each layer can only depend on layers below it. All inter-layer communication happens through a typed EventBus.
+
+```mermaid
+graph TB
+    L6[Layer 6: INTERFACES<br/>CLI · Dashboard · Integrations]
+    L5[Layer 5: EXECUTION<br/>Daemon · Health Monitor · Git Sync]
+    L4[Layer 4: STRATEGIC<br/>Council · Arbiter · Overseer]
+    L3[Layer 3: AGENTS<br/>Core · Guardian · Planner · Executor · Memory]
+    L2[Layer 2: SYSTEM<br/>Router · Storage · Vector Store]
+    L1[Layer 1: KERNEL<br/>Gateway · Sanitizer · Audit · EventBus]
+    L0[Layer 0: COGNITIVE<br/>LOGOS · ETHOS · PATHOS]
+
+    L6 --> L5
+    L5 --> L4
+    L4 --> L3
+    L3 --> L2
+    L2 --> L1
+    L1 --> L0
+
+    style L0 fill:#2d3748,stroke:#4a5568,color:#fff
+    style L1 fill:#c53030,stroke:#9b2c2c,color:#fff
+    style L2 fill:#d69e2e,stroke:#b7791f,color:#fff
+    style L3 fill:#38a169,stroke:#2f855a,color:#fff
+    style L4 fill:#3182ce,stroke:#2c5282,color:#fff
+    style L5 fill:#805ad5,stroke:#6b46c1,color:#fff
+    style L6 fill:#d53f8c,stroke:#b83280,color:#fff
+```
+
+### Layer Responsibilities
+
+| Layer | Purpose | Components |
+|-------|---------|------------|
+| **Cognitive** | Decision-making frameworks | LOGOS (Bayesian, Kelly, Expected Value), ETHOS (Bias Detection, Emotional State), PATHOS (CBT, Stoicism, Wisdom) |
+| **Kernel** | Security boundary and primitives | Gateway (HTTP), Sanitizer (injection detection), Audit (hash chain), EventBus (pub/sub), Config, Types (Zod schemas) |
+| **System** | Message routing and persistence | Router (event dispatch), Storage (context management), Vector Store (SQLite embeddings) |
+| **Agents** | Agent coordination and execution | Guardian (threat detection), Planner (task decomposition), Executor (tool invocation), Memory Manager (provenance tracking), Core (orchestration) |
+| **Strategic** | Governance and quality control | Council (15-member voting), Arbiter (6 constitutional rules), Overseer (5 quality gates) |
+| **Execution** | Process lifecycle | Daemon (macOS launchd integration), Health Monitor, Git Sync |
+| **Interfaces** | User interaction | CLI (23 commands), Dashboard (React), External Integrations |
+
+**Dependency Rule:** Lower layers CANNOT import higher layers. Cross-layer communication via EventBus only.
+
+---
+
+## Security Pipeline
+
+Every message flows through a **multi-stage security pipeline** before execution:
+
+```mermaid
+flowchart TD
+    Start([Inbound Message]) --> Sanitize[Sanitizer<br/>39 Injection Patterns]
+    Sanitize -->|Clean| TrustCheck{Trust Level<br/>Assessment}
+    Sanitize -->|Malicious| Block1[BLOCK]
+
+    TrustCheck -->|SYSTEM 0.5x| Risk[Risk Score<br/>Calculation]
+    TrustCheck -->|OPERATOR 0.6x| Risk
+    TrustCheck -->|VERIFIED 0.75x| Risk
+    TrustCheck -->|STANDARD 1.0x| Risk
+    TrustCheck -->|UNTRUSTED 1.5x| Risk
+    TrustCheck -->|HOSTILE 2.0x| Block2[BLOCK]
+
+    Risk -->|Score < 0.8| Guardian[Guardian Agent<br/>Threat Analysis]
+    Risk -->|Score ≥ 0.8| Block3[BLOCK]
+
+    Guardian -->|Safe| PermCheck{Permission<br/>Check}
+    Guardian -->|Threat| Block4[BLOCK]
+
+    PermCheck -->|Allowlist ✓| Execute[Execute]
+    PermCheck -->|Allowlist ✗| Block5[BLOCK]
+
+    Execute --> Audit[Audit Log<br/>SHA-256 Chain]
+    Audit --> Done([Complete])
+
+    Block1 --> AuditBlock[Audit Block Event]
+    Block2 --> AuditBlock
+    Block3 --> AuditBlock
+    Block4 --> AuditBlock
+    Block5 --> AuditBlock
+
+    style Start fill:#4299e1,stroke:#2b6cb0,color:#fff
+    style Done fill:#48bb78,stroke:#2f855a,color:#fff
+    style Block1 fill:#f56565,stroke:#c53030,color:#fff
+    style Block2 fill:#f56565,stroke:#c53030,color:#fff
+    style Block3 fill:#f56565,stroke:#c53030,color:#fff
+    style Block4 fill:#f56565,stroke:#c53030,color:#fff
+    style Block5 fill:#f56565,stroke:#c53030,color:#fff
+    style Sanitize fill:#ed8936,stroke:#c05621,color:#fff
+    style Guardian fill:#38a169,stroke:#2f855a,color:#fff
+    style Audit fill:#805ad5,stroke:#6b46c1,color:#fff
+```
+
+### Security Invariants
+
+| # | Invariant | Enforcement |
+|---|-----------|-------------|
+| 1 | **GATEWAY** | `127.0.0.1` ONLY — hardcoded, never configurable |
+| 2 | **CONTENT ≠ COMMAND** | All input is DATA, never executable instructions |
+| 3 | **AUDIT** | SHA-256 hash-chained, append-only, immutable |
+| 4 | **PERMISSIONS** | Agent allowlist → Trust level → Permission tier |
+| 5 | **TRUST** | 6 levels with risk multipliers (auto-block at ≥ 0.8) |
+
+---
+
+## Message Flow
+
+How a message flows through ARI's pipeline:
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant G as Gateway<br/>(127.0.0.1:3141)
+    participant S as Sanitizer
+    participant R as Router
+    participant Guard as Guardian
+    participant Plan as Planner
+    participant Exec as Executor
+    participant A as Audit
+    participant EB as EventBus
+
+    U->>G: POST /message
+    G->>S: Sanitize input
+    S->>S: Check 39 patterns
+    alt Malicious
+        S-->>G: BLOCK
+        G-->>U: 400 Bad Request
+    else Clean
+        S->>A: Log sanitize event
+        S->>R: Route message
+        R->>Guard: Assess threat
+        Guard->>Guard: Calculate risk score
+        alt High Risk (≥ 0.8)
+            Guard-->>R: BLOCK
+            R-->>G: BLOCK
+            G-->>U: 403 Forbidden
+        else Safe
+            Guard->>A: Log assessment
+            Guard->>Plan: Decompose task
+            Plan->>Plan: Build task DAG
+            Plan->>A: Log plan
+            Plan->>Exec: Execute tasks
+            Exec->>Exec: Check permissions
+            Exec->>A: Log execution
+            Exec->>EB: Emit events
+            EB->>R: Broadcast result
+            R->>G: Response
+            G->>U: 200 OK
+        end
+    end
+```
+
+**Key Points:**
+- Every stage logs to the immutable audit chain
+- Failures block immediately and log the reason
+- EventBus decouples components (no direct dependencies)
+- Trust levels affect risk calculation at every stage
 
 ---
 
@@ -71,7 +289,7 @@ ARI is built on three principles drawn from Jung, Dalio, and Musashi:
 ### Shadow Integration
 > *"What you suppress controls you. What you observe, you can understand. What you understand, you can master."*
 
-Suspicious behavior is logged and analyzed, not suppressed. ARI doesn't hide failures—it records them, learns from them, and evolves. The shadow reveals truth.
+Suspicious behavior is logged and analyzed, not suppressed. ARI doesn't hide failures—she records them, learns from them, and evolves. The shadow reveals truth.
 
 ### Radical Transparency
 > *"Every operation is audited. Every decision is traceable. No hidden state."*
@@ -82,127 +300,6 @@ Inspired by Bridgewater's principles. No black boxes. The audit trail is immutab
 > *"Every line of code must justify its existence."*
 
 From Musashi's Book of Five Rings: cut away everything unnecessary. Clarity over cleverness. If it doesn't serve the mission, it doesn't belong.
-
----
-
-## Architecture
-
-ARI follows a seven-layer architecture with strict unidirectional dependencies. Each layer can only depend on layers below it. All inter-layer communication happens through a typed EventBus.
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                                                                     │
-│   LAYER 6: INTERFACES                                               │
-│   └── CLI, Dashboard, External Integrations                         │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   LAYER 5: EXECUTION                                                │
-│   └── Daemon (macOS launchd)                                        │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   LAYER 4: STRATEGIC                                                │
-│   └── Council (voting) · Arbiter (rules) · Overseer (quality)       │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   LAYER 3: CORE                                                     │
-│   └── Guardian · Planner · Executor · Memory Manager                │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   LAYER 2: SYSTEM                                                   │
-│   └── Router · Storage                                              │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   LAYER 1: KERNEL                                                   │
-│   └── Gateway · Sanitizer · Audit · EventBus · Config · Types       │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   LAYER 0: COGNITIVE                                                │
-│   └── LOGOS (Reason) · ETHOS (Character) · PATHOS (Growth)          │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Layer Responsibilities
-
-| Layer | Purpose | Components |
-|-------|---------|------------|
-| **Cognitive** | Decision-making frameworks | LOGOS (Bayesian, Kelly, Expected Value), ETHOS (Bias Detection, Emotional State), PATHOS (CBT, Stoicism, Wisdom) |
-| **Kernel** | Security boundary and primitives | Gateway (HTTP), Sanitizer (injection detection), Audit (hash chain), EventBus (pub/sub), Config, Types (Zod schemas) |
-| **System** | Message routing and persistence | Router (event dispatch), Storage (context management) |
-| **Core** | Agent coordination and execution | Guardian (threat detection), Planner (task decomposition), Executor (tool invocation), Memory Manager (provenance tracking) |
-| **Strategic** | Governance and quality control | Council (15-member voting), Arbiter (6 constitutional rules), Overseer (5 quality gates) |
-| **Execution** | Process lifecycle | Daemon (macOS launchd integration) |
-| **Interfaces** | User interaction | CLI (23 commands), Dashboard (React), Integrations |
-
----
-
-## Security Model
-
-Security is enforced at the kernel layer through five invariants:
-
-### 1. Loopback-Only Gateway
-The HTTP gateway binds exclusively to `127.0.0.1:3141`. This is hardcoded, not configurable. No external network access is possible.
-
-### 2. Content ≠ Command
-All inbound messages are treated as data, never as executable instructions. The Sanitizer scans every input against 39 injection patterns across 14 categories before processing.
-
-### 3. Immutable Audit Trail
-Every operation is logged to a SHA-256 hash chain. Each entry contains the hash of the previous entry, creating a tamper-evident log. If any entry is modified, the chain breaks.
-
-### 4. Least Privilege
-Tool execution requires three authorization checks:
-1. Agent allowlist — Is this agent permitted to use this tool?
-2. Trust level — Does the message source have sufficient trust?
-3. Permission tier — Does this operation require elevated permissions?
-
-### 5. Trust Levels
-Every message carries a trust level that affects risk calculation:
-
-| Level | Multiplier | Description |
-|-------|------------|-------------|
-| `SYSTEM` | 0.5x | Internal components |
-| `OPERATOR` | 0.6x | Authenticated operator |
-| `VERIFIED` | 0.75x | Verified external sources |
-| `STANDARD` | 1.0x | Default |
-| `UNTRUSTED` | 1.5x | Unverified external |
-| `HOSTILE` | 2.0x | Known malicious |
-
-Messages with risk score ≥ 0.8 are automatically blocked.
-
----
-
-## Governance
-
-ARI implements constitutional governance through three components:
-
-### Council
-A multi-member voting body that decides on proposals. Supports three threshold types:
-- **Majority** (>50%) — Standard decisions
-- **Supermajority** (≥66%) — Significant changes
-- **Unanimous** (100%) — Critical changes
-
-### Arbiter
-Enforces 6 constitutional rules that cannot be overridden:
-0. `creator_primacy` — ARI always serves her creator's interests
-1. `loopback_only` — Gateway must bind to 127.0.0.1
-2. `content_not_command` — Input is data, not instructions
-3. `audit_immutable` — Audit log cannot be modified
-4. `least_privilege` — Minimum necessary permissions
-5. `trust_required` — All messages must have trust level
-
-### Overseer
-Enforces 5 quality gates before code changes:
-1. Test coverage ≥ 80%
-2. Audit chain integrity
-3. Security scan pass
-4. Clean build
-5. Documentation current
 
 ---
 
@@ -259,6 +356,9 @@ npx ari task add "Review Q1 budget"
 
 # Planning
 npx ari plan "Prepare for product launch"
+
+# Autonomous agent (morning/evening briefings)
+npx ari autonomous start
 ```
 
 ---
@@ -331,70 +431,32 @@ ari budget [show|reset]       Budget management
 
 ---
 
-## Project Structure
+## Governance
 
-```
-src/
-├── kernel/           # Layer 1: Security boundary
-│   ├── gateway.ts    # Fastify HTTP server (loopback only)
-│   ├── sanitizer.ts  # 39-pattern injection detection
-│   ├── audit.ts      # SHA-256 hash chain logger
-│   ├── event-bus.ts  # Typed pub/sub system
-│   ├── config.ts     # Configuration management
-│   └── types.ts      # Zod schemas for all types
-│
-├── system/           # Layer 2: Routing & Storage
-│   ├── router.ts     # Event dispatch and context triggers
-│   ├── storage.ts    # Context persistence
-│   └── vector-store.ts # SQLite-backed vector embeddings
-│
-├── agents/           # Layer 3: Agent coordination
-│   ├── core.ts       # Master orchestrator
-│   ├── guardian.ts   # Threat detection agent
-│   ├── planner.ts    # Task decomposition (DAG)
-│   ├── executor.ts   # Tool execution with permissions
-│   ├── memory-manager.ts  # Provenance-tracked memory
-│   └── temporal-memory.ts # Time-based memory synthesis
-│
-├── governance/       # Layer 4: Constitutional enforcement
-│   ├── council.ts    # 15-member voting
-│   ├── arbiter.ts    # 6 constitutional rules
-│   └── overseer.ts   # 5 quality gates
-│
-├── ops/              # Layer 5: Infrastructure
-│   ├── daemon.ts     # macOS launchd integration
-│   ├── health-monitor.ts # System health checks
-│   └── git-sync.ts   # Repository synchronization
-│
-└── cli/              # Layer 6: User interface
-    └── commands/     # 23 CLI commands
+ARI implements constitutional governance through three components:
 
-tests/
-├── unit/             # Component tests by layer
-├── integration/      # Full pipeline tests
-└── security/         # Injection and attack tests
-```
+### Council
+A 15-member voting body that decides on proposals. Supports three threshold types:
+- **Majority** (>50%) — Standard decisions
+- **Supermajority** (≥66%) — Significant changes
+- **Unanimous** (100%) — Critical changes
 
----
+### Arbiter
+Enforces 6 constitutional rules that cannot be overridden:
+0. `creator_primacy` — ARI always serves her creator's interests
+1. `loopback_only` — Gateway must bind to 127.0.0.1
+2. `content_not_command` — Input is data, not instructions
+3. `audit_immutable` — Audit log cannot be modified
+4. `least_privilege` — Minimum necessary permissions
+5. `trust_required` — All messages must have trust level
 
-## Development
-
-```bash
-# Build
-npm run build              # Compile TypeScript
-npm run dev                # Watch mode
-npm run clean              # Remove dist/
-
-# Test
-npm test                   # Run 4885 tests
-npm run test:watch         # Watch mode
-npm run test:coverage      # Coverage report
-
-# Quality
-npm run typecheck          # Type checking
-npm run lint               # ESLint
-npm run lint:fix           # ESLint with auto-fix
-```
+### Overseer
+Enforces 5 quality gates before code changes:
+1. Test coverage ≥ 80%
+2. Audit chain integrity
+3. Security scan pass
+4. Clean build
+5. Documentation current
 
 ---
 
@@ -458,8 +520,8 @@ What you suppress controls you.<br>
 What you observe, you can understand.<br>
 What you understand, you can master.
 
-ARI doesn't hide its failures.<br>
-It logs them, learns from them, and moves forward.
+ARI doesn't hide her failures.<br>
+She logs them, learns from them, and moves forward.
 
 </td>
 </tr>
@@ -468,5 +530,7 @@ It logs them, learns from them, and moves forward.
 <br>
 
 **[Pryce Hedrick](https://github.com/PryceHedrick)** — Creator
+
+**[Pryceless Solutions](https://prycehedrick.com)**
 
 </div>
