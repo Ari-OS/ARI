@@ -162,11 +162,11 @@ export function registerRemindCommand(program: Command): void {
     .option('--daily', 'Make this a daily recurring reminder')
     .option('--weekly', 'Make this a weekly recurring reminder')
     .option('--monthly', 'Make this a monthly recurring reminder')
-    .action(async (text, options) => {
+    .action(async (text: string | undefined, options: { at?: string; daily?: boolean; weekly?: boolean; monthly?: boolean; json?: boolean }) => {
       try {
         // Handle subcommands
         if (text === 'list') {
-          await listReminders(options.json);
+          await listReminders(options.json ?? false);
           return;
         }
 
@@ -176,7 +176,7 @@ export function registerRemindCommand(program: Command): void {
             console.error(chalk.red('Error: Invalid reminder ID'));
             process.exit(1);
           }
-          await cancelReminder(id, options.json);
+          await cancelReminder(id, options.json ?? false);
           return;
         }
 
@@ -193,7 +193,13 @@ export function registerRemindCommand(program: Command): void {
           process.exit(1);
         }
 
-        await createReminder(text, options);
+        await createReminder(text, {
+          at: options.at,
+          daily: options.daily,
+          weekly: options.weekly,
+          monthly: options.monthly,
+          json: options.json,
+        });
       } catch (error) {
         console.error(chalk.red('Error: ') + (error instanceof Error ? error.message : String(error)));
         process.exit(1);

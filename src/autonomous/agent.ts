@@ -1080,13 +1080,14 @@ export class AutonomousAgent {
     });
 
     // Gmail ingestion at 7 AM
-    this.scheduler.registerHandler('gmail_ingest', async () => {
+    this.scheduler.registerHandler('gmail_ingest', () => {
       // Gmail integration requires IMAP setup — log placeholder until configured
       log.info('Gmail ingestion task fired (pending IMAP configuration)');
+      return Promise.resolve();
     });
 
     // Model evolution review (Monday 10 AM)
-    this.scheduler.registerHandler('model_evolution', async () => {
+    this.scheduler.registerHandler('model_evolution', () => {
       try {
         // Review AI model performance and suggest optimizations
         log.info('Model evolution review started');
@@ -1100,10 +1101,11 @@ export class AutonomousAgent {
       } catch (error) {
         log.error({ error }, 'Model evolution review failed');
       }
+      return Promise.resolve();
     });
 
     // AI Council nightly review at 10 PM
-    this.scheduler.registerHandler('ai_council_nightly', async () => {
+    this.scheduler.registerHandler('ai_council_nightly', () => {
       try {
         log.info('AI Council nightly review started');
         this.eventBus.emit('audit:log', {
@@ -1116,11 +1118,13 @@ export class AutonomousAgent {
       } catch (error) {
         log.error({ error }, 'AI Council nightly review failed');
       }
+      return Promise.resolve();
     });
 
     // E2E daily test run (placeholder)
-    this.scheduler.registerHandler('e2e_daily_run', async () => {
+    this.scheduler.registerHandler('e2e_daily_run', () => {
       log.info('E2E daily test run (pending Playwright setup)');
+      return Promise.resolve();
     });
   }
 

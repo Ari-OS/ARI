@@ -12,7 +12,9 @@
 
 set -euo pipefail
 
-MAC_MINI="ari@100.81.73.34"
+MINI_HOST="${MINI_HOST:-<USER>@<MAC_MINI_IP>}"
+MINI_IP="${MINI_IP:-<MAC_MINI_IP>}"
+MAC_MINI="$MINI_HOST"
 SSH_KEY="$HOME/.ssh/id_ed25519"
 ARI_DIR="~/ARI"
 
@@ -28,7 +30,7 @@ fail()  { echo -e "${RED}[x]${NC} $1"; exit 1; }
 
 # ─── Step 1: Check connectivity ──────────────────────────────────────
 info "Checking Mac Mini connectivity..."
-if ! ping -c 1 -W 3 100.81.73.34 >/dev/null 2>&1; then
+if ! ping -c 1 -W 3 "$MINI_IP" >/dev/null 2>&1; then
   fail "Mac Mini is not reachable. Check that it's powered on and Tailscale is running."
 fi
 info "Mac Mini is online!"

@@ -72,8 +72,7 @@ export class MetricsCollector {
   private async load(): Promise<void> {
     try {
       const content = await fs.readFile(METRICS_FILE, 'utf-8');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as unknown;
       const validated = MetricsHistoryFileSchema.parse(parsed);
 
       // Filter old snapshots
@@ -135,7 +134,7 @@ export class MetricsCollector {
     }
 
     // Save async (don't await)
-    this.save().catch(err => logger.error({ err }, 'Failed to save metrics'));
+    void this.save().catch((err: unknown) => logger.error({ err }, 'Failed to save metrics'));
   }
 
   /**

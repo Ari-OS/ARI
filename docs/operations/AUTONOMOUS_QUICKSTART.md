@@ -1,10 +1,12 @@
 # 24/7 Autonomous ARI - Quick Start Guide
 
+> **Note**: Replace `<USER>` and `<MAC_MINI_IP>` with your actual SSH username and Mac Mini IP address.
+
 ## Pre-Deployment Checklist
 
 Before deploying autonomous mode to your Mac Mini, ensure:
 
-- [ ] Mac Mini is online and accessible via SSH (ari@100.81.73.34)
+- [ ] Mac Mini is online and accessible via SSH (<USER>@<MAC_MINI_IP>)
 - [ ] Anthropic API key is configured in `~/.ari/autonomous.json` on Mac Mini
 - [ ] Telegram bot configured (TELEGRAM_BOT_TOKEN + TELEGRAM_OWNER_USER_ID)
 - [ ] Latest code is committed and pushed to GitHub
@@ -124,10 +126,10 @@ Reading time: 2-3 minutes
 
 ```bash
 # Local access (if on same network)
-open http://100.81.73.34:3141/dashboard
+open http://<MAC_MINI_IP>:3141/dashboard
 
 # SSH tunnel (from anywhere)
-ssh -i ~/.ssh/id_ed25519 -L 3141:localhost:3141 ari@100.81.73.34 -N
+ssh -i ~/.ssh/id_ed25519 -L 3141:localhost:3141 <USER>@<MAC_MINI_IP> -N
 
 # Then open: http://localhost:3141/dashboard
 ```
@@ -173,10 +175,10 @@ Shows:
 
 ```bash
 # View recent audit events
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 20"
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 20"
 
 # Live tail
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "tail -f ~/Library/Logs/ari-gateway.log"
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "tail -f ~/Library/Logs/ari-gateway.log"
 ```
 
 ---
@@ -188,7 +190,7 @@ ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "tail -f ~/Library/Logs/ari-gateway.lo
 **1. Read Daily Brief**
 ```bash
 # On Mac Mini (via SSH)
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "cat ~/.ari/briefs/brief-$(date +%Y-%m-%d).md"
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "cat ~/.ari/briefs/brief-$(date +%Y-%m-%d).md"
 
 # Or check dashboard
 # Or get Telegram notification
@@ -225,7 +227,7 @@ ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "cat ~/.ari/briefs/brief-$(date +%Y-%m
 
 **1. Read Evening Summary**
 ```bash
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "cat ~/.ari/summaries/summary-$(date +%Y-%m-%d).md"
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "cat ~/.ari/summaries/summary-$(date +%Y-%m-%d).md"
 ```
 
 **2. Review Approval Queue**
@@ -251,52 +253,52 @@ ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "cat ~/.ari/summaries/summary-$(date +
 ./scripts/check-budget-status.sh
 
 # View detailed usage breakdown
-ssh ari@100.81.73.34 "cat ~/.ari/token-usage.json | jq"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/token-usage.json | jq"
 
 # View historical usage (last 7 days)
-ssh ari@100.81.73.34 "cat ~/.ari/token-usage-history.json | jq '.[-7:] | .[] | {date, cost: .totalCost}'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/token-usage-history.json | jq '.[-7:] | .[] | {date, cost: .totalCost}'"
 ```
 
 ### Initiative Management
 
 ```bash
 # List discovered initiatives
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari initiatives list"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari initiatives list"
 
 # View specific initiative
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari initiatives show <id>"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari initiatives show <id>"
 
 # Manually trigger initiative
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari initiatives execute <id>"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari initiatives execute <id>"
 ```
 
 ### Approval Queue
 
 ```bash
 # List pending approvals
-ssh ari@100.81.73.34 "cat ~/.ari/approval-queue.json | jq '.pending'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/approval-queue.json | jq '.pending'"
 
 # Approve item
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari approve <id> --note 'Approved via CLI'"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari approve <id> --note 'Approved via CLI'"
 
 # Reject item
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari reject <id> --reason 'Not needed'"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari reject <id> --reason 'Not needed'"
 ```
 
 ### System Control
 
 ```bash
 # Stop autonomous mode
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari daemon stop"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari daemon stop"
 
 # Start autonomous mode
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari daemon start"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari daemon start"
 
 # Restart (apply new config)
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari daemon restart"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari daemon restart"
 
 # Full system check
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari doctor"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari doctor"
 ```
 
 ---
@@ -316,7 +318,7 @@ ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari doctor"
 ./scripts/check-budget-status.sh
 
 # Look for expensive tasks
-ssh ari@100.81.73.34 "cat ~/.ari/token-usage.json | jq '.byTaskType | to_entries | sort_by(-.value.cost) | .[:10]'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/token-usage.json | jq '.byTaskType | to_entries | sort_by(-.value.cost) | .[:10]'"
 ```
 
 **Solutions:**
@@ -336,13 +338,13 @@ ssh ari@100.81.73.34 "cat ~/.ari/token-usage.json | jq '.byTaskType | to_entries
 **Diagnosis:**
 ```bash
 # Check if scheduled task ran
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 50 | grep 'user_daily_brief'"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 50 | grep 'user_daily_brief'"
 
 # Check scheduler status
-ssh ari@100.81.73.34 "cat ~/.ari/scheduler-state.json | jq '.tasks[\"user-daily-brief\"]'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/scheduler-state.json | jq '.tasks[\"user-daily-brief\"]'"
 
 # Check daemon logs
-ssh ari@100.81.73.34 "tail -50 ~/Library/Logs/ari-gateway.log | grep -i 'brief\|error'"
+ssh <USER>@<MAC_MINI_IP> "tail -50 ~/Library/Logs/ari-gateway.log | grep -i 'brief\|error'"
 ```
 
 **Solutions:**
@@ -360,16 +362,16 @@ ssh ari@100.81.73.34 "tail -50 ~/Library/Logs/ari-gateway.log | grep -i 'brief\|
 **Diagnosis:**
 ```bash
 # Check queue
-ssh ari@100.81.73.34 "cat ~/.ari/approval-queue.json | jq '.pending | length'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/approval-queue.json | jq '.pending | length'"
 
 # See what's queued
-ssh ari@100.81.73.34 "cat ~/.ari/approval-queue.json | jq '.pending[] | {title, risk, cost: .estimatedCost}'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/approval-queue.json | jq '.pending[] | {title, risk, cost: .estimatedCost}'"
 ```
 
 **Solutions:**
 1. **Bulk reject low-priority:**
    ```bash
-   ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari approve bulk-reject --priority LOW"
+   ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari approve bulk-reject --priority LOW"
    ```
 
 2. **Increase autonomous threshold:**
@@ -391,11 +393,11 @@ ssh ari@100.81.73.34 "cat ~/.ari/approval-queue.json | jq '.pending[] | {title, 
 **Diagnosis:**
 ```bash
 # Check sync status
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && git fetch origin && git status"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && git fetch origin && git status"
 
 # Compare commits
 LOCAL=$(git rev-parse HEAD)
-REMOTE=$(ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && git rev-parse HEAD")
+REMOTE=$(ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && git rev-parse HEAD")
 echo "Local: $LOCAL"
 echo "Remote: $REMOTE"
 ```
@@ -416,13 +418,13 @@ echo "Remote: $REMOTE"
 **Diagnosis:**
 ```bash
 # Count recent errors
-ssh ari@100.81.73.34 "tail -500 ~/Library/Logs/ari-gateway.log | grep -i error | wc -l"
+ssh <USER>@<MAC_MINI_IP> "tail -500 ~/Library/Logs/ari-gateway.log | grep -i error | wc -l"
 
 # View error messages
-ssh ari@100.81.73.34 "tail -500 ~/Library/Logs/ari-gateway.log | grep -i error"
+ssh <USER>@<MAC_MINI_IP> "tail -500 ~/Library/Logs/ari-gateway.log | grep -i error"
 
 # Check audit log for failures
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 50 | grep 'failed'"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 50 | grep 'failed'"
 ```
 
 **Solutions:**
@@ -439,30 +441,30 @@ ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 50 | 
 
 ```bash
 # All-in-one status
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari doctor && echo '---' && cat ~/.ari/token-usage.json | jq '{tokens: .totalTokens, cost: .totalCost}'"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari doctor && echo '---' && cat ~/.ari/token-usage.json | jq '{tokens: .totalTokens, cost: .totalCost}'"
 ```
 
 ### Morning Check (2 minutes)
 
 ```bash
 # 1. Read brief
-ssh ari@100.81.73.34 "cat ~/.ari/briefs/brief-$(date +%Y-%m-%d).md"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/briefs/brief-$(date +%Y-%m-%d).md"
 
 # 2. Check budget
 ./scripts/check-budget-status.sh
 
 # 3. Review overnight work
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 10 | grep initiative"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 10 | grep initiative"
 ```
 
 ### Evening Review (5 minutes)
 
 ```bash
 # 1. Read summary
-ssh ari@100.81.73.34 "cat ~/.ari/summaries/summary-$(date +%Y-%m-%d).md"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/summaries/summary-$(date +%Y-%m-%d).md"
 
 # 2. Check approval queue
-ssh ari@100.81.73.34 "cat ~/.ari/approval-queue.json | jq '.pending | length'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/approval-queue.json | jq '.pending | length'"
 
 # 3. Review day's costs
 ./scripts/check-budget-status.sh
@@ -489,7 +491,7 @@ ssh ari@100.81.73.34 "cat ~/.ari/approval-queue.json | jq '.pending | length'"
 
 ```bash
 # SSH to Mac Mini
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP>
 
 # Edit budget config
 vi ~/.ari/budget-config.json
@@ -505,7 +507,7 @@ cd ~/ARI && npx ari daemon restart
 
 ```bash
 # SSH to Mac Mini
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP>
 
 # Edit config
 vi ~/.ari/autonomous.json
@@ -524,11 +526,11 @@ cd ~/ARI && npx ari daemon restart
 
 ```bash
 # 1. IMMEDIATE: Stop autonomous mode
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari daemon stop"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari daemon stop"
 
 # 2. Check what happened
 ./scripts/check-budget-status.sh
-ssh ari@100.81.73.34 "cat ~/.ari/token-usage.json | jq '.byTaskType | to_entries | sort_by(-.value.cost) | .[:10]'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/token-usage.json | jq '.byTaskType | to_entries | sort_by(-.value.cost) | .[:10]'"
 
 # 3. Identify expensive task
 # (look for task type with unexpectedly high cost)
@@ -540,7 +542,7 @@ ssh ari@100.81.73.34 "cat ~/.ari/token-usage.json | jq '.byTaskType | to_entries
 # - Disable task temporarily
 
 # 5. Clear today's usage (if needed)
-ssh ari@100.81.73.34 "echo '{\"date\":\"$(date +%Y-%m-%d)\",\"totalTokens\":0,\"totalCost\":0,\"byModel\":{},\"byTaskType\":{},\"resetAt\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\"}' > ~/.ari/token-usage.json"
+ssh <USER>@<MAC_MINI_IP> "echo '{\"date\":\"$(date +%Y-%m-%d)\",\"totalTokens\":0,\"totalCost\":0,\"byModel\":{},\"byTaskType\":{},\"resetAt\":\"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\"}' > ~/.ari/token-usage.json"
 
 # 6. Restart with lower budget
 ./scripts/deploy-autonomous.sh conservative
@@ -553,26 +555,26 @@ ssh ari@100.81.73.34 "echo '{\"date\":\"$(date +%Y-%m-%d)\",\"totalTokens\":0,\"
 
 ```bash
 # 1. Stop everything
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari daemon stop"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari daemon stop"
 
 # 2. Backup current state
-ssh ari@100.81.73.34 "tar -czf ~/ari-backup-$(date +%Y%m%d).tar.gz ~/.ari"
+ssh <USER>@<MAC_MINI_IP> "tar -czf ~/ari-backup-$(date +%Y%m%d).tar.gz ~/.ari"
 
 # 3. Reset to clean state
-ssh ari@100.81.73.34 "rm -rf ~/.ari/token-usage.json ~/.ari/agent-state.json ~/.ari/approval-queue.json"
+ssh <USER>@<MAC_MINI_IP> "rm -rf ~/.ari/token-usage.json ~/.ari/agent-state.json ~/.ari/approval-queue.json"
 
 # 4. Re-deploy from scratch
 ./scripts/deploy-autonomous.sh balanced
 
 # 5. Verify
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari doctor"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari doctor"
 ```
 
 ### Mac Mini Unreachable
 
 ```bash
 # 1. Check if Mini is online
-ping -c 3 100.81.73.34
+ping -c 3 <MAC_MINI_IP>
 
 # 2. If offline, options:
 #    a) Wait for it to come back online (power outage?)

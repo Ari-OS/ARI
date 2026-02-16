@@ -20,12 +20,32 @@
 <br>
 
 [![CI](https://github.com/Ari-OS/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/Ari-OS/ARI/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-4654%20passing-brightgreen)](https://github.com/Ari-OS/ARI)
-[![Coverage](https://img.shields.io/badge/coverage-80%25%2B-brightgreen)](https://github.com/Ari-OS/ARI)
-[![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)](https://nodejs.org)
+[![CodeQL](https://github.com/Ari-OS/ARI/actions/workflows/codeql.yml/badge.svg)](https://github.com/Ari-OS/ARI/actions/workflows/codeql.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen?logo=node.js&logoColor=white)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-ARI%20v1.0-blue)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 </div>
+
+---
+
+## Table of Contents
+
+- [What is this?](#what-is-this)
+- [Philosophy](#philosophy)
+- [Architecture](#architecture)
+- [Security Model](#security-model)
+- [Governance](#governance)
+- [Getting Started](#getting-started)
+- [API Reference](#api-reference)
+- [CLI Reference](#cli-reference)
+- [Project Structure](#project-structure)
+- [Development](#development)
+- [Your Data Stays Private](#your-data-stays-private)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
@@ -403,6 +423,18 @@ ARI stores all personal data locally in `~/.ari/`. This directory is **gitignore
 | [docs/architecture/](docs/architecture/ARCHITECTURE.md) | System design and security model |
 | [docs/guides/](docs/guides/README.md) | Setup and operations guides |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
+
+---
+
+## Contributing
+
+We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) for:
+- Development setup and workflow
+- Layer dependency rules and architecture constraints
+- Testing requirements (80%+ overall, 100% security paths)
+- Commit conventions and PR process
+
+See our [Code of Conduct](CODE_OF_CONDUCT.md) for community standards.
 
 ---
 

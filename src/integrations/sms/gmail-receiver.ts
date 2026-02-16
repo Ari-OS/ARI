@@ -181,8 +181,8 @@ export class GmailReceiver extends EventEmitter {
       const messages = await this.connection.search(searchCriteria, fetchOptions);
 
       for (const message of messages) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        const uid = message.attributes.uid as number;
+         
+        const uid = message.attributes.uid;
         const uidStr = String(uid);
 
         // Skip already processed

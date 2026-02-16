@@ -239,11 +239,11 @@ export const webNavigateHandler: ToolHandler = async (
   params: Record<string, unknown>,
   _context: ExecutionContext
 ): Promise<unknown> => {
-  const url = validateUrl(String(params.url || ''));
-  const action = (String(params.action || 'navigate')) as WebAction;
-  const selector = params.selector ? String(params.selector) : undefined;
-  const text = params.text ? String(params.text) : undefined;
-  const waitFor = params.waitFor ? String(params.waitFor) : undefined;
+  const url = validateUrl(typeof params.url === 'string' ? params.url : '');
+  const action = (typeof params.action === 'string' ? params.action : 'navigate') as WebAction;
+  const selector = typeof params.selector === 'string' ? params.selector : undefined;
+  const text = typeof params.text === 'string' ? params.text : undefined;
+  const waitFor = typeof params.waitFor === 'string' ? params.waitFor : undefined;
   const timeout = Math.min(Number(params.timeout || 30000), 60000);
   const viewport = params.viewport as { width?: number; height?: number } | undefined;
 
@@ -378,7 +378,7 @@ export const webNavigateHandler: ToolHandler = async (
 
       case 'select': {
         if (!selector) throw new Error('selector required for select action');
-        const value = String(params.value || text || '');
+        const value = typeof params.value === 'string' ? params.value : (text ?? '');
         if (!value) throw new Error('value required for select action');
         const selected = await page.selectOption(selector, value);
         return {
@@ -391,8 +391,8 @@ export const webNavigateHandler: ToolHandler = async (
       }
 
       case 'scroll': {
-        const direction = String(params.direction || 'down');
-        const amount = Number(params.amount || 500);
+        const direction = typeof params.direction === 'string' ? params.direction : 'down';
+        const amount = typeof params.amount === 'number' ? params.amount : 500;
         const scrollY = direction === 'up' ? -amount : amount;
         await page.evaluate((y) => window.scrollBy(0, y), scrollY);
         await page.waitForTimeout(500); // Let lazy content load
@@ -419,7 +419,7 @@ export const webNavigateHandler: ToolHandler = async (
       }
 
       case 'evaluate': {
-        const script = String(params.script || '');
+        const script = typeof params.script === 'string' ? params.script : '';
         if (!script) throw new Error('script required for evaluate action');
         // Only allow read-only evaluation (no mutations)
         const result = await page.evaluate(script);
@@ -432,7 +432,7 @@ export const webNavigateHandler: ToolHandler = async (
       }
 
       default:
-        throw new Error(`Unknown action: ${action}`);
+        throw new Error(`Unknown action: ${String(action)}`);
     }
   } finally {
     if (page) await page.close().catch(() => {});
@@ -448,10 +448,10 @@ export const webSearchHandler: ToolHandler = async (
   params: Record<string, unknown>,
   _context: ExecutionContext
 ): Promise<unknown> => {
-  const query = String(params.query || '');
+  const query = typeof params.query === 'string' ? params.query : '';
   if (!query) throw new Error('query is required');
 
-  const maxResults = Math.min(Number(params.maxResults || 10), 20);
+  const maxResults = Math.min(Number(params.maxResults ?? 10), 20);
 
   const browser = await getBrowser();
   let context: BrowserContext | null = null;
@@ -518,10 +518,10 @@ export const webScreenshotHandler: ToolHandler = async (
   params: Record<string, unknown>,
   _context: ExecutionContext
 ): Promise<unknown> => {
-  const url = validateUrl(String(params.url || ''));
+  const url = validateUrl(typeof params.url === 'string' ? params.url : '');
   const fullPage = Boolean(params.fullPage);
-  const width = Math.min(Number(params.width || 1280), 1920);
-  const height = Math.min(Number(params.height || 720), 1080);
+  const width = Math.min(Number(params.width ?? 1280), 1920);
+  const height = Math.min(Number(params.height ?? 720), 1080);
 
   const browser = await getBrowser();
   let context: BrowserContext | null = null;
@@ -565,9 +565,9 @@ export const webExtractHandler: ToolHandler = async (
   params: Record<string, unknown>,
   _context: ExecutionContext
 ): Promise<unknown> => {
-  const url = validateUrl(String(params.url || ''));
-  const maxTextLength = Math.min(Number(params.maxTextLength || 50000), 100000);
-  const waitFor = params.waitFor ? String(params.waitFor) : undefined;
+  const url = validateUrl(typeof params.url === 'string' ? params.url : '');
+  const maxTextLength = Math.min(typeof params.maxTextLength === 'number' ? params.maxTextLength : 50000, 100000);
+  const waitFor = typeof params.waitFor === 'string' ? params.waitFor : undefined;
 
   const browser = await getBrowser();
   let context: BrowserContext | null = null;

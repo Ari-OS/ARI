@@ -5,15 +5,15 @@
 
 set -e
 
-MINI_HOST="ari@100.81.73.34"
+MINI_HOST="${MINI_HOST:-<USER>@<MAC_MINI_IP>}"
 MINI_PATH="~/ARI"
 SSH_KEY="~/.ssh/id_ed25519"
 BUDGET_PROFILE="${1:-balanced}"  # conservative, balanced, aggressive
 
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║     24/7 Autonomous ARI Deployment                       ║"
-echo "║     Target: Mac Mini (100.81.73.34)                      ║"
-echo "║     Profile: $BUDGET_PROFILE                                  ║"
+echo "║     Target: $MINI_HOST                                   ║"
+echo "║     Profile: $BUDGET_PROFILE                             ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 

@@ -36,9 +36,9 @@ export class SystemRouter {
    * passed the full kernel pipeline (sanitize → audit → publish).
    */
   start(): void {
-    this.unsubscribe = this.eventBus.on('message:accepted', (message) => {
+    this.unsubscribe = this.eventBus.on('message:accepted', (message: Message) => {
       // Fire-and-forget async handler — errors caught internally
-      this.handleMessage(message).catch((error) => {
+      this.handleMessage(message).catch((error: unknown) => {
         log.error({ err: error, messageId: message.id }, 'Routing error');
       });
     });

@@ -6,7 +6,7 @@
 |-----------|--------|---------|
 | Mac Mini | Healthy | Uptime 1d 14h+, gateway on 127.0.0.1:3141 |
 | Daemon | Running | launchd, auto-starts at login |
-| Tailscale | Connected | 100.81.73.34, auto-starts at login |
+| Tailscale | Connected | <MAC_MINI_IP>, auto-starts at login |
 | Gateway | Healthy | 4 plugins active (Telegram Bot, ElevenLabs TTS, CoinGecko, Pokemon TCG) |
 | Tests | 3986/3988 | 2 pre-existing cost-tracker isolation failures |
 | Build | Clean | TypeScript compiles, zero uncommitted changes |
@@ -152,9 +152,9 @@ npm run typecheck        # Type check
 npm run build            # Full build
 
 # Mac Mini access
-ssh ari@100.81.73.34     # SSH into Mac Mini
-npx ari daemon status    # Check daemon
-npx ari daemon logs      # View logs
+ssh <USER>@<MAC_MINI_IP>  # SSH into Mac Mini
+npx ari daemon status     # Check daemon
+npx ari daemon logs       # View logs
 
 # Deploy to Mac Mini
 ./scripts/deploy-mac-mini.sh   # One-command deploy

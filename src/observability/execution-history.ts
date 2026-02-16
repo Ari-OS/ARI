@@ -54,8 +54,7 @@ export class ExecutionHistoryTracker {
   private async load(): Promise<void> {
     try {
       const content = await fs.readFile(HISTORY_FILE, 'utf-8');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as unknown;
       const validated = ExecutionHistoryFileSchema.parse(parsed);
       this.executions = validated.executions;
     } catch {
@@ -179,7 +178,7 @@ export class ExecutionHistoryTracker {
       this.executions = this.executions.slice(0, MAX_TOTAL_EXECUTIONS);
     }
 
-    this.save().catch(err => logger.error({ err }, 'Failed to save execution history'));
+    void this.save().catch((err: unknown) => logger.error({ err }, 'Failed to save execution history'));
   }
 
   /**

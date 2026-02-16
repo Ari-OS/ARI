@@ -453,7 +453,7 @@ export class DecisionJournal {
 
       if (existsSync(filePath)) {
         const data = await fs.readFile(filePath, 'utf-8');
-        const entries: JournalEntry[] = JSON.parse(data, this.dateReviver);
+        const entries: JournalEntry[] = JSON.parse(data, (_key: string, value: unknown) => this.dateReviver(_key, value)) as JournalEntry[];
         for (const entry of entries) {
           if (entry.id && entry.decision) {
             this.entries.set(entry.id, entry);
@@ -468,7 +468,7 @@ export class DecisionJournal {
 
       if (existsSync(lastMonthPath)) {
         const data = await fs.readFile(lastMonthPath, 'utf-8');
-        const entries: JournalEntry[] = JSON.parse(data, this.dateReviver);
+        const entries: JournalEntry[] = JSON.parse(data, (_key: string, value: unknown) => this.dateReviver(_key, value)) as JournalEntry[];
         for (const entry of entries) {
           const age = (now.getTime() - new Date(entry.timestamp).getTime()) / (1000 * 60 * 60 * 24);
           if (age <= 7 && entry.id && entry.decision) {

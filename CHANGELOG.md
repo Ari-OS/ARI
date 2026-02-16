@@ -79,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.2.0] — 2026-02-07 — Cognitive Awakening
+## [2.1.1] — 2026-02-07 — Cognitive Awakening
 
 > *Layer 0 emerges. ARI learns to think about thinking.*
 
@@ -328,8 +328,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Links
 
-[Unreleased]: https://github.com/Ari-OS/ARI/compare/v2.2.0...HEAD
-[2.2.0]: https://github.com/Ari-OS/ARI/compare/v2.1.0...v2.2.0
+[Unreleased]: https://github.com/Ari-OS/ARI/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/Ari-OS/ARI/compare/v2.2.0...v2.2.1
+[2.2.0]: https://github.com/Ari-OS/ARI/compare/v2.1.1...v2.2.0
+[2.1.1]: https://github.com/Ari-OS/ARI/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/Ari-OS/ARI/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Ari-OS/ARI/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/Ari-OS/ARI/compare/v0.1.0...v1.0.0

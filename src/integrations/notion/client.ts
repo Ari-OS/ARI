@@ -155,7 +155,7 @@ export class NotionClient {
         url: (response as unknown as { url: string }).url,
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      void error;
       // Log but don't throw - notification system should be resilient
       logger.error({ err: error }, 'Failed to create database entry');
       return null;

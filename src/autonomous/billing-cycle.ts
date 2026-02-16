@@ -146,7 +146,7 @@ export class BillingCycleManager {
           this.isProcessing = false;
         }
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         log.error({ err: error }, 'Operation failed');
       });
   }
@@ -158,7 +158,8 @@ export class BillingCycleManager {
     try {
       if (existsSync(BILLING_CYCLE_PATH)) {
         const data = readFileSync(BILLING_CYCLE_PATH, 'utf-8');
-        const stored = JSON.parse(data) as BillingCycleData;
+        const parsed = JSON.parse(data) as unknown;
+        const stored = parsed as BillingCycleData;
 
         // Check if cycle has ended
         const today = new Date().toISOString().split('T')[0];

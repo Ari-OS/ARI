@@ -197,7 +197,8 @@ export class TelegramChannel extends BaseChannel {
         body: params ? JSON.stringify(params) : undefined,
       });
 
-      const data = await response.json() as TelegramResponse<T>;
+      const json = await response.json() as unknown;
+      const data = json as TelegramResponse<T>;
 
       if (data.ok && data.result !== undefined) {
         return data.result;
@@ -220,7 +221,7 @@ export class TelegramChannel extends BaseChannel {
     const interval = this.telegramConfig.pollInterval || 1000;
 
     this.pollTimer = setInterval(() => {
-      this.pollUpdates().catch((error) => {
+      void this.pollUpdates().catch((error: unknown) => {
         logger.error({ err: error }, 'Telegram poll error');
       });
     }, interval);

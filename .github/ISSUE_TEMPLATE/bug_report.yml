@@ -1,0 +1,97 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in ARI
+title: "[BUG] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please fill out the form below so we can investigate.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is
+      placeholder: When I run `npx ari chat`, the gateway fails to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Affected Layer
+      multiple: true
+      options:
+        - "L0 Cognitive (LOGOS/ETHOS/PATHOS)"
+        - "L1 Kernel (Gateway, Sanitizer, Audit)"
+        - "L2 System (Router, Storage)"
+        - "L3 Agents (Core, Guardian, Planner, Executor)"
+        - "L4 Strategic (Council, Arbiter, Overseer)"
+        - "L5 Execution (Daemon, Tools)"
+        - "L6 Interfaces (CLI, Dashboard)"
+        - "Unknown"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Error Output
+      description: Paste relevant logs or error output
+      render: shell
+
+  - type: input
+    id: version
+    attributes:
+      label: ARI Version
+      placeholder: "2.2.1"
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js Version
+      placeholder: "22.x"
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - macOS 15 (Sequoia)
+        - macOS 14 (Sonoma)
+        - Ubuntu 24.04
+        - Other
+
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security
+      options:
+        - label: This is NOT a security vulnerability (report those via [GitHub Security Advisory](https://github.com/Ari-OS/ARI/security/advisories/new))
+          required: true

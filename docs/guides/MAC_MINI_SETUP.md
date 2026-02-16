@@ -1,6 +1,8 @@
 # ARI Mac Mini Setup Guide
 
-Complete setup guide for configuring ARI on your Mac Mini (100.81.73.34 via Tailscale).
+> **Note**: Replace `<MAC_MINI_IP>`, `<USER>`, `<YOUR_TELEGRAM_USER_ID>`, and `<YOUR_BOT_NAME>` with your actual values throughout this guide.
+
+Complete setup guide for configuring ARI on your Mac Mini.
 
 ## Prerequisites
 
@@ -22,10 +24,10 @@ Complete setup guide for configuring ARI on your Mac Mini (100.81.73.34 via Tail
 ### 1.1 SSH Access
 ```bash
 # From your MacBook Air
-ssh -o ConnectTimeout=10 ari@100.81.73.34
+ssh -o ConnectTimeout=10 <USER>@<MAC_MINI_IP>
 
 # If first time, you may need to add SSH key
-ssh-copy-id -i ~/.ssh/id_ed25519 ari@100.81.73.34
+ssh-copy-id -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP>
 ```
 
 ### 1.2 Clone Repository
@@ -67,7 +69,7 @@ ANTHROPIC_API_KEY=sk-ant-xxx                    # Primary AI provider
 
 # Telegram Bot
 TELEGRAM_BOT_TOKEN=xxx                          # From @BotFather
-TELEGRAM_OWNER_USER_ID=7766950046               # Your Telegram user ID
+TELEGRAM_OWNER_USER_ID=<YOUR_TELEGRAM_USER_ID>  # Your Telegram user ID
 TELEGRAM_GROUP_CHAT_ID=xxx                      # Forum group ID (optional)
 
 # OpenAI (for embeddings)
@@ -202,7 +204,7 @@ cat > ~/.ari/workspace/TOOLS.md << 'EOF'
 # Integration Configuration
 
 ## Active
-- Telegram: @ari_pryce_bot (primary interface)
+- Telegram: Your bot (primary interface)
 - Anthropic API: Claude models via CascadeRouter
 - CoinGecko: Crypto market data
 - Pokemon TCG: Card pricing via TCGPlayer
@@ -294,8 +296,8 @@ npx ari gateway status
 ### 6.1 Create Bot (if not done)
 1. Message @BotFather on Telegram
 2. Send `/newbot`
-3. Name: `ARI Pryce` (or your preference)
-4. Username: `ari_pryce_bot` (must be unique)
+3. Name: `ARI` (or your preference)
+4. Username: `@<YOUR_BOT_NAME>` (must be unique)
 5. Copy the token to `TELEGRAM_BOT_TOKEN`
 
 ### 6.2 Get Your User ID
@@ -371,7 +373,7 @@ npx ari doctor
 ```
 
 ### 9.2 Test Telegram
-Send "Hello ARI" to @ari_pryce_bot. You should receive a response within 30 seconds.
+Send "Hello ARI" to your bot. You should receive a response within 30 seconds.
 
 ### 9.3 Verify Audit Chain
 ```bash

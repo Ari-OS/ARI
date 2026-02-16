@@ -8,7 +8,7 @@ export function registerChatCommand(program: Command): void {
   program
     .command('chat')
     .description('Start an interactive AI chat session')
-    .action(async () => {
+    .action(() => {
       // Check for API key
       const apiKey = process.env.ANTHROPIC_API_KEY;
       if (!apiKey) {
@@ -45,7 +45,8 @@ export function registerChatCommand(program: Command): void {
       rl.prompt();
 
       // Handle input
-      rl.on('line', async (input: string) => {
+      rl.on('line', (input: string) => {
+        void (async () => {
         const trimmed = input.trim();
 
         // Handle empty input
@@ -117,6 +118,7 @@ export function registerChatCommand(program: Command): void {
 
         // Show prompt again
         rl.prompt();
+        })();
       });
 
       // Handle Ctrl+C

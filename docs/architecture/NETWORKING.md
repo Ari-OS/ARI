@@ -61,7 +61,7 @@ This fundamental difference shapes every networking decision:
 │   │  ┌──────────────────────────────────────────────────────────────┐ │ │
 │   │  │                    SSH + TAILSCALE                            │ │ │
 │   │  │                                                               │ │ │
-│   │  │   100.81.73.34:22 ◄─── Operator Access Only                   │ │ │
+│   │  │   <MAC_MINI_IP>:22 ◄─── Operator Access Only                 │ │ │
 │   │  │                                                               │ │ │
 │   │  └──────────────────────────────────────────────────────────────┘ │ │
 │   │                                                                    │ │
@@ -95,7 +95,7 @@ const PORT = config.port || 3141;
 curl http://127.0.0.1:3141/health
 
 # From remote via SSH tunnel
-ssh ari@100.81.73.34 "curl -s http://127.0.0.1:3141/health"
+ssh <USER>@<MAC_MINI_IP> "curl -s http://127.0.0.1:3141/health"
 ```
 
 ### Zone 2: Tailscale (Operator Network)
@@ -110,9 +110,9 @@ ssh ari@100.81.73.34 "curl -s http://127.0.0.1:3141/health"
 - Audit log of all connections
 
 **What We Use**:
-- SSH access to Mac Mini: `ssh ari@100.81.73.34`
-- CLI invocation via SSH: `ssh ari@100.81.73.34 "cd ~/ARI && node dist/cli/index.js doctor"`
-- Dashboard access via SSH tunnel: `ssh -L 5173:127.0.0.1:5173 ari@100.81.73.34`
+- SSH access to Mac Mini: `ssh <USER>@<MAC_MINI_IP>`
+- CLI invocation via SSH: `ssh <USER>@<MAC_MINI_IP> "cd ~/ARI && node dist/cli/index.js doctor"`
+- Dashboard access via SSH tunnel: `ssh -L 5173:127.0.0.1:5173 <USER>@<MAC_MINI_IP>`
 
 **What We DON'T Use**:
 - Tailscale Serve — We don't expose ARI Gateway directly
@@ -138,13 +138,13 @@ The primary interaction model. SSH into Mac Mini, run CLI commands.
 
 ```bash
 # Health check
-ssh ari@100.81.73.34 "cd ~/ARI && node dist/cli/index.js doctor"
+ssh <USER>@<MAC_MINI_IP> "cd ~/ARI && node dist/cli/index.js doctor"
 
 # Gateway operations
-ssh ari@100.81.73.34 "cd ~/ARI && node dist/cli/index.js gateway status"
+ssh <USER>@<MAC_MINI_IP> "cd ~/ARI && node dist/cli/index.js gateway status"
 
 # Submit a message
-ssh ari@100.81.73.34 "cd ~/ARI && node dist/cli/index.js message 'Plan my day'"
+ssh <USER>@<MAC_MINI_IP> "cd ~/ARI && node dist/cli/index.js message 'Plan my day'"
 ```
 
 **Security**:
@@ -159,7 +159,7 @@ For visual interface access.
 
 ```bash
 # From MacBook Pro
-ssh -L 5173:127.0.0.1:5173 -L 3141:127.0.0.1:3141 ari@100.81.73.34
+ssh -L 5173:127.0.0.1:5173 -L 3141:127.0.0.1:3141 <USER>@<MAC_MINI_IP>
 
 # Then open browser to http://localhost:5173
 ```
@@ -175,7 +175,7 @@ For programmatic access from remote devices.
 
 ```bash
 # Establish tunnel
-ssh -L 3141:127.0.0.1:3141 ari@100.81.73.34 -N &
+ssh -L 3141:127.0.0.1:3141 <USER>@<MAC_MINI_IP> -N &
 
 # Use local port
 curl http://localhost:3141/health
@@ -263,7 +263,7 @@ ARI Gateway itself has **zero network attack surface** — it literally cannot r
 ```bash
 # Already configured
 tailscale status
-# ari-mac-mini  100.81.73.34  macOS   -
+# ari-mac-mini  <MAC_MINI_IP>  macOS   -
 
 # ACL recommendations (in Tailscale admin):
 {
@@ -282,8 +282,8 @@ tailscale status
 ```bash
 # ~/.ssh/config on operator devices
 Host ari
-    HostName 100.81.73.34
-    User ari
+    HostName <MAC_MINI_IP>
+    User <USER>
     IdentityFile ~/.ssh/ari_ed25519
     LocalForward 3141 127.0.0.1:3141
     LocalForward 5173 127.0.0.1:5173

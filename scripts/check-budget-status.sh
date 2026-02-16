@@ -3,7 +3,7 @@
 # Quick budget status check for Mac Mini
 # Usage: ./scripts/check-budget-status.sh
 
-MINI_HOST="ari@100.81.73.34"
+MINI_HOST="${MINI_HOST:-<USER>@<MAC_MINI_IP>}"
 SSH_KEY="~/.ssh/id_ed25519"
 
 echo "╔══════════════════════════════════════════════════════════╗"

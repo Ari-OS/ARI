@@ -2059,7 +2059,7 @@ git commit -m "feat(dashboard): add real-time token budget panel"
 
 set -e
 
-MINI_HOST="ari@100.81.73.34"
+MINI_HOST="<USER>@<MAC_MINI_IP>"
 MINI_PATH="~/ARI"
 
 echo "=== Syncing Mac Mini with Latest Code ==="
@@ -2122,7 +2122,7 @@ git commit -m "ops: add Mac Mini sync script for deployment"
 **Step 1: Create budget config on Mac Mini**
 
 ```bash
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "cat > ~/.ari/budget-config.json << 'EOF'
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "cat > ~/.ari/budget-config.json << 'EOF'
 {
   "version": "1.0.0",
   "budget": {
@@ -2165,7 +2165,7 @@ EOF
 **Step 2: Update autonomous config**
 
 ```bash
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "cd ~/ARI && node -e \"
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "cd ~/ARI && node -e \"
 const fs = require('fs');
 const path = require('path');
 const configPath = path.join(process.env.HOME, '.ari', 'autonomous.json');
@@ -2191,23 +2191,23 @@ console.log('✓ Updated autonomous config');
 **Step 1: Enable detailed logging**
 
 ```bash
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari config set logging.level debug"
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari config set logging.level debug"
 ```
 
 **Step 2: Monitor logs in real-time**
 
 ```bash
 # Monitor audit log
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "tail -f ~/.ari/audit.json"
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "tail -f ~/.ari/audit.json"
 
 # Monitor daemon output
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "tail -f ~/Library/Logs/ari-gateway.log"
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "tail -f ~/Library/Logs/ari-gateway.log"
 ```
 
 **Step 3: Check budget usage after first morning**
 
 ```bash
-ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && node -e \"
+ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && node -e \"
 const fs = require('fs');
 const path = require('path');
 const usagePath = path.join(process.env.HOME, '.ari', 'token-usage.json');
@@ -2274,7 +2274,7 @@ Object.entries(usage.byTaskType).forEach(([type, data]) => {
 cat > scripts/validate-deployment.sh << 'EOF'
 #!/bin/bash
 
-MINI_HOST="ari@100.81.73.34"
+MINI_HOST="<USER>@<MAC_MINI_IP>"
 
 echo "=== ARI Deployment Validation ==="
 

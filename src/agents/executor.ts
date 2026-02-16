@@ -485,7 +485,7 @@ export class Executor {
     // Built-in tool implementations
     switch (tool.id) {
       case 'file_read': {
-        const path = String(call.parameters.path || '');
+        const path = typeof call.parameters.path === 'string' ? call.parameters.path : '';
         if (!path) {
           throw new Error('file_read requires path parameter');
         }
@@ -498,8 +498,8 @@ export class Executor {
         }
       }
       case 'file_write': {
-        const writePath = String(call.parameters.path || '');
-        const writeContent = String(call.parameters.content || '');
+        const writePath = typeof call.parameters.path === 'string' ? call.parameters.path : '';
+        const writeContent = typeof call.parameters.content === 'string' ? call.parameters.content : '';
         if (!writePath) throw new Error('file_write requires path parameter');
         if (!writeContent) throw new Error('file_write requires content parameter');
         try {
@@ -511,7 +511,7 @@ export class Executor {
         }
       }
       case 'file_delete': {
-        const deletePath = String(call.parameters.path || '');
+        const deletePath = typeof call.parameters.path === 'string' ? call.parameters.path : '';
         if (!deletePath) throw new Error('file_delete requires path parameter');
         try {
           await fs.unlink(deletePath);
@@ -522,7 +522,7 @@ export class Executor {
         }
       }
       case 'system_config': {
-        const key = String(call.parameters.key || '');
+        const key = typeof call.parameters.key === 'string' ? call.parameters.key : '';
         try {
           const config = await loadConfig();
           if (key) {
@@ -600,7 +600,7 @@ export class Executor {
           },
         },
         handler: async (params) => {
-          const path = String(params.path || '');
+          const path = typeof params.path === 'string' ? params.path : '';
           if (!path) throw new Error('file_read requires path parameter');
           try {
             const content = await fs.readFile(path, 'utf-8');
@@ -627,8 +627,8 @@ export class Executor {
           },
         },
         handler: async (params) => {
-          const path = String(params.path || '');
-          const content = String(params.content || '');
+          const path = typeof params.path === 'string' ? params.path : '';
+          const content = typeof params.content === 'string' ? params.content : '';
           if (!path) throw new Error('file_write requires path parameter');
           if (!content) throw new Error('file_write requires content parameter');
           try {
@@ -655,7 +655,7 @@ export class Executor {
           },
         },
         handler: async (params) => {
-          const path = String(params.path || '');
+          const path = typeof params.path === 'string' ? params.path : '';
           if (!path) throw new Error('file_delete requires path parameter');
           try {
             await fs.unlink(path);
@@ -682,7 +682,7 @@ export class Executor {
           },
         },
         handler: async (params) => {
-          const key = String(params.key || '');
+          const key = typeof params.key === 'string' ? params.key : '';
           try {
             const config = await loadConfig();
             if (key) {

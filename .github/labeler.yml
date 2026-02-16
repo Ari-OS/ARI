@@ -1,0 +1,33 @@
+kernel:
+  - changed-files:
+    - any-glob-to-any-file: 'src/kernel/**'
+security:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/kernel/sanitizer.ts'
+      - 'src/agents/guardian.ts'
+      - 'src/governance/arbiter.ts'
+      - 'tests/security/**'
+agents:
+  - changed-files:
+    - any-glob-to-any-file: 'src/agents/**'
+governance:
+  - changed-files:
+    - any-glob-to-any-file: 'src/governance/**'
+cognitive:
+  - changed-files:
+    - any-glob-to-any-file: 'src/cognition/**'
+dashboard:
+  - changed-files:
+    - any-glob-to-any-file: 'dashboard/**'
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'docs/**'
+      - '*.md'
+cli:
+  - changed-files:
+    - any-glob-to-any-file: 'src/cli/**'
+autonomous:
+  - changed-files:
+    - any-glob-to-any-file: 'src/autonomous/**'

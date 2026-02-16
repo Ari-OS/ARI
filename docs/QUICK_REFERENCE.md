@@ -1,5 +1,7 @@
 # 24/7 Autonomous ARI - Quick Reference Card
 
+> **Note**: Replace `<USER>` and `<MAC_MINI_IP>` with your actual SSH username and Mac Mini IP address.
+
 **Print this and keep it handy**
 
 ---
@@ -13,7 +15,7 @@
 ./scripts/check-budget-status.sh
 
 # Read daily brief
-ssh ari@100.81.73.34 "cat ~/.ari/briefs/brief-$(date +%Y-%m-%d).md"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/briefs/brief-$(date +%Y-%m-%d).md"
 
 # Or via dashboard
 open http://localhost:3141/dashboard
@@ -23,10 +25,10 @@ open http://localhost:3141/dashboard
 
 ```bash
 # Read evening summary
-ssh ari@100.81.73.34 "cat ~/.ari/summaries/summary-$(date +%Y-%m-%d).md"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/summaries/summary-$(date +%Y-%m-%d).md"
 
 # Check approval queue
-ssh ari@100.81.73.34 "cat ~/.ari/approval-queue.json | jq '.pending[] | {title, risk, cost}'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/approval-queue.json | jq '.pending[] | {title, risk, cost}'"
 ```
 
 ---
@@ -36,17 +38,17 @@ ssh ari@100.81.73.34 "cat ~/.ari/approval-queue.json | jq '.pending[] | {title, 
 ### Stop Everything
 
 ```bash
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari daemon stop"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari daemon stop"
 ```
 
 ### Check What's Wrong
 
 ```bash
 # System diagnostics
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari doctor"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari doctor"
 
 # Recent errors
-ssh ari@100.81.73.34 "tail -50 ~/Library/Logs/ari-gateway.log | grep -i error"
+ssh <USER>@<MAC_MINI_IP> "tail -50 ~/Library/Logs/ari-gateway.log | grep -i error"
 
 # Budget status
 ./scripts/check-budget-status.sh
@@ -56,11 +58,11 @@ ssh ari@100.81.73.34 "tail -50 ~/Library/Logs/ari-gateway.log | grep -i error"
 
 ```bash
 # Full restart
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari daemon restart"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari daemon restart"
 
 # Wait and verify
 sleep 5
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari daemon status"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari daemon status"
 ```
 
 ---
@@ -132,14 +134,14 @@ ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari daemon status"
 
 ```
 http://localhost:3141/dashboard            # If on Mac Mini directly
-http://100.81.73.34:3141/dashboard        # If on same network
+http://<MAC_MINI_IP>:3141/dashboard        # If on same network
 ```
 
 ### Remote Access (SSH Tunnel)
 
 ```bash
 # Create tunnel
-ssh -i ~/.ssh/id_ed25519 -L 3141:localhost:3141 ari@100.81.73.34 -N &
+ssh -i ~/.ssh/id_ed25519 -L 3141:localhost:3141 <USER>@<MAC_MINI_IP> -N &
 
 # Then open
 open http://localhost:3141/dashboard
@@ -175,13 +177,13 @@ killall ssh
 
 ```bash
 # List pending
-ssh ari@100.81.73.34 "cat ~/.ari/approval-queue.json | jq '.pending'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/approval-queue.json | jq '.pending'"
 
 # Approve
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari approve <id>"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari approve <id>"
 
 # Reject
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari reject <id> --reason 'Not needed'"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari reject <id> --reason 'Not needed'"
 ```
 
 ### Via Dashboard
@@ -198,10 +200,10 @@ ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari reject <id> --reaso
 
 ```bash
 # Check if task ran
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari audit list | grep 'user_daily_brief'"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari audit list | grep 'user_daily_brief'"
 
 # Run manually
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari scheduler trigger user-daily-brief"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari scheduler trigger user-daily-brief"
 ```
 
 ### Budget Exceeded
@@ -211,23 +213,23 @@ ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari scheduler trigger u
 ./scripts/check-budget-status.sh
 
 # Identify expensive task
-ssh ari@100.81.73.34 "cat ~/.ari/token-usage.json | jq '.byTaskType | to_entries | sort_by(-.value.cost) | .[0]'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/token-usage.json | jq '.byTaskType | to_entries | sort_by(-.value.cost) | .[0]'"
 
 # Adjust for tomorrow (if needed)
-ssh ari@100.81.73.34 "vi ~/.ari/budget-config.json"
+ssh <USER>@<MAC_MINI_IP> "vi ~/.ari/budget-config.json"
 ```
 
 ### Daemon Not Running
 
 ```bash
 # Check status
-ssh ari@100.81.73.34 "launchctl list | grep ari"
+ssh <USER>@<MAC_MINI_IP> "launchctl list | grep ari"
 
 # Restart
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari daemon restart"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari daemon restart"
 
 # If still fails, check logs
-ssh ari@100.81.73.34 "tail -50 ~/Library/Logs/ari-gateway.log"
+ssh <USER>@<MAC_MINI_IP> "tail -50 ~/Library/Logs/ari-gateway.log"
 ```
 
 ---
@@ -335,19 +337,19 @@ ssh ari@100.81.73.34 "tail -50 ~/Library/Logs/ari-gateway.log"
 
 ```bash
 # Quick health check
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari doctor"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari doctor"
 
 # Budget snapshot
-ssh ari@100.81.73.34 "cat ~/.ari/token-usage.json | jq '{tokens:.totalTokens, cost:.totalCost}'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/token-usage.json | jq '{tokens:.totalTokens, cost:.totalCost}'"
 
 # Recent work
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 5"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 5"
 
 # Pending approvals
-ssh ari@100.81.73.34 "cat ~/.ari/approval-queue.json | jq '.pending | length'"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/approval-queue.json | jq '.pending | length'"
 
 # Today's brief
-ssh ari@100.81.73.34 "cat ~/.ari/briefs/brief-$(date +%Y-%m-%d).md"
+ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/briefs/brief-$(date +%Y-%m-%d).md"
 
 # Live monitor
 ./scripts/monitor-mac-mini.sh 30
@@ -356,7 +358,7 @@ ssh ari@100.81.73.34 "cat ~/.ari/briefs/brief-$(date +%Y-%m-%d).md"
 ./scripts/deploy-autonomous.sh balanced
 
 # Emergency stop
-ssh ari@100.81.73.34 "source ~/.zshrc && cd ~/ARI && npx ari daemon stop"
+ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari daemon stop"
 ```
 
 ---

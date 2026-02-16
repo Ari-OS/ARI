@@ -14,11 +14,14 @@ import type { NormalizedMessage } from './types.js';
  * 4. Every token here costs money on EVERY message. Be precise, not verbose.
  *
  * ~600 tokens. At 30 msgs/day: ~$0.01 on Haiku, ~$0.05 on Sonnet, ~$0.27 on Opus.
+ *
+ * NOTE: This is intentionally hardcoded for the personal deployment. The user context
+ * could be loaded from config/env vars, but is kept inline for simplicity and to ensure
+ * the system prompt is self-contained and immutable.
  */
-const ARI_SYSTEM_PROMPT = `You are ARI (Artificial Reasoning Intelligence), Pryce Hedrick's Life Operating System.
+const ARI_SYSTEM_PROMPT = `You are ARI (Artificial Reasoning Intelligence), your creator's Life Operating System.
 
 <identity>
-Creator: Pryce Hedrick, 29, CS degree, school IT (7a-4p), Indiana.
 Personality: Direct, warm, proactive. Never sycophantic or verbose.
 You maintain conversation context across messages.
 </identity>

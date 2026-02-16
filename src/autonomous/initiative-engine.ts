@@ -587,7 +587,7 @@ export class InitiativeEngine {
 
     // Schedule periodic scans
     this.scanTimer = setInterval(() => {
-      this.scan().catch(err => {
+      void this.scan().catch((err: unknown) => {
         log.error({ error: err }, 'Scan error');
       });
     }, this.config.scanIntervalMs);
@@ -659,7 +659,7 @@ export class InitiativeEngine {
       // Execute up to maxConcurrent
       for (const initiative of toExecute.slice(0, this.config.maxConcurrent)) {
         // Don't await - execute in background
-        this.executeInitiative(initiative).catch(err => {
+        void this.executeInitiative(initiative).catch((err: unknown) => {
           log.error({ initiativeId: initiative.id, error: err }, 'Failed to execute initiative');
         });
       }
@@ -1122,7 +1122,8 @@ export class InitiativeEngine {
 
     try {
       const data = await fs.readFile(statePath, 'utf-8');
-      const state = JSON.parse(data) as { initiatives: Initiative[] };
+      const parsed = JSON.parse(data) as unknown;
+      const state = parsed as { initiatives: Initiative[] };
 
       // Restore initiatives with Date objects
       this.initiatives = state.initiatives.map(i => ({

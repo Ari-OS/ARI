@@ -17,7 +17,7 @@
 - [x] Risk assessment reviewed and accepted
 
 ### Environment Prepared
-- [x] Mac Mini accessible via SSH (ari@100.81.73.34)
+- [x] Mac Mini accessible via SSH (<USER>@<MAC_MINI_IP>)
 - [x] Anthropic API key ready
 - [x] Telegram bot credentials (TELEGRAM_BOT_TOKEN + TELEGRAM_OWNER_USER_ID)
 - [x] GitHub repo access verified
@@ -552,7 +552,7 @@ Recovery time: 10 minutes
 ```
 Action: Disable autonomous mode
 Steps:
-1. ssh ari@100.81.73.34 "npx ari daemon stop"
+1. ssh <USER>@<MAC_MINI_IP> "npx ari daemon stop"
 2. Investigate root cause
 3. Fix and test locally
 4. Re-deploy when confident
@@ -626,7 +626,7 @@ Month 1 Comprehensive Review:
 
 - [x] Anthropic API access (Claude 3 family)
 - [x] Anthropic API key with billing enabled
-- [x] SSH access to Mac Mini (ari@100.81.73.34)
+- [x] SSH access to Mac Mini (<USER>@<MAC_MINI_IP>)
 - [x] Telegram bot (TELEGRAM_BOT_TOKEN + TELEGRAM_OWNER_USER_ID)
 - [x] Tailscale for remote access (already set up)
 
@@ -700,7 +700,7 @@ Month 1 Comprehensive Review:
 
 - [x] Budget profile: **Balanced** ($75/month)
 - [x] Timeline: **10 days** (phased rollout)
-- [x] Deployment target: **Mac Mini** (100.81.73.34)
+- [x] Deployment target: **Mac Mini** (<MAC_MINI_IP>)
 - [x] Start date: **February 3, 2026**
 - [x] Target completion: **February 13, 2026**
 
@@ -805,7 +805,7 @@ Issue 2: ...
 │  Lines of code: ___                                 │
 │  Time invested: ___ hours                           │
 │                                                      │
-│  Deployed to: Mac Mini (100.81.73.34)               │
+│  Deployed to: Mac Mini (<MAC_MINI_IP>)               │
 │  Budget profile: Balanced ($75/month)               │
 │  First brief delivered: ____________________        │
 │  First week cost: $_____                            │

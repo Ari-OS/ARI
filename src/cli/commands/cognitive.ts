@@ -83,7 +83,7 @@ export function registerCognitiveCommand(program: Command): void {
     .command('status')
     .description('Show cognitive layer health and activity')
     .option('--json', 'Output as JSON')
-    .action(async (options: { json?: boolean }) => {
+    .action((options: { json?: boolean }) => {
       try {
         // Stub - knowledge/learning modules removed
         const sources = [];
@@ -278,7 +278,9 @@ export function registerCognitiveCommand(program: Command): void {
         console.log(subheader(`${PILLAR_ICONS.ETHOS} Bias Detection`));
         if (biasResult.biasesDetected.length > 0) {
           for (const bias of biasResult.biasesDetected) {
-            console.log(bullet(`${bias.type}: ${bias.evidence}`));
+            const types = String(Array.isArray(bias.type) ? bias.type.join(', ') : bias.type);
+            const evidence = String(Array.isArray(bias.evidence) ? bias.evidence.join(', ') : bias.evidence);
+            console.log(bullet(`${types}: ${evidence}`));
           }
         } else {
           console.log(bullet('No biases detected'));
@@ -359,7 +361,7 @@ export function registerCognitiveCommand(program: Command): void {
     .argument('[member]', 'Member ID (e.g., strategist, guardian, advocate)')
     .option('--json', 'Output as JSON')
     .option('--list', 'List all available profiles')
-    .action(async (member: string | undefined, options: { json?: boolean; list?: boolean }) => {
+    .action((_member: string | undefined, _options: { json?: boolean; list?: boolean }) => {
       console.error(color('Council profiles not available (knowledge module removed)', 'red'));
       process.exit(1);
     });

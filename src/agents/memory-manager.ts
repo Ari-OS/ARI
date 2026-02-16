@@ -109,7 +109,7 @@ export class MemoryManager {
     mkdirSync(this.MEMORY_DIR, { recursive: true });
 
     // Load existing memories from disk
-    await this.loadFromDisk();
+    this.loadFromDisk();
 
     // Start debounced persistence timer
     this.persistTimer = setInterval(() => {
@@ -553,7 +553,7 @@ export class MemoryManager {
   /**
    * Load memories from disk — one JSON file per partition.
    */
-  private async loadFromDisk(): Promise<void> {
+  private loadFromDisk(): void {
     const partitions: MemoryPartition[] = ['PUBLIC', 'INTERNAL', 'SENSITIVE'];
 
     for (const partition of partitions) {
@@ -562,7 +562,8 @@ export class MemoryManager {
       try {
         if (existsSync(filePath)) {
           const data = readFileSync(filePath, 'utf-8');
-          const entries: MemoryEntry[] = JSON.parse(data);
+          const parsed = JSON.parse(data) as unknown;
+          const entries: MemoryEntry[] = parsed as MemoryEntry[];
 
           for (const entry of entries) {
             if (entry.id && entry.content && entry.provenance) {

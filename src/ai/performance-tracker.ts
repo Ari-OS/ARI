@@ -100,13 +100,14 @@ export class PerformanceTracker {
 
     try {
       const raw = readFileSync(this.persistPath, 'utf-8');
-      const parsed = JSON.parse(raw) as PerformanceData;
+      const parsed = JSON.parse(raw) as unknown;
+      const data = parsed as PerformanceData;
 
-      if (parsed.version !== '1.0.0') {
+      if (data.version !== '1.0.0') {
         return { version: '1.0.0', lastUpdated: new Date().toISOString(), metrics: [] };
       }
 
-      return parsed;
+      return data;
     } catch {
       return { version: '1.0.0', lastUpdated: new Date().toISOString(), metrics: [] };
     }
@@ -187,7 +188,7 @@ export class PerformanceTracker {
       metric.errorCount += 1;
     }
 
-    this.persist().catch((err) => {
+    void this.persist().catch((err: unknown) => {
       logger.error({ err }, 'Persist failed');
     });
   }
@@ -205,7 +206,7 @@ export class PerformanceTracker {
       metric.qualitySum = metric.qualitySum - 0.8 + qualityScore;
     }
 
-    this.persist().catch((err) => {
+    void this.persist().catch((err: unknown) => {
       logger.error({ err }, 'Persist failed');
     });
   }

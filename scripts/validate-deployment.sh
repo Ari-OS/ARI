@@ -7,7 +7,7 @@
 
 # Note: set -e removed to allow warnings without immediate exit
 
-MINI_HOST="${MINI_HOST:-ari@100.81.73.34}"
+MINI_HOST="${MINI_HOST:-<USER>@<MAC_MINI_IP>}"
 SSH_KEY="${SSH_KEY:-~/.ssh/id_ed25519}"
 
 # Colors
