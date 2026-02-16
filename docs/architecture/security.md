@@ -16,7 +16,7 @@ This principle is enforced through:
 
 ### Implementation: src/kernel/sanitizer.ts
 
-39 patterns across 14 categories, matched with case-insensitive regex.
+42 patterns across 14 categories, matched with case-insensitive regex.
 
 **Category 1: Direct Override** (5 patterns)
 - "ignore previous instructions"
@@ -288,7 +288,7 @@ Not yet implemented. Planned for Phase 2.
 
 1. **Loopback-only gateway** — 127.0.0.1 binding, hardcoded in src/kernel/gateway.ts
 2. **Hash chain integrity** — SHA-256 linking in src/kernel/audit.ts, genesis block verification
-3. **Injection detection** — 39 patterns in src/kernel/sanitizer.ts, 14 categories
+3. **Injection detection** — 42 patterns in src/kernel/sanitizer.ts, 14 categories
 4. **Trust-weighted risk** — Risk multiplier in src/kernel/sanitizer.ts (0.5x, 1.0x, 1.5x)
 5. **Pipeline enforcement** — Event-only integration in src/system/router.ts, no bypass paths
 6. **Content = data** — No interpretation of external content as instructions
@@ -314,7 +314,7 @@ Not yet implemented. Planned for Phase 2.
 
 1. **Operator compromise** — If operator machine is compromised, ARI is compromised
 2. **Filesystem access** — ARI requires read/write to ~/.ari/ (future: encryption at rest)
-3. **Novel injection patterns** — 39 patterns cover known vectors, not exhaustive
+3. **Novel injection patterns** — 42 patterns cover known vectors, not exhaustive
 4. **Side-channel attacks** — Timing, memory analysis not yet addressed
 
 ## Security Testing

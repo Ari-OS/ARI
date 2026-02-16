@@ -342,7 +342,7 @@ Implemented in `src/kernel/sanitizer.ts`:
 | Outbound HTTPS-only | Allowlisted services only | Active |
 | Hash chain audit | SHA-256 from genesis | Active |
 | Checkpoint anchoring | HMAC-signed chain snapshots | Active |
-| Content sanitization | 39 patterns, 14 categories | Active |
+| Content sanitization | 42 patterns, 14 categories | Active |
 | Rate limiting | 100 req/min token bucket | Active |
 | Trust levels | 6 levels with risk multipliers | Active |
 | Auto-block | Risk >= 0.8 | Active |

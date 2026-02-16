@@ -50,7 +50,7 @@ npm audit
 - [ ] No high vulnerabilities
 
 ### Injection Defense
-- [ ] All 27 patterns tested
+- [ ] All 42 patterns tested
 - [ ] Sanitizer 100% coverage
 - [ ] Risk scoring calibrated
 

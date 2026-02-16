@@ -153,5 +153,5 @@ if (result.detections.length > 0) {
 # Run injection detection tests
 npm test -- tests/security/injection-detection.test.ts
 
-# Expected: 100% coverage on all 27 patterns
+# Expected: 100% coverage on all 42 patterns
 ```

@@ -46,7 +46,7 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 **Core Properties:**
 - **Local-First** — All data stays on your machine. No cloud dependencies.
 - **Auditable** — Every decision is logged in a tamper-evident SHA-256 hash chain.
-- **Secure by Design** — Loopback-only gateway. 41-pattern injection detection. Zero trust architecture.
+- **Secure by Design** — Loopback-only gateway. 42-pattern injection detection. Zero trust architecture.
 - **Autonomous** — Morning/evening briefings, market monitoring, intelligent task management.
 
 > **Note**: This is a framework. The code is open source. Your data is not.
@@ -69,7 +69,7 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 - Intelligent task prioritization
 
 **Security & Governance**
-- 41 injection patterns across 14 categories
+- 42 injection patterns across 14 categories
 - SHA-256 hash-chained audit trail
 - 15-member constitutional council
 - 6 trust levels with risk multipliers
@@ -238,7 +238,7 @@ sequenceDiagram
 
     U->>G: POST /message
     G->>S: Sanitize input
-    S->>S: Check 41 patterns
+    S->>S: Check 42 patterns
     alt Malicious
         S-->>G: BLOCK
         G-->>U: 400 Bad Request

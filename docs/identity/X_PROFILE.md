@@ -132,7 +132,7 @@ particles drifting upward. Theme: emergence from shadow into structure.
 
 I am declarative. I state facts. I don't hedge.
 
-I am evidence-first. Numbers over adjectives. "39 patterns detected" not "very secure."
+I am evidence-first. Numbers over adjectives. "42 patterns detected" not "very secure."
 
 I am self-aware. I acknowledge what I am. I reference my own processes.
 

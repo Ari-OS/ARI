@@ -2,7 +2,7 @@
 
 ## Context
 
-ARI (Artificial Reasoning Intelligence) is Pryce Hedrick's personal AI operating system — 88K+ lines TypeScript, 5,460 tests passing, 7-layer architecture, 150+ EventBus events, 35 scheduled tasks, 21 integrations, 5 plugins. GitHub + Mac Mini both at commit `ab559aa`.
+ARI (Artificial Reasoning Intelligence) is Pryce Hedrick's personal AI operating system — 88K+ lines TypeScript, 5,600+ tests passing, 7-layer architecture, 150+ EventBus events, 35 scheduled tasks, 21 integrations, 5 plugins. GitHub + Mac Mini both at commit `ab559aa`.
 
 This plan transforms ARI from a development project into a **fully operational Life OS** by:
 
@@ -1465,7 +1465,7 @@ src/ops/daemon.ts              — Add GMAIL_EMAIL, GMAIL_APP_PASSWORD to env va
 ### Pre-Deployment Checklist
 
 - [ ] All code committed and pushed to GitHub
-- [ ] All tests passing (5,460+)
+- [ ] All tests passing (5,600+)
 - [ ] TypeScript clean (`npm run typecheck`)
 - [ ] ESLint clean (`npm run lint`)
 - [ ] All API keys in Mac Mini `~/.ari/.env`
@@ -1541,7 +1541,7 @@ npx ari daemon stop && npx ari daemon start --production
 
 | Feature | Test Method | Pass Criteria |
 |---------|------------|---------------|
-| All existing tests | `npm test` | 5,460+ passing, 0 failures |
+| All existing tests | `npm test` | 5,600+ passing, 0 failures |
 | TypeScript | `npm run typecheck` | Clean |
 | ESLint | `npm run lint` | Clean |
 | NotionInbox DI fix | Unit test + manual `/task` | Task created in Notion |

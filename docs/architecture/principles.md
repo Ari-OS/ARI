@@ -201,7 +201,7 @@ test('router receives only clean messages', async () => {
 ```
 Kernel exports only 6 modules:
 1. gateway.ts    — HTTP server (loopback only)
-2. sanitizer.ts  — Injection detector (39 patterns)
+2. sanitizer.ts  — Injection detector (42 patterns)
 3. audit.ts      — Hash-chained logger
 4. event-bus.ts  — Typed pub/sub
 5. config.ts     — Config load/save

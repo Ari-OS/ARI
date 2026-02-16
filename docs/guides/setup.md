@@ -224,7 +224,7 @@ Output:
 ARI Gateway starting...
 ✓ Config loaded
 ✓ Audit chain initialized (42 events)
-✓ Sanitizer loaded (39 patterns)
+✓ Sanitizer loaded (42 patterns)
 ✓ EventBus ready
 ✓ Listening on http://127.0.0.1:3141
 

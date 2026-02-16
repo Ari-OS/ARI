@@ -105,9 +105,9 @@ function isWhitelisted(url: string): boolean {
 
 **Purpose**: Remove potentially malicious content before processing
 
-**Extends**: Existing [`sanitizer.ts`](../../src/kernel/sanitizer.ts) (39 patterns) with **cognitive-specific patterns**.
+**Extends**: Existing [`sanitizer.ts`](../../src/kernel/sanitizer.ts) (42 patterns) with **cognitive-specific patterns**.
 
-**Additional Patterns** (beyond existing 27):
+**Additional Patterns** (beyond existing 42):
 
 | Pattern | Detection | Example | Mitigation |
 |---------|-----------|---------|------------|

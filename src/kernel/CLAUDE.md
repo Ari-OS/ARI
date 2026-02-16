@@ -7,14 +7,14 @@ The kernel is ARI's security boundary. All external input enters here.
 | Invariant | Enforcement |
 |-----------|-------------|
 | Loopback-only | Gateway binds to `127.0.0.1` exclusively |
-| Content ≠ Command | Sanitizer scans 27 patterns before processing |
+| Content ≠ Command | Sanitizer scans 42 patterns across 14 categories |
 | Audit immutable | SHA-256 hash chain, append-only |
 | Trust required | All messages have trust level |
 
 ## Key Components
 
 - **gateway.ts** — Fastify server, loopback-only binding
-- **sanitizer.ts** — 27 injection patterns across 10 categories
+- **sanitizer.ts** — 42 injection patterns across 14 categories
 - **audit.ts** — Hash-chained logging with genesis block
 - **event-bus.ts** — Typed pub/sub for all layers
 - **config.ts** — Zod-validated configuration

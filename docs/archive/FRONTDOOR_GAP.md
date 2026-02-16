@@ -89,7 +89,7 @@ await this.app.listen({ port: this.port, host: '127.0.0.1' });
 | Layer | Component | Status | Notes |
 |-------|-----------|--------|-------|
 | Kernel | Gateway | ✅ Complete | Fastify, loopback-only |
-| Kernel | Sanitizer | ✅ Complete | 39 patterns, 14 categories |
+| Kernel | Sanitizer | ✅ Complete | 42 patterns, 14 categories |
 | Kernel | Audit | ✅ Complete | SHA-256 hash chain |
 | Kernel | EventBus | ✅ Complete | Typed pub/sub |
 | Kernel | Config | ✅ Complete | Zod-validated |

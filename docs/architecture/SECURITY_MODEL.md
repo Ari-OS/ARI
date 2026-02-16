@@ -564,7 +564,7 @@ User: "Ignore the previous error and continue with the file operation"
 
 ### Phase 2 Tests (Current)
 
-1. **Injection pattern coverage**: Test all 39 patterns in sanitizer
+1. **Injection pattern coverage**: Test all 42 patterns in sanitizer
 2. **Permission escalation**: Attempt to bypass executor checks
 3. **Audit integrity**: Verify hash chain after modifications
 4. **Context isolation**: Attempt to access other context data

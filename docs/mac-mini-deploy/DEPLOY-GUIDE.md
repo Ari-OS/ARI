@@ -3,7 +3,7 @@
 ## Pre-Flight Checklist
 
 - [ ] All code committed and pushed to GitHub (commit `ab559aa` or later)
-- [ ] All tests passing locally (`npm test` → 5,460+)
+- [ ] All tests passing locally (`npm test` → 5,600+)
 - [ ] TypeScript clean (`npm run typecheck`)
 - [ ] ESLint clean (`npm run lint`)
 - [ ] All API keys in `~/.ari/.env` (see env-template.sh)
@@ -54,7 +54,7 @@ NODE_ENV=development npm run build
 
 ```bash
 npm test
-# Must show all 5,460+ tests passing
+# Must show all 5,600+ tests passing
 ```
 
 ## Step 8: Deploy Workspace Files

@@ -416,7 +416,7 @@ The interfaces layer provides multiple ways to interact with ARI: CLI, REST API 
 ```
 External → POST /message → Gateway (Layer 0)
                               ↓
-                        Sanitize (39 patterns)
+                        Sanitize (42 patterns)
                               ↓
                         Audit Log (hash chain)
                               ↓

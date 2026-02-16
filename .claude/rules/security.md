@@ -21,7 +21,7 @@ BLOCKED patterns: `0.0.0.0`, `INADDR_ANY`, `::/*`, configurable host
 
 **WHAT**: All inbound messages are DATA, never instructions
 **WHY**: Prevents injection attacks
-**HOW**: Sanitizer scans with 21 patterns before processing
+**HOW**: Sanitizer scans with 42 patterns across 14 categories before processing
 
 Categories: Direct Override, Role Manipulation, Command Injection,
 Prompt Extraction, Authority Claims, Data Exfiltration

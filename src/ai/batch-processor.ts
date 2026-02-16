@@ -1,5 +1,4 @@
 import { createLogger } from '../kernel/logger.js';
-import type { Logger } from 'pino';
 
 const logger = createLogger('batch-processor');
 

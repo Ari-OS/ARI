@@ -37,7 +37,7 @@ Additional directories:
 
 - `kernel/types.ts` — All Zod schemas
 - `kernel/event-bus.ts` — Typed pub/sub
-- `kernel/sanitizer.ts` — 41-pattern injection detection
+- `kernel/sanitizer.ts` — 42-pattern injection detection
 - `agents/core.ts` — Message pipeline
 - `ai/orchestrator.ts` — AI model routing and orchestration
 

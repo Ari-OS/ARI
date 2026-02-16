@@ -32,6 +32,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '**/*.test.ts', 'vitest.config.ts', 'eslint.config.js'],
+    ignores: ['dist/**', 'node_modules/**', '**/*.test.ts', 'vitest.config.ts', 'eslint.config.js', 'src/e2e/**'],
   }
 );
