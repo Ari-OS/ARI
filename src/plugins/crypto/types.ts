@@ -8,7 +8,7 @@ export const CryptoConfigSchema = z.object({
   apiKey: z.string().optional(),
   defaultCoins: z.array(z.string()).default(['bitcoin', 'ethereum', 'solana']),
   currency: z.string().default('usd'),
-  priceCheckIntervalMinutes: z.number().default(30),
+  priceCheckIntervalMinutes: z.number().default(240),
   snapshotHour: z.number().min(0).max(23).default(0),
 });
 export type CryptoConfig = z.infer<typeof CryptoConfigSchema>;
