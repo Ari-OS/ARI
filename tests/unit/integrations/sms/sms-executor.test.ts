@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vite
 
 // Mock child_process
 vi.mock('node:child_process', () => ({
-  exec: vi.fn(),
+  execFile: vi.fn(),
 }));
 
 // Mock fs/promises
@@ -51,7 +51,7 @@ vi.mock('../../../../src/autonomous/daily-audit.js', () => ({
   },
 }));
 
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
 import { SMSExecutor, smsExecutor, type ParsedAction } from '../../../../src/integrations/sms/sms-executor.js';
@@ -59,7 +59,7 @@ import { taskQueue } from '../../../../src/autonomous/task-queue.js';
 import { notificationManager } from '../../../../src/autonomous/notification-manager.js';
 import { dailyAudit } from '../../../../src/autonomous/daily-audit.js';
 
-// Create mock execAsync
+// Create mock for execFile callback pattern
 const mockExecAsync = vi.fn();
 
 describe('SMSExecutor', () => {
@@ -68,19 +68,22 @@ describe('SMSExecutor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Setup exec mock
-    (exec as unknown as Mock).mockImplementation((cmd, opts, callback) => {
-      if (typeof opts === 'function') {
-        callback = opts;
-      }
-      const result = mockExecAsync(cmd);
+    // Setup execFile mock — matches execFile(cmd, args, opts, callback) signature
+    (execFile as unknown as Mock).mockImplementation((...allArgs: unknown[]) => {
+      const callback = [...allArgs].reverse().find((a) => typeof a === 'function') as
+        | ((err: Error | null, result: { stdout: string; stderr: string }) => void)
+        | undefined;
+
+      // Extract the actual command for mockExecAsync (first arg)
+      const cmd = allArgs[0] as string;
+      const result = mockExecAsync(cmd) as Promise<{ stdout: string; stderr: string }>;
       if (result instanceof Promise) {
         result.then(
-          (res: any) => callback?.(null, res),
-          (err: any) => callback?.(err)
+          (res) => callback?.(null, res),
+          (err: unknown) => callback?.(err instanceof Error ? err : new Error(String(err)), { stdout: '', stderr: '' })
         );
       }
-      return {} as any;
+      return {} as ReturnType<typeof execFile>;
     });
 
     mockExecAsync.mockResolvedValue({ stdout: 'Command output', stderr: '' });
@@ -998,6 +1001,63 @@ describe('SMSExecutor', () => {
 
       expect(result.success).toBe(false);
       expect(result.output).toContain('timed out');
+    });
+  });
+
+  describe('shell injection regression (security)', () => {
+    it('should block null byte injection in shell commands', async () => {
+      const action: ParsedAction = {
+        type: 'shell',
+        command: 'ls\0hidden-payload',
+        args: [],
+        requiresConfirmation: false,
+      };
+
+      const result = await executor.execute(action);
+
+      expect(result.success).toBe(false);
+      expect(result.output).toContain('invalid characters');
+      expect(mockExecAsync).not.toHaveBeenCalled();
+    });
+
+    it('should use execFile instead of exec for shell commands', async () => {
+      mockExecAsync.mockResolvedValue({ stdout: 'ok', stderr: '' });
+
+      const action: ParsedAction = {
+        type: 'shell',
+        command: 'git status',
+        args: [],
+        requiresConfirmation: false,
+      };
+
+      await executor.execute(action);
+
+      // Verify execFile was called (not exec)
+      expect(execFile).toHaveBeenCalled();
+      // First arg should be /bin/sh, second should be ['-c', command]
+      const callArgs = (execFile as unknown as Mock).mock.calls[
+        (execFile as unknown as Mock).mock.calls.length - 1
+      ];
+      expect(callArgs[0]).toBe('/bin/sh');
+      expect(callArgs[1]).toEqual(['-c', 'git status']);
+    });
+
+    it('should use execFile for status uptime check', async () => {
+      mockExecAsync.mockResolvedValue({ stdout: 'up 5 days', stderr: '' });
+
+      const action: ParsedAction = {
+        type: 'status',
+        command: 'status',
+        args: [],
+        requiresConfirmation: false,
+      };
+
+      await executor.execute(action);
+
+      // First call should be /usr/bin/uptime (hardcoded, no shell)
+      const firstCall = (execFile as unknown as Mock).mock.calls[0];
+      expect(firstCall[0]).toBe('/usr/bin/uptime');
+      expect(firstCall[1]).toEqual([]);
     });
   });
 });

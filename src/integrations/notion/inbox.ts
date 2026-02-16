@@ -21,11 +21,13 @@ export class NotionInbox {
   private client: NotionClient;
   private databaseId: string | undefined;
   private dailyLogParentId: string | undefined;
+  private tasksDbId: string | undefined;
 
   constructor(config: NotionConfig) {
     this.client = new NotionClient(config);
     this.databaseId = config.inboxDatabaseId;
     this.dailyLogParentId = config.dailyLogParentId;
+    this.tasksDbId = config.tasksDbId;
   }
 
   /**
@@ -232,6 +234,59 @@ export class NotionInbox {
 
     const result = await this.client.createDatabaseEntry(this.databaseId, content);
     return result?.id ?? null;
+  }
+
+  // ── Task Management ────────────────────────────────────────────────────
+
+  /**
+   * Check if tasks database is configured
+   */
+  hasTasksDb(): boolean {
+    return this.client.isReady() && !!this.tasksDbId;
+  }
+
+  /**
+   * Quick-capture a task from Telegram
+   */
+  async quickTask(
+    name: string,
+    options?: { priority?: 'High' | 'Medium' | 'Low'; dueDate?: Date; description?: string }
+  ): Promise<{ id: string; url: string } | null> {
+    if (!this.hasTasksDb() || !this.tasksDbId) {
+      return null;
+    }
+
+    return await this.client.createTask(this.tasksDbId, {
+      name,
+      priority: options?.priority,
+      dueDate: options?.dueDate,
+      description: options?.description,
+    });
+  }
+
+  /**
+   * Get tasks with optional filter
+   */
+  async getTasks(filter?: { status?: string; priority?: string }): Promise<NotionDatabaseEntry[]> {
+    if (!this.hasTasksDb() || !this.tasksDbId) {
+      return [];
+    }
+
+    return await this.client.queryDatabase(this.tasksDbId, filter);
+  }
+
+  /**
+   * Mark a task as done
+   */
+  async completeTask(pageId: string): Promise<boolean> {
+    return await this.client.updateTaskStatus(pageId, 'Done');
+  }
+
+  /**
+   * Clear cached query results
+   */
+  clearCache(): void {
+    this.client.clearCache();
   }
 
   /**

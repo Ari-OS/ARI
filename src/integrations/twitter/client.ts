@@ -55,6 +55,16 @@ export interface XFetchResult {
   rateLimitRemaining?: number;
 }
 
+export interface XPostResult {
+  id: string;
+  text: string;
+}
+
+export interface XThreadResult {
+  ids: string[];
+  texts: string[];
+}
+
 interface XApiResponse {
   data?: Array<{
     id: string;
@@ -211,7 +221,130 @@ export class XClient {
     return this.parseResponse(response, 'search');
   }
 
+  // ─── Write Methods (require OAuth 2.0 User Context or OAuth 1.0a) ──────
+
+  async postTweet(text: string): Promise<XPostResult> {
+    if (!this.isReady()) {
+      throw new Error('X client not initialized');
+    }
+
+    const response = await this.apiPost('/tweets', { text });
+    const data = response.data as { id?: string; text?: string } | undefined;
+    return {
+      id: data?.id ?? '',
+      text: data?.text ?? text,
+    };
+  }
+
+  async postThread(tweets: string[]): Promise<XThreadResult> {
+    if (!this.isReady()) {
+      throw new Error('X client not initialized');
+    }
+    if (tweets.length === 0) {
+      return { ids: [], texts: [] };
+    }
+
+    const ids: string[] = [];
+    const texts: string[] = [];
+    let replyToId: string | undefined;
+
+    for (const text of tweets) {
+      const body: Record<string, unknown> = { text };
+      if (replyToId) {
+        body.reply = { in_reply_to_tweet_id: replyToId };
+      }
+
+      const response = await this.apiPost('/tweets', body);
+      const data = response.data as { id?: string; text?: string } | undefined;
+      const tweetId = data?.id ?? '';
+      ids.push(tweetId);
+      texts.push(data?.text ?? text);
+      replyToId = tweetId;
+    }
+
+    return { ids, texts };
+  }
+
+  async deleteTweet(tweetId: string): Promise<boolean> {
+    if (!this.isReady()) {
+      throw new Error('X client not initialized');
+    }
+
+    const response = await this.apiDelete(`/tweets/${tweetId}`);
+    const data = response.data as { deleted?: boolean } | undefined;
+    return data?.deleted ?? false;
+  }
+
   // ─── Private ─────────────────────────────────────────────────────────────
+
+  private async apiPost(
+    endpoint: string,
+    body: Record<string, unknown>
+  ): Promise<XApiResponse> {
+    if (this.requestCount >= (this.config.rateLimitPerMonth ?? 10000)) {
+      const elapsed = Date.now() - this.lastReset;
+      if (elapsed < 30 * 24 * 60 * 60 * 1000) {
+        log.warn('Monthly rate limit reached');
+        return {};
+      }
+      this.requestCount = 0;
+      this.lastReset = Date.now();
+    }
+
+    const url = `${X_API_BASE}${endpoint}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.config.bearerToken}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'ARI-Content-Engine/1.0',
+      },
+      body: JSON.stringify(body),
+    });
+
+    this.requestCount++;
+
+    if (!response.ok) {
+      const text = await response.text();
+      log.error({ status: response.status, body: text }, 'X API POST error');
+      throw new Error(`X API POST ${endpoint} failed: ${response.status}`);
+    }
+
+    return (await response.json()) as XApiResponse;
+  }
+
+  private async apiDelete(endpoint: string): Promise<XApiResponse> {
+    if (this.requestCount >= (this.config.rateLimitPerMonth ?? 10000)) {
+      const elapsed = Date.now() - this.lastReset;
+      if (elapsed < 30 * 24 * 60 * 60 * 1000) {
+        log.warn('Monthly rate limit reached');
+        return {};
+      }
+      this.requestCount = 0;
+      this.lastReset = Date.now();
+    }
+
+    const url = `${X_API_BASE}${endpoint}`;
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${this.config.bearerToken}`,
+        'User-Agent': 'ARI-Content-Engine/1.0',
+      },
+    });
+
+    this.requestCount++;
+
+    if (!response.ok) {
+      const text = await response.text();
+      log.error({ status: response.status, body: text }, 'X API DELETE error');
+      throw new Error(`X API DELETE ${endpoint} failed: ${response.status}`);
+    }
+
+    return (await response.json()) as XApiResponse;
+  }
 
   private async apiCall(
     endpoint: string,

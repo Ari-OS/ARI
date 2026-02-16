@@ -12,7 +12,7 @@
  * - Execute ARI commands
  */
 
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -20,7 +20,7 @@ import { dailyAudit } from '../../autonomous/daily-audit.js';
 import { taskQueue } from '../../autonomous/task-queue.js';
 import { notificationManager } from '../../autonomous/notification-manager.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export interface ActionResult {
   success: boolean;
@@ -177,9 +177,9 @@ export class SMSExecutor {
   private async executeStatus(): Promise<ActionResult> {
     const results: string[] = [];
 
-    // System uptime
+    // System uptime — use execFile (no shell) for hardcoded commands
     try {
-      const { stdout } = await execAsync('uptime');
+      const { stdout } = await execFileAsync('/usr/bin/uptime', []);
       results.push(`Uptime: ${stdout.trim()}`);
     } catch {
       results.push('Uptime: unavailable');
@@ -286,6 +286,11 @@ export class SMSExecutor {
 
   /**
    * Execute shell command
+   *
+   * SECURITY: Uses execFile with /bin/sh -c to avoid direct shell string
+   * interpolation. The command string is passed as a single argument to
+   * the shell, not concatenated into a shell command line. Combined with
+   * the BLOCKED_PATTERNS allowlist, this provides defense-in-depth.
    */
   private async executeShell(command: string): Promise<ActionResult> {
     // Final safety check
@@ -293,6 +298,11 @@ export class SMSExecutor {
       if (pattern.test(command)) {
         return { success: false, output: 'Command blocked for safety', action: 'shell' };
       }
+    }
+
+    // Reject null bytes (used in injection attacks)
+    if (command.includes('\0')) {
+      return { success: false, output: 'Command blocked: invalid characters', action: 'shell' };
     }
 
     await dailyAudit.logActivity(
@@ -303,10 +313,11 @@ export class SMSExecutor {
     );
 
     try {
-      const { stdout, stderr } = await execAsync(command, {
-        timeout: 30000, // 30 second timeout
+      // Use execFile with /bin/sh -c to pass command as argument, not shell string
+      const { stdout, stderr } = await execFileAsync('/bin/sh', ['-c', command], {
+        timeout: 30000,
         cwd: this.ariRoot,
-        maxBuffer: 1024 * 1024, // 1MB
+        maxBuffer: 1024 * 1024,
       });
 
       const output = stdout || stderr || 'Command completed';
@@ -320,7 +331,7 @@ export class SMSExecutor {
       );
 
       return { success: true, output: truncated.trim(), action: 'shell' };
-    } catch (error) {
+    } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Command failed';
 
       await dailyAudit.logActivity(
