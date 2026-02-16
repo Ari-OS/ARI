@@ -507,6 +507,17 @@ export interface EventMap {
   'telegram:rate_limited': { userId: number; chatId: number; timestamp: string };
   'telegram:bot_started': { botUsername: string; timestamp: string };
   'telegram:bot_stopped': { reason: string; timestamp: string };
+  'telegram:intent_routed': { intent: string; via: 'fast_path' | 'ai_classification'; confidence?: number; timestamp: string };
+  'telegram:voice_transcribed': { duration: number; textLength: number; timestamp: string };
+  'telegram:skill_invoked': { skill: string; confidence: number; timestamp: string };
+  'telegram:calendar_viewed': { userId?: number; subcommand: string; eventCount: number };
+  'telegram:reminders_viewed': { userId?: number; reminderCount: number };
+  'telegram:market_viewed': { userId?: number };
+  'telegram:knowledge_searched': { userId?: number; query: string; resultCount: number };
+  'telegram:memory_stored': { userId: number | string; docId: string; contentLength: number };
+  'telegram:memory_recalled': { userId?: number; query: string; resultCount: number };
+  'telegram:settings_changed': { userId?: number; setting: string; value: string };
+  'telegram:skills_listed': { userId?: number };
 
   // ═══════════════════════════════════════════════════════════════════════
   // KNOWLEDGE MANAGEMENT events (Cognitive Layer)
@@ -594,6 +605,11 @@ export interface EventMap {
   'content:draft_reviewed': { draftId: string; action: 'approved' | 'edited' | 'rejected'; reason?: string };
   'content:published': { draftId: string; platform: string; publishedIds: string[] };
   'content:publish_failed': { draftId: string; platform: string; error: string };
+  'content:repurposed': { originalId: string; newPlatform: string; timestamp: string };
+  'content:intent_scan_complete': { matchCount: number; timestamp: string };
+  'content:metrics_collected': { postCount: number; timestamp: string };
+  'content:feedback_generated': { insightCount: number; timestamp: string };
+  'content:engagement_found': { opportunityCount: number; timestamp: string };
 
   // ═══════════════════════════════════════════════════════════════════════
   // INTELLIGENCE SCANNER events (Master Plan Phase 4)
@@ -627,6 +643,17 @@ export interface EventMap {
   'integration:weather_fetched': { location: string; tempF: number; condition: string; timestamp: string };
   'integration:news_fetched': { source: string; itemCount: number; timestamp: string };
   'integration:github_polled': { repo: string; stars: number; openPRs: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // GMAIL events (IMAP Integration)
+  // ═══════════════════════════════════════════════════════════════════════
+  'integration:gmail_fetched': { emailCount: number; newCount: number; timestamp: string };
+  'integration:gmail_classified': { messageId: string; classification: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PERPLEXITY events (AI Research)
+  // ═══════════════════════════════════════════════════════════════════════
+  'integration:perplexity_ready': { timestamp: string };
 }
 
 /**

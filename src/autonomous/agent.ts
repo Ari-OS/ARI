@@ -111,6 +111,12 @@ export class AutonomousAgent {
   private lastPortfolio: import('./briefings.js').BriefingPortfolio | null = null;
   private lastMarketAlerts: Array<{ asset: string; change: string; severity: string }> = [];
 
+  // Cached data from orphan handlers (for morning briefing)
+  private lastCalendarEvents: Array<{ title: string; startDate: Date; endDate: Date; location?: string; isAllDay: boolean }> = [];
+  private lastPendingReminders: Array<{ name: string; dueDate?: Date; priority: number; list: string }> = [];
+  private lastWeather: { location: string; tempF: number; condition: string; feelsLikeF: number; humidity: number; forecast?: Array<{ date: string; maxTempF: number; minTempF: number; condition: string; chanceOfRain: number }> } | null = null;
+  private lastTechNews: Array<{ title: string; url?: string; score?: number; source: string }> = [];
+
   // Budget-aware components
   private costTracker: CostTracker | null = null;
   private approvalQueue: ApprovalQueue | null = null;
@@ -850,6 +856,11 @@ export class AutonomousAgent {
           governance,
           portfolio: this.lastPortfolio,
           marketAlerts: this.lastMarketAlerts.length > 0 ? this.lastMarketAlerts : null,
+          // Wire in cached data from orphan handlers
+          calendarEvents: this.lastCalendarEvents.length > 0 ? this.lastCalendarEvents : null,
+          pendingReminders: this.lastPendingReminders.length > 0 ? this.lastPendingReminders : null,
+          weather: this.lastWeather,
+          techNews: this.lastTechNews.length > 0 ? this.lastTechNews : null,
         });
       }
       log.info('Morning briefing completed (unified report)');
@@ -1452,10 +1463,50 @@ export class AutonomousAgent {
     });
 
     // Gmail ingestion at 7 AM
-    this.scheduler.registerHandler('gmail_ingest', () => {
-      // Gmail integration requires IMAP setup — log placeholder until configured
-      log.info('Gmail ingestion task fired (pending IMAP configuration)');
-      return Promise.resolve();
+    this.scheduler.registerHandler('gmail_ingest', async () => {
+      const email = process.env.GMAIL_EMAIL;
+      const appPassword = process.env.GMAIL_APP_PASSWORD;
+
+      if (!email || !appPassword) {
+        log.info('Gmail ingestion skipped (credentials not configured)');
+        return;
+      }
+
+      try {
+        const { GmailClient } = await import('../integrations/gmail/client.js');
+        const gmail = new GmailClient({ email, appPassword });
+
+        await gmail.connect();
+        const messages = await gmail.fetchNew();
+
+        // Emit event with counts
+        this.eventBus.emit('integration:gmail_fetched', {
+          emailCount: messages.length,
+          newCount: messages.filter(m => !m.isRead).length,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Emit classification events for tracking
+        for (const msg of messages) {
+          if (msg.classification) {
+            this.eventBus.emit('integration:gmail_classified', {
+              messageId: msg.id,
+              classification: msg.classification,
+              timestamp: new Date().toISOString(),
+            });
+          }
+        }
+
+        gmail.disconnect();
+
+        log.info({ total: messages.length, important: messages.filter(m => m.classification === 'important').length }, 'Gmail ingestion complete');
+      } catch (error: unknown) {
+        log.error({ error: error instanceof Error ? error.message : String(error) }, 'Gmail ingestion failed');
+        this.eventBus.emit('system:error', {
+          error: error instanceof Error ? error : new Error(String(error)),
+          context: 'gmail_ingest',
+        });
+      }
     });
 
     // Model evolution review (Monday 10 AM)
@@ -1784,6 +1835,169 @@ export class AutonomousAgent {
         log.info({ count: pending.length }, 'Content drafts delivered for review');
       } catch (error) {
         log.error({ error }, 'Content draft delivery failed');
+      }
+    });
+
+    // ==========================================================================
+    // ORPHAN HANDLERS: Calendar, Reminders, Weather, Tech News, GitHub
+    // ==========================================================================
+
+    this.scheduler.registerHandler('calendar_poll', async () => {
+      try {
+        const { AppleCalendar } = await import('../integrations/apple/calendar.js');
+        const calendar = new AppleCalendar();
+        const events = await calendar.getTodayEvents();
+        const nextEvent = events.length > 0 ? events[0].title : undefined;
+        this.eventBus.emit('apple:calendar_polled', {
+          eventCount: events.length,
+          nextEvent,
+          timestamp: new Date().toISOString(),
+        });
+        this.lastCalendarEvents = events.map(e => ({
+          title: e.title,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          location: e.location,
+          isAllDay: e.isAllDay,
+        }));
+      } catch (error: unknown) {
+        this.eventBus.emit('system:error', {
+          error: error instanceof Error ? error : new Error(String(error)),
+          context: 'calendar_poll',
+        });
+      }
+    });
+
+    this.scheduler.registerHandler('reminder_sync', async () => {
+      try {
+        const { AppleReminders } = await import('../integrations/apple/reminders.js');
+        const reminders = new AppleReminders();
+        const pending = await reminders.getIncomplete();
+        this.eventBus.emit('apple:reminder_synced', {
+          synced: pending.length,
+          skipped: 0,
+          errors: 0,
+          timestamp: new Date().toISOString(),
+        });
+        this.lastPendingReminders = pending.map(r => ({
+          name: r.name,
+          dueDate: r.dueDate,
+          priority: r.priority,
+          list: r.list,
+        }));
+      } catch (error: unknown) {
+        this.eventBus.emit('system:error', {
+          error: error instanceof Error ? error : new Error(String(error)),
+          context: 'reminder_sync',
+        });
+      }
+    });
+
+    this.scheduler.registerHandler('weather_fetch', async () => {
+      const apiKey = process.env.WEATHER_API_KEY;
+      const location = process.env.WEATHER_LOCATION || 'Indianapolis, IN';
+      if (!apiKey) return;
+      try {
+        const { WeatherClient } = await import('../integrations/weather/client.js');
+        const weather = new WeatherClient(apiKey);
+        const current = await weather.getCurrent(location);
+        const forecast = await weather.getForecast(location, 3);
+        this.eventBus.emit('integration:weather_fetched', {
+          location: current.location,
+          tempF: current.tempF,
+          condition: current.condition,
+          timestamp: new Date().toISOString(),
+        });
+        this.lastWeather = {
+          location: current.location,
+          tempF: current.tempF,
+          condition: current.condition,
+          feelsLikeF: current.feelsLikeF,
+          humidity: current.humidity,
+          forecast: forecast.map(f => ({
+            date: f.date,
+            maxTempF: f.maxTempF,
+            minTempF: f.minTempF,
+            condition: f.condition,
+            chanceOfRain: f.chanceOfRain,
+          })),
+        };
+      } catch (error: unknown) {
+        this.eventBus.emit('system:error', {
+          error: error instanceof Error ? error : new Error(String(error)),
+          context: 'weather_fetch',
+        });
+      }
+    });
+
+    this.scheduler.registerHandler('tech_news_fetch', async () => {
+      try {
+        const { HackerNewsClient } = await import('../integrations/hackernews/client.js');
+        const hn = new HackerNewsClient();
+        const topStories = await hn.getTopStories(20);
+        this.eventBus.emit('integration:news_fetched', {
+          source: 'hackernews',
+          itemCount: topStories.length,
+          timestamp: new Date().toISOString(),
+        });
+        this.lastTechNews = topStories.map(s => ({
+          title: s.title,
+          url: s.url,
+          score: s.score,
+          source: 'hackernews',
+        }));
+      } catch (error: unknown) {
+        this.eventBus.emit('system:error', {
+          error: error instanceof Error ? error : new Error(String(error)),
+          context: 'tech_news_fetch',
+        });
+      }
+    });
+
+    this.scheduler.registerHandler('github_poll', async () => {
+      const token = process.env.GITHUB_TOKEN;
+      if (!token) return;
+      try {
+        const { GitHubClient } = await import('../integrations/github/client.js');
+        const github = new GitHubClient(token);
+        // Fetch repo activity instead of notifications to match event type
+        const activity = await github.getRepoActivity('Ari-OS', 'ARI');
+        this.eventBus.emit('integration:github_polled', {
+          repo: 'Ari-OS/ARI',
+          stars: activity.stars,
+          openPRs: activity.openPRs,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error: unknown) {
+        this.eventBus.emit('system:error', {
+          error: error instanceof Error ? error : new Error(String(error)),
+          context: 'github_poll',
+        });
+      }
+    });
+
+    // Perplexity research handler — for ad-hoc research tasks
+    this.scheduler.registerHandler('perplexity_research', async () => {
+      const apiKey = process.env.PERPLEXITY_API_KEY;
+      if (!apiKey) {
+        log.debug('Perplexity research skipped (API key not configured)');
+        return;
+      }
+
+      try {
+        const { PerplexityClient } = await import('../integrations/perplexity/client.js');
+        void new PerplexityClient(apiKey); // Instantiate to validate
+
+        // Emit ready event — actual research happens on-demand via Telegram or tasks
+        this.eventBus.emit('integration:perplexity_ready', {
+          timestamp: new Date().toISOString(),
+        });
+        log.info('Perplexity client ready for research requests');
+      } catch (error: unknown) {
+        this.eventBus.emit('system:error', {
+          error: error instanceof Error ? error : new Error(String(error)),
+          context: 'perplexity_research',
+        });
       }
     });
   }
