@@ -24,8 +24,14 @@ User interface for ARI operations using Commander.js.
 | `ari onboard` | Initial setup |
 | `ari budget` | Budget management |
 | `ari knowledge` | Knowledge operations |
+| `ari crypto` | Crypto prices and portfolio |
+| `ari pokemon` | Pokemon TCG card tools |
+| `ari speak` | Text-to-speech |
+| `ari plugin` | Plugin management |
+| `ari provider` | AI provider management |
+| `ari diagram` | Architecture diagrams |
 
-**Total: 18 commands**
+**Total: 24 commands**
 
 ## Command Pattern
 

@@ -10,7 +10,7 @@ This is the main source directory for ARI. Quick navigation:
 | 3. Agents | `agents/` | Multi-agent coordination |
 | 4. Governance | `governance/` | Council, arbiter, overseer, policy engine |
 | 5. Ops | `ops/` | Daemon, infrastructure |
-| 6. CLI | `cli/` | User interface commands (14 commands) |
+| 6. CLI | `cli/` | User interface commands (24 commands) |
 
 Additional directories:
 - `ai/` — AIOrchestrator, model registry, value scorer, prompt builder

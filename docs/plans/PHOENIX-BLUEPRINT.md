@@ -22,7 +22,7 @@ This document represents the corrected master plan after comprehensive codebase 
 3. [Career Transition](#3-career-transition)
 4. [Pryceless Solutions](#4-pryceless-solutions)
 5. [Trading Trail](#5-trading-trail)
-6. [PayThePryce](#6-paytheppryce)
+6. [PayThePryce](#6-paythepryce)
 7. [ARI Technical Roadmap](#7-ari-technical-roadmap)
 8. [ARI Proactive Intelligence](#8-ari-proactive-intelligence)
 9. [Brand Growth Strategy](#9-brand-growth-strategy)

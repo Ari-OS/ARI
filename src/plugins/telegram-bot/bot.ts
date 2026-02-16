@@ -21,6 +21,7 @@ import { handleTask } from './commands/task.js';
 import { parseCallbackData, generateAckedKeyboard } from '../../autonomous/notification-keyboard.js';
 import { notificationLifecycle } from '../../autonomous/notification-lifecycle.js';
 import { priorityScorer } from '../../autonomous/priority-scorer.js';
+import { ChatSessionManager } from './chat-session.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TELEGRAM BOT SETUP
@@ -49,6 +50,7 @@ export function createBot(deps: BotDependencies): Bot {
   }
 
   const bot = new Bot(config.botToken);
+  const sessionManager = new ChatSessionManager();
 
   // ── Middleware chain ──────────────────────────────────────────────
 
@@ -114,7 +116,7 @@ export function createBot(deps: BotDependencies): Bot {
     );
   });
 
-  bot.command('ask', (ctx) => handleAsk(ctx, orchestrator));
+  bot.command('ask', (ctx) => handleAsk(ctx, orchestrator, sessionManager));
   bot.command('status', (ctx) => handleStatus(ctx, registry));
   bot.command('budget', (ctx) => handleBudget(ctx, costTracker));
   bot.command('briefing', (ctx) => handleBriefing(ctx, registry));
@@ -129,9 +131,9 @@ export function createBot(deps: BotDependencies): Bot {
   // ── Natural language fallback ──────────────────────────────────────
 
   bot.on('message:text', async (ctx) => {
-    // Treat unrecognized messages as /ask queries
+    // Treat unrecognized messages as /ask queries (with conversation memory)
     if (orchestrator) {
-      await handleAsk(ctx, orchestrator);
+      await handleAsk(ctx, orchestrator, sessionManager);
     } else {
       await ctx.reply('Use /help to see available commands.');
     }
