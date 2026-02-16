@@ -95,10 +95,8 @@ export class HealthMonitor {
     this.intervalMs = options?.intervalMs ?? 15 * 60 * 1000; // 15 minutes
     this.diskWarningThreshold = options?.diskWarningThreshold ?? 80;
     this.diskCriticalThreshold = options?.diskCriticalThreshold ?? 95;
-    // macOS uses aggressive memory compression — freemem() reports very low
-    // values even when the system is healthy. Use higher thresholds.
-    this.memoryWarningThreshold = options?.memoryWarningThreshold ?? 90;
-    this.memoryCriticalThreshold = options?.memoryCriticalThreshold ?? 98;
+    this.memoryWarningThreshold = options?.memoryWarningThreshold ?? 80;
+    this.memoryCriticalThreshold = options?.memoryCriticalThreshold ?? 95;
     this.gatewayPort = options?.gatewayPort ?? 3141;
     this.ariDataPath = join(homedir(), '.ari');
   }
@@ -299,30 +297,41 @@ export class HealthMonitor {
 
   /**
    * Checks system memory availability.
-   * Uses Node.js os module for memory stats.
+   * On macOS, uses vm_stat for accurate "available" memory (free + inactive +
+   * purgeable) because os.freemem() only reports "free" pages, which macOS
+   * keeps near zero by design (aggressive caching and compression).
+   * Falls back to os.freemem()/totalmem() on other platforms.
    */
-  // eslint-disable-next-line @typescript-eslint/require-await
   async checkMemory(): Promise<HealthCheck> {
     const component = 'memory';
     const lastChecked = new Date();
 
     try {
       const totalBytes = totalmem();
-      const freeBytes = freemem();
-      const usedBytes = totalBytes - freeBytes;
-      const usedPercent = Math.round((usedBytes / totalBytes) * 100);
-      const freeGB = Math.round((freeBytes / 1024 / 1024 / 1024) * 100) / 100;
       const totalGB = Math.round((totalBytes / 1024 / 1024 / 1024) * 100) / 100;
 
+      let availableBytes: number;
+
+      if (process.platform === 'darwin') {
+        // macOS: parse vm_stat for accurate available memory
+        availableBytes = await this.getMacOSAvailableMemory();
+      } else {
+        availableBytes = freemem();
+      }
+
+      const usedBytes = totalBytes - availableBytes;
+      const usedPercent = Math.round((usedBytes / totalBytes) * 100);
+      const availableGB = Math.round((availableBytes / 1024 / 1024 / 1024) * 100) / 100;
+
       let status: MonitorHealthStatus = 'healthy';
-      let message = `Memory usage: ${usedPercent}% (${freeGB}GB free of ${totalGB}GB)`;
+      let message = `Memory: ${usedPercent}% used (${availableGB}GB available of ${totalGB}GB)`;
 
       if (usedPercent >= this.memoryCriticalThreshold) {
         status = 'unhealthy';
-        message = `Critical memory usage: ${usedPercent}% (only ${freeGB}GB free)`;
+        message = `Critical memory: ${usedPercent}% used (only ${availableGB}GB available)`;
       } else if (usedPercent >= this.memoryWarningThreshold) {
         status = 'degraded';
-        message = `High memory usage: ${usedPercent}% (${freeGB}GB free)`;
+        message = `High memory: ${usedPercent}% used (${availableGB}GB available)`;
       }
 
       return {
@@ -331,7 +340,7 @@ export class HealthMonitor {
         message,
         metrics: {
           usedPercent,
-          freeGB,
+          availableGB,
           totalGB,
         },
         lastChecked,
@@ -343,6 +352,32 @@ export class HealthMonitor {
         message: `Failed to check memory: ${error instanceof Error ? error.message : String(error)}`,
         lastChecked,
       };
+    }
+  }
+
+  /**
+   * Gets accurate available memory on macOS via vm_stat.
+   * Available = free + inactive + purgeable pages (all easily reclaimable).
+   * This matches what Activity Monitor shows as "Memory Available".
+   */
+  private async getMacOSAvailableMemory(): Promise<number> {
+    try {
+      const { stdout } = await execFileAsync('vm_stat');
+      const pageSize = 16384; // macOS ARM64 page size
+
+      const parsePage = (label: string): number => {
+        const match = stdout.match(new RegExp(`${label}:\\s+(\\d+)`));
+        return match ? parseInt(match[1], 10) * pageSize : 0;
+      };
+
+      const free = parsePage('Pages free');
+      const inactive = parsePage('Pages inactive');
+      const purgeable = parsePage('Pages purgeable');
+
+      return free + inactive + purgeable;
+    } catch {
+      // Fallback to Node.js freemem if vm_stat fails
+      return freemem();
     }
   }
 
