@@ -20,7 +20,7 @@
 <br>
 
 [![CI](https://github.com/Ari-OS/ARI/actions/workflows/ci.yml/badge.svg)](https://github.com/Ari-OS/ARI/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-3988%20passing-brightgreen)](https://github.com/Ari-OS/ARI)
+[![Tests](https://img.shields.io/badge/tests-4654%20passing-brightgreen)](https://github.com/Ari-OS/ARI)
 [![Coverage](https://img.shields.io/badge/coverage-80%25%2B-brightgreen)](https://github.com/Ari-OS/ARI)
 [![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-ARI%20v1.0-blue)](LICENSE)
@@ -130,7 +130,7 @@ Security is enforced at the kernel layer through five invariants:
 The HTTP gateway binds exclusively to `127.0.0.1:3141`. This is hardcoded, not configurable. No external network access is possible.
 
 ### 2. Content ≠ Command
-All inbound messages are treated as data, never as executable instructions. The Sanitizer scans every input against 27 injection patterns across 10 categories before processing.
+All inbound messages are treated as data, never as executable instructions. The Sanitizer scans every input against 39 injection patterns across 14 categories before processing.
 
 ### 3. Immutable Audit Trail
 Every operation is logged to a SHA-256 hash chain. Each entry contains the hash of the previous entry, creating a tamper-evident log. If any entry is modified, the chain breaks.
@@ -317,22 +317,24 @@ ari budget [show|reset]       Budget management
 src/
 ├── kernel/           # Layer 1: Security boundary
 │   ├── gateway.ts    # Fastify HTTP server (loopback only)
-│   ├── sanitizer.ts  # 27-pattern injection detection
+│   ├── sanitizer.ts  # 39-pattern injection detection
 │   ├── audit.ts      # SHA-256 hash chain logger
 │   ├── event-bus.ts  # Typed pub/sub system
 │   ├── config.ts     # Configuration management
 │   └── types.ts      # Zod schemas for all types
 │
-├── system/           # Layer 2: Routing
+├── system/           # Layer 2: Routing & Storage
 │   ├── router.ts     # Event dispatch and context triggers
-│   └── storage.ts    # Context persistence
+│   ├── storage.ts    # Context persistence
+│   └── vector-store.ts # SQLite-backed vector embeddings
 │
 ├── agents/           # Layer 3: Agent coordination
 │   ├── core.ts       # Master orchestrator
 │   ├── guardian.ts   # Threat detection agent
 │   ├── planner.ts    # Task decomposition (DAG)
 │   ├── executor.ts   # Tool execution with permissions
-│   └── memory-manager.ts  # Provenance-tracked memory
+│   ├── memory-manager.ts  # Provenance-tracked memory
+│   └── temporal-memory.ts # Time-based memory synthesis
 │
 ├── governance/       # Layer 4: Constitutional enforcement
 │   ├── council.ts    # 15-member voting
@@ -340,7 +342,9 @@ src/
 │   └── overseer.ts   # 5 quality gates
 │
 ├── ops/              # Layer 5: Infrastructure
-│   └── daemon.ts     # macOS launchd integration
+│   ├── daemon.ts     # macOS launchd integration
+│   ├── health-monitor.ts # System health checks
+│   └── git-sync.ts   # Repository synchronization
 │
 └── cli/              # Layer 6: User interface
     └── commands/     # 12 CLI commands
@@ -362,7 +366,7 @@ npm run dev                # Watch mode
 npm run clean              # Remove dist/
 
 # Test
-npm test                   # Run 3988 tests
+npm test                   # Run 4654 tests
 npm run test:watch         # Watch mode
 npm run test:coverage      # Coverage report
 

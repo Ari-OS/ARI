@@ -9,6 +9,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [2.2.1] — 2026-02-16 — Master Plan Execution
+
+> *14 core modules implemented. ARI grows stronger.*
+
+### Added
+
+#### Foundation Services (Phase 2)
+- **VectorStore** (`src/system/vector-store.ts`) — SQLite-backed 1536-dim OpenAI embeddings with cosine similarity
+- **EmbeddingService** (`src/ai/embedding-service.ts`) — OpenAI text-embedding-3-small with batch processing
+- **TopicManager** (`src/integrations/telegram/topic-manager.ts`) — Telegram forum topic management with thread routing
+- **HealthMonitor** (`src/ops/health-monitor.ts`) — System health checks with configurable thresholds
+- **BackupManager** (`src/autonomous/backup-manager.ts`) — Automated backup with rotation and encryption
+
+#### Knowledge System (Phase 3)
+- **IngestionPipeline** (`src/autonomous/ingestion-pipeline.ts`) — Document processing with chunking and deduplication
+- **RAGQueryEngine** (`src/autonomous/rag-query.ts`) — Retrieval-augmented generation with prompt injection protection
+
+#### Market Intelligence (Phase 4)
+- **MarketMonitor** (`src/autonomous/market-monitor.ts`) — Multi-asset price tracking with alert thresholds
+- **PortfolioTracker** (`src/autonomous/portfolio-tracker.ts`) — Portfolio management with P&L calculation
+- **InvestmentAnalyzer** (`src/autonomous/investment-analyzer.ts`) — Investment analysis with risk assessment
+- **OpportunityScanner** (`src/autonomous/opportunity-scanner.ts`) — Opportunity detection with weighted scoring
+- **CareerTracker** (`src/autonomous/career-tracker.ts`) — Job market monitoring with preference matching
+
+#### Operations (Phase 5)
+- **GitSync** (`src/ops/git-sync.ts`) — Automated repository sync with conflict detection
+- **TemporalMemory** (`src/agents/temporal-memory.ts`) — Time-based memory with daily/weekly synthesis
+
+#### Documentation
+- **Mac Mini Setup Guide** (`docs/guides/MAC_MINI_SETUP.md`) — Complete deployment guide for 24/7 operation
+
+### Changed
+- Test count increased from 3988 to 4654 (666 new tests for 14 modules)
+- Injection patterns increased to 39 across 14 categories
+- README updated with accurate test counts and architecture
+
+### Fixed
+- Resolved merge conflicts in concurrent implementations
+- Fixed type declaration conflict in better-sqlite3
+
+---
+
+## [2.2.0] — 2026-02-11 — Telegram Integration
+
+> *Primary notification channel established.*
+
 ### Added
 - Telegram-primary notification system replacing Pushover
 - TelegramSender (`src/integrations/telegram/sender.ts`) — lightweight Bot API sender
