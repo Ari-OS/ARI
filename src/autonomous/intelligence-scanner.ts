@@ -95,6 +95,8 @@ const INTEREST_KEYWORDS: Record<InterestDomain, string[]> = {
     'fine-tuning', 'embedding', 'rag', 'reasoning', 'multimodal',
     'ai safety', 'alignment', 'prompt engineering', 'tool use',
     'function calling', 'context window', 'tokenizer', 'inference',
+    'claude code', 'anthropic release', 'claude max', 'opus', 'sonnet',
+    'ai agent framework', 'personal ai', 'local ai', 'ai assistant',
   ],
   programming: [
     'typescript', 'node.js', 'nodejs', 'deno', 'bun', 'react', 'next.js',
@@ -111,16 +113,21 @@ const INTEREST_KEYWORDS: Record<InterestDomain, string[]> = {
     'remote job', 'software engineer', 'salary', 'interview', 'hiring',
     'layoff', 'tech job', 'developer job', 'ai engineer', 'full-stack',
     'senior engineer', 'portfolio', 'resume', 'freelance',
+    'remote engineer', 'typescript job', 'ai hiring', 'open call',
+    '#buildinpublic', 'indie dev', 'school it', 'tech lead',
   ],
   investment: [
     'bitcoin', 'btc', 'ethereum', 'crypto', 'defi', 'pokemon tcg',
     'pokemon card', 'stock market', 'index fund', 's&p 500',
     'market crash', 'bull run', 'bear market', 'yield',
+    'pokemon price', 'tcg pocket', 'charizard', 'alt art',
+    'crypto news', 'solana', 'web3',
   ],
   business: [
     'saas', 'startup', 'revenue', 'bootstrapped', 'indie hacker',
     'solo founder', 'mrr', 'arr', 'pricing', 'consulting',
     'freelance', 'agency', 'small business', 'digital nomad',
+    'personal brand', 'content creator', 'side project', 'monetize',
   ],
   tools: [
     'cli tool', 'dev tool', 'developer experience', 'dx', 'ide',

@@ -796,10 +796,28 @@ export class AutonomousAgent {
       log.info('Morning briefing completed (unified report)');
     });
 
-    // Evening summary at 9pm — build session prep with career updates
+    // Evening summary at 9pm — build session prep with career updates + build context
     this.scheduler.registerHandler('evening_summary', async () => {
       if (this.briefingGenerator) {
+        // Generate build context from today's changelog
+        const suggestedTasks: string[] = [];
+        try {
+          const changelog = await this.changelogGenerator.generateDaily();
+          if (changelog.entry.added.length > 0) {
+            suggestedTasks.push(`Write tests for: ${changelog.entry.added.slice(0, 2).join(', ')}`);
+          }
+          if (changelog.entry.changed.length > 0) {
+            suggestedTasks.push(`Verify changes: ${changelog.entry.changed.slice(0, 2).join(', ')}`);
+          }
+          if (changelog.entry.fixed.length > 0) {
+            suggestedTasks.push(`Regression test: ${changelog.entry.fixed.slice(0, 2).join(', ')}`);
+          }
+        } catch {
+          // Changelog generation is optional for evening summary
+        }
+
         await this.briefingGenerator.eveningSummary({
+          suggestedTasks: suggestedTasks.length > 0 ? suggestedTasks : undefined,
           careerMatches: this.lastCareerMatches.length > 0
             ? this.lastCareerMatches.map(m => ({ title: m.title, company: m.company, matchScore: m.matchScore }))
             : null,

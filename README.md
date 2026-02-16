@@ -1,10 +1,6 @@
 <div align="center">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/ari-logo.jpg" />
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/ari-logo.jpg" />
-  <img src="docs/assets/ari-logo.jpg" alt="ARI — Triple-Helix Iris" width="180" height="180" />
-</picture>
+<img src="https://raw.githubusercontent.com/Ari-OS/ARI/main/docs/assets/ari-logo.jpg" alt="ARI — Triple-Helix Iris" width="180" height="180" />
 
 <br>
 

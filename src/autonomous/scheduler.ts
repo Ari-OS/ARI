@@ -377,7 +377,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'career-scan',
     name: 'Career Opportunity Scan',
-    cron: '0 8 * * 1-5', // 8:00 AM weekdays only
+    cron: '10 6 * * 1-5', // 6:10 AM weekdays — before 6:30 AM morning briefing
     handler: 'career_scan',
     enabled: true,
     essential: false,
