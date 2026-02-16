@@ -14,6 +14,16 @@ vi.mock('child_process', () => ({
   execFile: vi.fn(),
 }));
 
+// Mock os memory functions to avoid environment-dependent results
+vi.mock('os', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('os')>();
+  return {
+    ...actual,
+    freemem: vi.fn(() => 8 * 1024 * 1024 * 1024),   // 8 GB free
+    totalmem: vi.fn(() => 16 * 1024 * 1024 * 1024),  // 16 GB total → 50% usage
+  };
+});
+
 // Mock fetch for API connectivity checks
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
