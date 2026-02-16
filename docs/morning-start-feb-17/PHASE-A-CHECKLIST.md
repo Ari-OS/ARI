@@ -7,7 +7,7 @@
 - [x] BriefingGenerator class exists (`src/autonomous/briefings.ts`)
 - [x] BriefingGenerator instantiated in autonomous agent (`agent.ts:230`)
 - [x] Morning briefing handler registered (`agent.ts:751`)
-- [x] Scheduler task defined: `morning-briefing` at 7:00 AM (`scheduler.ts:137`)
+- [x] Scheduler task defined: `morning-briefing` at 6:30 AM (`scheduler.ts:139`)
 - [x] Evening summary handler registered (`agent.ts:760`)
 - [x] Weekly review handler registered (`agent.ts:768`)
 - [x] NotificationManager exists with multi-channel routing
@@ -25,7 +25,7 @@
 - [ ] Test: verify message appears in Telegram
 
 ### Optional Enhancements
-- [ ] Change briefing time from 7:00 AM to 6:30 AM (per plan preference)
+- [x] Change briefing time from 7:00 AM to 6:30 AM (per plan preference)
 - [ ] Add Intelligence Scanner content to morning briefing
 - [ ] Add Life Monitor alerts to morning briefing
 - [ ] Add weather/calendar integration (future)
@@ -44,5 +44,5 @@
 - [ ] `npm run build` passes
 - [ ] `npm run typecheck` passes
 - [ ] `npm run lint` passes
-- [ ] `npm test` — all 6,574+ tests pass
+- [ ] `npm test` — all 4,885+ tests pass
 - [ ] Morning briefing arrives on Telegram

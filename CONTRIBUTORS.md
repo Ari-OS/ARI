@@ -16,11 +16,10 @@ ARI is built with gratitude to all who contribute.
 
 ## AI Collaborators
 
-**Claude** (Anthropic)
-- Implementation partner
-- Code review and quality assurance
-- Documentation and testing
-- Co-authored commits marked with: `Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>`
+**ARI** (Artificial Reasoning Intelligence)
+- Self-improving autonomous agent
+- Assists with implementation, code review, and testing
+- Architecture co-design and documentation
 
 ---
 

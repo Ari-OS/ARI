@@ -425,7 +425,7 @@ ARI runs 17 scheduled tasks, divided into **essential** (always run) and **non-e
 
 | Task | Schedule | Purpose |
 |------|----------|---------|
-| `morning-briefing` | 7:00 AM daily | Generate morning context for the day |
+| `morning-briefing` | 6:30 AM daily | Generate morning context for the day |
 | `user-daily-brief` | 7:30 AM daily | Daily focus, action items, and insights |
 | `changelog-generate` | 7:00 PM daily | Summarize what changed today |
 | `evening-summary` | 9:00 PM daily | End-of-day wrap-up |
@@ -673,4 +673,4 @@ Divide the 24-hour day into 5 operational blocks, each with different model rout
 ---
 
 *Generated: 2026-02-10*
-*ARI v2.1.0 — Multi-Provider Intelligence Architecture*
+*ARI v2.2.1 — Multi-Provider Intelligence Architecture*

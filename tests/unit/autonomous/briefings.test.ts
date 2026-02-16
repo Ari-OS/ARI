@@ -9,6 +9,7 @@ const {
   mockNotionGetTodayEntries,
   mockNotionAddNote,
   mockGetTodayAudit,
+  mockGetAudit,
   mockLogActivity,
 } = vi.hoisted(() => ({
   mockNotionInit: vi.fn(),
@@ -17,6 +18,7 @@ const {
   mockNotionGetTodayEntries: vi.fn(),
   mockNotionAddNote: vi.fn(),
   mockGetTodayAudit: vi.fn(),
+  mockGetAudit: vi.fn(),
   mockLogActivity: vi.fn(),
 }));
 
@@ -35,6 +37,7 @@ vi.mock('../../../src/integrations/notion/inbox.js', () => ({
 vi.mock('../../../src/autonomous/daily-audit.js', () => ({
   dailyAudit: {
     getTodayAudit: mockGetTodayAudit,
+    getAudit: mockGetAudit,
     logActivity: mockLogActivity,
   },
 }));
@@ -399,7 +402,7 @@ describe('BriefingGenerator', () => {
     });
 
     it('should include suggested action items', async () => {
-      mockGetTodayAudit.mockResolvedValueOnce({
+      mockGetAudit.mockResolvedValueOnce({
         date: '2026-01-31',
         activities: [
           { title: 'Failed Deploy', outcome: 'failure', type: 'task' },
@@ -408,6 +411,7 @@ describe('BriefingGenerator', () => {
         highlights: [],
         issues: [],
       });
+      mockGetAudit.mockResolvedValue(null);
 
       await generator.weeklyReview();
 
@@ -416,7 +420,7 @@ describe('BriefingGenerator', () => {
     });
 
     it('should handle empty week data', async () => {
-      mockGetTodayAudit.mockResolvedValueOnce(null);
+      mockGetAudit.mockResolvedValue(null);
 
       const result = await generator.weeklyReview();
 
@@ -544,7 +548,8 @@ describe('BriefingGenerator', () => {
     });
 
     it('should calculate weekly success rate', async () => {
-      mockGetTodayAudit.mockResolvedValueOnce({
+      // getAudit is called for each of 7 days; return data for first, null for rest
+      mockGetAudit.mockResolvedValueOnce({
         date: '2026-01-31',
         activities: [
           { title: 'Task 1', outcome: 'success', type: 'task' },
@@ -555,6 +560,7 @@ describe('BriefingGenerator', () => {
         highlights: ['Big win'],
         issues: [],
       });
+      mockGetAudit.mockResolvedValue(null);
 
       await generator.weeklyReview();
 

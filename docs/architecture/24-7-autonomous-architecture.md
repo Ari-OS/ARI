@@ -123,7 +123,7 @@ Three-component architecture:
    ↓
    Log results to audit chain
    ↓
-7:00 AM - Morning Brief Generation
+6:30 AM - Morning Brief Generation
    ↓
    ModelRouter: "Brief generation = MODERATE" → Sonnet
    ↓
@@ -425,7 +425,7 @@ Day 2-4: Same metrics
 ```json
 // ~/.ari/schedule-overrides.json
 {
-  "morning-briefing": { "time": "07:00", "enabled": true },
+  "morning-briefing": { "time": "06:30", "enabled": true },
   "initiative-scan": { "time": "06:00", "enabled": true },
   "user-daily-brief": { "time": "07:30", "enabled": true }
 }

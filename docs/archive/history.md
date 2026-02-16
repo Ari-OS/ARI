@@ -355,7 +355,7 @@ ARI handles sensitive life data — finances, health, relationships, business. B
 
 ## Future Direction
 
-### Near-Term (v2.1.0)
+### Near-Term (v2.2.1)
 
 - Real file operations
 - Disk persistence for memory

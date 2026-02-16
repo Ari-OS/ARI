@@ -19,7 +19,7 @@ Proactive agent capabilities: scheduling, briefings, knowledge management.
 
 | Time | Task | Handler |
 |------|------|---------|
-| 07:00 | Morning briefing | `morning_briefing` |
+| 06:30 | Morning briefing | `morning_briefing` |
 | 08:00, 14:00, 20:00 | Knowledge index | `knowledge_index` |
 | 19:00 | Changelog generation | `changelog_generate` |
 | 21:00 | Evening summary | `evening_summary` |

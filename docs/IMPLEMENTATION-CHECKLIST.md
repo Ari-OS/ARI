@@ -37,7 +37,7 @@
 - [x] `briefing:weekly_delivered` event added to EventMap
 - [x] Morning briefing changed from 7:00 AM to 6:30 AM (`scheduler.ts:139`)
 - [x] `initNotion()` called from agent.ts when Notion config available
-- [x] 9 new tests added (39 total in briefings.test.ts, 4,709 suite-wide)
+- [x] 9 new tests added (39 total in briefings.test.ts, 4,885 suite-wide)
 
 ### Remaining (Deployment Only)
 - [ ] Verify ANTHROPIC_API_KEY set in `~/.ari/.env` on Mac Mini
@@ -213,7 +213,7 @@
 - [ ] SSH verified: `ssh ari@100.81.73.34`
 - [ ] API keys configured in `~/.ari/.env`
 - [ ] Code pulled and built: `npm run build`
-- [ ] All tests pass: `npm test` (6,574+)
+- [ ] All tests pass: `npm test` (4,885+)
 - [ ] Daemon installed: `npx ari daemon install`
 - [ ] Daemon running: `npx ari daemon start`
 - [ ] Health check passing: `npx ari doctor`
@@ -225,7 +225,7 @@
 
 | Test | When | Pass Criteria |
 |------|------|---------------|
-| Morning briefing arrives | Day 1-2 | Telegram message at 7:00 AM with useful content |
+| Morning briefing arrives | Day 1-2 | Telegram message at 6:30 AM with useful content |
 | First Pokemon card sale | Month 1-2 | Money received from TCGPlayer/eBay |
 | First Pryceless Solutions payment | Month 1-2 | Client pays for AI audit or implementation |
 | First TikTok posted | Week 2 | Published and getting views |

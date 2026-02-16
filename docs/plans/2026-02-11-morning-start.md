@@ -130,7 +130,7 @@ Event → AlertSystem (council vote) → NotificationManager → Telegram (prima
 
 3. **Telegram notification end-to-end test** — The TelegramSender is wired but hasn't been tested live. Send a test message to verify the bot token works on the Mac Mini.
 
-4. **Morning briefing system** — The scheduler has a `morning-briefing` cron (7:00 AM) in `src/autonomous/scheduler.ts` and `src/autonomous/briefings.ts`. Verify it fires correctly on the Mac Mini and delivers via Telegram.
+4. **Morning briefing system** — The scheduler has a `morning-briefing` cron (6:30 AM) in `src/autonomous/scheduler.ts` and `src/autonomous/briefings.ts`. Verify it fires correctly on the Mac Mini and delivers via Telegram.
 
 5. **Dashboard deployment** — Dashboard build exists at `dashboard/dist/`. Verify it's accessible on the Mac Mini gateway at `http://127.0.0.1:3141/`.
 

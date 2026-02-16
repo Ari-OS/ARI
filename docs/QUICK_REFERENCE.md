@@ -158,7 +158,7 @@ killall ssh
 |------|------|-------|-----------|
 | 6:00 AM | Initiative scan | Sonnet | $0.09 |
 | 6:30 AM | Auto-execution | Mixed | $0.05-0.15 |
-| 7:00 AM | Morning briefing | Sonnet | $0.06 |
+| 6:30 AM | Morning briefing | Sonnet | $0.06 |
 | 7:30 AM | Daily brief | Sonnet | $0.075 |
 | 8:00 AM | Knowledge index | Haiku | $0.0035 |
 | Every 15m | Health checks | Haiku | $0.0001 |

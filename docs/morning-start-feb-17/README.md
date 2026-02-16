@@ -21,10 +21,10 @@
 
 ## Critical Corrections Applied
 
-Based on codebase audit (6,574 tests passing):
+Based on codebase audit (4,885 tests passing):
 
 - BriefingGenerator IS already instantiated (agent.ts:230)
-- Morning briefing IS already scheduled at 7:00 AM (scheduler.ts:137)
+- Morning briefing IS already scheduled at 6:30 AM (scheduler.ts:139)
 - NotificationManager IS already wired (agent.ts:228-230)
 - 37 autonomous components with 25 active handlers
 - Mac Mini SSH: username is `ari` (NOT prycehedrick)

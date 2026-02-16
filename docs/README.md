@@ -169,7 +169,7 @@ ARI is built on three principles:
 
 🖤
 
-**ARI v2.1.0** — Cognitive Layer
+**ARI v2.2.1** — Cognitive Layer
 
 *Claude Code helps you write code.*
 *OpenClaw helps you communicate.*

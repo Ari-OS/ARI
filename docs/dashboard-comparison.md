@@ -171,7 +171,7 @@
 │ Scheduled Tasks:                                            │
 │ ┌─────────────────────────────────────────────────────┐    │
 │ │ ☀️ Morning Briefing        [Disable] [Run Now]     │    │
-│ │   Daily at 7:00 AM                                  │    │
+│ │   Daily at 6:30 AM                                  │    │
 │ │   Last run: 18h ago                                 │    │
 │ └─────────────────────────────────────────────────────┘    │
 │ [More tasks...]                                             │
@@ -210,7 +210,7 @@
 │ Scheduled Tasks:                                            │
 │ ┌─────────────────────────────────────────────────────┐    │
 │ │ ☀️ Morning Briefing        [Disable] [Run Now]     │    │
-│ │   Daily at 7:00 AM         [View History] ← NEW    │    │
+│ │   Daily at 6:30 AM         [View History] ← NEW    │    │
 │ │   Last run: 18h ago | Success: 98% (48/49)  ← NEW  │    │
 │ │   Avg duration: 45s | Last failed: 3d ago   ← NEW  │    │
 │ └─────────────────────────────────────────────────────┘    │

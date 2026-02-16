@@ -113,4 +113,4 @@ ALWAYS preserve when context is compacted:
 - What NOT to Do (all 7 anti-patterns)
 
 ---
-v2.1.0 · 2026-02-07
+v2.2.1 · 2026-02-16

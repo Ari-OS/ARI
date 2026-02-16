@@ -143,7 +143,7 @@
 
 ## Scheduled Communications
 
-### Morning Briefing (7:00 AM)
+### Morning Briefing (6:30 AM)
 **Channel:** Notion (with SMS ping: "📋 Morning briefing ready in Notion")
 
 **Content:**

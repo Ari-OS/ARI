@@ -12,7 +12,7 @@
 
 Morning briefing is ALREADY wired:
 - `src/autonomous/agent.ts:230` — BriefingGenerator instantiated
-- `src/autonomous/scheduler.ts:137` — Scheduled at 7:00 AM (`0 7 * * *`)
+- `src/autonomous/scheduler.ts:139` — Scheduled at 6:30 AM (`30 6 * * *`)
 - Handler registered at `agent.ts:751`
 
 What needs verification:
@@ -48,13 +48,13 @@ npx ari daemon status
 ## Step 5: Verify
 
 - [ ] `npx ari doctor` shows all green
-- [ ] Morning briefing arrives on Telegram at 7:00 AM
+- [ ] Morning briefing arrives on Telegram at 6:30 AM
 - [ ] Evening summary arrives at 9:00 PM
 - [ ] Health checks running every 15 minutes
 
 ## If Briefing Time Needs Changing
 
-To change from 7:00 AM to 6:30 AM, edit `src/autonomous/scheduler.ts` line 139:
+Morning briefing is already set to 6:30 AM in `src/autonomous/scheduler.ts` line 139:
 ```typescript
 cron: '30 6 * * *', // 6:30 AM daily
 ```

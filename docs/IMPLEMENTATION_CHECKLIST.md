@@ -367,7 +367,7 @@
 **Overnight:**
 - [ ] **15.5** Let system run autonomously
 - [ ] **15.6** Initiative scan at 6:00 AM
-- [ ] **15.7** Morning brief generation at 7:00 AM
+- [ ] **15.7** Morning brief generation at 6:30 AM
 - [ ] **15.8** Daily brief delivery at 7:30 AM
 
 **Morning (Day 10):**

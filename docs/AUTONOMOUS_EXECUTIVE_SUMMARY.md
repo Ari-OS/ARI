@@ -84,7 +84,7 @@ Poll Loop (every 5 seconds):
 
 Scheduled Tasks (15+ tasks):
 ├─ 6:00 AM: Initiative scan
-├─ 7:00 AM: Morning briefing
+├─ 6:30 AM: Morning briefing
 ├─ 7:30 AM: Daily brief delivery
 ├─ Throughout day: Health checks, opportunistic work
 └─ 9:00 PM: Evening summary + cognitive review

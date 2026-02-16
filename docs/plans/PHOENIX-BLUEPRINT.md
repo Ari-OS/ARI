@@ -53,7 +53,7 @@ This document represents the corrected master plan after comprehensive codebase 
 - Weekends: Family + selective build sessions
 
 **Technical Assets:**
-- **ARI System:** 88,705 lines, 294 TypeScript files, 4,709 tests passing
+- **ARI System:** 88,705 lines, 294 TypeScript files, 4,885 tests passing
 - **Architecture:** 7-layer multi-agent system (Cognitive → Interfaces)
 - **Autonomous Components:** 37 components, 25 active handlers, 3 placeholders
 - **Model Access:** 20 models across 4 providers (Anthropic, OpenAI, Google, xAI)
@@ -502,7 +502,7 @@ ARI is your force multiplier. She monitors markets while you sleep, writes conte
 
 ### Content Production (ARI-Assisted)
 
-**Morning Briefing (7:00 AM):**
+**Morning Briefing (6:30 AM):**
 - ARI sends digest of AI/tech news
 - Suggests 3-5 thread topics based on trends
 - Drafts outline for daily thread
@@ -537,7 +537,7 @@ ARI is your force multiplier. She monitors markets while you sleep, writes conte
 - EventBus for cross-layer communication
 - Security invariants enforced by pre-commit hooks
 - 88,705 lines of production code
-- 6,574 tests passing (80%+ coverage)
+- 4,885 tests passing (80%+ coverage)
 
 ✅ **Multi-Agent System (95% Complete)**
 - CoreAgent: Central coordinator (active)
@@ -599,10 +599,9 @@ ARI is your force multiplier. She monitors markets while you sleep, writes conte
    - Confirm ENV vars loaded correctly
    - Verify NotificationRouter receives events
 
-2. ⚠️ **Briefing Schedule Configuration**
-   - Currently: 7:00 AM (not 6:30 AM as previously documented)
-   - Action: Update to 6:30 AM or confirm 7:00 AM is preferred
-   - File: `src/autonomous/schedulers/briefing-scheduler.ts`
+2. ✅ **Briefing Schedule Configuration**
+   - Updated to 6:30 AM (per operator preference)
+   - File: `src/autonomous/scheduler.ts:139`
 
 3. ⚠️ **Test End-to-End Briefing Flow**
    - Manual trigger: Verify BriefingGenerator → NotificationRouter → Telegram
@@ -616,7 +615,7 @@ ARI is your force multiplier. She monitors markets while you sleep, writes conte
 
 **Success Criteria:**
 - Receive test briefing via Telegram within 2 hours of daemon start
-- Receive scheduled briefing at 7:00 AM (or configured time) next morning
+- Receive scheduled briefing at 6:30 AM next morning
 - Daemon runs for 7 days without manual intervention
 
 #### P1: Life System Integration (Mar 2026)
@@ -1407,7 +1406,7 @@ This section documents every correction made from Phoenix Blueprint v2.0 to v2.1
 |---|-------------------|------------|----------|
 | 1 | "BriefingGenerator never instantiated" | BriefingGenerator IS instantiated at agent.ts:230 and handler registered at agent.ts:751 | Code audit: `src/agents/agent.ts` |
 | 2 | "NotificationManager never init'd" | NotificationManager IS initialized in daemon startup | Code audit: `src/autonomous/daemon.ts` |
-| 3 | "Morning briefing at 6:30 AM" | Morning briefing scheduled at 7:00 AM (configurable) | Code audit: `src/autonomous/schedulers/briefing-scheduler.ts` |
+| 3 | "Morning briefing at 7:00 AM" | Morning briefing updated to 6:30 AM | Code change: `src/autonomous/scheduler.ts:139` |
 | 4 | "No Telegram outbound for scheduled content" | NotificationRouter DOES bridge events to Telegram | Recent commit: d4b1abf |
 
 ### Model Registry Corrections
@@ -1422,7 +1421,7 @@ This section documents every correction made from Phoenix Blueprint v2.0 to v2.1
 
 | # | Original Statement | Correction | Evidence |
 |---|-------------------|------------|----------|
-| 8 | "Tests: 6,000+" | Exactly 6,574 tests passing | Test output |
+| 8 | "Tests: 6,000+" | Exactly 4,885 tests passing (189 test files) | Test output |
 | 9 | "Files: ~300" | 294 TypeScript files | File count audit |
 | 10 | "Lines: ~85K" | 88,705 lines of code | Line count audit |
 

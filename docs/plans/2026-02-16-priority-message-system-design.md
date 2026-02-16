@@ -1,7 +1,7 @@
 # ARI Priority Message System — Design Document
 
 **Date**: 2026-02-16 | **Status**: Design
-**Author**: ARI (Claude Opus 4.6) | **Research**: 5 parallel agent teams
+**Author**: ARI | **Research**: Multi-agent analysis
 
 ---
 

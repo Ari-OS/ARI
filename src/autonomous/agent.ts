@@ -99,6 +99,8 @@ export class AutonomousAgent {
   private dailyDigest: DailyDigestGenerator | null = null;
   private lifeMonitor: LifeMonitor | null = null;
   private notificationRouter: NotificationRouter | null = null;
+  private marketMonitor: MarketMonitor | null = null;
+  private portfolioTracker: PortfolioTracker | null = null;
 
   // Cached scan results for unified morning briefing
   private lastDigest: import('./daily-digest.js').DailyDigest | null = null;
@@ -283,6 +285,34 @@ export class AutonomousAgent {
       governanceReporter.recordEvent('overseer:gate', payload as Record<string, unknown>);
     });
     log.info('Governance reporter wired to EventBus');
+
+    // Initialize market monitor with Pryce's watchlist
+    this.marketMonitor = new MarketMonitor(this.eventBus, {
+      alphaVantageApiKey: process.env.ALPHA_VANTAGE_API_KEY,
+    });
+    // Bootstrap watchlist with tracked assets
+    const watchlistAssets: Array<{ asset: string; assetClass: string }> = [
+      // Crypto
+      { asset: 'bitcoin', assetClass: 'crypto' },
+      { asset: 'ethereum', assetClass: 'crypto' },
+      { asset: 'solana', assetClass: 'crypto' },
+      // Stocks
+      { asset: 'AAPL', assetClass: 'stock' },
+      { asset: 'NVDA', assetClass: 'stock' },
+      { asset: 'TSLA', assetClass: 'stock' },
+      // ETFs
+      { asset: 'VOO', assetClass: 'etf' },
+      { asset: 'QQQ', assetClass: 'etf' },
+    ];
+    for (const { asset, assetClass } of watchlistAssets) {
+      this.marketMonitor.addToWatchlist(asset, assetClass);
+    }
+    log.info({ watchlistSize: watchlistAssets.length }, 'Market monitor initialized with watchlist');
+
+    // Initialize portfolio tracker
+    this.portfolioTracker = new PortfolioTracker(this.eventBus);
+    await this.portfolioTracker.init();
+    log.info('Portfolio tracker initialized');
 
     // AI provider is injected via constructor — no local initialization needed
     if (this.aiProvider) {
@@ -1051,8 +1081,11 @@ export class AutonomousAgent {
     // Market price check (every 30 min, 8AM-10PM)
     this.scheduler.registerHandler('market_price_check', async () => {
       try {
-        const monitor = new MarketMonitor(this.eventBus);
-        const alerts = await monitor.checkAlerts();
+        if (!this.marketMonitor) {
+          log.warn('Market monitor not initialized, skipping price check');
+          return;
+        }
+        const alerts = await this.marketMonitor.checkAlerts();
         log.info({ alertCount: alerts.length }, 'Market price check completed');
 
         // Cache alerts for morning briefing
@@ -1080,16 +1113,32 @@ export class AutonomousAgent {
     // Portfolio update (8AM, 2PM, 8PM)
     this.scheduler.registerHandler('portfolio_update', async () => {
       try {
-        const tracker = new PortfolioTracker(this.eventBus);
-        await tracker.init();
-        // MarketMonitor class doesn't implement portfolio-tracker's MarketMonitor interface yet;
-        // emit event for now and let portfolio track from cached data
-        log.info('Portfolio update triggered');
+        if (!this.portfolioTracker || !this.marketMonitor) {
+          log.warn('Portfolio tracker or market monitor not initialized');
+          return;
+        }
+        const summary = await this.portfolioTracker.getPortfolioSummary(this.marketMonitor);
+        this.lastPortfolio = {
+          totalValue: summary.totalValue,
+          dailyChange: summary.dailyChange,
+          dailyChangePercent: summary.dailyChangePercent,
+          topGainers: summary.holdings
+            .filter(h => h.pnlPercent > 0)
+            .sort((a, b) => b.pnlPercent - a.pnlPercent)
+            .slice(0, 3)
+            .map(h => ({ asset: h.asset, changePercent: h.pnlPercent })),
+          topLosers: summary.holdings
+            .filter(h => h.pnlPercent < 0)
+            .sort((a, b) => a.pnlPercent - b.pnlPercent)
+            .slice(0, 3)
+            .map(h => ({ asset: h.asset, changePercent: h.pnlPercent })),
+        };
+        log.info({ totalValue: summary.totalValue, holdings: summary.holdings.length }, 'Portfolio updated');
         this.eventBus.emit('audit:log', {
-          action: 'portfolio:update_triggered',
+          action: 'portfolio:update_complete',
           agent: 'SCHEDULER',
           trustLevel: 'system' as const,
-          details: { type: 'scheduled_portfolio_update' },
+          details: { totalValue: summary.totalValue, holdingCount: summary.holdings.length },
         });
       } catch (error) {
         log.error({ error }, 'Portfolio update failed');
@@ -1206,21 +1255,52 @@ export class AutonomousAgent {
     });
 
     // Model evolution review (Monday 10 AM)
-    this.scheduler.registerHandler('model_evolution', () => {
+    this.scheduler.registerHandler('model_evolution', async () => {
       try {
-        // Review AI model performance and suggest optimizations
         log.info('Model evolution review started');
+
+        // Analyze cost efficiency and model routing
+        const costLines: string[] = [];
+        if (this.costTracker) {
+          const status = this.costTracker.getThrottleStatus();
+          const summary = this.costTracker.getSummary();
+          costLines.push(`Budget: ${status.usagePercent.toFixed(0)}% used (${status.level})`);
+          costLines.push(`Daily: $${summary.daily.toFixed(2)} | Weekly: $${summary.weekly.toFixed(2)} | Monthly: $${summary.monthly.toFixed(2)}`);
+          costLines.push(`Trend: ${summary.trend}`);
+        }
+
         this.eventBus.emit('audit:log', {
           action: 'model_evolution:review',
           agent: 'SCHEDULER',
           trustLevel: 'system' as const,
-          details: { type: 'weekly_model_review' },
+          details: {
+            type: 'weekly_model_review',
+            costAnalysis: costLines.join('; '),
+          },
         });
+
+        // Send summary to Telegram
+        const reviewLines = ['<b>🧬 Weekly Model Review</b>', ''];
+        if (costLines.length > 0) {
+          reviewLines.push(...costLines.map(l => `▸ ${l}`));
+        } else {
+          reviewLines.push('▸ No cost data available yet');
+        }
+        reviewLines.push('');
+        reviewLines.push('<i>Cascade routing active. Frugal-first model selection enabled.</i>');
+
+        await notificationManager.notify({
+          category: 'system',
+          title: 'Weekly Model Review',
+          body: reviewLines.join('\n'),
+          priority: 'low',
+          telegramHtml: reviewLines.join('\n'),
+        });
+
         log.info('Model evolution review completed');
       } catch (error) {
         log.error({ error }, 'Model evolution review failed');
       }
-      return Promise.resolve();
     });
 
     // AI Council nightly review at 10 PM — governance summary to Telegram

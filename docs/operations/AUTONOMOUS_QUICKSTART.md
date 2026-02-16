@@ -91,7 +91,7 @@ You'll see:
 └─ Cost: ~$0.05-0.15
 ```
 
-**7:00 AM - Morning Briefing Generation**
+**6:30 AM - Morning Briefing Generation**
 ```
 What happens:
 ├─ Analyzes overnight autonomous work

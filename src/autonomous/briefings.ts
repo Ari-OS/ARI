@@ -677,8 +677,20 @@ export class BriefingGenerator {
   }
 
   private async getWeekAuditData(): Promise<DailyAudit[]> {
-    const today = await this.getRecentAuditData();
-    return today ? [today] : [];
+    const audits: DailyAudit[] = [];
+    const now = new Date();
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      try {
+        const audit = await dailyAudit.getAudit(dateStr);
+        if (audit) audits.push(audit);
+      } catch {
+        // Day not available, skip
+      }
+    }
+    return audits;
   }
 
   private buildMorningSummary(

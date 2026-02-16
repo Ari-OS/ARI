@@ -438,6 +438,82 @@ export class MarketMonitor {
   }
 
   /**
+   * Get current price for a single asset.
+   * Satisfies PortfolioTracker's MarketMonitor interface.
+   */
+  async getPrice(asset: string, assetClass: AssetClass): Promise<number | null> {
+    const normalized = asset.toLowerCase();
+
+    // Check cached snapshot first
+    const lastSnap = this.getLastSnapshot(normalized);
+    if (lastSnap && (Date.now() - new Date(lastSnap.timestamp).getTime()) < this.config.cacheTtlMs) {
+      return lastSnap.price;
+    }
+
+    // Fetch fresh price
+    const entry: WatchlistEntry = {
+      asset: normalized,
+      assetClass,
+      addedAt: new Date().toISOString(),
+    };
+
+    let snapshot: PriceSnapshot | null = null;
+    switch (assetClass) {
+      case 'crypto':
+        snapshot = (await this.fetchCryptoPrices([entry]))[0] ?? null;
+        break;
+      case 'stock':
+      case 'etf':
+        snapshot = await this.fetchStockPrice(entry);
+        break;
+      case 'pokemon':
+        snapshot = await this.fetchPokemonPrice(entry);
+        break;
+      default:
+        return null;
+    }
+
+    if (snapshot) {
+      this.storeSnapshot(snapshot);
+      return snapshot.price;
+    }
+    return null;
+  }
+
+  /**
+   * Get prices for multiple assets.
+   * Satisfies PortfolioTracker's MarketMonitor interface.
+   */
+  async getPrices(assets: Array<{ asset: string; assetClass: AssetClass }>): Promise<Map<string, number | null>> {
+    const results = new Map<string, number | null>();
+    for (const { asset, assetClass } of assets) {
+      const price = await this.getPrice(asset, assetClass);
+      results.set(asset, price);
+    }
+    return results;
+  }
+
+  /**
+   * Get 24h price change for an asset as decimal (e.g., 0.05 = 5%).
+   * Satisfies PortfolioTracker's MarketMonitor interface.
+   */
+  async get24hChange(asset: string, assetClass: AssetClass): Promise<number | null> {
+    const normalized = asset.toLowerCase();
+    const lastSnap = this.getLastSnapshot(normalized);
+    if (lastSnap) {
+      return lastSnap.change24h / 100; // Convert percentage to decimal
+    }
+
+    // Fetch fresh data to get change
+    const price = await this.getPrice(asset, assetClass);
+    if (price !== null) {
+      const snap = this.getLastSnapshot(normalized);
+      if (snap) return snap.change24h / 100;
+    }
+    return null;
+  }
+
+  /**
    * Clear all caches.
    */
   clearCaches(): void {
