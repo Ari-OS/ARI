@@ -9,10 +9,66 @@ import {
 } from '../../../src/ops/health-monitor.js';
 import * as daemon from '../../../src/ops/daemon.js';
 
-// Mock child_process for disk checks
+// Mock child_process for disk checks and vm_stat memory checks
 vi.mock('child_process', () => ({
   execFile: vi.fn(),
 }));
+
+// ── Mock output constants ─────────────────────────────────────────────────
+const HEALTHY_DISK_OUTPUT =
+  'Filesystem    512-blocks      Used Available Capacity Mounted on\n' +
+  '/dev/disk1s1  1000000000 400000000 600000000      40%       /\n';
+
+const HEALTHY_VMSTAT_OUTPUT = [
+  'Mach Virtual Memory Statistics: (page size of 16384 bytes)',
+  'Pages free:                              100000.',
+  'Pages active:                            200000.',
+  'Pages inactive:                          150000.',
+  'Pages speculative:                        50000.',
+  'Pages throttled:                              0.',
+  'Pages wired down:                        100000.',
+  'Pages purgeable:                          50000.',
+].join('\n');
+
+/**
+ * Creates an execFile mock that routes by command name.
+ * Handles both 2-arg (vm_stat) and 3-arg (df) promisify patterns.
+ */
+/**
+ * Flush floating promises from fire-and-forget async calls (e.g. void runAllChecks()).
+ * process.nextTick is NOT faked by vi.useFakeTimers(), so it properly yields to the
+ * real event loop and allows pending microtasks + I/O callbacks to settle.
+ */
+async function flushMicrotasks(): Promise<void> {
+  for (let i = 0; i < 10; i++) {
+    await new Promise(resolve => process.nextTick(resolve));
+  }
+}
+
+function createExecFileMock(overrides?: {
+  diskStdout?: string;
+  diskError?: Error | null;
+}) {
+  const diskStdout = overrides?.diskStdout ?? HEALTHY_DISK_OUTPUT;
+  const diskError = overrides?.diskError ?? null;
+
+  return (...allArgs: unknown[]) => {
+    const cmd = allArgs[0] as string;
+    // promisify appends callback as the last argument — find it
+    const callback = [...allArgs].reverse().find((a) => typeof a === 'function') as
+      | ((err: Error | null, result: { stdout: string; stderr: string }) => void)
+      | undefined;
+
+    if (typeof callback === 'function') {
+      if (cmd === 'vm_stat') {
+        callback(null, { stdout: HEALTHY_VMSTAT_OUTPUT, stderr: '' });
+      } else {
+        callback(diskError ?? null, { stdout: diskStdout, stderr: '' });
+      }
+    }
+    return {} as ReturnType<typeof import('child_process').execFile>;
+  };
+}
 
 // Mock os memory functions to avoid environment-dependent results
 vi.mock('os', async (importOriginal) => {
@@ -51,20 +107,10 @@ describe('HealthMonitor', () => {
       signingKey: 'test-key-12345',
     });
 
-    // Setup execFile mock
+    // Setup execFile mock — handles both df (3 args) and vm_stat (2 args)
     const { execFile } = await import('child_process');
     execFileMock = vi.mocked(execFile);
-
-    // Default: return healthy disk stats
-    execFileMock.mockImplementation((_cmd, _args, callback) => {
-      if (typeof callback === 'function') {
-        callback(null, {
-          stdout: 'Filesystem    512-blocks      Used Available Capacity Mounted on\n/dev/disk1s1  1000000000 400000000 600000000      40%       /\n',
-          stderr: '',
-        });
-      }
-      return {} as ReturnType<typeof execFile>;
-    });
+    execFileMock.mockImplementation(createExecFileMock() as Parameters<typeof execFileMock.mockImplementation>[0]);
 
     // Default: daemon running
     vi.mocked(daemon.getDaemonStatus).mockResolvedValue({
@@ -216,16 +262,10 @@ describe('HealthMonitor', () => {
     });
 
     it('should emit alert for degraded status', async () => {
-      // Make disk check return degraded
-      execFileMock.mockImplementation((_cmd, _args, callback) => {
-        if (typeof callback === 'function') {
-          callback(null, {
-            stdout: 'Filesystem    512-blocks      Used Available Capacity Mounted on\n/dev/disk1s1  1000000000 850000000 150000000      85%       /\n',
-            stderr: '',
-          });
-        }
-        return {} as ReturnType<typeof import('child_process').execFile>;
-      });
+      // Make disk check return degraded (85% usage)
+      execFileMock.mockImplementation(createExecFileMock({
+        diskStdout: 'Filesystem    512-blocks      Used Available Capacity Mounted on\n/dev/disk1s1  1000000000 850000000 150000000      85%       /\n',
+      }) as Parameters<typeof execFileMock.mockImplementation>[0]);
 
       const alertHandler = vi.fn();
       eventBus.on('alert:created', alertHandler);
@@ -273,15 +313,9 @@ describe('HealthMonitor', () => {
     });
 
     it('should return degraded for high disk usage', async () => {
-      execFileMock.mockImplementation((_cmd, _args, callback) => {
-        if (typeof callback === 'function') {
-          callback(null, {
-            stdout: 'Filesystem    512-blocks      Used Available Capacity Mounted on\n/dev/disk1s1  1000000000 850000000 150000000      85%       /\n',
-            stderr: '',
-          });
-        }
-        return {} as ReturnType<typeof import('child_process').execFile>;
-      });
+      execFileMock.mockImplementation(createExecFileMock({
+        diskStdout: 'Filesystem    512-blocks      Used Available Capacity Mounted on\n/dev/disk1s1  1000000000 850000000 150000000      85%       /\n',
+      }) as Parameters<typeof execFileMock.mockImplementation>[0]);
 
       const check = await healthMonitor.checkDisk();
 
@@ -291,15 +325,9 @@ describe('HealthMonitor', () => {
     });
 
     it('should return unhealthy for critical disk usage', async () => {
-      execFileMock.mockImplementation((_cmd, _args, callback) => {
-        if (typeof callback === 'function') {
-          callback(null, {
-            stdout: 'Filesystem    512-blocks      Used Available Capacity Mounted on\n/dev/disk1s1  1000000000 960000000 40000000      96%       /\n',
-            stderr: '',
-          });
-        }
-        return {} as ReturnType<typeof import('child_process').execFile>;
-      });
+      execFileMock.mockImplementation(createExecFileMock({
+        diskStdout: 'Filesystem    512-blocks      Used Available Capacity Mounted on\n/dev/disk1s1  1000000000 960000000 40000000      96%       /\n',
+      }) as Parameters<typeof execFileMock.mockImplementation>[0]);
 
       const check = await healthMonitor.checkDisk();
 
@@ -309,12 +337,10 @@ describe('HealthMonitor', () => {
     });
 
     it('should handle df command failure', async () => {
-      execFileMock.mockImplementation((_cmd, _args, callback) => {
-        if (typeof callback === 'function') {
-          callback(new Error('Command failed'), { stdout: '', stderr: '' });
-        }
-        return {} as ReturnType<typeof import('child_process').execFile>;
-      });
+      execFileMock.mockImplementation(createExecFileMock({
+        diskError: new Error('Command failed'),
+        diskStdout: '',
+      }) as Parameters<typeof execFileMock.mockImplementation>[0]);
 
       const check = await healthMonitor.checkDisk();
 
@@ -323,12 +349,9 @@ describe('HealthMonitor', () => {
     });
 
     it('should handle invalid df output', async () => {
-      execFileMock.mockImplementation((_cmd, _args, callback) => {
-        if (typeof callback === 'function') {
-          callback(null, { stdout: 'Invalid output', stderr: '' });
-        }
-        return {} as ReturnType<typeof import('child_process').execFile>;
-      });
+      execFileMock.mockImplementation(createExecFileMock({
+        diskStdout: 'Invalid output',
+      }) as Parameters<typeof execFileMock.mockImplementation>[0]);
 
       const check = await healthMonitor.checkDisk();
 
@@ -348,7 +371,7 @@ describe('HealthMonitor', () => {
       expect(check.component).toBe('memory');
       expect(check.lastChecked).toBeInstanceOf(Date);
       expect(check.metrics).toHaveProperty('usedPercent');
-      expect(check.metrics).toHaveProperty('freeGB');
+      expect(check.metrics).toHaveProperty('availableGB');
       expect(check.metrics).toHaveProperty('totalGB');
     });
 
@@ -600,17 +623,39 @@ describe('HealthMonitor', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('periodic checks', () => {
+    // start() fires `void this.runAllChecks()` — a floating promise. With fake timers
+    // it can't be flushed because advanceTimersByTimeAsync only tracks timer callbacks.
+    // Switch to real timers here; all I/O is mocked so checks complete in <5ms.
+
     beforeEach(() => {
-      // Use real timers for periodic tests to allow async checks to complete
       vi.useRealTimers();
     });
 
     afterEach(() => {
-      vi.useFakeTimers();
+      vi.useFakeTimers(); // restore for outer afterEach cleanup
     });
 
     it('should run check on start', async () => {
-      // Create a new monitor with short interval for testing
+      const fastMonitor = new HealthMonitor(eventBus, {
+        intervalMs: 60_000, // long interval — we only care about the initial check
+        auditLogger: mockAuditLogger,
+        gatewayPort: 3141,
+      });
+
+      const heartbeatHandler = vi.fn();
+      eventBus.on('system:heartbeat', heartbeatHandler);
+
+      fastMonitor.start();
+
+      // All I/O is mocked — runAllChecks() resolves in <5ms
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(heartbeatHandler).toHaveBeenCalled();
+
+      fastMonitor.stop();
+    });
+
+    it('should run checks at interval', async () => {
       const fastMonitor = new HealthMonitor(eventBus, {
         intervalMs: 50,
         auditLogger: mockAuditLogger,
@@ -622,37 +667,17 @@ describe('HealthMonitor', () => {
 
       fastMonitor.start();
 
-      // Wait for first check to run
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait for initial check + at least one interval
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-      expect(heartbeatHandler).toHaveBeenCalled();
-
-      fastMonitor.stop();
-    });
-
-    it('should run checks at interval', async () => {
-      const fastMonitor = new HealthMonitor(eventBus, {
-        intervalMs: 30,
-        auditLogger: mockAuditLogger,
-        gatewayPort: 3141,
-      });
-
-      const heartbeatHandler = vi.fn();
-      eventBus.on('system:heartbeat', heartbeatHandler);
-
-      fastMonitor.start();
-
-      // Wait for a couple of intervals
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      expect(heartbeatHandler.mock.calls.length).toBeGreaterThanOrEqual(1);
+      expect(heartbeatHandler.mock.calls.length).toBeGreaterThanOrEqual(2);
 
       fastMonitor.stop();
     });
 
     it('should stop interval checks when stopped', async () => {
       const fastMonitor = new HealthMonitor(eventBus, {
-        intervalMs: 30,
+        intervalMs: 50,
         auditLogger: mockAuditLogger,
         gatewayPort: 3141,
       });
@@ -662,14 +687,14 @@ describe('HealthMonitor', () => {
 
       fastMonitor.start();
 
-      // Let some checks run
-      await new Promise((resolve) => setTimeout(resolve, 80));
+      // Let initial check + a couple intervals run
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       fastMonitor.stop();
       const callsAtStop = heartbeatHandler.mock.calls.length;
 
-      // Wait more time - should not trigger additional checks
-      await new Promise((resolve) => setTimeout(resolve, 80));
+      // Wait more — no additional checks should fire
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       expect(heartbeatHandler).toHaveBeenCalledTimes(callsAtStop);
     });

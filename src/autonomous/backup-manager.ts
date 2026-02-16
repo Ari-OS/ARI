@@ -462,17 +462,17 @@ export class BackupManager {
   }
 
   private async compressDirectory(srcDir: string, destArchive: string): Promise<void> {
-    // Simple tar.gz implementation using streams
-    // In production, would use archiver or tar package
-    const { execSync } = await import('node:child_process');
+    const { execFileSync } = await import('node:child_process');
     const parentDir = path.dirname(srcDir);
     const dirName = path.basename(srcDir);
-    execSync(`tar -czf "${destArchive}" -C "${parentDir}" "${dirName}"`);
+    // Use execFileSync with argument array to prevent shell injection
+    execFileSync('tar', ['-czf', destArchive, '-C', parentDir, dirName]);
   }
 
   private async decompressArchive(archivePath: string, destDir: string): Promise<void> {
-    const { execSync } = await import('node:child_process');
-    execSync(`tar -xzf "${archivePath}" -C "${destDir}"`);
+    const { execFileSync } = await import('node:child_process');
+    // Use execFileSync with argument array to prevent shell injection
+    execFileSync('tar', ['-xzf', archivePath, '-C', destDir]);
   }
 
   private async updateLatestSymlink(targetPath: string): Promise<void> {

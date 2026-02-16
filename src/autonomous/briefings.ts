@@ -75,6 +75,33 @@ export interface MorningBriefingContext {
   governance?: GovernanceSnapshot | null;
   portfolio?: BriefingPortfolio | null;
   marketAlerts?: Array<{ asset: string; change: string; severity: string }> | null;
+  calendarEvents?: Array<{
+    title: string;
+    startDate: Date;
+    endDate: Date;
+    location?: string;
+    isAllDay: boolean;
+  }> | null;
+  pendingReminders?: Array<{
+    name: string;
+    dueDate?: Date;
+    priority: number;
+    list: string;
+  }> | null;
+  weather?: {
+    location: string;
+    tempF: number;
+    condition: string;
+    feelsLikeF: number;
+    humidity: number;
+    forecast?: Array<{ date: string; maxTempF: number; minTempF: number; condition: string; chanceOfRain: number }>;
+  } | null;
+  techNews?: Array<{
+    title: string;
+    url?: string;
+    score?: number;
+    source: string;
+  }> | null;
 }
 
 export interface EveningContext {
@@ -361,6 +388,65 @@ export class BriefingGenerator {
     lines.push(`<i>${this.esc(queueNote)}${this.esc(yesterdayNote)}</i>`);
     lines.push('');
 
+    // ── Weather ──
+    if (context?.weather) {
+      const w = context.weather;
+      lines.push(`<b>🌤 Weather — ${this.esc(w.location)}</b>`);
+      lines.push(`▸ ${w.tempF}°F (feels like ${w.feelsLikeF}°F) · ${this.esc(w.condition)}`);
+      if (w.forecast && w.forecast.length > 0) {
+        const today = w.forecast[0];
+        lines.push(`▸ High ${today.maxTempF}°F / Low ${today.minTempF}°F${today.chanceOfRain > 20 ? ` · ${today.chanceOfRain}% rain` : ''}`);
+      }
+      lines.push('');
+    }
+
+    // ── Today's Schedule ──
+    if (context?.calendarEvents && context.calendarEvents.length > 0) {
+      lines.push('<b>📅 Today\'s Schedule</b>');
+      const sorted = [...context.calendarEvents]
+        .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+      const allDay = sorted.filter(e => e.isAllDay);
+      const timed = sorted.filter(e => !e.isAllDay);
+      for (const evt of allDay.slice(0, 2)) {
+        lines.push(`▸ All day: ${this.esc(evt.title)}`);
+      }
+      for (const evt of timed.slice(0, 5)) {
+        const time = evt.startDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          timeZone: this.timezone,
+        });
+        const loc = evt.location ? ` @ ${this.esc(evt.location)}` : '';
+        lines.push(`▸ ${time} — ${this.esc(evt.title)}${loc}`);
+      }
+      if (context.calendarEvents.length > 7) {
+        lines.push(`  <i>+ ${context.calendarEvents.length - 7} more events</i>`);
+      }
+      lines.push('');
+    }
+
+    // ── Pending Reminders ──
+    if (context?.pendingReminders && context.pendingReminders.length > 0) {
+      const overdue = context.pendingReminders.filter(r => r.dueDate && r.dueDate < new Date());
+      const dueToday = context.pendingReminders.filter(r => {
+        if (!r.dueDate) return false;
+        const eod = new Date();
+        eod.setHours(23, 59, 59, 999);
+        return r.dueDate >= new Date() && r.dueDate <= eod;
+      });
+
+      if (overdue.length > 0 || dueToday.length > 0) {
+        lines.push('<b>📝 Reminders</b>');
+        for (const r of overdue.slice(0, 3)) {
+          lines.push(`▸ ⚠ OVERDUE: ${this.esc(r.name)}`);
+        }
+        for (const r of dueToday.slice(0, 3)) {
+          lines.push(`▸ Due today: ${this.esc(r.name)}`);
+        }
+        lines.push('');
+      }
+    }
+
     // ── Intelligence Highlights ──
     if (context?.digest && context.digest.sections.length > 0) {
       lines.push('<b>📰 Today\'s Intel</b>');
@@ -377,6 +463,21 @@ export class BriefingGenerator {
       }
       if (context.digest.stats.itemsIncluded > 4) {
         lines.push(`  <i>${context.digest.stats.itemsIncluded - 4} more in full digest</i>`);
+      }
+      lines.push('');
+    }
+
+    // ── Tech News (HN + RSS) ──
+    if (context?.techNews && context.techNews.length > 0) {
+      lines.push('<b>🔗 Tech Headlines</b>');
+      for (const item of context.techNews.slice(0, 5)) {
+        const title = this.esc(item.title.slice(0, 100));
+        const score = item.score ? ` (${item.score}pts)` : '';
+        if (item.url) {
+          lines.push(`▸ <a href="${item.url}">${title}</a>${score}`);
+        } else {
+          lines.push(`▸ ${title}${score}`);
+        }
       }
       lines.push('');
     }

@@ -127,6 +127,7 @@ export const NotionConfigSchema = z.object({
   apiKey: z.string().optional(),
   inboxDatabaseId: z.string().optional(),
   dailyLogParentId: z.string().optional(), // Parent page for daily logs
+  tasksDbId: z.string().optional(), // Tasks database ID for quick capture
 });
 
 export type NotionConfig = z.infer<typeof NotionConfigSchema>;

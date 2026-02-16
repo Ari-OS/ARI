@@ -103,10 +103,15 @@ export class NotificationRouter {
   private subscribeMarketEvents(): void {
     this.unsubscribers.push(
       this.eventBus.on('investment:opportunity_detected', (payload) => {
+        // Only forward opportunities scoring >= 75 (filter out noise)
+        if (payload.score < 75) {
+          log.info('Suppressed investment:opportunity_detected (score: %d < 75)', payload.score);
+          return;
+        }
         void notificationManager.opportunity(
           `${payload.category}: ${payload.title}`,
           `Score: ${payload.score}/100`,
-          payload.score >= 70 ? 'high' : 'medium',
+          payload.score >= 85 ? 'high' : 'medium',
         );
         log.info('Routed investment:opportunity_detected → Telegram (score: %d)', payload.score);
       }),

@@ -94,12 +94,77 @@ export interface MarketMonitorConfig {
 // ── Default Thresholds ────────────────────────────────────────────────────────
 
 const DEFAULT_THRESHOLDS: Record<AssetClass, AssetThresholds> = {
-  crypto: { daily: 3, weekly: 10 },
-  stock: { daily: 2, weekly: 5 },
+  crypto: { daily: 7, weekly: 15 },
+  stock: { daily: 3, weekly: 8 },
   pokemon: { daily: 0, weekly: 10, monthly: 20 }, // Pokemon has no daily, uses weekly/monthly
-  etf: { daily: 1.5, weekly: 3 },
+  etf: { daily: 2, weekly: 5 },
   commodity: { daily: 2, weekly: 5 },
 };
+
+// Per-asset threshold overrides (crypto assets with different volatility profiles)
+const ASSET_THRESHOLD_OVERRIDES: Record<string, AssetThresholds> = {
+  bitcoin: { daily: 7, weekly: 15 },
+  ethereum: { daily: 10, weekly: 20 },
+  solana: { daily: 10, weekly: 20 },
+};
+
+// Flash crash thresholds — between-check drops that trigger immediate critical alerts
+const FLASH_CRASH_THRESHOLDS: Partial<Record<AssetClass, number>> = {
+  crypto: 15, // >15% drop between checks
+  stock: 5,   // >5% drop between checks
+};
+
+// ── Rolling Baseline for Anomaly Detection ──────────────────────────────────
+
+interface BaselineDataPoint {
+  price: number;
+  timestamp: number;
+}
+
+export class RollingBaseline {
+  private readonly windowDays: number;
+  private data: Map<string, BaselineDataPoint[]> = new Map();
+
+  constructor(windowDays = 7) {
+    this.windowDays = windowDays;
+  }
+
+  addDataPoint(asset: string, price: number): void {
+    const points = this.data.get(asset) ?? [];
+    points.push({ price, timestamp: Date.now() });
+
+    // Prune points older than window
+    const cutoff = Date.now() - this.windowDays * 24 * 60 * 60 * 1000;
+    const pruned = points.filter(p => p.timestamp >= cutoff);
+    this.data.set(asset, pruned);
+  }
+
+  getStats(asset: string): { mean: number; stdDev: number; dataPoints: number } | null {
+    const points = this.data.get(asset);
+    if (!points || points.length < 3) return null;
+
+    const prices = points.map(p => p.price);
+    const mean = prices.reduce((s, p) => s + p, 0) / prices.length;
+    const variance = prices.reduce((s, p) => s + Math.pow(p - mean, 2), 0) / prices.length;
+    const stdDev = Math.sqrt(variance);
+
+    return { mean, stdDev, dataPoints: points.length };
+  }
+
+  isAnomaly(asset: string, price: number, sigmaThreshold = 2): boolean {
+    const stats = this.getStats(asset);
+    if (!stats || stats.stdDev === 0) return false;
+
+    const zScore = Math.abs(price - stats.mean) / stats.stdDev;
+    return zScore > sigmaThreshold;
+  }
+
+  getZScore(asset: string, price: number): number | null {
+    const stats = this.getStats(asset);
+    if (!stats || stats.stdDev === 0) return null;
+    return (price - stats.mean) / stats.stdDev;
+  }
+}
 
 // ── Alpha Vantage Types ───────────────────────────────────────────────────────
 
@@ -261,6 +326,7 @@ export class MarketMonitor {
   private readonly snapshots: Map<string, PriceSnapshot[]> = new Map();
   private readonly allTimeHighs: Map<string, number> = new Map();
   private readonly allTimeLows: Map<string, number> = new Map();
+  private readonly baseline: RollingBaseline = new RollingBaseline(7);
 
   constructor(eventBus: EventBus, config?: Partial<MarketMonitorConfig>) {
     this.eventBus = eventBus;
@@ -514,6 +580,29 @@ export class MarketMonitor {
   }
 
   /**
+   * Get the rolling baseline for anomaly detection.
+   */
+  getBaseline(): RollingBaseline {
+    return this.baseline;
+  }
+
+  /**
+   * Silent price collection — stores data without generating non-critical alerts.
+   * Returns only critical alerts (flash crashes, >3 sigma anomalies).
+   */
+  async collectSilent(): Promise<MarketAlert[]> {
+    const snapshots = await this.checkPrices();
+    const criticalAlerts: MarketAlert[] = [];
+
+    for (const snapshot of snapshots) {
+      const allAlerts = this.evaluateThresholds(snapshot);
+      criticalAlerts.push(...allAlerts.filter(a => a.severity === 'critical'));
+    }
+
+    return criticalAlerts;
+  }
+
+  /**
    * Clear all caches.
    */
   clearCaches(): void {
@@ -718,6 +807,9 @@ export class MarketMonitor {
     }
 
     this.snapshots.set(snapshot.asset, existing);
+
+    // Feed rolling baseline for anomaly detection
+    this.baseline.addDataPoint(snapshot.asset, snapshot.price);
   }
 
   private updateWatchlistEntry(snapshot: PriceSnapshot): void {
@@ -743,8 +835,51 @@ export class MarketMonitor {
 
   private evaluateThresholds(snapshot: PriceSnapshot): MarketAlert[] {
     const alerts: MarketAlert[] = [];
-    const thresholds = this.config.thresholds[snapshot.assetClass];
+    // Use per-asset overrides if available, else fall back to asset-class thresholds
+    const thresholds = ASSET_THRESHOLD_OVERRIDES[snapshot.asset] ?? this.config.thresholds[snapshot.assetClass];
     const previousSnapshot = this.getPreviousSnapshot(snapshot.asset);
+
+    // Flash crash detection: sudden drop between checks
+    if (previousSnapshot) {
+      const flashThreshold = FLASH_CRASH_THRESHOLDS[snapshot.assetClass];
+      if (flashThreshold) {
+        const dropPercent = ((previousSnapshot.price - snapshot.price) / previousSnapshot.price) * 100;
+        if (dropPercent >= flashThreshold) {
+          alerts.push({
+            asset: snapshot.asset,
+            alertType: 'price_drop',
+            severity: 'critical',
+            message: `FLASH CRASH: ${snapshot.asset.toUpperCase()} down ${dropPercent.toFixed(1)}% since last check`,
+            data: {
+              currentPrice: snapshot.price,
+              previousPrice: previousSnapshot.price,
+              changePercent: -dropPercent,
+              threshold: flashThreshold,
+            },
+          });
+        }
+      }
+    }
+
+    // Anomaly detection via rolling baseline (>2 sigma)
+    if (this.baseline.isAnomaly(snapshot.asset, snapshot.price)) {
+      const zScore = this.baseline.getZScore(snapshot.asset, snapshot.price);
+      if (zScore !== null) {
+        const direction = zScore > 0 ? 'above' : 'below';
+        alerts.push({
+          asset: snapshot.asset,
+          alertType: zScore > 0 ? 'price_spike' : 'price_drop',
+          severity: Math.abs(zScore) >= 3 ? 'critical' : 'significant',
+          message: `${snapshot.asset.toUpperCase()} ${Math.abs(zScore).toFixed(1)}σ ${direction} 7-day baseline`,
+          data: {
+            currentPrice: snapshot.price,
+            previousPrice: previousSnapshot?.price ?? snapshot.price,
+            changePercent: snapshot.change24h,
+            threshold: 2, // sigma threshold
+          },
+        });
+      }
+    }
 
     // Check daily threshold
     if (thresholds.daily > 0 && Math.abs(snapshot.change24h) >= thresholds.daily) {

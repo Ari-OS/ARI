@@ -110,8 +110,8 @@ describe('MarketMonitor', () => {
 
     it('should use default thresholds when not provided', () => {
       const thresholds = monitor.getThresholds('crypto');
-      expect(thresholds.daily).toBe(3);
-      expect(thresholds.weekly).toBe(10);
+      expect(thresholds.daily).toBe(7);
+      expect(thresholds.weekly).toBe(15);
     });
   });
 
@@ -326,7 +326,7 @@ describe('MarketMonitor', () => {
 
       // checkAlerts calls checkPrices internally
       mockGetPrice.mockResolvedValueOnce({
-        bitcoin: { usd: 50000, usd_24h_change: 5 }, // 5% > 3% threshold
+        bitcoin: { usd: 50000, usd_24h_change: 8 }, // 8% > 7% threshold (raised in Phase 1)
       });
       mockGetMarketData.mockResolvedValueOnce([]);
 
@@ -345,7 +345,7 @@ describe('MarketMonitor', () => {
       freshMonitor.addToWatchlist('bitcoin', 'crypto');
 
       mockGetPrice.mockResolvedValueOnce({
-        bitcoin: { usd: 45000, usd_24h_change: -4 }, // -4% > 3% threshold
+        bitcoin: { usd: 45000, usd_24h_change: -8 }, // -8% > 7% threshold (raised in Phase 1)
       });
       mockGetMarketData.mockResolvedValueOnce([]);
 
@@ -383,7 +383,7 @@ describe('MarketMonitor', () => {
       freshMonitor.addToWatchlist('bitcoin', 'crypto');
 
       mockGetPrice.mockResolvedValueOnce({
-        bitcoin: { usd: 50000, usd_24h_change: 5 }, // 5% > 3% threshold triggers alert
+        bitcoin: { usd: 50000, usd_24h_change: 8 }, // 8% > 7% threshold triggers alert
       });
       mockGetMarketData.mockResolvedValueOnce([]);
 
@@ -406,9 +406,9 @@ describe('MarketMonitor', () => {
 
       freshMonitor.addToWatchlist('bitcoin', 'crypto');
 
-      // 9% change with 3% threshold = 3x ratio = critical
+      // 21% change with 7% threshold = 3x ratio = critical
       mockGetPrice.mockResolvedValueOnce({
-        bitcoin: { usd: 50000, usd_24h_change: 9 },
+        bitcoin: { usd: 50000, usd_24h_change: 21 },
       });
       mockGetMarketData.mockResolvedValueOnce([]);
 
@@ -420,17 +420,15 @@ describe('MarketMonitor', () => {
     });
 
     it('should use different thresholds per asset class', async () => {
-      // Stock has 2% daily threshold vs crypto 3%
-      monitor.addToWatchlist('AAPL', 'stock');
-
+      // Stock has 3% daily threshold (raised in Phase 1) vs crypto 7%
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           'Global Quote': {
             '01. symbol': 'AAPL',
-            '05. price': '178.50',
+            '05. price': '182.00',
             '06. volume': '50000000',
-            '08. previous close': '175.00', // ~2% change
+            '08. previous close': '175.00', // ~4% change, exceeds 3% stock threshold
           },
         }),
       });
@@ -447,7 +445,7 @@ describe('MarketMonitor', () => {
 
       const alerts = await m.checkAlerts();
 
-      // 2% change should trigger stock alert (threshold is 2%)
+      // 4% change should trigger stock alert (threshold is 3%)
       expect(alerts.some(a => a.alertType === 'price_spike' || a.alertType === 'price_drop')).toBe(true);
     });
   });
@@ -525,10 +523,10 @@ describe('MarketMonitor', () => {
 
   describe('getThresholds', () => {
     it('should return thresholds for each asset class', () => {
-      expect(monitor.getThresholds('crypto')).toEqual({ daily: 3, weekly: 10 });
-      expect(monitor.getThresholds('stock')).toEqual({ daily: 2, weekly: 5 });
+      expect(monitor.getThresholds('crypto')).toEqual({ daily: 7, weekly: 15 });
+      expect(monitor.getThresholds('stock')).toEqual({ daily: 3, weekly: 8 });
       expect(monitor.getThresholds('pokemon')).toEqual({ daily: 0, weekly: 10, monthly: 20 });
-      expect(monitor.getThresholds('etf')).toEqual({ daily: 1.5, weekly: 3 });
+      expect(monitor.getThresholds('etf')).toEqual({ daily: 2, weekly: 5 });
     });
   });
 
@@ -540,7 +538,7 @@ describe('MarketMonitor', () => {
 
     it('should only affect specified asset class', () => {
       monitor.setThresholds('crypto', { daily: 5, weekly: 15 });
-      expect(monitor.getThresholds('stock')).toEqual({ daily: 2, weekly: 5 });
+      expect(monitor.getThresholds('stock')).toEqual({ daily: 3, weekly: 8 });
     });
   });
 

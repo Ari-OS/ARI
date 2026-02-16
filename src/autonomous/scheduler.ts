@@ -206,7 +206,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     name: 'Daily E2E Test Suite',
     cron: '0 9 * * *', // 9:00 AM daily
     handler: 'e2e_daily_run',
-    enabled: true,
+    enabled: false, // Disabled: pending Playwright setup
     essential: false, // Skip when budget is constrained
     metadata: {
       description: 'Run automated E2E tests and file issues for failures',
@@ -305,7 +305,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     name: 'Gmail Ingestion',
     cron: '0 7 * * *', // 7:00 AM daily
     handler: 'gmail_ingest',
-    enabled: true,
+    enabled: false, // Disabled: pending IMAP configuration
     essential: true, // User-facing knowledge capture
     metadata: {
       category: 'KNOWLEDGE',
@@ -327,21 +327,57 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
 
   // ── Market & Investment Intelligence ────────────────────────────────────────
   {
-    id: 'market-price-check',
-    name: 'Market Price Check',
-    cron: '*/30 8-22 * * *', // Every 30 min, 8AM-10PM
-    handler: 'market_price_check',
+    id: 'market-background-collect',
+    name: 'Market Background Collection',
+    cron: '0 */4 * * *', // Every 4 hours (silent baseline data)
+    handler: 'market_background_collect',
     enabled: true,
     essential: false,
     metadata: {
       category: 'INVESTMENT',
-      description: 'Check crypto, stocks, Pokemon card prices and generate alerts',
+      description: 'Silent price collection for baseline data, only forward critical alerts',
+    },
+  },
+  {
+    id: 'market-premarket-briefing',
+    name: 'Pre-Market Briefing',
+    cron: '15 9 * * 1-5', // 9:15 AM weekdays (before market open)
+    handler: 'market_premarket_briefing',
+    enabled: true,
+    essential: true,
+    metadata: {
+      category: 'INVESTMENT',
+      description: 'Overnight crypto summary + stock pre-market prices',
+    },
+  },
+  {
+    id: 'market-postmarket-briefing',
+    name: 'Post-Market Briefing',
+    cron: '15 16 * * 1-5', // 4:15 PM weekdays (after market close)
+    handler: 'market_postmarket_briefing',
+    enabled: true,
+    essential: true,
+    metadata: {
+      category: 'INVESTMENT',
+      description: 'Day P&L summary, only show movers exceeding threshold',
+    },
+  },
+  {
+    id: 'market-weekly-analysis',
+    name: 'Market Weekly Analysis',
+    cron: '0 18 * * 0', // Sunday 6PM (full weekly digest)
+    handler: 'market_weekly_analysis',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'INVESTMENT',
+      description: 'Full weekly analysis: start vs end, trends, z-scores, portfolio change',
     },
   },
   {
     id: 'portfolio-update',
     name: 'Portfolio Update',
-    cron: '0 8,14,20 * * *', // 8AM, 2PM, 8PM
+    cron: '10 9,16 * * 1-5', // 9:10 AM, 4:10 PM weekdays only
     handler: 'portfolio_update',
     enabled: true,
     essential: false,
@@ -405,6 +441,70 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     },
   },
 
+  // ── Apple Ecosystem ────────────────────────────────────────────────────────
+  {
+    id: 'calendar-poll',
+    name: 'Calendar Poll',
+    cron: '*/15 6-22 * * *', // Every 15 min during waking hours
+    handler: 'calendar_poll',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'APPLE',
+      description: 'Poll Apple Calendar for events, cache for briefings and meeting detection',
+    },
+  },
+  {
+    id: 'reminder-sync',
+    name: 'Reminder → Notion Sync',
+    cron: '*/30 * * * *', // Every 30 minutes
+    handler: 'reminder_sync',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'APPLE',
+      description: 'Sync new Apple Reminders to Notion tasks (Siri quick-capture flow)',
+    },
+  },
+
+  // ── Quick-Win Integrations ─────────────────────────────────────────────────
+  {
+    id: 'weather-fetch',
+    name: 'Weather Fetch',
+    cron: '0 6,12,18 * * *', // 6AM, noon, 6PM
+    handler: 'weather_fetch',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'INTEGRATION',
+      description: 'Fetch current weather and forecast from WeatherAPI',
+    },
+  },
+  {
+    id: 'tech-news-fetch',
+    name: 'Tech News Fetch',
+    cron: '0 6,14 * * *', // 6AM and 2PM
+    handler: 'tech_news_fetch',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'INTEGRATION',
+      description: 'Fetch top HN stories and RSS feeds for briefings',
+    },
+  },
+  {
+    id: 'github-poll',
+    name: 'GitHub Repo Poll',
+    cron: '0 7,19 * * *', // 7AM and 7PM
+    handler: 'github_poll',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'INTEGRATION',
+      description: 'Poll ARI GitHub repo for activity, PRs, and notifications',
+    },
+  },
+
   // ── Life Monitor ───────────────────────────────────────────────────────────
   {
     id: 'life-monitor-scan',
@@ -416,6 +516,32 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     metadata: {
       category: 'MONITOR',
       description: 'Scan API credits, subscriptions, system health, budget, stale work, ARI health',
+    },
+  },
+
+  // ── Content Engine ────────────────────────────────────────────────────────
+  {
+    id: 'content-daily-drafts',
+    name: 'Content Draft Generation',
+    cron: '0 7 * * *', // 7:00 AM daily
+    handler: 'content_daily_drafts',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'CONTENT',
+      description: 'Analyze intelligence, generate content drafts for review',
+    },
+  },
+  {
+    id: 'content-draft-delivery',
+    name: 'Content Draft Delivery',
+    cron: '30 7 * * *', // 7:30 AM daily (after generation)
+    handler: 'content_draft_delivery',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'CONTENT',
+      description: 'Send pending drafts to Telegram for Pryce review',
     },
   },
 

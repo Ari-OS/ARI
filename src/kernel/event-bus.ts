@@ -555,6 +555,11 @@ export interface EventMap {
   // ═══════════════════════════════════════════════════════════════════════
   'market:snapshot_complete': { timestamp: string; pricesChecked: number; alertsGenerated: number };
   'market:price_alert': { symbol: string; price: number; change: number; threshold: number };
+  'market:flash_crash': { asset: string; dropPercent: number; previousPrice: number; currentPrice: number };
+  'market:anomaly_detected': { asset: string; zScore: number; price: number; baselineMean: number };
+  'market:premarket_briefing': { alertCount: number; timestamp: string };
+  'market:postmarket_briefing': { portfolioValue: number; dailyChangePercent: number; timestamp: string };
+  'market:weekly_analysis': { watchlistSize: number; timestamp: string };
   'investment:opportunity_detected': { category: string; title: string; score: number };
   'investment:portfolio_update': { totalValue: number; dailyChange: number };
   'career:new_matches': { count: number; topMatch: string };
@@ -584,6 +589,11 @@ export interface EventMap {
   // ═══════════════════════════════════════════════════════════════════════
   'content:draft_created': { topicId: string; title: string; platform: string };
   'content:approved': { topicId: string; scheduledFor?: string };
+  'content:trend_analyzed': { topicCount: number; topDomains: string[] };
+  'content:draft_generated': { draftId: string; platform: string; topicHeadline: string; costUsd: number };
+  'content:draft_reviewed': { draftId: string; action: 'approved' | 'edited' | 'rejected'; reason?: string };
+  'content:published': { draftId: string; platform: string; publishedIds: string[] };
+  'content:publish_failed': { draftId: string; platform: string; error: string };
 
   // ═══════════════════════════════════════════════════════════════════════
   // INTELLIGENCE SCANNER events (Master Plan Phase 4)
@@ -603,6 +613,20 @@ export interface EventMap {
   'notification:snoozed': { notificationId: string; snoozeUntil: number };
   'notification:detail_requested': { notificationId: string; action: string; chatId?: number; messageId?: number };
   'notification:saved': { notificationId: string; category?: string; title?: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // APPLE ECOSYSTEM events (Calendar, Reminders, Focus Mode)
+  // ═══════════════════════════════════════════════════════════════════════
+  'apple:calendar_polled': { eventCount: number; nextEvent?: string; timestamp: string };
+  'apple:reminder_synced': { synced: number; skipped: number; errors: number; timestamp: string };
+  'apple:focus_changed': { active: boolean; mode: string | null; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // INTEGRATION events (Weather, News, GitHub)
+  // ═══════════════════════════════════════════════════════════════════════
+  'integration:weather_fetched': { location: string; tempF: number; condition: string; timestamp: string };
+  'integration:news_fetched': { source: string; itemCount: number; timestamp: string };
+  'integration:github_polled': { repo: string; stars: number; openPRs: number; timestamp: string };
 }
 
 /**

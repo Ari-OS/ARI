@@ -42,6 +42,7 @@ import { LifeMonitor } from './life-monitor.js';
 import { NotificationRouter } from './notification-router.js';
 import { governanceReporter } from './governance-reporter.js';
 import { XClient } from '../integrations/twitter/client.js';
+import type { ContentEnginePlugin } from '../plugins/content-engine/index.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -101,6 +102,7 @@ export class AutonomousAgent {
   private notificationRouter: NotificationRouter | null = null;
   private marketMonitor: MarketMonitor | null = null;
   private portfolioTracker: PortfolioTracker | null = null;
+  private contentEngine: ContentEnginePlugin | null = null;
 
   // Cached scan results for unified morning briefing
   private lastDigest: import('./daily-digest.js').DailyDigest | null = null;
@@ -232,6 +234,7 @@ export class AutonomousAgent {
         apiKey: process.env.NOTION_API_KEY,
         inboxDatabaseId: process.env.NOTION_INBOX_DATABASE_ID,
         dailyLogParentId: process.env.NOTION_DAILY_LOG_PARENT_ID,
+        tasksDbId: process.env.NOTION_TASKS_DATABASE_ID,
       }),
     });
     log.info({ telegram: notifResults.telegram, sms: notifResults.sms, notion: notifResults.notion }, 'Notification channels initialized');
@@ -313,6 +316,27 @@ export class AutonomousAgent {
     this.portfolioTracker = new PortfolioTracker(this.eventBus);
     await this.portfolioTracker.init();
     log.info('Portfolio tracker initialized');
+
+    // Initialize content engine plugin
+    try {
+      const { ContentEnginePlugin } = await import('../plugins/content-engine/index.js');
+      this.contentEngine = new ContentEnginePlugin();
+      const ceDataDir = path.join(process.env.HOME || '~', '.ari', 'plugins', 'content-engine', 'data');
+      await this.contentEngine.initialize({
+        eventBus: this.eventBus,
+        orchestrator: null as unknown as import('../ai/orchestrator.js').AIOrchestrator,
+        config: {},
+        dataDir: ceDataDir,
+        costTracker: this.costTracker,
+      });
+      // Wire publisher if X client is available
+      if (xClient.isReady()) {
+        this.contentEngine.initPublisher(xClient);
+      }
+      log.info('Content engine plugin initialized');
+    } catch (error) {
+      log.warn({ error: error instanceof Error ? error.message : String(error) }, 'Content engine init failed (non-critical)');
+    }
 
     // AI provider is injected via constructor — no local initialization needed
     if (this.aiProvider) {
@@ -1078,35 +1102,214 @@ export class AutonomousAgent {
       }
     });
 
-    // Market price check (every 30 min, 8AM-10PM)
-    this.scheduler.registerHandler('market_price_check', async () => {
+    // Market background collection (every 4 hours — silent, builds baseline)
+    this.scheduler.registerHandler('market_background_collect', async () => {
       try {
         if (!this.marketMonitor) {
-          log.warn('Market monitor not initialized, skipping price check');
+          log.warn('Market monitor not initialized, skipping collection');
           return;
         }
-        const alerts = await this.marketMonitor.checkAlerts();
-        log.info({ alertCount: alerts.length }, 'Market price check completed');
+        // Silent collection — only forward critical alerts (flash crashes)
+        const criticalAlerts = await this.marketMonitor.collectSilent();
+        log.info({ criticalAlerts: criticalAlerts.length }, 'Market background collection completed');
 
-        // Cache alerts for morning briefing
-        if (alerts.length > 0) {
-          this.lastMarketAlerts = alerts.map(a => ({
+        // Only notify on critical alerts (flash crashes, extreme anomalies)
+        for (const alert of criticalAlerts) {
+          const pct = alert.data.changePercent;
+          await notificationManager.finance(
+            `ALERT: ${alert.asset.toUpperCase()}`,
+            `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% — ${alert.message}`,
+            true // always urgent for critical
+          );
+        }
+
+        // Cache critical alerts for briefing
+        if (criticalAlerts.length > 0) {
+          this.lastMarketAlerts = criticalAlerts.map(a => ({
             asset: a.asset,
             change: `${a.data.changePercent > 0 ? '+' : ''}${a.data.changePercent.toFixed(1)}%`,
             severity: a.severity,
           }));
         }
-
-        for (const alert of alerts) {
-          const pct = alert.data.changePercent;
-          await notificationManager.finance(
-            `Market: ${alert.asset}`,
-            `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% — ${alert.message}`,
-            alert.severity === 'critical'
-          );
-        }
       } catch (error) {
-        log.error({ error }, 'Market price check failed');
+        log.error({ error }, 'Market background collection failed');
+      }
+    });
+
+    // Pre-market briefing (9:15 AM weekdays — overnight crypto + stock pre-market)
+    this.scheduler.registerHandler('market_premarket_briefing', async () => {
+      try {
+        if (!this.marketMonitor) return;
+
+        const alerts = await this.marketMonitor.checkAlerts();
+        const significant = alerts.filter(a => a.severity !== 'info');
+
+        // Build pre-market message
+        const lines: string[] = ['<b>📊 Pre-Market Briefing</b>', ''];
+
+        // Crypto overnight moves (only if > threshold)
+        const cryptoAlerts = significant.filter(a => a.asset === 'bitcoin' || a.asset === 'ethereum' || a.asset === 'solana');
+        if (cryptoAlerts.length > 0) {
+          lines.push('<b>Crypto Overnight</b>');
+          for (const a of cryptoAlerts) {
+            const pct = a.data.changePercent;
+            lines.push(`▸ ${a.asset.toUpperCase()}: ${pct > 0 ? '+' : ''}${pct.toFixed(1)}% ($${a.data.currentPrice.toLocaleString()})`);
+          }
+          lines.push('');
+        }
+
+        // Stock pre-market summary
+        const stockAlerts = significant.filter(a => !['bitcoin', 'ethereum', 'solana'].includes(a.asset));
+        if (stockAlerts.length > 0) {
+          lines.push('<b>Stocks &amp; ETFs</b>');
+          for (const a of stockAlerts.slice(0, 5)) {
+            const pct = a.data.changePercent;
+            lines.push(`▸ ${a.asset.toUpperCase()}: ${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`);
+          }
+          lines.push('');
+        }
+
+        if (significant.length === 0) {
+          lines.push('Markets quiet overnight. No significant moves.');
+        }
+
+        // Cache for morning briefing
+        this.lastMarketAlerts = significant.map(a => ({
+          asset: a.asset,
+          change: `${a.data.changePercent > 0 ? '+' : ''}${a.data.changePercent.toFixed(1)}%`,
+          severity: a.severity,
+        }));
+
+        if (notificationManager.isReady()) {
+          await notificationManager.notify({
+            category: 'finance',
+            title: 'Pre-Market Briefing',
+            body: lines.join('\n'),
+            priority: significant.some(a => a.severity === 'critical') ? 'high' : 'normal',
+            telegramHtml: lines.join('\n'),
+          });
+        }
+        log.info({ significantAlerts: significant.length }, 'Pre-market briefing sent');
+      } catch (error) {
+        log.error({ error }, 'Pre-market briefing failed');
+      }
+    });
+
+    // Post-market briefing (4:15 PM weekdays — day P&L, only significant movers)
+    this.scheduler.registerHandler('market_postmarket_briefing', async () => {
+      try {
+        if (!this.marketMonitor || !this.portfolioTracker) return;
+
+        const alerts = await this.marketMonitor.checkAlerts();
+        const summary = await this.portfolioTracker.getPortfolioSummary(this.marketMonitor);
+
+        const lines: string[] = ['<b>📊 Post-Market Summary</b>', ''];
+
+        // Portfolio P&L
+        const dir = summary.dailyChangePercent >= 0 ? '📈' : '📉';
+        const sign = summary.dailyChangePercent >= 0 ? '+' : '';
+        lines.push(`<b>${dir} Portfolio: ${sign}$${Math.abs(summary.dailyChange).toLocaleString()} (${sign}${summary.dailyChangePercent.toFixed(1)}%)</b>`);
+        lines.push(`Total: $${summary.totalValue.toLocaleString()}`);
+        lines.push('');
+
+        // Top movers (only those exceeding threshold)
+        const significant = alerts.filter(a => a.severity !== 'info');
+        if (significant.length > 0) {
+          lines.push('<b>Movers</b>');
+          for (const a of significant.slice(0, 5)) {
+            const pct = a.data.changePercent;
+            lines.push(`▸ ${a.asset.toUpperCase()}: ${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`);
+          }
+        } else {
+          lines.push('<i>No significant moves today.</i>');
+        }
+
+        // Cache portfolio for evening briefing
+        this.lastPortfolio = {
+          totalValue: summary.totalValue,
+          dailyChange: summary.dailyChange,
+          dailyChangePercent: summary.dailyChangePercent,
+          topGainers: summary.holdings
+            .filter(h => h.pnlPercent > 0)
+            .sort((a, b) => b.pnlPercent - a.pnlPercent)
+            .slice(0, 3)
+            .map(h => ({ asset: h.asset, changePercent: h.pnlPercent })),
+          topLosers: summary.holdings
+            .filter(h => h.pnlPercent < 0)
+            .sort((a, b) => a.pnlPercent - b.pnlPercent)
+            .slice(0, 3)
+            .map(h => ({ asset: h.asset, changePercent: h.pnlPercent })),
+        };
+
+        if (notificationManager.isReady()) {
+          await notificationManager.notify({
+            category: 'finance',
+            title: 'Post-Market Summary',
+            body: lines.join('\n'),
+            priority: 'normal',
+            telegramHtml: lines.join('\n'),
+          });
+        }
+        log.info('Post-market briefing sent');
+      } catch (error) {
+        log.error({ error }, 'Post-market briefing failed');
+      }
+    });
+
+    // Market weekly analysis (Sunday 6PM — full weekly digest)
+    this.scheduler.registerHandler('market_weekly_analysis', async () => {
+      try {
+        if (!this.marketMonitor || !this.portfolioTracker) return;
+
+        const summary = await this.portfolioTracker.getPortfolioSummary(this.marketMonitor);
+        const watchlist = this.marketMonitor.getWatchlist();
+
+        const lines: string[] = ['<b>📊 Weekly Market Analysis</b>', ''];
+
+        // Portfolio summary
+        const sign = summary.dailyChangePercent >= 0 ? '+' : '';
+        lines.push(`<b>Portfolio: $${summary.totalValue.toLocaleString()} (${sign}${summary.dailyChangePercent.toFixed(1)}% this week)</b>`);
+        lines.push('');
+
+        // Z-score report for tracked assets
+        lines.push('<b>Trend Analysis (7-day z-scores)</b>');
+        for (const asset of watchlist.slice(0, 8)) {
+          const snapshot = this.marketMonitor.getLastSnapshot(asset);
+          if (!snapshot) continue;
+          const zScore = this.marketMonitor.getBaseline().getZScore(asset, snapshot.price);
+          if (zScore !== null) {
+            const zStr = zScore >= 0 ? `+${zScore.toFixed(1)}σ` : `${zScore.toFixed(1)}σ`;
+            const indicator = Math.abs(zScore) >= 2 ? ' ⚠' : '';
+            lines.push(`▸ ${asset.toUpperCase()}: $${snapshot.price.toLocaleString()} (${zStr})${indicator}`);
+          }
+        }
+        lines.push('');
+
+        // Top movers this week
+        const holdingsByChange = summary.holdings
+          .filter(h => Math.abs(h.pnlPercent) > 0)
+          .sort((a, b) => Math.abs(b.pnlPercent) - Math.abs(a.pnlPercent));
+
+        if (holdingsByChange.length > 0) {
+          lines.push('<b>Biggest Movers</b>');
+          for (const h of holdingsByChange.slice(0, 5)) {
+            const s = h.pnlPercent >= 0 ? '+' : '';
+            lines.push(`▸ ${h.asset.toUpperCase()}: ${s}${h.pnlPercent.toFixed(1)}%`);
+          }
+        }
+
+        if (notificationManager.isReady()) {
+          await notificationManager.notify({
+            category: 'finance',
+            title: 'Weekly Market Analysis',
+            body: lines.join('\n'),
+            priority: 'normal',
+            telegramHtml: lines.join('\n'),
+          });
+        }
+        log.info('Weekly market analysis sent');
+      } catch (error) {
+        log.error({ error }, 'Weekly market analysis failed');
       }
     });
 
@@ -1473,6 +1676,113 @@ export class AutonomousAgent {
         }
       } catch (error) {
         log.error({ error }, 'Daily digest delivery failed');
+      }
+    });
+
+    // ==========================================================================
+    // CONTENT ENGINE: Draft generation + delivery to Telegram
+    // ==========================================================================
+
+    // Generate content drafts at 7:00 AM (after intelligence scan at 6:00 AM)
+    this.scheduler.registerHandler('content_daily_drafts', async () => {
+      try {
+        if (!this.contentEngine || !this.intelligenceScanner) {
+          log.info('Content engine or intelligence scanner not available, skipping draft generation');
+          return;
+        }
+
+        const drafter = this.contentEngine.getDrafter();
+        if (!drafter) {
+          log.info('Content drafter not available (no AI provider), skipping');
+          return;
+        }
+
+        // Use latest intelligence scan results to generate topic briefs
+        const trendAnalyzer = this.contentEngine.getTrendAnalyzer();
+        const scanResult = await this.intelligenceScanner.scan();
+        const briefs = trendAnalyzer.analyze(scanResult.topItems);
+
+        if (briefs.length === 0) {
+          log.info('No qualifying topics for content generation');
+          return;
+        }
+
+        // Generate drafts from briefs and add to queue
+        let generated = 0;
+        const queue = this.contentEngine.getDraftQueue();
+        for (const brief of briefs) {
+          try {
+            const result = await drafter.generateDraft(brief);
+            await queue.addDraft({
+              topicBrief: brief,
+              platform: result.platform,
+              content: result.content,
+              modelUsed: result.modelUsed,
+              costUsd: result.costUsd,
+            });
+            generated++;
+          } catch (err) {
+            log.warn({ headline: brief.headline, error: err instanceof Error ? err.message : String(err) }, 'Draft generation failed for topic');
+          }
+        }
+
+        log.info({ topics: briefs.length, generated }, 'Content draft generation complete');
+
+        this.eventBus.emit('audit:log', {
+          action: 'content:daily_drafts_complete',
+          agent: 'CONTENT_ENGINE',
+          trustLevel: 'system' as const,
+          details: { topicsAnalyzed: briefs.length, draftsGenerated: generated },
+        });
+      } catch (error) {
+        log.error({ error }, 'Content daily draft generation failed');
+      }
+    });
+
+    // Deliver pending drafts to Telegram at 7:30 AM
+    this.scheduler.registerHandler('content_draft_delivery', async () => {
+      try {
+        if (!this.contentEngine) return;
+
+        const pending = this.contentEngine.getDraftQueue().getPending();
+        if (pending.length === 0) {
+          log.info('No pending content drafts to deliver');
+          return;
+        }
+
+        // Build Telegram message with draft summaries
+        const lines: string[] = [
+          `<b>Content Drafts for Review (${pending.length})</b>`,
+          '',
+        ];
+
+        for (const draft of pending.slice(0, 5)) {
+          const headline = draft.topicBrief.headline.slice(0, 60);
+          const preview = draft.content[0].slice(0, 100);
+          lines.push(`<b>[${draft.platform}]</b> ${headline}`);
+          lines.push(`<code>${draft.id}</code>`);
+          lines.push(`<i>${preview}...</i>`);
+          lines.push('');
+
+          // Mark as sent for review
+          await this.contentEngine.getDraftQueue().updateStatus(draft.id, 'sent_for_review');
+        }
+
+        lines.push('Reply: /content approve &lt;id&gt; or /content reject &lt;id&gt;');
+
+        if (notificationManager.isReady()) {
+          await notificationManager.notify({
+            category: 'daily',
+            title: 'Content Drafts',
+            body: lines.join('\n'),
+            priority: 'normal',
+            telegramHtml: lines.join('\n'),
+          });
+        }
+
+        log.info({ count: pending.length }, 'Content drafts delivered for review');
+      } catch (error) {
+        log.error({ error }, 'Content draft delivery failed');
       }
     });
   }

@@ -112,12 +112,12 @@ const DEFAULT_CONFIG: NotificationConfig = {
   cooldowns: {
     error: 5,
     security: 0,       // Always send security
-    opportunity: 15,   // Reduced spam — was 0
+    opportunity: 60,   // 1/hr max — briefings handle the rest
     milestone: 120,    // Nice-to-know, not urgent — was 30
     insight: 360,      // Max 2-3/day — was 60
     question: 0,       // ARI needs input — keep at 0
     reminder: 0,
-    finance: 60,       // Reduced noise — was 30
+    finance: 240,      // 4hr — pre/post-market briefings handle the rest
     task: 30,          // Batch more — was 15
     system: 120,       // Background info — was 60
     daily: 1440,       // Once per day
@@ -144,6 +144,7 @@ export class NotificationManager {
   private batchQueue: QueuedNotification[] = [];
   private legacyBatchQueue: NotificationRequest[] = []; // For backward compat
   private escalationTracker: Map<string, { count: number; firstSeen: number }> = new Map();
+  private focusModeActive = false;
   private initialized = false;
 
   constructor(config: Partial<NotificationConfig> = {}) {
@@ -573,6 +574,11 @@ export class NotificationManager {
    * Check if in quiet hours (Indiana time)
    */
   private isQuietHours(): boolean {
+    // Check Focus Mode first (async result cached by FocusModeDetector)
+    if (this.focusModeActive) {
+      return true;
+    }
+
     const now = new Date();
     const indiana = new Date(
       now.toLocaleString('en-US', { timeZone: this.config.timezone })
@@ -586,6 +592,14 @@ export class NotificationManager {
       return hour >= start || hour < end;
     }
     return hour >= start && hour < end;
+  }
+
+  /**
+   * Update Focus Mode state (called by scheduler or agent poll)
+   * When Focus is active, treat as quiet hours for notification routing.
+   */
+  setFocusModeActive(active: boolean): void {
+    this.focusModeActive = active;
   }
 
   /**
