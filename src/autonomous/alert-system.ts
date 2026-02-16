@@ -1,6 +1,11 @@
 /**
  * ARI Alert System
  *
+ * @deprecated Use NotificationManager + PriorityScorer instead.
+ * AlertSystem's council voting logic has been unified into PriorityScorer's
+ * 5 weighted factors. Use notificationManager.thresholdAlert() for threshold alerts.
+ * This module will be removed in v3.0.
+ *
  * Intelligent notification system that decides when to alert the operator.
  * Uses council voting to prevent spam while ensuring important alerts get through.
  *

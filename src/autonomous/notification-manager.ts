@@ -802,6 +802,37 @@ export class NotificationManager {
   // ─── Convenience Methods ─────────────────────────────────────────────────────
 
   /**
+   * Convenience method for threshold-triggered alerts.
+   * Replaces AlertSystem.triggerThresholdAlert().
+   */
+  thresholdAlert(config: {
+    id: string;
+    name: string;
+    currentValue: number;
+    thresholdValue: number;
+    operator: 'gt' | 'lt' | 'gte' | 'lte';
+    severity: 'info' | 'warning' | 'critical';
+    domain?: string;
+  }): void {
+    const severityToCategory = {
+      critical: 'security' as const,
+      warning: 'error' as const,
+      info: 'system' as const,
+    };
+
+    const category = severityToCategory[config.severity];
+    const title = `⚠️ ${config.name}`;
+    const details = `${config.name}: ${config.currentValue} ${config.operator} threshold ${config.thresholdValue}${config.domain ? ` (${config.domain})` : ''}`;
+
+    void this.notify({
+      category,
+      title,
+      body: details,
+      dedupKey: `threshold:${config.id}`,
+    });
+  }
+
+  /**
    * Notify about an error
    */
   async error(title: string, details: string, dedupKey?: string): Promise<NotificationResult> {

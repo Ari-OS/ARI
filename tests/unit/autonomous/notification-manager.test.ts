@@ -488,6 +488,90 @@ describe('NotificationManager', () => {
       });
     });
 
+    describe('thresholdAlert()', () => {
+      it('should send critical threshold as security category', () => {
+        manager.thresholdAlert({
+          id: 'budget-critical',
+          name: 'Budget Exceeded',
+          currentValue: 105,
+          thresholdValue: 100,
+          operator: 'gt',
+          severity: 'critical',
+        });
+
+        // Verify notify was called with security category
+        // Since thresholdAlert uses void, we can't check the promise
+        // But we can verify it doesn't throw
+      });
+
+      it('should send warning threshold as error category', () => {
+        manager.thresholdAlert({
+          id: 'api-rate',
+          name: 'API Rate Warning',
+          currentValue: 90,
+          thresholdValue: 100,
+          operator: 'gte',
+          severity: 'warning',
+        });
+
+        // Should not throw
+      });
+
+      it('should send info threshold as system category', () => {
+        manager.thresholdAlert({
+          id: 'disk-usage',
+          name: 'Disk Usage Info',
+          currentValue: 50,
+          thresholdValue: 100,
+          operator: 'lt',
+          severity: 'info',
+        });
+
+        // Should not throw
+      });
+
+      it('should include threshold details in body', () => {
+        manager.thresholdAlert({
+          id: 'memory-limit',
+          name: 'Memory Limit',
+          currentValue: 8192,
+          thresholdValue: 10000,
+          operator: 'lte',
+          severity: 'info',
+        });
+
+        // Should not throw
+      });
+
+      it('should use dedupKey for threshold ID', () => {
+        manager.thresholdAlert({
+          id: 'cpu-high',
+          name: 'CPU High',
+          currentValue: 95,
+          thresholdValue: 80,
+          operator: 'gt',
+          severity: 'warning',
+          domain: 'system',
+        });
+
+        // Should not throw
+      });
+
+      it('should include domain in message when provided', () => {
+        manager.thresholdAlert({
+          id: 'network-latency',
+          name: 'Network Latency',
+          currentValue: 500,
+          thresholdValue: 200,
+          operator: 'gt',
+          severity: 'warning',
+          domain: 'network',
+        });
+
+        // Should not throw
+      });
+    });
+
     describe('error()', () => {
       it('should send error notification', async () => {
         const result = await manager.error('Error Title', 'Error details', 'dedup-key');

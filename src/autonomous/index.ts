@@ -10,6 +10,7 @@ export * from './agent.js';
 export * from './knowledge-sources.js';
 export * from './knowledge-fetcher.js';
 export * from './daily-audit.js';
+// @deprecated Use NotificationManager + PriorityScorer instead (v3.0 removal)
 export * from './alert-system.js';
 export * from './message-formatter.js';
 export * from './notification-manager.js';
