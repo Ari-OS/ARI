@@ -353,15 +353,12 @@ export class BriefingGenerator {
     // ── Greeting ──
     const greeting = this.getContextualGreeting(dayName);
     lines.push(`<b>${greeting}</b>`);
-    lines.push('');
-
-    // ── System Status (1 line) ──
     const queueNote = queueResult.processed > 0
       ? `${queueResult.processed} items processed overnight`
-      : 'Clean overnight — no queued items';
+      : 'Clean overnight';
     const yesterdayCount = auditData?.activities.filter(a => a.outcome === 'success').length ?? 0;
-    const yesterdayNote = yesterdayCount > 0 ? ` · ${yesterdayCount} tasks completed yesterday` : '';
-    lines.push(`⚙️ ${this.esc(queueNote)}${this.esc(yesterdayNote)}`);
+    const yesterdayNote = yesterdayCount > 0 ? ` · ${yesterdayCount} completed yesterday` : '';
+    lines.push(`<i>${this.esc(queueNote)}${this.esc(yesterdayNote)}</i>`);
     lines.push('');
 
     // ── Intelligence Highlights ──
@@ -509,7 +506,7 @@ export class BriefingGenerator {
     }
 
     // ── Closing ──
-    lines.push(`Have a good ${dayName}. I'll check in at 9 PM.`);
+    lines.push(`Have a strong ${dayName}. Evening check-in at 9.`);
 
     return lines.join('\n');
   }
@@ -527,7 +524,7 @@ export class BriefingGenerator {
     const lines: string[] = [];
 
     // ── Header ──
-    lines.push('<b>🌙 Evening Summary</b>');
+    lines.push('<b>Evening Check-in</b>');
     lines.push('');
 
     // ── Today's Results ──
@@ -590,7 +587,7 @@ export class BriefingGenerator {
     }
 
     // ── Closing ──
-    lines.push('Good luck building tonight. 🛠️');
+    lines.push('Build strong tonight. I\'m here if you need me.');
 
     return lines.join('\n');
   }
@@ -653,15 +650,15 @@ export class BriefingGenerator {
 
   private getContextualGreeting(dayName: string): string {
     const greetings: Record<string, string> = {
-      Monday: '☀️ Happy Monday, Pryce — fresh week ahead',
-      Tuesday: '☀️ Good morning, Pryce',
-      Wednesday: '☀️ Good morning — halfway through the week',
-      Thursday: '☀️ Good morning, Pryce',
-      Friday: '☀️ Happy Friday, Pryce',
-      Saturday: '☀️ Good morning — weekend build time',
-      Sunday: '☀️ Good morning, Pryce — easy Sunday',
+      Monday: 'Good morning, Pryce — new week, clean slate',
+      Tuesday: 'Good morning, Pryce — momentum building',
+      Wednesday: 'Good morning — midweek check-in',
+      Thursday: 'Good morning, Pryce — strong push today',
+      Friday: 'Good morning, Pryce — finish the week strong',
+      Saturday: 'Good morning — build day',
+      Sunday: 'Good morning, Pryce — recharge and plan',
     };
-    return greetings[dayName] ?? `☀️ Good morning, Pryce`;
+    return greetings[dayName] ?? 'Good morning, Pryce';
   }
 
   private esc(text: string): string {
