@@ -176,11 +176,29 @@ export function registerDoctorCommand(program: Command): void {
       total++;
       try {
         let authHeaders: Record<string, string> = {};
-        try {
-          const { key } = Gateway.loadOrCreateApiKey();
-          authHeaders = { 'X-ARI-Key': key };
-        } catch {
-          // Keychain unavailable — try without auth
+        // Try env var first, then .env file, then Keychain
+        const envKey = process.env.ARI_API_KEY;
+        if (envKey) {
+          authHeaders = { 'X-ARI-Key': envKey };
+        } else {
+          try {
+            const dotenvPath = path.join(homedir(), '.ari', '.env');
+            const envContent = await fs.readFile(dotenvPath, 'utf-8');
+            const match = envContent.match(/^ARI_API_KEY=(.+)$/m);
+            if (match?.[1]) {
+              authHeaders = { 'X-ARI-Key': match[1].trim() };
+            }
+          } catch {
+            // .env not found — try Keychain
+          }
+          if (!authHeaders['X-ARI-Key']) {
+            try {
+              const { key } = Gateway.loadOrCreateApiKey();
+              authHeaders = { 'X-ARI-Key': key };
+            } catch {
+              // Keychain unavailable — try without auth
+            }
+          }
         }
         const response = await fetch('http://127.0.0.1:3141/status', {
           headers: authHeaders,
