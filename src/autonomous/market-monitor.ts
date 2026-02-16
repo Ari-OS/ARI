@@ -1,12 +1,46 @@
+/**
+ * ARI Market Monitor
+ *
+ * Multi-asset market monitoring system for crypto, stocks, Pokemon cards, and ETFs.
+ * Provides smart threshold-based alerts per asset class with configurable watchlists.
+ *
+ * Architecture: L5 Autonomous layer
+ * Integrations:
+ *   - CoinGecko (crypto) via CryptoPlugin
+ *   - Alpha Vantage (stocks/ETFs)
+ *   - TCGPlayer (Pokemon cards) via Pokemon TCG Plugin
+ *
+ * Events emitted:
+ *   - market:snapshot_complete
+ *   - market:price_alert
+ */
+
+import { z } from 'zod';
 import type { EventBus } from '../kernel/event-bus.js';
+import { CoinGeckoClient } from '../plugins/crypto/api-client.js';
+import { PokemonTcgClient } from '../plugins/pokemon-tcg/api-client.js';
+import type { CoinGeckoPrice } from '../plugins/crypto/types.js';
+import type { PokemonCard } from '../plugins/pokemon-tcg/types.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MARKET MONITOR
-// Multi-asset price tracking with smart alerting
+// TYPES AND SCHEMAS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export type AssetClass = 'crypto' | 'stock' | 'pokemon' | 'etf';
-export type Timeframe = '1d' | '7d' | '30d' | '90d';
+export const AssetClassSchema = z.enum(['crypto', 'stock', 'pokemon', 'etf', 'commodity']);
+export type AssetClass = z.infer<typeof AssetClassSchema>;
+
+export const AlertTypeSchema = z.enum([
+  'price_spike',
+  'price_drop',
+  'volume_anomaly',
+  'trend_reversal',
+  'new_high',
+  'new_low',
+]);
+export type AlertType = z.infer<typeof AlertTypeSchema>;
+
+export const AlertSeveritySchema = z.enum(['info', 'notable', 'significant', 'critical']);
+export type AlertSeverity = z.infer<typeof AlertSeveritySchema>;
 
 export interface PriceSnapshot {
   asset: string;
@@ -23,8 +57,8 @@ export interface PriceSnapshot {
 
 export interface MarketAlert {
   asset: string;
-  alertType: 'price_spike' | 'price_drop' | 'volume_anomaly' | 'trend_reversal' | 'new_high' | 'new_low';
-  severity: 'info' | 'notable' | 'significant' | 'critical';
+  alertType: AlertType;
+  severity: AlertSeverity;
   message: string;
   data: {
     currentPrice: number;
@@ -34,464 +68,723 @@ export interface MarketAlert {
   };
 }
 
-export interface AlertThresholds {
-  crypto: { daily: number; weekly: number };
-  stocks: { daily: number; weekly: number };
-  pokemon: { weekly: number; monthly: number };
-  etfs: { daily: number; weekly: number };
-}
-
-export interface MarketOverview {
-  snapshots: PriceSnapshot[];
-  alerts: MarketAlert[];
-  timestamp: string;
-}
-
-interface WatchedAsset {
+export interface WatchlistEntry {
   asset: string;
   assetClass: AssetClass;
+  addedAt: string;
+  lastPrice?: number;
+  lastChecked?: string;
 }
 
-interface AlertCooldown {
-  asset: string;
-  lastAlertAt: number;
+export interface AssetThresholds {
+  daily: number;   // Percentage threshold for 24h change
+  weekly: number;  // Percentage threshold for 7d change
+  monthly?: number; // Percentage threshold for 30d change (optional)
 }
 
-const DEFAULT_THRESHOLDS: AlertThresholds = {
+export interface MarketMonitorConfig {
+  cryptoApiKey?: string;
+  pokemonApiKey?: string;
+  alphaVantageApiKey?: string;
+  thresholds: Record<AssetClass, AssetThresholds>;
+  cacheEnabled: boolean;
+  cacheTtlMs: number;
+}
+
+// ── Default Thresholds ────────────────────────────────────────────────────────
+
+const DEFAULT_THRESHOLDS: Record<AssetClass, AssetThresholds> = {
   crypto: { daily: 3, weekly: 10 },
-  stocks: { daily: 2, weekly: 5 },
-  pokemon: { weekly: 10, monthly: 20 },
-  etfs: { daily: 1.5, weekly: 3 },
+  stock: { daily: 2, weekly: 5 },
+  pokemon: { daily: 0, weekly: 10, monthly: 20 }, // Pokemon has no daily, uses weekly/monthly
+  etf: { daily: 1.5, weekly: 3 },
+  commodity: { daily: 2, weekly: 5 },
 };
 
-const DEFAULT_WATCHED_ASSETS: WatchedAsset[] = [
-  { asset: 'bitcoin', assetClass: 'crypto' },
-  { asset: 'ethereum', assetClass: 'crypto' },
-  { asset: 'solana', assetClass: 'crypto' },
-  { asset: 'SPY', assetClass: 'etf' },
-  { asset: 'QQQ', assetClass: 'etf' },
-  { asset: 'NVDA', assetClass: 'stock' },
-  { asset: 'AAPL', assetClass: 'stock' },
-];
+// ── Alpha Vantage Types ───────────────────────────────────────────────────────
 
-export class MarketMonitor {
-  private watchedAssets: WatchedAsset[] = [];
-  private priceHistory: Map<string, PriceSnapshot[]> = new Map();
-  private alertCooldowns: Map<string, AlertCooldown> = new Map();
-  private readonly thresholds: AlertThresholds;
-  private readonly alertCooldownMs: number;
-  private readonly eventBus: EventBus;
-  private readonly alphaVantageApiKey?: string;
+interface AlphaVantageQuote {
+  'Global Quote': {
+    '01. symbol': string;
+    '02. open': string;
+    '03. high': string;
+    '04. low': string;
+    '05. price': string;
+    '06. volume': string;
+    '07. latest trading day': string;
+    '08. previous close': string;
+    '09. change': string;
+    '10. change percent': string;
+  };
+}
 
-  constructor(
-    eventBus: EventBus,
-    options?: {
-      thresholds?: Partial<AlertThresholds>;
-      alertCooldownMs?: number;
-      alphaVantageApiKey?: string;
-    }
-  ) {
-    this.eventBus = eventBus;
-    this.thresholds = {
-      ...DEFAULT_THRESHOLDS,
-      ...options?.thresholds,
-    };
-    this.alertCooldownMs = options?.alertCooldownMs ?? 4 * 60 * 60 * 1000; // 4 hours
-    this.alphaVantageApiKey = options?.alphaVantageApiKey ?? process.env.ALPHA_VANTAGE_API_KEY;
+interface AlphaVantageTimeSeriesDaily {
+  'Meta Data': {
+    '1. Information': string;
+    '2. Symbol': string;
+    '3. Last Refreshed': string;
+  };
+  'Time Series (Daily)': Record<string, {
+    '1. open': string;
+    '2. high': string;
+    '3. low': string;
+    '4. close': string;
+    '5. volume': string;
+  }>;
+}
 
-    // Initialize with default watched assets
-    this.watchedAssets = [...DEFAULT_WATCHED_ASSETS];
+// ═══════════════════════════════════════════════════════════════════════════════
+// ALPHA VANTAGE CLIENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
+const ALPHA_VANTAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
+/**
+ * Alpha Vantage API client for stocks and ETFs.
+ * Free tier: 25 requests/day, so aggressive caching is essential.
+ */
+class AlphaVantageClient {
+  private readonly apiKey: string | undefined;
+  private readonly cache: Map<string, CacheEntry<unknown>> = new Map();
+
+  constructor(apiKey?: string) {
+    this.apiKey = apiKey;
   }
 
+  async getQuote(symbol: string): Promise<AlphaVantageQuote | null> {
+    if (!this.apiKey) return null;
+
+    const key = `quote:${symbol}`;
+    const cached = this.getCached<AlphaVantageQuote>(key);
+    if (cached) return cached;
+
+    try {
+      const url = `${ALPHA_VANTAGE_BASE_URL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${this.apiKey}`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+
+      if (!response.ok) {
+        throw new Error(`Alpha Vantage API error: ${response.status}`);
+      }
+
+      const data = await response.json() as AlphaVantageQuote;
+
+      // Check for API limit or invalid response
+      if (!data['Global Quote'] || Object.keys(data['Global Quote']).length === 0) {
+        return null;
+      }
+
+      this.setCache(key, data);
+      return data;
+    } catch {
+      return this.getStaleCached<AlphaVantageQuote>(key);
+    }
+  }
+
+  async getTimeSeries(symbol: string): Promise<AlphaVantageTimeSeriesDaily | null> {
+    if (!this.apiKey) return null;
+
+    const key = `timeseries:${symbol}`;
+    const cached = this.getCached<AlphaVantageTimeSeriesDaily>(key);
+    if (cached) return cached;
+
+    try {
+      const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${this.apiKey}`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+
+      if (!response.ok) {
+        throw new Error(`Alpha Vantage API error: ${response.status}`);
+      }
+
+      const data = await response.json() as AlphaVantageTimeSeriesDaily;
+
+      if (!data['Time Series (Daily)']) {
+        return null;
+      }
+
+      this.setCache(key, data);
+      return data;
+    } catch {
+      return this.getStaleCached<AlphaVantageTimeSeriesDaily>(key);
+    }
+  }
+
+  clearCache(): void {
+    this.cache.clear();
+  }
+
+  private getCached<T>(key: string): T | null {
+    const entry = this.cache.get(key) as CacheEntry<T> | undefined;
+    if (!entry) return null;
+    if (Date.now() < entry.expiresAt) return entry.data;
+    return null;
+  }
+
+  private getStaleCached<T>(key: string): T | null {
+    const entry = this.cache.get(key) as CacheEntry<T> | undefined;
+    return entry?.data ?? null;
+  }
+
+  private setCache<T>(key: string, data: T): void {
+    this.cache.set(key, {
+      data,
+      expiresAt: Date.now() + ALPHA_VANTAGE_CACHE_TTL_MS,
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MARKET MONITOR
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * MarketMonitor - Multi-asset price monitoring with smart thresholds.
+ *
+ * Features:
+ * - Per-asset-class thresholds (crypto more volatile than stocks)
+ * - Watchlist management with persistent tracking
+ * - Alert generation on threshold breach
+ * - Historical snapshot storage for trend analysis
+ */
+export class MarketMonitor {
+  private readonly eventBus: EventBus;
+  private readonly cryptoClient: CoinGeckoClient;
+  private readonly pokemonClient: PokemonTcgClient;
+  private readonly stockClient: AlphaVantageClient;
+  private readonly config: MarketMonitorConfig;
+  private readonly watchlist: Map<string, WatchlistEntry> = new Map();
+  private readonly snapshots: Map<string, PriceSnapshot[]> = new Map();
+  private readonly allTimeHighs: Map<string, number> = new Map();
+  private readonly allTimeLows: Map<string, number> = new Map();
+
+  constructor(eventBus: EventBus, config?: Partial<MarketMonitorConfig>) {
+    this.eventBus = eventBus;
+
+    this.config = {
+      cryptoApiKey: config?.cryptoApiKey,
+      pokemonApiKey: config?.pokemonApiKey,
+      alphaVantageApiKey: config?.alphaVantageApiKey,
+      thresholds: config?.thresholds ?? DEFAULT_THRESHOLDS,
+      cacheEnabled: config?.cacheEnabled ?? true,
+      cacheTtlMs: config?.cacheTtlMs ?? 5 * 60 * 1000,
+    };
+
+    this.cryptoClient = new CoinGeckoClient(this.config.cryptoApiKey);
+    this.pokemonClient = new PokemonTcgClient(this.config.pokemonApiKey);
+    this.stockClient = new AlphaVantageClient(this.config.alphaVantageApiKey);
+  }
+
+  // ── Public API ───────────────────────────────────────────────────────────────
+
   /**
-   * Check prices for all configured assets
+   * Check prices for all assets in the watchlist.
+   * Returns snapshots for each asset with price data.
    */
   async checkPrices(): Promise<PriceSnapshot[]> {
     const snapshots: PriceSnapshot[] = [];
+    const watchlistEntries = Array.from(this.watchlist.values());
 
-    // Group assets by class for batch fetching
-    const cryptoAssets = this.watchedAssets.filter(a => a.assetClass === 'crypto');
-    const stockAssets = this.watchedAssets.filter(a => a.assetClass === 'stock');
-    const etfAssets = this.watchedAssets.filter(a => a.assetClass === 'etf');
-    const pokemonAssets = this.watchedAssets.filter(a => a.assetClass === 'pokemon');
+    // Group assets by class for efficient API calls
+    const assetsByClass = this.groupAssetsByClass(watchlistEntries);
 
-    // Fetch crypto prices
+    // Fetch crypto prices (batch)
+    const cryptoAssets = assetsByClass.get('crypto') ?? [];
     if (cryptoAssets.length > 0) {
       const cryptoSnapshots = await this.fetchCryptoPrices(cryptoAssets);
       snapshots.push(...cryptoSnapshots);
     }
 
-    // Fetch stock prices
-    if (stockAssets.length > 0) {
-      const stockSnapshots = await this.fetchStockPrices(stockAssets);
-      snapshots.push(...stockSnapshots);
+    // Fetch stock prices (individual due to API limits)
+    const stockAssets = assetsByClass.get('stock') ?? [];
+    for (const entry of stockAssets) {
+      const snapshot = await this.fetchStockPrice(entry);
+      if (snapshot) snapshots.push(snapshot);
     }
 
-    // Fetch ETF prices
-    if (etfAssets.length > 0) {
-      const etfSnapshots = await this.fetchStockPrices(etfAssets);
-      snapshots.push(...etfSnapshots);
+    // Fetch ETF prices (same as stocks)
+    const etfAssets = assetsByClass.get('etf') ?? [];
+    for (const entry of etfAssets) {
+      const snapshot = await this.fetchStockPrice(entry);
+      if (snapshot) snapshots.push(snapshot);
     }
 
-    // Pokemon prices are manual entries only
-    for (const asset of pokemonAssets) {
-      const history = this.priceHistory.get(asset.asset);
-      if (history && history.length > 0) {
-        snapshots.push(history[history.length - 1]);
-      }
+    // Fetch Pokemon card prices
+    const pokemonAssets = assetsByClass.get('pokemon') ?? [];
+    for (const entry of pokemonAssets) {
+      const snapshot = await this.fetchPokemonPrice(entry);
+      if (snapshot) snapshots.push(snapshot);
     }
 
-    // Store in history
+    // Store snapshots and update watchlist
     for (const snapshot of snapshots) {
-      this.addToHistory(snapshot);
+      this.storeSnapshot(snapshot);
+      this.updateWatchlistEntry(snapshot);
+      this.updateAllTimeExtremes(snapshot);
     }
 
-    // Emit snapshot event
+    // Emit completion event
     this.eventBus.emit('market:snapshot_complete', {
-      snapshots: snapshots.length,
       timestamp: new Date().toISOString(),
+      pricesChecked: snapshots.length,
+      alertsGenerated: 0, // Will be set by checkAlerts
     });
 
     return snapshots;
   }
 
   /**
-   * Get full market overview with alerts
+   * Check for threshold breaches and generate alerts.
    */
-  async getMarketOverview(): Promise<MarketOverview> {
-    const snapshots = await this.checkPrices();
-    const previousSnapshots = this.getPreviousSnapshots();
-    const alerts = this.detectAlerts(snapshots, previousSnapshots);
-
-    return {
-      snapshots,
-      alerts,
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Detect alerts based on thresholds
-   */
-  detectAlerts(current: PriceSnapshot[], previous: PriceSnapshot[]): MarketAlert[] {
+  async checkAlerts(): Promise<MarketAlert[]> {
     const alerts: MarketAlert[] = [];
+    const snapshots = await this.checkPrices();
 
-    for (const snapshot of current) {
-      const prevSnapshot = previous.find(p => p.asset === snapshot.asset);
-      if (!prevSnapshot) continue;
-
-      // Check cooldown
-      if (this.isOnCooldown(snapshot.asset)) continue;
-
-      const changePercent = ((snapshot.price - prevSnapshot.price) / prevSnapshot.price) * 100;
-      const thresholds = this.getThresholdsForAsset(snapshot.assetClass);
-
-      // Daily threshold check
-      if (Math.abs(changePercent) >= thresholds.daily) {
-        const alert = this.createAlert(snapshot, prevSnapshot, changePercent, thresholds.daily);
-        if (alert) {
-          alerts.push(alert);
-          this.setCooldown(snapshot.asset);
-        }
-      }
-
-      // Weekly threshold check (using 7d change)
-      if (Math.abs(snapshot.change7d) >= thresholds.weekly) {
-        const weeklyAlert = this.createWeeklyAlert(snapshot, thresholds.weekly);
-        if (weeklyAlert) {
-          alerts.push(weeklyAlert);
-        }
-      }
-
-      // Detect new highs/lows
-      const highLowAlert = this.detectHighLow(snapshot);
-      if (highLowAlert) {
-        alerts.push(highLowAlert);
-      }
+    for (const snapshot of snapshots) {
+      const assetAlerts = this.evaluateThresholds(snapshot);
+      alerts.push(...assetAlerts);
     }
 
-    // Emit alert events
+    // Emit alerts
     for (const alert of alerts) {
-      this.eventBus.emit('market:price_alert', alert);
+      this.eventBus.emit('market:price_alert', {
+        symbol: alert.asset,
+        price: alert.data.currentPrice,
+        change: alert.data.changePercent,
+        threshold: alert.data.threshold,
+      });
     }
 
     return alerts;
   }
 
   /**
-   * Get price history for an asset
+   * Add an asset to the watchlist.
    */
-  getPriceHistory(asset: string): PriceSnapshot[] {
-    return this.priceHistory.get(asset) ?? [];
-  }
+  addToWatchlist(asset: string, assetClass: string): void {
+    const normalizedAsset = asset.toLowerCase();
+    const validatedClass = AssetClassSchema.parse(assetClass);
 
-  /**
-   * Add a new asset to watch
-   */
-  addWatchedAsset(asset: string, assetClass: AssetClass): void {
-    if (!this.watchedAssets.find(a => a.asset === asset)) {
-      this.watchedAssets.push({ asset, assetClass });
+    if (this.watchlist.has(normalizedAsset)) {
+      return; // Already in watchlist
     }
+
+    this.watchlist.set(normalizedAsset, {
+      asset: normalizedAsset,
+      assetClass: validatedClass,
+      addedAt: new Date().toISOString(),
+    });
   }
 
   /**
-   * Get configured assets
+   * Remove an asset from the watchlist.
    */
-  getWatchedAssets(): Array<{ asset: string; assetClass: AssetClass }> {
-    return [...this.watchedAssets];
+  removeFromWatchlist(asset: string): void {
+    const normalizedAsset = asset.toLowerCase();
+    this.watchlist.delete(normalizedAsset);
+    this.snapshots.delete(normalizedAsset);
+    this.allTimeHighs.delete(normalizedAsset);
+    this.allTimeLows.delete(normalizedAsset);
   }
 
-  // ── Private Methods ────────────────────────────────────────────────
+  /**
+   * Get the current watchlist.
+   */
+  getWatchlist(): string[] {
+    return Array.from(this.watchlist.keys());
+  }
 
-  private async fetchCryptoPrices(assets: WatchedAsset[]): Promise<PriceSnapshot[]> {
-    const coinIds = assets.map(a => a.asset).join(',');
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coinIds}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`;
+  /**
+   * Get the last snapshot for an asset.
+   */
+  getLastSnapshot(asset: string): PriceSnapshot | undefined {
+    const normalizedAsset = asset.toLowerCase();
+    const assetSnapshots = this.snapshots.get(normalizedAsset);
+    if (!assetSnapshots || assetSnapshots.length === 0) return undefined;
+    return assetSnapshots[assetSnapshots.length - 1];
+  }
+
+  /**
+   * Get all snapshots for an asset.
+   */
+  getSnapshots(asset: string): PriceSnapshot[] {
+    const normalizedAsset = asset.toLowerCase();
+    return this.snapshots.get(normalizedAsset) ?? [];
+  }
+
+  /**
+   * Get the thresholds for an asset class.
+   */
+  getThresholds(assetClass: AssetClass): AssetThresholds {
+    return this.config.thresholds[assetClass];
+  }
+
+  /**
+   * Update thresholds for an asset class.
+   */
+  setThresholds(assetClass: AssetClass, thresholds: AssetThresholds): void {
+    this.config.thresholds[assetClass] = thresholds;
+  }
+
+  /**
+   * Get watchlist entry details.
+   */
+  getWatchlistEntry(asset: string): WatchlistEntry | undefined {
+    return this.watchlist.get(asset.toLowerCase());
+  }
+
+  /**
+   * Clear all caches.
+   */
+  clearCaches(): void {
+    this.cryptoClient.clearCache();
+    this.pokemonClient.clearCache();
+    this.stockClient.clearCache();
+  }
+
+  // ── Private Methods ──────────────────────────────────────────────────────────
+
+  private groupAssetsByClass(entries: WatchlistEntry[]): Map<AssetClass, WatchlistEntry[]> {
+    const grouped = new Map<AssetClass, WatchlistEntry[]>();
+
+    for (const entry of entries) {
+      const existing = grouped.get(entry.assetClass) ?? [];
+      existing.push(entry);
+      grouped.set(entry.assetClass, existing);
+    }
+
+    return grouped;
+  }
+
+  private async fetchCryptoPrices(entries: WatchlistEntry[]): Promise<PriceSnapshot[]> {
+    const snapshots: PriceSnapshot[] = [];
+    const coinIds = entries.map(e => e.asset);
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`CoinGecko API error: ${response.status}`);
+      const prices = await this.cryptoClient.getPrice(coinIds);
+      const marketData = await this.cryptoClient.getMarketData(coinIds);
 
-      const data = (await response.json()) as Record<string, {
-        usd: number;
-        usd_24h_change?: number;
-        usd_market_cap?: number;
-        usd_24h_vol?: number;
-      }>;
+      for (const entry of entries) {
+        const priceData = prices[entry.asset] as CoinGeckoPrice[string] | undefined;
+        const market = marketData.find(m => m.id === entry.asset);
 
-      const snapshots: PriceSnapshot[] = [];
-      const timestamp = new Date().toISOString();
-
-      for (const asset of assets) {
-        const priceData = data[asset.asset];
         if (!priceData) continue;
 
-        const change7d = this.calculateChange(asset.asset, 7);
-        const change30d = this.calculateChange(asset.asset, 30);
+        // Calculate 7d and 30d change from historical snapshots
+        const historicalSnapshots = this.snapshots.get(entry.asset) ?? [];
+        const change7d = this.calculateHistoricalChange(historicalSnapshots, 7, priceData.usd);
+        const change30d = this.calculateHistoricalChange(historicalSnapshots, 30, priceData.usd);
 
         snapshots.push({
-          asset: asset.asset,
-          assetClass: asset.assetClass,
+          asset: entry.asset,
+          assetClass: 'crypto',
           price: priceData.usd,
           change24h: priceData.usd_24h_change ?? 0,
           change7d,
           change30d,
           volume24h: priceData.usd_24h_vol,
-          marketCap: priceData.usd_market_cap,
-          timestamp,
+          marketCap: market?.market_cap,
+          timestamp: new Date().toISOString(),
           source: 'coingecko',
         });
       }
-
-      return snapshots;
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      this.eventBus.emit('system:error', {
-        error: new Error(`Failed to fetch crypto prices: ${errMsg}`),
-        context: 'market-monitor:fetchCryptoPrices',
-      });
-      return [];
-    }
-  }
-
-  private async fetchStockPrices(assets: WatchedAsset[]): Promise<PriceSnapshot[]> {
-    if (!this.alphaVantageApiKey) {
-      return [];
-    }
-
-    const snapshots: PriceSnapshot[] = [];
-    const timestamp = new Date().toISOString();
-
-    // Alpha Vantage free tier: 5 calls/min, so fetch sequentially with delay
-    for (const asset of assets) {
-      try {
-        const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${asset.asset}&apikey=${this.alphaVantageApiKey}`;
-        const response = await fetch(url);
-        if (!response.ok) continue;
-
-        const data = (await response.json()) as {
-          'Global Quote': {
-            '05. price': string;
-            '09. change': string;
-            '10. change percent': string;
-            '06. volume': string;
-          };
-        };
-
-        const quote = data['Global Quote'];
-        if (!quote) continue;
-
-        const price = parseFloat(quote['05. price']);
-        const changePercent = parseFloat(quote['10. change percent'].replace('%', ''));
-        const volume = parseFloat(quote['06. volume']);
-
-        const change7d = this.calculateChange(asset.asset, 7);
-        const change30d = this.calculateChange(asset.asset, 30);
-
-        snapshots.push({
-          asset: asset.asset,
-          assetClass: asset.assetClass,
-          price,
-          change24h: changePercent,
-          change7d,
-          change30d,
-          volume24h: volume,
-          timestamp,
-          source: 'alphavantage',
-        });
-
-        // Rate limit: 5 calls/min = 1 call every 12 seconds
-        if (assets.length > 1) {
-          await new Promise(resolve => setTimeout(resolve, 13000));
-        }
-      } catch (error) {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        this.eventBus.emit('system:error', {
-          error: new Error(`Failed to fetch stock price for ${asset.asset}: ${errMsg}`),
-          context: 'market-monitor:fetchStockPrices',
-        });
-      }
+    } catch {
+      // Return empty array on API failure
     }
 
     return snapshots;
   }
 
-  private addToHistory(snapshot: PriceSnapshot): void {
-    const history = this.priceHistory.get(snapshot.asset) ?? [];
-    history.push(snapshot);
+  private async fetchStockPrice(entry: WatchlistEntry): Promise<PriceSnapshot | null> {
+    const quote = await this.stockClient.getQuote(entry.asset.toUpperCase());
+    if (!quote) return null;
 
-    // Keep last 100 snapshots
-    if (history.length > 100) {
-      history.shift();
-    }
+    const globalQuote = quote['Global Quote'];
+    const currentPrice = parseFloat(globalQuote['05. price']);
+    const previousClose = parseFloat(globalQuote['08. previous close']);
+    const change24h = previousClose > 0 ? ((currentPrice - previousClose) / previousClose) * 100 : 0;
 
-    this.priceHistory.set(snapshot.asset, history);
-  }
-
-  private getPreviousSnapshots(): PriceSnapshot[] {
-    const snapshots: PriceSnapshot[] = [];
-
-    for (const history of this.priceHistory.values()) {
-      if (history.length >= 2) {
-        // Get second-to-last snapshot
-        snapshots.push(history[history.length - 2]);
-      }
-    }
-
-    return snapshots;
-  }
-
-  private calculateChange(asset: string, daysAgo: number): number {
-    const history = this.priceHistory.get(asset);
-    if (!history || history.length < 2) return 0;
-
-    const current = history[history.length - 1];
-    const targetIndex = Math.max(0, history.length - daysAgo - 1);
-    const previous = history[targetIndex];
-
-    if (!previous) return 0;
-
-    return ((current.price - previous.price) / previous.price) * 100;
-  }
-
-  private getThresholdsForAsset(assetClass: AssetClass): { daily: number; weekly: number } {
-    switch (assetClass) {
-      case 'crypto':
-        return this.thresholds.crypto;
-      case 'stock':
-        return this.thresholds.stocks;
-      case 'pokemon':
-        return { daily: this.thresholds.pokemon.weekly, weekly: this.thresholds.pokemon.monthly };
-      case 'etf':
-        return this.thresholds.etfs;
-    }
-  }
-
-  private createAlert(
-    current: PriceSnapshot,
-    previous: PriceSnapshot,
-    changePercent: number,
-    threshold: number
-  ): MarketAlert | null {
-    const isSpike = changePercent > 0;
-    const severity = this.calculateSeverity(Math.abs(changePercent), threshold);
+    // Get historical data for weekly/monthly changes
+    const timeSeries = await this.stockClient.getTimeSeries(entry.asset.toUpperCase());
+    const { change7d, change30d } = this.calculateStockHistoricalChanges(timeSeries, currentPrice);
 
     return {
-      asset: current.asset,
-      alertType: isSpike ? 'price_spike' : 'price_drop',
-      severity,
-      message: `${current.asset} ${isSpike ? 'up' : 'down'} ${Math.abs(changePercent).toFixed(1)}% to $${current.price.toLocaleString()}`,
-      data: {
-        currentPrice: current.price,
-        previousPrice: previous.price,
-        changePercent,
-        threshold,
-      },
+      asset: entry.asset,
+      assetClass: entry.assetClass,
+      price: currentPrice,
+      change24h,
+      change7d,
+      change30d,
+      volume24h: parseFloat(globalQuote['06. volume']),
+      timestamp: new Date().toISOString(),
+      source: 'alphavantage',
     };
   }
 
-  private createWeeklyAlert(snapshot: PriceSnapshot, threshold: number): MarketAlert | null {
-    if (Math.abs(snapshot.change7d) < threshold) return null;
+  private calculateStockHistoricalChanges(
+    timeSeries: AlphaVantageTimeSeriesDaily | null,
+    currentPrice: number,
+  ): { change7d: number; change30d: number } {
+    if (!timeSeries) return { change7d: 0, change30d: 0 };
 
-    const severity = this.calculateSeverity(Math.abs(snapshot.change7d), threshold);
-    const isUp = snapshot.change7d > 0;
+    const dates = Object.keys(timeSeries['Time Series (Daily)']).sort().reverse();
+    let change7d = 0;
+    let change30d = 0;
 
-    return {
-      asset: snapshot.asset,
-      alertType: 'trend_reversal',
-      severity,
-      message: `${snapshot.asset} ${isUp ? 'up' : 'down'} ${Math.abs(snapshot.change7d).toFixed(1)}% over 7 days`,
-      data: {
-        currentPrice: snapshot.price,
-        previousPrice: snapshot.price / (1 + snapshot.change7d / 100),
-        changePercent: snapshot.change7d,
-        threshold,
-      },
-    };
+    // Find price from ~7 days ago
+    if (dates.length >= 5) {
+      const price7d = parseFloat(timeSeries['Time Series (Daily)'][dates[4]]['4. close']);
+      change7d = price7d > 0 ? ((currentPrice - price7d) / price7d) * 100 : 0;
+    }
+
+    // Find price from ~30 days ago
+    if (dates.length >= 22) {
+      const price30d = parseFloat(timeSeries['Time Series (Daily)'][dates[21]]['4. close']);
+      change30d = price30d > 0 ? ((currentPrice - price30d) / price30d) * 100 : 0;
+    }
+
+    return { change7d, change30d };
   }
 
-  private detectHighLow(snapshot: PriceSnapshot): MarketAlert | null {
-    const history = this.priceHistory.get(snapshot.asset);
-    if (!history || history.length < 30) return null;
+  private async fetchPokemonPrice(entry: WatchlistEntry): Promise<PriceSnapshot | null> {
+    try {
+      const card = await this.pokemonClient.getCardPrices(entry.asset);
+      if (!card?.tcgplayer?.prices) return null;
 
-    const prices = history.map(s => s.price);
-    const max = Math.max(...prices);
-    const min = Math.min(...prices);
+      // Get the best available price (prefer market, then mid, then low)
+      const price = this.extractPokemonPrice(card);
+      if (price === 0) return null;
 
-    if (snapshot.price === max && snapshot.price > history[history.length - 2].price) {
+      // Calculate changes from historical snapshots
+      const historicalSnapshots = this.snapshots.get(entry.asset) ?? [];
+      const change7d = this.calculateHistoricalChange(historicalSnapshots, 7, price);
+      const change30d = this.calculateHistoricalChange(historicalSnapshots, 30, price);
+
       return {
+        asset: entry.asset,
+        assetClass: 'pokemon',
+        price,
+        change24h: 0, // Pokemon prices don't change daily
+        change7d,
+        change30d,
+        timestamp: new Date().toISOString(),
+        source: 'tcgplayer',
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private extractPokemonPrice(card: PokemonCard): number {
+    const tcgPrices = card.tcgplayer?.prices;
+    if (!tcgPrices) return 0;
+
+    // Try different price tiers in order of preference
+    const priceTypes = ['holofoil', 'reverseHolofoil', 'normal', 'unlimited', '1stEdition'];
+
+    for (const type of priceTypes) {
+      const prices = tcgPrices[type];
+      if (prices) {
+        const price = prices.market ?? prices.mid ?? prices.low;
+        if (price !== null && price !== undefined && price > 0) {
+          return price;
+        }
+      }
+    }
+
+    return 0;
+  }
+
+  private calculateHistoricalChange(
+    snapshots: PriceSnapshot[],
+    daysAgo: number,
+    currentPrice: number,
+  ): number {
+    if (snapshots.length === 0) return 0;
+
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() - daysAgo);
+
+    // Find closest snapshot to target date
+    let closestSnapshot: PriceSnapshot | null = null;
+    let closestDiff = Infinity;
+
+    for (const snapshot of snapshots) {
+      const snapshotDate = new Date(snapshot.timestamp);
+      const diff = Math.abs(snapshotDate.getTime() - targetDate.getTime());
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestSnapshot = snapshot;
+      }
+    }
+
+    if (!closestSnapshot || closestSnapshot.price === 0) return 0;
+
+    // Only use snapshot if it's within 2 days of target
+    const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
+    if (closestDiff > twoDaysMs) return 0;
+
+    return ((currentPrice - closestSnapshot.price) / closestSnapshot.price) * 100;
+  }
+
+  private storeSnapshot(snapshot: PriceSnapshot): void {
+    const existing = this.snapshots.get(snapshot.asset) ?? [];
+    existing.push(snapshot);
+
+    // Keep only last 90 days of snapshots (assuming daily checks)
+    const maxSnapshots = 90;
+    if (existing.length > maxSnapshots) {
+      existing.splice(0, existing.length - maxSnapshots);
+    }
+
+    this.snapshots.set(snapshot.asset, existing);
+  }
+
+  private updateWatchlistEntry(snapshot: PriceSnapshot): void {
+    const entry = this.watchlist.get(snapshot.asset);
+    if (entry) {
+      entry.lastPrice = snapshot.price;
+      entry.lastChecked = snapshot.timestamp;
+    }
+  }
+
+  private updateAllTimeExtremes(snapshot: PriceSnapshot): void {
+    const currentHigh = this.allTimeHighs.get(snapshot.asset);
+    const currentLow = this.allTimeLows.get(snapshot.asset);
+
+    if (!currentHigh || snapshot.price > currentHigh) {
+      this.allTimeHighs.set(snapshot.asset, snapshot.price);
+    }
+
+    if (!currentLow || snapshot.price < currentLow) {
+      this.allTimeLows.set(snapshot.asset, snapshot.price);
+    }
+  }
+
+  private evaluateThresholds(snapshot: PriceSnapshot): MarketAlert[] {
+    const alerts: MarketAlert[] = [];
+    const thresholds = this.config.thresholds[snapshot.assetClass];
+    const previousSnapshot = this.getPreviousSnapshot(snapshot.asset);
+
+    // Check daily threshold
+    if (thresholds.daily > 0 && Math.abs(snapshot.change24h) >= thresholds.daily) {
+      const alertType: AlertType = snapshot.change24h > 0 ? 'price_spike' : 'price_drop';
+      const severity = this.calculateSeverity(Math.abs(snapshot.change24h), thresholds.daily);
+
+      alerts.push({
+        asset: snapshot.asset,
+        alertType,
+        severity,
+        message: `${snapshot.asset.toUpperCase()} ${alertType === 'price_spike' ? 'up' : 'down'} ${Math.abs(snapshot.change24h).toFixed(2)}% in 24h`,
+        data: {
+          currentPrice: snapshot.price,
+          previousPrice: previousSnapshot?.price ?? snapshot.price,
+          changePercent: snapshot.change24h,
+          threshold: thresholds.daily,
+        },
+      });
+    }
+
+    // Check weekly threshold
+    if (thresholds.weekly > 0 && Math.abs(snapshot.change7d) >= thresholds.weekly) {
+      const alertType: AlertType = snapshot.change7d > 0 ? 'price_spike' : 'price_drop';
+      const severity = this.calculateSeverity(Math.abs(snapshot.change7d), thresholds.weekly);
+
+      alerts.push({
+        asset: snapshot.asset,
+        alertType,
+        severity,
+        message: `${snapshot.asset.toUpperCase()} ${alertType === 'price_spike' ? 'up' : 'down'} ${Math.abs(snapshot.change7d).toFixed(2)}% in 7d`,
+        data: {
+          currentPrice: snapshot.price,
+          previousPrice: previousSnapshot?.price ?? snapshot.price,
+          changePercent: snapshot.change7d,
+          threshold: thresholds.weekly,
+        },
+      });
+    }
+
+    // Check monthly threshold (if defined)
+    if (thresholds.monthly && thresholds.monthly > 0 && Math.abs(snapshot.change30d) >= thresholds.monthly) {
+      const alertType: AlertType = snapshot.change30d > 0 ? 'price_spike' : 'price_drop';
+      const severity = this.calculateSeverity(Math.abs(snapshot.change30d), thresholds.monthly);
+
+      alerts.push({
+        asset: snapshot.asset,
+        alertType,
+        severity,
+        message: `${snapshot.asset.toUpperCase()} ${alertType === 'price_spike' ? 'up' : 'down'} ${Math.abs(snapshot.change30d).toFixed(2)}% in 30d`,
+        data: {
+          currentPrice: snapshot.price,
+          previousPrice: previousSnapshot?.price ?? snapshot.price,
+          changePercent: snapshot.change30d,
+          threshold: thresholds.monthly,
+        },
+      });
+    }
+
+    // Check for new all-time high
+    const previousHigh = this.allTimeHighs.get(snapshot.asset);
+    if (previousHigh && snapshot.price > previousHigh) {
+      alerts.push({
         asset: snapshot.asset,
         alertType: 'new_high',
         severity: 'notable',
-        message: `${snapshot.asset} hit new high: $${snapshot.price.toLocaleString()}`,
+        message: `${snapshot.asset.toUpperCase()} reached new all-time high: $${snapshot.price.toFixed(2)}`,
         data: {
           currentPrice: snapshot.price,
-          previousPrice: history[history.length - 2].price,
-          changePercent: ((snapshot.price - history[history.length - 2].price) / history[history.length - 2].price) * 100,
+          previousPrice: previousHigh,
+          changePercent: ((snapshot.price - previousHigh) / previousHigh) * 100,
           threshold: 0,
         },
-      };
+      });
     }
 
-    if (snapshot.price === min && snapshot.price < history[history.length - 2].price) {
-      return {
+    // Check for new all-time low
+    const previousLow = this.allTimeLows.get(snapshot.asset);
+    if (previousLow && snapshot.price < previousLow) {
+      alerts.push({
         asset: snapshot.asset,
         alertType: 'new_low',
         severity: 'significant',
-        message: `${snapshot.asset} hit new low: $${snapshot.price.toLocaleString()}`,
+        message: `${snapshot.asset.toUpperCase()} reached new all-time low: $${snapshot.price.toFixed(2)}`,
         data: {
           currentPrice: snapshot.price,
-          previousPrice: history[history.length - 2].price,
-          changePercent: ((snapshot.price - history[history.length - 2].price) / history[history.length - 2].price) * 100,
+          previousPrice: previousLow,
+          changePercent: ((snapshot.price - previousLow) / previousLow) * 100,
           threshold: 0,
         },
-      };
+      });
     }
 
-    return null;
+    // Check for volume anomaly (crypto only, 3x average volume)
+    if (snapshot.assetClass === 'crypto' && snapshot.volume24h) {
+      const avgVolume = this.calculateAverageVolume(snapshot.asset);
+      if (avgVolume > 0 && snapshot.volume24h > avgVolume * 3) {
+        alerts.push({
+          asset: snapshot.asset,
+          alertType: 'volume_anomaly',
+          severity: 'notable',
+          message: `${snapshot.asset.toUpperCase()} volume ${(snapshot.volume24h / avgVolume).toFixed(1)}x above average`,
+          data: {
+            currentPrice: snapshot.price,
+            previousPrice: previousSnapshot?.price ?? snapshot.price,
+            changePercent: ((snapshot.volume24h - avgVolume) / avgVolume) * 100,
+            threshold: 300, // 3x = 300%
+          },
+        });
+      }
+    }
+
+    return alerts;
   }
 
-  private calculateSeverity(changePercent: number, threshold: number): 'info' | 'notable' | 'significant' | 'critical' {
-    const ratio = changePercent / threshold;
+  private calculateSeverity(change: number, threshold: number): AlertSeverity {
+    const ratio = change / threshold;
 
     if (ratio >= 3) return 'critical';
     if (ratio >= 2) return 'significant';
@@ -499,18 +792,22 @@ export class MarketMonitor {
     return 'info';
   }
 
-  private isOnCooldown(asset: string): boolean {
-    const cooldown = this.alertCooldowns.get(asset);
-    if (!cooldown) return false;
-
-    const now = Date.now();
-    return now - cooldown.lastAlertAt < this.alertCooldownMs;
+  private getPreviousSnapshot(asset: string): PriceSnapshot | undefined {
+    const assetSnapshots = this.snapshots.get(asset);
+    if (!assetSnapshots || assetSnapshots.length < 2) return undefined;
+    return assetSnapshots[assetSnapshots.length - 2];
   }
 
-  private setCooldown(asset: string): void {
-    this.alertCooldowns.set(asset, {
-      asset,
-      lastAlertAt: Date.now(),
-    });
+  private calculateAverageVolume(asset: string): number {
+    const assetSnapshots = this.snapshots.get(asset);
+    if (!assetSnapshots || assetSnapshots.length === 0) return 0;
+
+    const volumes = assetSnapshots
+      .filter(s => s.volume24h !== undefined)
+      .map(s => s.volume24h!);
+
+    if (volumes.length === 0) return 0;
+
+    return volumes.reduce((sum, v) => sum + v, 0) / volumes.length;
   }
 }

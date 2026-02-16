@@ -1,285 +1,541 @@
 /**
- * GIT SYNC - Hourly Git Sync for State Files
+ * GIT SYNC - Automated Git Operations Module
  *
- * Automatically commits and pushes state file changes:
- * - Monitors: ~/.ari/data/, ~/.ari/memories/, ~/.ari/workspace/
- * - NEVER auto-commits source code changes
- * - Uses [skip ci] to avoid CI triggers
- * - Safe operation: only commits tracked state files
+ * P2 module for automated git synchronization.
+ * Handles auto-commits, pushes, and status tracking.
  *
- * Layer: L5 Execution (operations)
+ * L5 Layer (Ops) - can import from L0-L4
+ *
+ * SECURITY: This module NEVER logs or emits credentials.
+ * All git output is sanitized before logging/eventing.
  */
 
-import type { EventBus } from '../kernel/event-bus.js';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import { existsSync } from 'fs';
+import { join } from 'path';
+
+import { EventBus } from '../kernel/event-bus.js';
 import { createLogger } from '../kernel/logger.js';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
 
-const log = createLogger('git-sync');
 const execFileAsync = promisify(execFile);
+const log = createLogger('git-sync');
 
-const STATE_DIRS = [
-  join(homedir(), '.ari', 'data'),
-  join(homedir(), '.ari', 'memories'),
-  join(homedir(), '.ari', 'workspace'),
+// ═══════════════════════════════════════════════════════════════════════════
+// Security Constants
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Patterns that indicate credential or sensitive data.
+ * NEVER log strings matching these patterns.
+ */
+const CREDENTIAL_PATTERNS: RegExp[] = [
+  // Git credential patterns
+  /password[=:\s]+\S+/gi,
+  /token[=:\s]+\S+/gi,
+  /auth[=:\s]+\S+/gi,
+  /bearer\s+\S+/gi,
+  /api[_-]?key[=:\s]+\S+/gi,
+  /secret[=:\s]+\S+/gi,
+  /credential[=:\s]+\S+/gi,
+
+  // URL with credentials: https://user:pass@host
+  /https?:\/\/[^:]+:[^@]+@/gi,
+
+  // SSH key patterns
+  /-----BEGIN\s+(RSA|DSA|EC|OPENSSH)\s+PRIVATE\s+KEY-----/gi,
+
+  // GitHub/GitLab tokens
+  /gh[pousr]_[A-Za-z0-9_]+/gi,
+  /glpat-[A-Za-z0-9_-]+/gi,
+  /github_pat_[A-Za-z0-9_]+/gi,
+
+  // AWS keys
+  /AKIA[0-9A-Z]{16}/gi,
+
+  // Generic secrets
+  /[A-Za-z0-9+/]{40,}/g, // Base64 encoded secrets (40+ chars)
 ];
 
-export interface GitSyncResult {
-  success: boolean;
-  action: 'pushed' | 'up_to_date' | 'error';
-  message: string;
-  timestamp: string;
+// ═══════════════════════════════════════════════════════════════════════════
+// Types
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface SyncResult {
+  /** Number of files committed */
+  filesCommitted: number;
+  /** Whether push succeeded */
+  pushed: boolean;
+  /** Commit hash if commit was created */
+  commitHash?: string;
+  /** Error message if operation failed */
+  error?: string;
 }
 
 export interface GitStatus {
-  branch: string;
-  clean: boolean;
-  ahead: number;
+  /** Files with modifications */
+  modified: string[];
+  /** Untracked files */
+  untracked: string[];
+  /** Files staged for commit */
+  staged: string[];
+  /** Files with conflicts */
+  conflicted: string[];
 }
 
+export interface GitSyncOptions {
+  /** Path to git repository (default: cwd) */
+  repoPath?: string;
+  /** Auto-commit interval in ms (default: 1 hour) */
+  autoCommitIntervalMs?: number;
+  /** Whether to auto-push after commit (default: true) */
+  autoPush?: boolean;
+  /** Commit message prefix (default: '[ARI Auto-Sync]') */
+  commitPrefix?: string;
+  /** Branch to operate on (default: current branch) */
+  branch?: string;
+  /** Maximum files to commit at once (default: 100) */
+  maxFilesPerCommit?: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Security Utilities
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Sanitizes a string by removing any credential patterns.
+ * Used to ensure credentials are NEVER logged or emitted.
+ */
+function sanitizeOutput(text: string): string {
+  let sanitized = text;
+
+  for (const pattern of CREDENTIAL_PATTERNS) {
+    // Reset regex lastIndex for global patterns
+    pattern.lastIndex = 0;
+    sanitized = sanitized.replace(pattern, '[REDACTED]');
+  }
+
+  return sanitized;
+}
+
+/**
+ * Checks if a string contains any credential patterns.
+ */
+function containsCredentials(text: string): boolean {
+  for (const pattern of CREDENTIAL_PATTERNS) {
+    pattern.lastIndex = 0;
+    if (pattern.test(text)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Safe logging wrapper that sanitizes all output.
+ */
+function safeLog(level: 'info' | 'warn' | 'error', message: string, data?: Record<string, unknown>): void {
+  const sanitizedMessage = sanitizeOutput(message);
+  const sanitizedData = data
+    ? (JSON.parse(sanitizeOutput(JSON.stringify(data))) as Record<string, unknown>)
+    : undefined;
+
+  if (level === 'info') {
+    log.info(sanitizedData ?? {}, sanitizedMessage);
+  } else if (level === 'warn') {
+    log.warn(sanitizedData ?? {}, sanitizedMessage);
+  } else {
+    log.error(sanitizedData ?? {}, sanitizedMessage);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GitSync Implementation
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Automated git synchronization service.
+ * Handles commits and pushes with credential safety.
+ */
 export class GitSync {
   private eventBus: EventBus;
   private repoPath: string;
+  private autoCommitIntervalMs: number;
+  private autoPush: boolean;
+  private commitPrefix: string;
+  private branch: string | null;
+  private maxFilesPerCommit: number;
+  private autoCommitTimer: NodeJS.Timeout | null = null;
+  private isRunning = false;
 
-  constructor(eventBus: EventBus, options?: { repoPath?: string }) {
+  constructor(eventBus: EventBus, options?: GitSyncOptions) {
     this.eventBus = eventBus;
-    this.repoPath = options?.repoPath || process.cwd();
+    this.repoPath = options?.repoPath ?? process.cwd();
+    this.autoCommitIntervalMs = options?.autoCommitIntervalMs ?? 60 * 60 * 1000; // 1 hour
+    this.autoPush = options?.autoPush ?? true;
+    this.commitPrefix = options?.commitPrefix ?? '[ARI Auto-Sync]';
+    this.branch = options?.branch ?? null;
+    this.maxFilesPerCommit = options?.maxFilesPerCommit ?? 100;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Starts the auto-commit timer.
+   */
+  start(): void {
+    if (this.isRunning) {
+      return;
+    }
+
+    this.isRunning = true;
+
+    // Schedule periodic syncs
+    this.autoCommitTimer = setInterval(() => {
+      void this.sync().catch((err) => {
+        safeLog('error', 'Auto-sync failed', { error: err instanceof Error ? err.message : String(err) });
+      });
+    }, this.autoCommitIntervalMs);
+
+    safeLog('info', 'GitSync started', { intervalMs: this.autoCommitIntervalMs });
   }
 
   /**
-   * Check for uncommitted state changes and push if needed
+   * Stops the auto-commit timer.
    */
-  async sync(): Promise<GitSyncResult> {
-    const startTime = Date.now();
-    const timestamp = new Date().toISOString();
+  stop(): void {
+    if (!this.isRunning) {
+      return;
+    }
 
+    if (this.autoCommitTimer) {
+      clearInterval(this.autoCommitTimer);
+      this.autoCommitTimer = null;
+    }
+
+    this.isRunning = false;
+    safeLog('info', 'GitSync stopped');
+  }
+
+  /**
+   * Returns whether the auto-sync timer is running.
+   */
+  isActive(): boolean {
+    return this.isRunning;
+  }
+
+  /**
+   * Performs a full sync: stage, commit, push.
+   */
+  async sync(): Promise<SyncResult> {
     try {
-      log.info('Starting git sync');
+      // Verify repo exists
+      if (!this.isGitRepo()) {
+        return {
+          filesCommitted: 0,
+          pushed: false,
+          error: 'Not a git repository',
+        };
+      }
 
-      // Check current status
+      // Get current status
       const status = await this.getStatus();
 
-      // If branch is clean and not ahead, nothing to do
-      if (status.clean && status.ahead === 0) {
-        log.info('Repository is clean and up to date');
+      // Check for conflicts first (before other checks)
+      if (status.conflicted.length > 0) {
         return {
-          success: true,
-          action: 'up_to_date',
-          message: 'No changes to sync',
-          timestamp,
+          filesCommitted: 0,
+          pushed: false,
+          error: `Merge conflicts in ${status.conflicted.length} file(s)`,
         };
       }
 
-      // Check if there are uncommitted changes in state directories
-      const hasStateChanges = await this.hasStateChanges();
+      const filesToCommit = [...status.modified, ...status.untracked];
 
-      if (!hasStateChanges && status.ahead === 0) {
-        log.info('No state changes to commit');
+      // Nothing to commit
+      if (filesToCommit.length === 0 && status.staged.length === 0) {
+        safeLog('info', 'No changes to commit');
+        return { filesCommitted: 0, pushed: false };
+      }
+
+      // Limit files per commit
+      const limitedFiles = filesToCommit.slice(0, this.maxFilesPerCommit);
+      if (filesToCommit.length > this.maxFilesPerCommit) {
+        safeLog('warn', `Limiting commit to ${this.maxFilesPerCommit} files (${filesToCommit.length} total)`);
+      }
+
+      // Stage files
+      if (limitedFiles.length > 0) {
+        await this.stageFiles(limitedFiles);
+      }
+
+      // Generate commit message
+      const timestamp = new Date().toISOString();
+      const message = `${this.commitPrefix} ${timestamp}\n\nFiles: ${limitedFiles.length + status.staged.length}`;
+
+      // Commit
+      const commitHash = await this.commit(message);
+
+      if (!commitHash) {
         return {
-          success: true,
-          action: 'up_to_date',
-          message: 'No state changes to sync',
-          timestamp,
+          filesCommitted: 0,
+          pushed: false,
+          error: 'Commit failed - no hash returned',
         };
       }
 
-      // Stage state files if there are changes
-      if (hasStateChanges) {
-        await this.stageStateFiles();
+      const totalFiles = limitedFiles.length + status.staged.length;
 
-        // Commit with [skip ci] marker
-        await this.commit();
+      // Push if enabled
+      let pushed = false;
+      if (this.autoPush) {
+        pushed = await this.push();
       }
 
-      // Push to remote
-      await this.push();
-
-      const duration = Date.now() - startTime;
-
-      // Emit success event
-      this.eventBus.emit('audit:log', {
-        action: 'git_sync_completed',
-        agent: 'git-sync',
-        trustLevel: 'system',
-        details: {
-          branch: status.branch,
-          hasStateChanges,
-          duration,
-        },
+      // Emit event (sanitized)
+      this.eventBus.emit('ops:git_synced', {
+        filesCommitted: totalFiles,
+        pushed,
       });
 
-      log.info({ duration, branch: status.branch }, 'Git sync completed');
+      safeLog('info', 'Sync completed', { filesCommitted: totalFiles, pushed, commitHash });
 
       return {
-        success: true,
-        action: 'pushed',
-        message: `Synced state files to ${status.branch}`,
-        timestamp,
+        filesCommitted: totalFiles,
+        pushed,
+        commitHash,
       };
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      const message =
-        error instanceof Error ? error.message : String(error);
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      const sanitizedError = sanitizeOutput(error);
 
-      // Emit failure event
-      this.eventBus.emit('audit:log', {
-        action: 'git_sync_failed',
-        agent: 'git-sync',
-        trustLevel: 'system',
-        details: {
-          error: message,
-          duration,
-        },
-      });
-
-      log.error({ err: error }, 'Git sync failed');
+      safeLog('error', 'Sync failed', { error: sanitizedError });
 
       return {
-        success: false,
-        action: 'error',
-        message,
-        timestamp,
+        filesCommitted: 0,
+        pushed: false,
+        error: sanitizedError,
       };
     }
   }
 
   /**
-   * Get current git status
+   * Gets the current git status.
    */
   async getStatus(): Promise<GitStatus> {
+    const result: GitStatus = {
+      modified: [],
+      untracked: [],
+      staged: [],
+      conflicted: [],
+    };
+
     try {
-      // Get current branch
-      const { stdout: branchOutput } = await execFileAsync(
-        'git',
-        ['rev-parse', '--abbrev-ref', 'HEAD'],
-        { cwd: this.repoPath }
-      );
-      const branch = branchOutput.trim();
+      const { stdout } = await this.execGit(['status', '--porcelain']);
 
-      // Check if working tree is clean
-      const { stdout: statusOutput } = await execFileAsync(
-        'git',
-        ['status', '--porcelain'],
-        { cwd: this.repoPath }
-      );
-      const clean = statusOutput.trim().length === 0;
+      for (const line of stdout.split('\n')) {
+        if (!line.trim()) continue;
 
-      // Check if ahead of remote
-      let ahead = 0;
-      try {
-        const { stdout: aheadOutput } = await execFileAsync(
-          'git',
-          ['rev-list', '--count', `origin/${branch}..HEAD`],
-          { cwd: this.repoPath }
-        );
-        ahead = parseInt(aheadOutput.trim(), 10) || 0;
-      } catch {
-        // No remote tracking branch — ahead is 0
+        const status = line.substring(0, 2);
+        const file = line.substring(3).trim();
+
+        // Parse status codes
+        // First char = index status, second char = worktree status
+        const indexStatus = status[0];
+        const worktreeStatus = status[1];
+
+        // Conflicted files
+        if (status === 'UU' || status === 'AA' || status === 'DD') {
+          result.conflicted.push(file);
+          continue;
+        }
+
+        // Staged files (index has changes)
+        if (indexStatus !== ' ' && indexStatus !== '?') {
+          result.staged.push(file);
+        }
+
+        // Modified in worktree
+        if (worktreeStatus === 'M') {
+          result.modified.push(file);
+        }
+
+        // Untracked
+        if (status === '??') {
+          result.untracked.push(file);
+        }
       }
 
-      return { branch, clean, ahead };
-    } catch (error) {
-      log.error({ err: error }, 'Failed to get git status');
-      throw error;
+      return result;
+    } catch (err) {
+      safeLog('error', 'Failed to get status', {
+        error: sanitizeOutput(err instanceof Error ? err.message : String(err)),
+      });
+      return result;
     }
   }
 
   /**
-   * Check if there are uncommitted changes in state directories
+   * Creates a commit with the given message.
+   * Returns the commit hash or null if no commit was made.
    */
-  private async hasStateChanges(): Promise<boolean> {
+  async commit(message: string): Promise<string | null> {
     try {
-      const { stdout } = await execFileAsync(
-        'git',
-        ['status', '--porcelain'],
-        { cwd: this.repoPath }
-      );
-
-      const lines = stdout.trim().split('\n');
-
-      // Check if any changed files are in state directories
-      for (const line of lines) {
-        if (!line) continue;
-
-        // Parse git status line format: "XY path"
-        const path = line.substring(3).trim();
-
-        // Check if path is in any state directory
-        for (const stateDir of STATE_DIRS) {
-          if (path.startsWith(stateDir) || path.includes('.ari/data/') || path.includes('.ari/memories/') || path.includes('.ari/workspace/')) {
-            log.info({ path }, 'State file change detected');
-            return true;
-          }
-        }
+      // Validate message doesn't contain credentials
+      if (containsCredentials(message)) {
+        throw new Error('Commit message contains potential credentials');
       }
 
+      await this.execGit(['commit', '-m', message]);
+
+      // Get the commit hash
+      const { stdout } = await this.execGit(['rev-parse', 'HEAD']);
+      const hash = stdout.trim();
+
+      safeLog('info', 'Commit created', { hash: hash.substring(0, 8) });
+
+      return hash;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+
+      // "nothing to commit" is not really an error
+      if (errorMsg.includes('nothing to commit')) {
+        return null;
+      }
+
+      safeLog('error', 'Commit failed', { error: sanitizeOutput(errorMsg) });
+      throw err;
+    }
+  }
+
+  /**
+   * Pushes to the remote repository.
+   * Returns true if push succeeded.
+   */
+  async push(): Promise<boolean> {
+    try {
+      const args = ['push'];
+
+      // Add branch if specified
+      if (this.branch) {
+        args.push('origin', this.branch);
+      }
+
+      // Use --porcelain for parseable output
+      args.push('--porcelain');
+
+      const { stdout, stderr } = await this.execGit(args);
+
+      // Check for errors in output (sanitized)
+      const output = sanitizeOutput(stdout + stderr);
+
+      if (output.includes('rejected') || output.includes('failed')) {
+        safeLog('warn', 'Push rejected', { output });
+        return false;
+      }
+
+      safeLog('info', 'Push completed');
+      return true;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      safeLog('error', 'Push failed', { error: sanitizeOutput(errorMsg) });
       return false;
-    } catch (error) {
-      log.error({ err: error }, 'Failed to check state changes');
-      throw error;
     }
   }
 
   /**
-   * Stage state files for commit
+   * Stages files for commit.
    */
-  private async stageStateFiles(): Promise<void> {
-    try {
-      // Add each state directory
-      for (const stateDir of STATE_DIRS) {
-        try {
-          await execFileAsync('git', ['add', stateDir], {
-            cwd: this.repoPath,
-          });
-          log.info({ dir: stateDir }, 'Staged state directory');
-        } catch (error) {
-          // Directory might not exist or have no changes — that's okay
-          log.debug({ err: error, dir: stateDir }, 'Could not stage directory');
-        }
-      }
-    } catch (error) {
-      log.error({ err: error }, 'Failed to stage state files');
-      throw error;
+  async stageFiles(files: string[]): Promise<void> {
+    if (files.length === 0) return;
+
+    // Stage in batches to avoid command line length limits
+    const batchSize = 50;
+    for (let i = 0; i < files.length; i += batchSize) {
+      const batch = files.slice(i, i + batchSize);
+      await this.execGit(['add', '--', ...batch]);
     }
   }
 
   /**
-   * Commit staged changes with [skip ci] marker
+   * Gets the current branch name.
    */
-  private async commit(): Promise<void> {
+  async getCurrentBranch(): Promise<string | null> {
     try {
-      const message = 'chore: auto-sync state [skip ci]';
+      const { stdout } = await this.execGit(['rev-parse', '--abbrev-ref', 'HEAD']);
+      return stdout.trim();
+    } catch {
+      return null;
+    }
+  }
 
-      await execFileAsync('git', ['commit', '-m', message], {
+  /**
+   * Checks if the remote has changes not in local.
+   */
+  async hasRemoteChanges(): Promise<boolean> {
+    try {
+      // Fetch without merging
+      await this.execGit(['fetch', '--dry-run']);
+
+      // Compare local to remote
+      const { stdout } = await this.execGit(['rev-list', 'HEAD..@{u}', '--count']);
+      return parseInt(stdout.trim(), 10) > 0;
+    } catch {
+      // No upstream or other error
+      return false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Private Helpers
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Checks if the repo path is a git repository.
+   */
+  private isGitRepo(): boolean {
+    return existsSync(join(this.repoPath, '.git'));
+  }
+
+  /**
+   * Executes a git command with credential safety.
+   */
+  private async execGit(args: string[]): Promise<{ stdout: string; stderr: string }> {
+    try {
+      const result = await execFileAsync('git', args, {
         cwd: this.repoPath,
+        env: {
+          ...process.env,
+          // Prevent git from prompting for credentials
+          GIT_TERMINAL_PROMPT: '0',
+          // Disable credential helpers that might log
+          GIT_ASKPASS: '',
+        },
+        maxBuffer: 10 * 1024 * 1024, // 10MB
       });
 
-      log.info({ message }, 'Committed state changes');
-    } catch (error) {
-      // If commit fails because there's nothing to commit, that's okay
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      if (errorMsg.includes('nothing to commit')) {
-        log.info('No changes to commit after staging');
-        return;
-      }
+      return result;
+    } catch (err) {
+      // ExecFileException has stdout/stderr on the error object
+      const execErr = err as { stdout?: string; stderr?: string; message: string };
 
-      log.error({ err: error }, 'Failed to commit');
-      throw error;
-    }
-  }
+      // Always sanitize error output
+      const sanitizedMessage = sanitizeOutput(execErr.message);
+      const sanitizedStderr = execErr.stderr ? sanitizeOutput(execErr.stderr) : '';
 
-  /**
-   * Push commits to remote
-   */
-  private async push(): Promise<void> {
-    try {
-      await execFileAsync('git', ['push'], { cwd: this.repoPath });
-      log.info('Pushed to remote');
-    } catch (error) {
-      log.error({ err: error }, 'Failed to push');
+      const error = new Error(sanitizedMessage);
+      (error as unknown as { stdout: string; stderr: string }).stdout = execErr.stdout ?? '';
+      (error as unknown as { stdout: string; stderr: string }).stderr = sanitizedStderr;
+
       throw error;
     }
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Exports
+// ═══════════════════════════════════════════════════════════════════════════
+
+export { sanitizeOutput, containsCredentials };

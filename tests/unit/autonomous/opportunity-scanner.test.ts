@@ -1,464 +1,1017 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  OpportunityScanner,
+  createOpportunityScanner,
+  calculateCompositeScore,
+  determineRecommendation,
+  validateWeights,
+  validateScores,
+  registerCategoryScanner,
+  unregisterCategoryScanner,
+  getCategoryScanner,
+  listRegisteredScanners,
+  DEFAULT_WEIGHTS,
+  DEFAULT_CONFIG,
+  ALL_CATEGORIES,
+  type OpportunityCategory,
+  type ScoredOpportunity,
+  type RawOpportunity,
+  type ScoringWeights,
+  type OpportunityScores,
+} from '../../../src/autonomous/opportunity-scanner.js';
 import { EventBus } from '../../../src/kernel/event-bus.js';
-import { OpportunityScanner } from '../../../src/autonomous/opportunity-scanner.js';
-import type { RawOpportunity, ScoredOpportunity } from '../../../src/autonomous/opportunity-scanner.js';
 
 describe('OpportunityScanner', () => {
-  let eventBus: EventBus;
   let scanner: OpportunityScanner;
+  let eventBus: EventBus;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     eventBus = new EventBus();
     scanner = new OpportunityScanner(eventBus);
+
+    // Clear any registered scanners from previous tests
+    for (const category of listRegisteredScanners()) {
+      unregisterCategoryScanner(category);
+    }
   });
 
-  describe('scoreOpportunity', () => {
-    it('should calculate composite score using weighted formula', () => {
-      const raw: RawOpportunity = {
-        id: '1',
-        category: 'crypto_investment',
-        title: 'Bitcoin buy opportunity',
-        description: 'BTC at support level',
-        source: 'analysis',
-        detectedAt: new Date().toISOString(),
-        rawData: {},
-      };
+  afterEach(() => {
+    // Clean up registered scanners
+    for (const category of listRegisteredScanners()) {
+      unregisterCategoryScanner(category);
+    }
+  });
 
-      const scores = {
-        roiPotential: 80,
-        effortRequired: 20,  // Low effort (inverted)
-        skillAlignment: 70,
-        timeToRevenue: 90,
-        riskLevel: 30,       // Low risk (inverted)
-        confidenceLevel: 75,
-      };
+  // =========================================================================
+  // CONSTRUCTOR TESTS
+  // =========================================================================
 
-      const scored = scanner.scoreOpportunity(raw, scores);
-
-      // Expected: 80*0.25 + (100-20)*0.20 + 70*0.15 + 90*0.20 + (100-30)*0.10 + 75*0.10
-      // = 20 + 16 + 10.5 + 18 + 7 + 7.5 = 79
-      expect(scored.compositeScore).toBeCloseTo(79, 1);
-      expect(scored.recommendation).toBe('strong_buy');
+  describe('constructor', () => {
+    it('should create with default config', () => {
+      const s = new OpportunityScanner(eventBus);
+      expect(s).toBeDefined();
+      const config = s.getConfig();
+      expect(config.categories).toEqual(ALL_CATEGORIES);
+      expect(config.minScoreThreshold).toBe(30);
+      expect(config.maxCachedOpportunities).toBe(100);
     });
 
-    it('should assign strong_buy for score > 75', () => {
-      const raw: RawOpportunity = {
-        id: '2',
-        category: 'saas_idea',
-        title: 'High potential SaaS',
-        description: 'Low competition niche',
-        source: 'research',
-        detectedAt: new Date().toISOString(),
-        rawData: {},
+    it('should create with custom config', () => {
+      const s = new OpportunityScanner(eventBus, {
+        categories: ['crypto_investment', 'stock_investment'],
+        minScoreThreshold: 50,
+        maxCachedOpportunities: 50,
+      });
+
+      const config = s.getConfig();
+      expect(config.categories).toEqual(['crypto_investment', 'stock_investment']);
+      expect(config.minScoreThreshold).toBe(50);
+      expect(config.maxCachedOpportunities).toBe(50);
+    });
+
+    it('should throw on invalid weights', () => {
+      expect(() => new OpportunityScanner(eventBus, {
+        weights: {
+          roiPotential: 0.5,
+          effortRequired: 0.5,
+          skillAlignment: 0.5,
+          timeToRevenue: 0.5,
+          riskLevel: 0.5,
+          confidenceLevel: 0.5,
+        },
+      })).toThrow('Invalid weights: must sum to 1.0');
+    });
+
+    it('should accept valid custom weights', () => {
+      const customWeights: ScoringWeights = {
+        roiPotential: 0.30,
+        effortRequired: 0.25,
+        skillAlignment: 0.10,
+        timeToRevenue: 0.20,
+        riskLevel: 0.10,
+        confidenceLevel: 0.05,
       };
 
-      const scores = {
-        roiPotential: 90,
-        effortRequired: 10,
+      const s = new OpportunityScanner(eventBus, { weights: customWeights });
+      const config = s.getConfig();
+      expect(config.weights.roiPotential).toBe(0.30);
+    });
+  });
+
+  // =========================================================================
+  // WEIGHT VALIDATION TESTS
+  // =========================================================================
+
+  describe('validateWeights', () => {
+    it('should return true for valid weights summing to 1.0', () => {
+      expect(validateWeights(DEFAULT_WEIGHTS)).toBe(true);
+    });
+
+    it('should return true for weights within tolerance', () => {
+      const weights: ScoringWeights = {
+        roiPotential: 0.25,
+        effortRequired: 0.2,
+        skillAlignment: 0.15,
+        timeToRevenue: 0.2,
+        riskLevel: 0.1,
+        confidenceLevel: 0.1,
+      };
+      expect(validateWeights(weights)).toBe(true);
+    });
+
+    it('should return false for weights not summing to 1.0', () => {
+      const weights: ScoringWeights = {
+        roiPotential: 0.5,
+        effortRequired: 0.5,
+        skillAlignment: 0.5,
+        timeToRevenue: 0.5,
+        riskLevel: 0.5,
+        confidenceLevel: 0.5,
+      };
+      expect(validateWeights(weights)).toBe(false);
+    });
+  });
+
+  // =========================================================================
+  // SCORE VALIDATION TESTS
+  // =========================================================================
+
+  describe('validateScores', () => {
+    it('should return true for valid scores in 0-100 range', () => {
+      const scores: OpportunityScores = {
+        roiPotential: 80,
+        effortRequired: 30,
+        skillAlignment: 90,
+        timeToRevenue: 70,
+        riskLevel: 20,
+        confidenceLevel: 85,
+      };
+      expect(validateScores(scores)).toBe(true);
+    });
+
+    it('should return true for boundary values', () => {
+      const scores: OpportunityScores = {
+        roiPotential: 0,
+        effortRequired: 100,
+        skillAlignment: 50,
+        timeToRevenue: 0,
+        riskLevel: 100,
+        confidenceLevel: 0,
+      };
+      expect(validateScores(scores)).toBe(true);
+    });
+
+    it('should return false for scores below 0', () => {
+      const scores: OpportunityScores = {
+        roiPotential: -10,
+        effortRequired: 30,
+        skillAlignment: 90,
+        timeToRevenue: 70,
+        riskLevel: 20,
+        confidenceLevel: 85,
+      };
+      expect(validateScores(scores)).toBe(false);
+    });
+
+    it('should return false for scores above 100', () => {
+      const scores: OpportunityScores = {
+        roiPotential: 150,
+        effortRequired: 30,
+        skillAlignment: 90,
+        timeToRevenue: 70,
+        riskLevel: 20,
+        confidenceLevel: 85,
+      };
+      expect(validateScores(scores)).toBe(false);
+    });
+  });
+
+  // =========================================================================
+  // COMPOSITE SCORE CALCULATION TESTS
+  // =========================================================================
+
+  describe('calculateCompositeScore', () => {
+    it('should calculate composite score with default weights', () => {
+      const scores: OpportunityScores = {
+        roiPotential: 80,
+        effortRequired: 20, // Low effort = good
         skillAlignment: 90,
         timeToRevenue: 80,
-        riskLevel: 20,
+        riskLevel: 10, // Low risk = good
+        confidenceLevel: 85,
+      };
+
+      const composite = calculateCompositeScore(scores);
+      expect(composite).toBeGreaterThan(80);
+      expect(composite).toBeLessThanOrEqual(100);
+    });
+
+    it('should invert effort and risk scores', () => {
+      // High effort, high risk should result in lower score
+      const badScores: OpportunityScores = {
+        roiPotential: 80,
+        effortRequired: 90, // High effort = bad
+        skillAlignment: 80,
+        timeToRevenue: 80,
+        riskLevel: 90, // High risk = bad
         confidenceLevel: 80,
       };
 
-      const scored = scanner.scoreOpportunity(raw, scores);
-      expect(scored.compositeScore).toBeGreaterThan(75);
+      const goodScores: OpportunityScores = {
+        roiPotential: 80,
+        effortRequired: 10, // Low effort = good
+        skillAlignment: 80,
+        timeToRevenue: 80,
+        riskLevel: 10, // Low risk = good
+        confidenceLevel: 80,
+      };
+
+      const badComposite = calculateCompositeScore(badScores);
+      const goodComposite = calculateCompositeScore(goodScores);
+
+      expect(goodComposite).toBeGreaterThan(badComposite);
+    });
+
+    it('should throw for invalid scores', () => {
+      const scores: OpportunityScores = {
+        roiPotential: 150, // Invalid
+        effortRequired: 30,
+        skillAlignment: 90,
+        timeToRevenue: 70,
+        riskLevel: 20,
+        confidenceLevel: 85,
+      };
+
+      expect(() => calculateCompositeScore(scores)).toThrow('Scores must be in 0-100 range');
+    });
+
+    it('should throw for invalid weights', () => {
+      const scores: OpportunityScores = {
+        roiPotential: 80,
+        effortRequired: 30,
+        skillAlignment: 90,
+        timeToRevenue: 70,
+        riskLevel: 20,
+        confidenceLevel: 85,
+      };
+
+      const badWeights: ScoringWeights = {
+        roiPotential: 0.5,
+        effortRequired: 0.5,
+        skillAlignment: 0.5,
+        timeToRevenue: 0.5,
+        riskLevel: 0.5,
+        confidenceLevel: 0.5,
+      };
+
+      expect(() => calculateCompositeScore(scores, badWeights)).toThrow('Weights must sum to 1.0');
+    });
+
+    it('should calculate perfect score as 100', () => {
+      const perfectScores: OpportunityScores = {
+        roiPotential: 100,
+        effortRequired: 0, // No effort
+        skillAlignment: 100,
+        timeToRevenue: 100,
+        riskLevel: 0, // No risk
+        confidenceLevel: 100,
+      };
+
+      const composite = calculateCompositeScore(perfectScores);
+      expect(composite).toBe(100);
+    });
+
+    it('should calculate worst score as 0', () => {
+      const worstScores: OpportunityScores = {
+        roiPotential: 0,
+        effortRequired: 100, // Max effort
+        skillAlignment: 0,
+        timeToRevenue: 0,
+        riskLevel: 100, // Max risk
+        confidenceLevel: 0,
+      };
+
+      const composite = calculateCompositeScore(worstScores);
+      expect(composite).toBe(0);
+    });
+  });
+
+  // =========================================================================
+  // RECOMMENDATION DETERMINATION TESTS
+  // =========================================================================
+
+  describe('determineRecommendation', () => {
+    it('should return strong_buy for scores >= 80', () => {
+      expect(determineRecommendation(80)).toBe('strong_buy');
+      expect(determineRecommendation(90)).toBe('strong_buy');
+      expect(determineRecommendation(100)).toBe('strong_buy');
+    });
+
+    it('should return buy for scores >= 60 and < 80', () => {
+      expect(determineRecommendation(60)).toBe('buy');
+      expect(determineRecommendation(70)).toBe('buy');
+      expect(determineRecommendation(79.99)).toBe('buy');
+    });
+
+    it('should return watch for scores >= 40 and < 60', () => {
+      expect(determineRecommendation(40)).toBe('watch');
+      expect(determineRecommendation(50)).toBe('watch');
+      expect(determineRecommendation(59.99)).toBe('watch');
+    });
+
+    it('should return pass for scores < 40', () => {
+      expect(determineRecommendation(0)).toBe('pass');
+      expect(determineRecommendation(20)).toBe('pass');
+      expect(determineRecommendation(39.99)).toBe('pass');
+    });
+  });
+
+  // =========================================================================
+  // CATEGORY SCANNER REGISTRY TESTS
+  // =========================================================================
+
+  describe('categoryScannersRegistry', () => {
+    it('should register a scanner', () => {
+      const mockScanner = vi.fn().mockResolvedValue([]);
+      registerCategoryScanner('crypto_investment', mockScanner);
+
+      expect(getCategoryScanner('crypto_investment')).toBe(mockScanner);
+    });
+
+    it('should list registered scanners', () => {
+      registerCategoryScanner('crypto_investment', vi.fn());
+      registerCategoryScanner('stock_investment', vi.fn());
+
+      const registered = listRegisteredScanners();
+      expect(registered).toContain('crypto_investment');
+      expect(registered).toContain('stock_investment');
+    });
+
+    it('should unregister a scanner', () => {
+      registerCategoryScanner('crypto_investment', vi.fn());
+      expect(getCategoryScanner('crypto_investment')).toBeDefined();
+
+      const removed = unregisterCategoryScanner('crypto_investment');
+      expect(removed).toBe(true);
+      expect(getCategoryScanner('crypto_investment')).toBeUndefined();
+    });
+
+    it('should return false when unregistering non-existent scanner', () => {
+      const removed = unregisterCategoryScanner('freelance_gig');
+      expect(removed).toBe(false);
+    });
+  });
+
+  // =========================================================================
+  // SCORE OPPORTUNITY TESTS
+  // =========================================================================
+
+  describe('scoreOpportunity', () => {
+    it('should score a raw opportunity', () => {
+      const raw = {
+        category: 'crypto_investment' as OpportunityCategory,
+        title: 'Bitcoin Dip',
+        description: 'BTC dropped 10%',
+        source: 'CoinGecko',
+        sourceUrl: 'https://coingecko.com',
+        scores: {
+          roiPotential: 85,
+          effortRequired: 20,
+          skillAlignment: 75,
+          timeToRevenue: 60,
+          riskLevel: 40,
+          confidenceLevel: 70,
+        },
+        actionItems: ['Buy BTC', 'Set stop-loss'],
+        timeframe: 'this_week' as const,
+      };
+
+      const scored = scanner.scoreOpportunity(raw);
+
+      expect(scored.id).toBeDefined();
+      expect(scored.compositeScore).toBeGreaterThan(0);
+      expect(scored.recommendation).toBeDefined();
+      expect(scored.discoveredAt).toBeInstanceOf(Date);
+      expect(scored.title).toBe('Bitcoin Dip');
+    });
+
+    it('should assign correct recommendation based on score', () => {
+      const highScoreRaw = {
+        category: 'freelance_gig' as OpportunityCategory,
+        title: 'High Score Opportunity',
+        description: 'Great opportunity',
+        source: 'Test',
+        scores: {
+          roiPotential: 95,
+          effortRequired: 10,
+          skillAlignment: 95,
+          timeToRevenue: 90,
+          riskLevel: 5,
+          confidenceLevel: 95,
+        },
+        actionItems: [],
+        timeframe: 'immediate' as const,
+      };
+
+      const scored = scanner.scoreOpportunity(highScoreRaw);
       expect(scored.recommendation).toBe('strong_buy');
     });
+  });
 
-    it('should assign buy for score 55-75', () => {
-      const raw: RawOpportunity = {
-        id: '3',
-        category: 'freelance_gig',
-        title: 'Freelance project',
-        description: 'Medium complexity',
-        source: 'upwork',
-        detectedAt: new Date().toISOString(),
-        rawData: {},
-      };
+  // =========================================================================
+  // SCAN CATEGORY TESTS
+  // =========================================================================
 
-      const scores = {
-        roiPotential: 60,
-        effortRequired: 50,
-        skillAlignment: 60,
-        timeToRevenue: 70,
-        riskLevel: 40,
-        confidenceLevel: 60,
-      };
-
-      const scored = scanner.scoreOpportunity(raw, scores);
-      expect(scored.compositeScore).toBeGreaterThanOrEqual(55);
-      expect(scored.compositeScore).toBeLessThanOrEqual(75);
-      expect(scored.recommendation).toBe('buy');
+  describe('scanCategory', () => {
+    it('should return empty array if no scanner registered', async () => {
+      const results = await scanner.scanCategory('crypto_investment');
+      expect(results).toEqual([]);
     });
 
-    it('should assign watch for score 35-55', () => {
-      const raw: RawOpportunity = {
-        id: '4',
-        category: 'stock_investment',
-        title: 'Speculative stock',
-        description: 'High risk play',
-        source: 'scanner',
-        detectedAt: new Date().toISOString(),
-        rawData: {},
-      };
+    it('should scan using registered scanner', async () => {
+      const mockOpportunities: RawOpportunity[] = [
+        {
+          category: 'crypto_investment',
+          title: 'ETH Opportunity',
+          description: 'Ethereum undervalued',
+          source: 'Analysis',
+          scores: {
+            roiPotential: 70,
+            effortRequired: 30,
+            skillAlignment: 80,
+            timeToRevenue: 60,
+            riskLevel: 40,
+            confidenceLevel: 75,
+          },
+          actionItems: ['Research', 'Buy'],
+          timeframe: 'this_week',
+        },
+      ];
 
-      const scores = {
-        roiPotential: 50,
-        effortRequired: 60,
-        skillAlignment: 40,
-        timeToRevenue: 50,
-        riskLevel: 60,
-        confidenceLevel: 40,
-      };
+      registerCategoryScanner('crypto_investment', vi.fn().mockResolvedValue(mockOpportunities));
 
-      const scored = scanner.scoreOpportunity(raw, scores);
-      expect(scored.compositeScore).toBeGreaterThanOrEqual(35);
-      expect(scored.compositeScore).toBeLessThanOrEqual(55);
-      expect(scored.recommendation).toBe('watch');
+      const results = await scanner.scanCategory('crypto_investment');
+
+      expect(results.length).toBe(1);
+      expect(results[0].title).toBe('ETH Opportunity');
+      expect(results[0].compositeScore).toBeGreaterThan(0);
     });
 
-    it('should assign pass for score <= 35', () => {
-      const raw: RawOpportunity = {
-        id: '5',
-        category: 'side_project',
-        title: 'Low ROI project',
-        description: 'High effort, low return',
-        source: 'idea',
-        detectedAt: new Date().toISOString(),
-        rawData: {},
-      };
+    it('should filter out opportunities below threshold', async () => {
+      const mockOpportunities: RawOpportunity[] = [
+        {
+          category: 'crypto_investment',
+          title: 'Low Score Opportunity',
+          description: 'Not great',
+          source: 'Test',
+          scores: {
+            roiPotential: 10,
+            effortRequired: 90,
+            skillAlignment: 10,
+            timeToRevenue: 10,
+            riskLevel: 90,
+            confidenceLevel: 10,
+          },
+          actionItems: [],
+          timeframe: 'long_term',
+        },
+      ];
 
-      const scores = {
-        roiPotential: 20,
-        effortRequired: 80,
-        skillAlignment: 30,
-        timeToRevenue: 20,
-        riskLevel: 70,
-        confidenceLevel: 30,
-      };
+      registerCategoryScanner('crypto_investment', vi.fn().mockResolvedValue(mockOpportunities));
 
-      const scored = scanner.scoreOpportunity(raw, scores);
-      expect(scored.compositeScore).toBeLessThanOrEqual(35);
-      expect(scored.recommendation).toBe('pass');
+      const results = await scanner.scanCategory('crypto_investment');
+      expect(results.length).toBe(0);
     });
 
-    it('should assign timeframe based on timeToRevenue', () => {
-      const raw: RawOpportunity = {
-        id: '6',
-        category: 'arbitrage',
-        title: 'Quick arbitrage',
-        description: 'Price differential',
-        source: 'monitor',
-        detectedAt: new Date().toISOString(),
-        rawData: {},
-      };
+    it('should emit investment:opportunity_detected event', async () => {
+      const emitSpy = vi.spyOn(eventBus, 'emit');
 
-      // Immediate: timeToRevenue > 75
-      const immediate = scanner.scoreOpportunity(raw, {
-        roiPotential: 80, effortRequired: 20, skillAlignment: 70,
-        timeToRevenue: 90, riskLevel: 30, confidenceLevel: 75,
-      });
-      expect(immediate.timeframe).toBe('immediate');
+      const mockOpportunities: RawOpportunity[] = [
+        {
+          category: 'freelance_gig',
+          title: 'Web Dev Gig',
+          description: 'Build a website',
+          source: 'Upwork',
+          scores: {
+            roiPotential: 80,
+            effortRequired: 30,
+            skillAlignment: 90,
+            timeToRevenue: 85,
+            riskLevel: 20,
+            confidenceLevel: 80,
+          },
+          actionItems: ['Apply'],
+          timeframe: 'immediate',
+        },
+      ];
 
-      // This week: timeToRevenue 50-75
-      const thisWeek = scanner.scoreOpportunity(raw, {
-        roiPotential: 70, effortRequired: 30, skillAlignment: 60,
-        timeToRevenue: 60, riskLevel: 40, confidenceLevel: 65,
-      });
-      expect(thisWeek.timeframe).toBe('this_week');
+      registerCategoryScanner('freelance_gig', vi.fn().mockResolvedValue(mockOpportunities));
 
-      // This month: timeToRevenue 25-50
-      const thisMonth = scanner.scoreOpportunity(raw, {
-        roiPotential: 60, effortRequired: 40, skillAlignment: 50,
-        timeToRevenue: 40, riskLevel: 50, confidenceLevel: 55,
-      });
-      expect(thisMonth.timeframe).toBe('this_month');
+      await scanner.scanCategory('freelance_gig');
 
-      // Long term: timeToRevenue < 25
-      const longTerm = scanner.scoreOpportunity(raw, {
-        roiPotential: 50, effortRequired: 50, skillAlignment: 40,
-        timeToRevenue: 20, riskLevel: 60, confidenceLevel: 45,
-      });
-      expect(longTerm.timeframe).toBe('long_term');
+      expect(emitSpy).toHaveBeenCalledWith(
+        'investment:opportunity_detected',
+        expect.objectContaining({
+          category: 'freelance_gig',
+          title: 'Web Dev Gig',
+        })
+      );
     });
 
-    it('should generate action items based on category', () => {
-      const crypto: RawOpportunity = {
-        id: '7',
-        category: 'crypto_investment',
-        title: 'ETH opportunity',
-        description: 'Strong support',
-        source: 'analysis',
-        detectedAt: new Date().toISOString(),
-        rawData: {},
-      };
+    it('should handle scanner errors gracefully', async () => {
+      registerCategoryScanner('crypto_investment', vi.fn().mockRejectedValue(new Error('API Error')));
 
-      const scored = scanner.scoreOpportunity(crypto, {
-        roiPotential: 80, effortRequired: 20, skillAlignment: 70,
-        timeToRevenue: 80, riskLevel: 30, confidenceLevel: 75,
-      });
-
-      expect(scored.actionItems).toContain('Research price history and volume');
-      expect(scored.actionItems).toContain('Set price alert and entry point');
+      const results = await scanner.scanCategory('crypto_investment');
+      expect(results).toEqual([]);
     });
   });
 
-  describe('addOpportunity and getOpportunities', () => {
-    it('should add opportunities and retrieve them', () => {
-      const raw: RawOpportunity = {
-        id: '1',
-        category: 'crypto_investment',
-        title: 'BTC opportunity',
-        description: 'Buy signal',
-        source: 'scanner',
-        detectedAt: new Date().toISOString(),
-        rawData: {},
-      };
+  // =========================================================================
+  // SCAN ALL TESTS
+  // =========================================================================
 
-      scanner.addOpportunity(raw);
-      const opportunities = scanner.getOpportunities();
+  describe('scanAll', () => {
+    it('should scan all configured categories', async () => {
+      const cryptoOpps: RawOpportunity[] = [
+        {
+          category: 'crypto_investment',
+          title: 'Crypto Opp',
+          description: 'Desc',
+          source: 'Src',
+          scores: {
+            roiPotential: 70,
+            effortRequired: 30,
+            skillAlignment: 80,
+            timeToRevenue: 60,
+            riskLevel: 30,
+            confidenceLevel: 75,
+          },
+          actionItems: [],
+          timeframe: 'this_week',
+        },
+      ];
 
-      expect(opportunities).toHaveLength(1);
-      expect(opportunities[0].id).toBe('1');
+      const stockOpps: RawOpportunity[] = [
+        {
+          category: 'stock_investment',
+          title: 'Stock Opp',
+          description: 'Desc',
+          source: 'Src',
+          scores: {
+            roiPotential: 65,
+            effortRequired: 40,
+            skillAlignment: 70,
+            timeToRevenue: 50,
+            riskLevel: 35,
+            confidenceLevel: 70,
+          },
+          actionItems: [],
+          timeframe: 'this_month',
+        },
+      ];
+
+      registerCategoryScanner('crypto_investment', vi.fn().mockResolvedValue(cryptoOpps));
+      registerCategoryScanner('stock_investment', vi.fn().mockResolvedValue(stockOpps));
+
+      const results = await scanner.scanAll();
+
+      expect(results.length).toBe(2);
+      // Should be sorted by composite score
+      expect(results[0].compositeScore).toBeGreaterThanOrEqual(results[1].compositeScore);
     });
 
-    it('should not add duplicate opportunities', () => {
-      const raw: RawOpportunity = {
-        id: '1',
-        category: 'crypto_investment',
-        title: 'BTC opportunity',
-        description: 'Buy signal',
-        source: 'scanner',
-        detectedAt: new Date().toISOString(),
-        rawData: {},
-      };
+    it('should skip if scan already in progress', async () => {
+      registerCategoryScanner('crypto_investment', vi.fn().mockImplementation(async () => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return [];
+      }));
 
-      scanner.addOpportunity(raw);
-      scanner.addOpportunity(raw);
+      // Start first scan
+      const scan1 = scanner.scanAll();
 
-      const opportunities = scanner.getOpportunities();
-      expect(opportunities).toHaveLength(1);
+      // Try to start second scan immediately
+      const scan2 = scanner.scanAll();
+
+      const [results1, results2] = await Promise.all([scan1, scan2]);
+
+      // First scan runs, second returns empty
+      expect(results2).toEqual([]);
     });
 
-    it('should filter by category', () => {
-      scanner.addOpportunity({
-        id: '1', category: 'crypto_investment', title: 'BTC', description: '',
-        source: 'scanner', detectedAt: new Date().toISOString(), rawData: {},
-      });
-      scanner.addOpportunity({
-        id: '2', category: 'saas_idea', title: 'SaaS', description: '',
-        source: 'ideas', detectedAt: new Date().toISOString(), rawData: {},
-      });
+    it('should emit audit:log event after scan', async () => {
+      const emitSpy = vi.spyOn(eventBus, 'emit');
 
-      const crypto = scanner.getOpportunities({ category: 'crypto_investment' });
-      expect(crypto).toHaveLength(1);
-      expect(crypto[0].category).toBe('crypto_investment');
-    });
+      await scanner.scanAll();
 
-    it('should filter by minimum score', () => {
-      scanner.addOpportunity({
-        id: '1', category: 'crypto_investment', title: 'High score', description: '',
-        source: 'scanner', detectedAt: new Date().toISOString(), rawData: {},
-      });
-      scanner.addOpportunity({
-        id: '2', category: 'saas_idea', title: 'Low score', description: '',
-        source: 'ideas', detectedAt: new Date().toISOString(), rawData: {},
-      });
-
-      const filtered = scanner.getOpportunities({ minScore: 50 });
-      // Note: since we don't score in addOpportunity, all scores are 0
-      // In real usage, scoreOpportunity would be called separately
-      expect(filtered).toHaveLength(0);
-    });
-
-    it('should sort by composite score descending', () => {
-      const opp1: RawOpportunity = {
-        id: '1', category: 'crypto_investment', title: 'Low', description: '',
-        source: 'scanner', detectedAt: new Date().toISOString(), rawData: {},
-      };
-      const opp2: RawOpportunity = {
-        id: '2', category: 'saas_idea', title: 'High', description: '',
-        source: 'ideas', detectedAt: new Date().toISOString(), rawData: {},
-      };
-
-      // Manually score and add
-      const scored1 = scanner.scoreOpportunity(opp1, {
-        roiPotential: 40, effortRequired: 60, skillAlignment: 40,
-        timeToRevenue: 40, riskLevel: 60, confidenceLevel: 40,
-      });
-      const scored2 = scanner.scoreOpportunity(opp2, {
-        roiPotential: 80, effortRequired: 20, skillAlignment: 80,
-        timeToRevenue: 80, riskLevel: 20, confidenceLevel: 80,
-      });
-
-      // Simulate adding scored opportunities
-      scanner['opportunities'].push(scored1, scored2);
-
-      const sorted = scanner.getOpportunities();
-      expect(sorted[0].id).toBe('2'); // Higher score first
-      expect(sorted[1].id).toBe('1');
+      expect(emitSpy).toHaveBeenCalledWith(
+        'audit:log',
+        expect.objectContaining({
+          action: 'opportunity:scan_complete',
+          agent: 'SCANNER',
+        })
+      );
     });
   });
 
-  describe('generateReport', () => {
-    it('should generate daily report', () => {
-      const opp: RawOpportunity = {
-        id: '1', category: 'crypto_investment', title: 'BTC', description: 'Strong buy',
-        source: 'scanner', detectedAt: new Date().toISOString(), rawData: {},
-      };
+  // =========================================================================
+  // OPPORTUNITY RETRIEVAL TESTS
+  // =========================================================================
 
-      const scored = scanner.scoreOpportunity(opp, {
-        roiPotential: 80, effortRequired: 20, skillAlignment: 70,
-        timeToRevenue: 80, riskLevel: 30, confidenceLevel: 75,
-      });
+  describe('opportunity retrieval', () => {
+    beforeEach(async () => {
+      const mockOpportunities: RawOpportunity[] = [
+        {
+          category: 'crypto_investment',
+          title: 'High Score',
+          description: 'Desc',
+          source: 'Src',
+          scores: {
+            roiPotential: 90,
+            effortRequired: 10,
+            skillAlignment: 90,
+            timeToRevenue: 90,
+            riskLevel: 10,
+            confidenceLevel: 90,
+          },
+          actionItems: [],
+          timeframe: 'immediate',
+        },
+        {
+          category: 'freelance_gig',
+          title: 'Medium Score',
+          description: 'Desc',
+          source: 'Src',
+          scores: {
+            roiPotential: 60,
+            effortRequired: 40,
+            skillAlignment: 60,
+            timeToRevenue: 60,
+            riskLevel: 40,
+            confidenceLevel: 60,
+          },
+          actionItems: [],
+          timeframe: 'this_week',
+        },
+        {
+          category: 'crypto_investment',
+          title: 'Low Score',
+          description: 'Desc',
+          source: 'Src',
+          scores: {
+            roiPotential: 40,
+            effortRequired: 60,
+            skillAlignment: 40,
+            timeToRevenue: 40,
+            riskLevel: 60,
+            confidenceLevel: 40,
+          },
+          actionItems: [],
+          timeframe: 'long_term',
+        },
+      ];
 
-      scanner['opportunities'].push(scored);
+      registerCategoryScanner('crypto_investment', vi.fn().mockResolvedValue(
+        mockOpportunities.filter(o => o.category === 'crypto_investment')
+      ));
+      registerCategoryScanner('freelance_gig', vi.fn().mockResolvedValue(
+        mockOpportunities.filter(o => o.category === 'freelance_gig')
+      ));
 
-      const report = scanner.generateReport('daily');
-
-      expect(report.period).toBe('daily');
-      expect(report.topOpportunities).toHaveLength(1);
-      expect(report.byCategory.crypto_investment).toHaveLength(1);
-      expect(report.marketSummary).toContain('1 opportunities');
-      expect(report.actionPlan.length).toBeGreaterThan(0);
+      await scanner.scanAll();
     });
 
-    it('should limit top opportunities to 10', () => {
-      // Add 15 opportunities
-      for (let i = 0; i < 15; i++) {
-        const opp: RawOpportunity = {
-          id: String(i), category: 'crypto_investment', title: `Opp ${i}`, description: '',
-          source: 'scanner', detectedAt: new Date().toISOString(), rawData: {},
-        };
-        const scored = scanner.scoreOpportunity(opp, {
-          roiPotential: 60, effortRequired: 40, skillAlignment: 50,
-          timeToRevenue: 60, riskLevel: 40, confidenceLevel: 60,
-        });
-        scanner['opportunities'].push(scored);
-      }
+    it('should get top opportunities sorted by score', () => {
+      const top = scanner.getTopOpportunities(2);
 
-      const report = scanner.generateReport('weekly');
-      expect(report.topOpportunities).toHaveLength(10);
+      expect(top.length).toBe(2);
+      expect(top[0].title).toBe('High Score');
+      expect(top[0].compositeScore).toBeGreaterThan(top[1].compositeScore);
     });
 
-    it('should group by category', () => {
-      const crypto: RawOpportunity = {
-        id: '1', category: 'crypto_investment', title: 'BTC', description: '',
-        source: 'scanner', detectedAt: new Date().toISOString(), rawData: {},
-      };
-      const saas: RawOpportunity = {
-        id: '2', category: 'saas_idea', title: 'SaaS', description: '',
-        source: 'ideas', detectedAt: new Date().toISOString(), rawData: {},
-      };
+    it('should get opportunities by category', () => {
+      const crypto = scanner.getOpportunitiesByCategory('crypto_investment');
 
-      const scored1 = scanner.scoreOpportunity(crypto, {
-        roiPotential: 70, effortRequired: 30, skillAlignment: 60,
-        timeToRevenue: 70, riskLevel: 30, confidenceLevel: 70,
-      });
-      const scored2 = scanner.scoreOpportunity(saas, {
-        roiPotential: 80, effortRequired: 20, skillAlignment: 80,
-        timeToRevenue: 60, riskLevel: 20, confidenceLevel: 80,
-      });
-
-      scanner['opportunities'].push(scored1, scored2);
-
-      const report = scanner.generateReport('weekly');
-      expect(report.byCategory.crypto_investment).toHaveLength(1);
-      expect(report.byCategory.saas_idea).toHaveLength(1);
+      expect(crypto.length).toBe(2);
+      expect(crypto.every(o => o.category === 'crypto_investment')).toBe(true);
     });
 
-    it('should generate market summary', () => {
-      const opp1 = scanner.scoreOpportunity({
-        id: '1', category: 'crypto_investment', title: 'BTC', description: '',
-        source: 'scanner', detectedAt: new Date().toISOString(), rawData: {},
-      }, {
-        roiPotential: 80, effortRequired: 20, skillAlignment: 70,
-        timeToRevenue: 80, riskLevel: 30, confidenceLevel: 75,
-      });
+    it('should get opportunities by recommendation', () => {
+      const strongBuys = scanner.getOpportunitiesByRecommendation('strong_buy');
+      const watches = scanner.getOpportunitiesByRecommendation('watch');
 
-      scanner['opportunities'].push(opp1);
-
-      const report = scanner.generateReport('daily');
-      expect(report.marketSummary).toContain('1 strong buy');
-      expect(report.marketSummary).toContain('crypto_investment');
+      expect(strongBuys.every(o => o.recommendation === 'strong_buy')).toBe(true);
+      expect(watches.every(o => o.recommendation === 'watch')).toBe(true);
     });
 
-    it('should generate action plan', () => {
-      const immediate = scanner.scoreOpportunity({
-        id: '1', category: 'arbitrage', title: 'Quick arb', description: '',
-        source: 'monitor', detectedAt: new Date().toISOString(), rawData: {},
-      }, {
-        roiPotential: 90, effortRequired: 10, skillAlignment: 80,
-        timeToRevenue: 95, riskLevel: 20, confidenceLevel: 85,
-      });
+    it('should get all opportunities', () => {
+      const all = scanner.getAllOpportunities();
+      expect(all.length).toBe(3);
+    });
 
-      scanner['opportunities'].push(immediate);
+    it('should get opportunity by ID', () => {
+      const all = scanner.getAllOpportunities();
+      const first = all[0];
 
-      const report = scanner.generateReport('daily');
-      expect(report.actionPlan.some((a) => a.includes('Immediate action'))).toBe(true);
+      const retrieved = scanner.getOpportunity(first.id);
+      expect(retrieved).toEqual(first);
+    });
+
+    it('should return undefined for non-existent ID', () => {
+      const retrieved = scanner.getOpportunity('non-existent-id');
+      expect(retrieved).toBeUndefined();
     });
   });
 
-  describe('pruneOld', () => {
-    it('should remove opportunities older than maxAgeDays', () => {
-      const old = new Date();
-      old.setDate(old.getDate() - 10);
+  // =========================================================================
+  // CACHE MANAGEMENT TESTS
+  // =========================================================================
 
-      const oldOpp: ScoredOpportunity = {
-        id: '1', category: 'crypto_investment', title: 'Old', description: '',
-        source: 'scanner', detectedAt: old.toISOString(), rawData: {},
-        scores: { roiPotential: 50, effortRequired: 50, skillAlignment: 50, timeToRevenue: 50, riskLevel: 50, confidenceLevel: 50 },
-        compositeScore: 50, recommendation: 'watch', actionItems: [], timeframe: 'this_month',
-      };
+  describe('cache management', () => {
+    it('should enforce max cache size', async () => {
+      const s = new OpportunityScanner(eventBus, { maxCachedOpportunities: 2 });
 
-      const recent: ScoredOpportunity = {
-        id: '2', category: 'saas_idea', title: 'Recent', description: '',
-        source: 'ideas', detectedAt: new Date().toISOString(), rawData: {},
-        scores: { roiPotential: 60, effortRequired: 40, skillAlignment: 60, timeToRevenue: 60, riskLevel: 40, confidenceLevel: 60 },
-        compositeScore: 60, recommendation: 'buy', actionItems: [], timeframe: 'this_week',
-      };
+      const mockOpportunities: RawOpportunity[] = [
+        {
+          category: 'crypto_investment',
+          title: 'Opp 1',
+          description: 'Desc',
+          source: 'Src',
+          scores: { roiPotential: 90, effortRequired: 10, skillAlignment: 90, timeToRevenue: 90, riskLevel: 10, confidenceLevel: 90 },
+          actionItems: [],
+          timeframe: 'immediate',
+        },
+        {
+          category: 'crypto_investment',
+          title: 'Opp 2',
+          description: 'Desc',
+          source: 'Src',
+          scores: { roiPotential: 80, effortRequired: 20, skillAlignment: 80, timeToRevenue: 80, riskLevel: 20, confidenceLevel: 80 },
+          actionItems: [],
+          timeframe: 'this_week',
+        },
+        {
+          category: 'crypto_investment',
+          title: 'Opp 3',
+          description: 'Desc',
+          source: 'Src',
+          scores: { roiPotential: 70, effortRequired: 30, skillAlignment: 70, timeToRevenue: 70, riskLevel: 30, confidenceLevel: 70 },
+          actionItems: [],
+          timeframe: 'this_month',
+        },
+      ];
 
-      scanner['opportunities'].push(oldOpp, recent);
+      registerCategoryScanner('crypto_investment', vi.fn().mockResolvedValue(mockOpportunities));
 
-      const removed = scanner.pruneOld(7);
+      await s.scanAll();
 
-      expect(removed).toBe(1);
-      expect(scanner.getOpportunities()).toHaveLength(1);
-      expect(scanner.getOpportunities()[0].id).toBe('2');
+      const all = s.getAllOpportunities();
+      expect(all.length).toBe(2);
+      // When at capacity, the CURRENT lowest is evicted when adding a new one.
+      // Order: Add Opp1 (90), Add Opp2 (80), Add Opp3 (70) triggers eviction.
+      // At eviction: cache has [Opp1:90, Opp2:80], we evict Opp2 (lowest), add Opp3.
+      // Result: [Opp1:90, Opp3:70] - Opp2 was evicted.
+      expect(all.find(o => o.title === 'Opp 2')).toBeUndefined();
     });
 
-    it('should emit audit event when pruning', () => {
-      let emitted = false;
-      eventBus.on('audit:log', () => {
-        emitted = true;
-      });
+    it('should clear cache', async () => {
+      const mockOpportunities: RawOpportunity[] = [
+        {
+          category: 'crypto_investment',
+          title: 'Opp',
+          description: 'Desc',
+          source: 'Src',
+          scores: { roiPotential: 70, effortRequired: 30, skillAlignment: 70, timeToRevenue: 70, riskLevel: 30, confidenceLevel: 70 },
+          actionItems: [],
+          timeframe: 'immediate',
+        },
+      ];
 
-      const old = new Date();
-      old.setDate(old.getDate() - 10);
+      registerCategoryScanner('crypto_investment', vi.fn().mockResolvedValue(mockOpportunities));
+      await scanner.scanAll();
 
-      const oldOpp: ScoredOpportunity = {
-        id: '1', category: 'crypto_investment', title: 'Old', description: '',
-        source: 'scanner', detectedAt: old.toISOString(), rawData: {},
-        scores: { roiPotential: 50, effortRequired: 50, skillAlignment: 50, timeToRevenue: 50, riskLevel: 50, confidenceLevel: 50 },
-        compositeScore: 50, recommendation: 'watch', actionItems: [], timeframe: 'this_month',
-      };
+      expect(scanner.getAllOpportunities().length).toBe(1);
 
-      scanner['opportunities'].push(oldOpp);
-      scanner.pruneOld(5);
+      scanner.clearCache();
 
-      expect(emitted).toBe(true);
+      expect(scanner.getAllOpportunities().length).toBe(0);
     });
 
-    it('should not emit audit event if nothing pruned', () => {
-      let emitted = false;
-      eventBus.on('audit:log', () => {
-        emitted = true;
+    it('should prune expired opportunities', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-16T12:00:00Z'));
+
+      const mockOpportunities: RawOpportunity[] = [
+        {
+          category: 'crypto_investment',
+          title: 'Expired',
+          description: 'Desc',
+          source: 'Src',
+          scores: { roiPotential: 70, effortRequired: 30, skillAlignment: 70, timeToRevenue: 70, riskLevel: 30, confidenceLevel: 70 },
+          actionItems: [],
+          timeframe: 'immediate',
+          expiresAt: new Date('2026-02-15T12:00:00Z'), // Yesterday
+        },
+        {
+          category: 'crypto_investment',
+          title: 'Valid',
+          description: 'Desc',
+          source: 'Src',
+          scores: { roiPotential: 70, effortRequired: 30, skillAlignment: 70, timeToRevenue: 70, riskLevel: 30, confidenceLevel: 70 },
+          actionItems: [],
+          timeframe: 'this_week',
+          expiresAt: new Date('2026-02-20T12:00:00Z'), // Future
+        },
+      ];
+
+      registerCategoryScanner('crypto_investment', vi.fn().mockResolvedValue(mockOpportunities));
+      await scanner.scanAll();
+
+      const pruned = scanner.pruneExpired();
+      expect(pruned).toBe(1);
+
+      const remaining = scanner.getAllOpportunities();
+      expect(remaining.length).toBe(1);
+      expect(remaining[0].title).toBe('Valid');
+
+      vi.useRealTimers();
+    });
+
+    it('should filter expired from getTopOpportunities', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-16T12:00:00Z'));
+
+      const mockOpportunities: RawOpportunity[] = [
+        {
+          category: 'crypto_investment',
+          title: 'Expired High',
+          description: 'Desc',
+          source: 'Src',
+          scores: { roiPotential: 95, effortRequired: 5, skillAlignment: 95, timeToRevenue: 95, riskLevel: 5, confidenceLevel: 95 },
+          actionItems: [],
+          timeframe: 'immediate',
+          expiresAt: new Date('2026-02-15T12:00:00Z'), // Expired
+        },
+        {
+          category: 'crypto_investment',
+          title: 'Valid Low',
+          description: 'Desc',
+          source: 'Src',
+          scores: { roiPotential: 60, effortRequired: 40, skillAlignment: 60, timeToRevenue: 60, riskLevel: 40, confidenceLevel: 60 },
+          actionItems: [],
+          timeframe: 'this_week',
+        },
+      ];
+
+      registerCategoryScanner('crypto_investment', vi.fn().mockResolvedValue(mockOpportunities));
+      await scanner.scanAll();
+
+      const top = scanner.getTopOpportunities();
+      expect(top.length).toBe(1);
+      expect(top[0].title).toBe('Valid Low');
+
+      vi.useRealTimers();
+    });
+  });
+
+  // =========================================================================
+  // STATISTICS TESTS
+  // =========================================================================
+
+  describe('getStats', () => {
+    it('should return accurate statistics', async () => {
+      const mockOpportunities: RawOpportunity[] = [
+        {
+          category: 'crypto_investment',
+          title: 'Crypto 1',
+          description: 'Desc',
+          source: 'Src',
+          scores: { roiPotential: 90, effortRequired: 10, skillAlignment: 90, timeToRevenue: 90, riskLevel: 10, confidenceLevel: 90 },
+          actionItems: [],
+          timeframe: 'immediate',
+        },
+        {
+          category: 'crypto_investment',
+          title: 'Crypto 2',
+          description: 'Desc',
+          source: 'Src',
+          scores: { roiPotential: 70, effortRequired: 30, skillAlignment: 70, timeToRevenue: 70, riskLevel: 30, confidenceLevel: 70 },
+          actionItems: [],
+          timeframe: 'this_week',
+        },
+        {
+          category: 'freelance_gig',
+          title: 'Gig 1',
+          description: 'Desc',
+          source: 'Src',
+          scores: { roiPotential: 50, effortRequired: 50, skillAlignment: 50, timeToRevenue: 50, riskLevel: 50, confidenceLevel: 50 },
+          actionItems: [],
+          timeframe: 'this_month',
+        },
+      ];
+
+      registerCategoryScanner('crypto_investment', vi.fn().mockResolvedValue(
+        mockOpportunities.filter(o => o.category === 'crypto_investment')
+      ));
+      registerCategoryScanner('freelance_gig', vi.fn().mockResolvedValue(
+        mockOpportunities.filter(o => o.category === 'freelance_gig')
+      ));
+
+      await scanner.scanAll();
+
+      const stats = scanner.getStats();
+
+      expect(stats.cachedCount).toBe(3);
+      expect(stats.lastScanAt).toBeInstanceOf(Date);
+      expect(stats.byCategory.crypto_investment).toBe(2);
+      expect(stats.byCategory.freelance_gig).toBe(1);
+      expect(stats.avgScore).toBeGreaterThan(0);
+    });
+
+    it('should return zero average for empty cache', () => {
+      const stats = scanner.getStats();
+
+      expect(stats.cachedCount).toBe(0);
+      expect(stats.avgScore).toBe(0);
+      expect(stats.lastScanAt).toBeNull();
+    });
+  });
+
+  // =========================================================================
+  // CONFIG UPDATE TESTS
+  // =========================================================================
+
+  describe('updateConfig', () => {
+    it('should update configuration', () => {
+      scanner.updateConfig({ minScoreThreshold: 50 });
+
+      const config = scanner.getConfig();
+      expect(config.minScoreThreshold).toBe(50);
+    });
+
+    it('should throw on invalid weight update', () => {
+      expect(() => scanner.updateConfig({
+        weights: {
+          roiPotential: 0.9,
+          effortRequired: 0.9,
+          skillAlignment: 0.1,
+          timeToRevenue: 0.1,
+          riskLevel: 0.1,
+          confidenceLevel: 0.1,
+        },
+      })).toThrow('Invalid weights: must sum to 1.0');
+    });
+  });
+
+  // =========================================================================
+  // FACTORY FUNCTION TESTS
+  // =========================================================================
+
+  describe('createOpportunityScanner', () => {
+    it('should create scanner instance', () => {
+      const s = createOpportunityScanner(eventBus);
+      expect(s).toBeInstanceOf(OpportunityScanner);
+    });
+
+    it('should create scanner with custom config', () => {
+      const s = createOpportunityScanner(eventBus, {
+        minScoreThreshold: 60,
       });
 
-      scanner.pruneOld(7);
+      expect(s.getConfig().minScoreThreshold).toBe(60);
+    });
+  });
 
-      expect(emitted).toBe(false);
+  // =========================================================================
+  // CONSTANTS TESTS
+  // =========================================================================
+
+  describe('constants', () => {
+    it('should have valid DEFAULT_WEIGHTS', () => {
+      expect(validateWeights(DEFAULT_WEIGHTS)).toBe(true);
+    });
+
+    it('should have all 12 categories in ALL_CATEGORIES', () => {
+      expect(ALL_CATEGORIES.length).toBe(12);
+      expect(ALL_CATEGORIES).toContain('crypto_investment');
+      expect(ALL_CATEGORIES).toContain('pokemon_investment');
+      expect(ALL_CATEGORIES).toContain('stock_investment');
+      expect(ALL_CATEGORIES).toContain('etf_investment');
+      expect(ALL_CATEGORIES).toContain('real_estate_trend');
+      expect(ALL_CATEGORIES).toContain('saas_idea');
+      expect(ALL_CATEGORIES).toContain('freelance_gig');
+      expect(ALL_CATEGORIES).toContain('consulting_lead');
+      expect(ALL_CATEGORIES).toContain('content_opportunity');
+      expect(ALL_CATEGORIES).toContain('career_opportunity');
+      expect(ALL_CATEGORIES).toContain('side_project');
+      expect(ALL_CATEGORIES).toContain('arbitrage');
+    });
+
+    it('should have valid DEFAULT_CONFIG', () => {
+      expect(DEFAULT_CONFIG.categories).toEqual(ALL_CATEGORIES);
+      expect(DEFAULT_CONFIG.minScoreThreshold).toBe(30);
+      expect(DEFAULT_CONFIG.maxCachedOpportunities).toBe(100);
+      expect(validateWeights(DEFAULT_CONFIG.weights)).toBe(true);
     });
   });
 });

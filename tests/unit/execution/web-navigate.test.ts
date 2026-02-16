@@ -373,7 +373,7 @@ describe('URL Auto-Prefix', () => {
 
   // These will fail on actual navigation (no browser in CI) but should
   // NOT fail on URL validation — proving the auto-prefix works
-  it.skip('should not throw on URLs without scheme', async () => {
+  it('should not throw on URLs without scheme', async () => {
     // This should get past validation and fail on browser launch, not URL parsing
     try {
       await webNavigateHandler({ url: 'example.com' }, ctx);

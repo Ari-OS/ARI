@@ -1,439 +1,639 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { EventBus } from '../../../src/kernel/event-bus.js';
-import { CareerTracker } from '../../../src/autonomous/career-tracker.js';
-import type { CareerProfile, JobMatch } from '../../../src/autonomous/career-tracker.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  CareerTracker,
+  JobOpportunity,
+  CareerMatch,
+  TargetProfile,
+} from '../../../src/autonomous/career-tracker.js';
+import type { EventBus } from '../../../src/kernel/event-bus.js';
+
+// Mock logger
+vi.mock('../../../src/kernel/logger.js', () => ({
+  createLogger: () => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));
+
+// Helper to create a mock EventBus
+function createMockEventBus(): EventBus {
+  return {
+    emit: vi.fn(),
+    on: vi.fn(() => () => {}),
+    off: vi.fn(),
+    once: vi.fn(() => () => {}),
+    clear: vi.fn(),
+    listenerCount: vi.fn(() => 0),
+    getHandlerErrorCount: vi.fn(() => 0),
+    setHandlerTimeout: vi.fn(),
+  } as unknown as EventBus;
+}
+
+// Helper to create a test opportunity
+function createTestOpportunity(overrides: Partial<JobOpportunity> = {}): JobOpportunity {
+  return {
+    id: 'test-job-1',
+    title: 'Senior Software Engineer',
+    company: 'TestCorp',
+    location: 'San Francisco, CA',
+    remote: true,
+    salary: { min: 180000, max: 220000 },
+    skills: ['TypeScript', 'Node.js', 'React'],
+    description: 'Join our team',
+    source: 'LinkedIn',
+    sourceUrl: 'https://linkedin.com/jobs/test',
+    postedAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+// Helper to run async operations with fake timers
+async function runWithTimers<T>(fn: () => Promise<T>): Promise<T> {
+  const promise = fn();
+  // Advance all timers to resolve any setTimeout/sleep calls
+  await vi.runAllTimersAsync();
+  return promise;
+}
 
 describe('CareerTracker', () => {
-  let eventBus: EventBus;
   let tracker: CareerTracker;
+  let mockEventBus: EventBus;
 
   beforeEach(() => {
-    eventBus = new EventBus();
-    tracker = new CareerTracker(eventBus);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-02-16T10:00:00Z'));
+    mockEventBus = createMockEventBus();
+    tracker = new CareerTracker(mockEventBus);
   });
 
-  describe('scoreListing', () => {
-    it('should score target role match highly', () => {
-      const listing = {
-        title: 'Software Engineer',
-        company: 'Tech Corp',
-        location: 'Remote',
-        salary: { min: 90000, max: 120000 },
-      };
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-      const result = tracker.scoreListing(listing);
+  describe('constructor', () => {
+    it('should create with default profile', () => {
+      const t = new CareerTracker();
+      expect(t).toBeDefined();
 
-      expect(result.matchScore).toBeGreaterThanOrEqual(30); // Role match alone
-      expect(result.matchReasons).toContain('Target role match');
+      const profile = t.getTargetProfile();
+      expect(profile.targetRoles).toContain('Software Engineer');
+      expect(profile.skills).toContain('TypeScript');
     });
 
-    it('should score strong skill matches', () => {
-      const listing = {
-        title: 'TypeScript Node.js Developer',
-        company: 'Tech Inc',
-        location: 'Remote',
-        salary: { min: 85000, max: 110000 },
-      };
-
-      const result = tracker.scoreListing(listing);
-
-      expect(result.matchScore).toBeGreaterThan(30);
-      expect(result.matchReasons.some((r) => r.includes('strong skill'))).toBe(true);
+    it('should accept an EventBus', () => {
+      const t = new CareerTracker(mockEventBus);
+      expect(t).toBeDefined();
     });
 
-    it('should score remote work preference', () => {
-      const listing = {
-        title: 'Developer',
-        company: 'Remote Co',
-        location: 'Remote',
-      };
-
-      const result = tracker.scoreListing(listing);
-
-      expect(result.matchReasons).toContain('Remote work available');
-      expect(result.matchScore).toBeGreaterThanOrEqual(15);
-    });
-
-    it('should score hybrid work preference', () => {
-      const listing = {
-        title: 'Developer',
-        company: 'Hybrid Co',
-        location: 'Hybrid, NYC',
-      };
-
-      const result = tracker.scoreListing(listing);
-
-      expect(result.matchReasons).toContain('Hybrid work available');
-      expect(result.matchScore).toBeGreaterThanOrEqual(12);
-    });
-
-    it('should score location match', () => {
-      const listing = {
-        title: 'Developer',
-        company: 'East Coast Co',
-        location: 'Eastern US',
-      };
-
-      const result = tracker.scoreListing(listing);
-
-      expect(result.matchReasons).toContain('Location match');
-    });
-
-    it('should score salary meeting minimum', () => {
-      const listing = {
-        title: 'Developer',
-        company: 'Tech Corp',
-        location: 'Remote',
-        salary: { min: 90000, max: 120000 },
-      };
-
-      const result = tracker.scoreListing(listing);
-
-      expect(result.matchReasons.some((r) => r.includes('Salary meets minimum'))).toBe(true);
-    });
-
-    it('should flag salary below minimum', () => {
-      const listing = {
-        title: 'Developer',
-        company: 'Startup Inc',
-        location: 'Remote',
-        salary: { min: 60000, max: 75000 },
-      };
-
-      const result = tracker.scoreListing(listing);
-
-      expect(result.matchReasons.some((r) => r.includes('below minimum'))).toBe(true);
-    });
-
-    it('should identify missing skills', () => {
-      const listing = {
-        title: 'React Angular Developer',
-        company: 'Frontend Co',
-        location: 'Remote',
-      };
-
-      const result = tracker.scoreListing(listing);
-
-      expect(result.missingSkills).toContain('angular');
-      // React is in moderate skills, so should match
-    });
-
-    it('should score differentiator keywords', () => {
-      const listing = {
-        title: 'AI/ML Engineer - Security Focus',
-        company: 'AI Corp',
-        location: 'Remote',
-        salary: { min: 100000, max: 150000 },
-      };
-
-      const result = tracker.scoreListing(listing);
-
-      expect(result.matchReasons.some((r) => r.includes('differentiators'))).toBe(true);
-    });
-
-    it.skip('should produce high score for perfect match', () => {
-      const listing = {
-        title: 'Senior TypeScript Node.js AI Engineer',
-        company: 'AI Security Corp',
-        location: 'Remote - Eastern US',
-        salary: { min: 120000, max: 160000 },
-      };
-
-      const result = tracker.scoreListing(listing);
-
-      expect(result.matchScore).toBeGreaterThan(80);
-    });
-
-    it('should produce low score for poor match', () => {
-      const listing = {
-        title: 'PHP Developer',
-        company: 'Old Tech Inc',
-        location: 'On-site San Francisco',
-        salary: { min: 50000, max: 65000 },
-      };
-
-      const result = tracker.scoreListing(listing);
-
-      expect(result.matchScore).toBeLessThan(30);
+    it('should work without EventBus', () => {
+      const t = new CareerTracker();
+      expect(t).toBeDefined();
     });
   });
 
-  describe('addListing', () => {
-    it('should add and score a listing', () => {
-      const listing = {
-        id: '1',
-        title: 'Software Engineer',
-        company: 'Tech Corp',
-        location: 'Remote',
-        salary: { min: 90000, max: 120000 },
-        source: 'LinkedIn',
-        url: 'https://example.com/job/1',
-        detectedAt: new Date().toISOString(),
-      };
-
-      const match = tracker.addListing(listing);
-
-      expect(match.id).toBe('1');
-      expect(match.matchScore).toBeGreaterThan(0);
-      expect(match.matchReasons.length).toBeGreaterThan(0);
-    });
-
-    it('should not add duplicate listings', () => {
-      const listing = {
-        id: '1',
-        title: 'Software Engineer',
-        company: 'Tech Corp',
-        location: 'Remote',
-        source: 'LinkedIn',
-        url: 'https://example.com/job/1',
-        detectedAt: new Date().toISOString(),
-      };
-
-      const first = tracker.addListing(listing);
-      const second = tracker.addListing(listing);
-
-      expect(first.id).toBe(second.id);
-      expect(tracker.getMatches(0)).toHaveLength(1);
-    });
-
-    it('should emit audit event', () => {
-      let emitted = false;
-      eventBus.on('audit:log', () => {
-        emitted = true;
+  describe('setTargetProfile', () => {
+    it('should update target roles', () => {
+      tracker.setTargetProfile({
+        targetRoles: ['Staff Engineer', 'Principal Engineer'],
       });
 
-      const listing = {
-        id: '1',
-        title: 'Software Engineer',
-        company: 'Tech Corp',
-        location: 'Remote',
-        source: 'LinkedIn',
-        url: 'https://example.com/job/1',
-        detectedAt: new Date().toISOString(),
-      };
+      const profile = tracker.getTargetProfile();
+      expect(profile.targetRoles).toEqual(['Staff Engineer', 'Principal Engineer']);
+    });
 
-      tracker.addListing(listing);
+    it('should update target salary', () => {
+      tracker.setTargetProfile({
+        targetSalary: { min: 200000, max: 400000 },
+      });
 
-      expect(emitted).toBe(true);
+      const profile = tracker.getTargetProfile();
+      expect(profile.targetSalary.min).toBe(200000);
+      expect(profile.targetSalary.max).toBe(400000);
+    });
+
+    it('should update remote preference', () => {
+      tracker.setTargetProfile({ preferRemote: false });
+      expect(tracker.getTargetProfile().preferRemote).toBe(false);
+
+      tracker.setTargetProfile({ preferRemote: true });
+      expect(tracker.getTargetProfile().preferRemote).toBe(true);
+    });
+
+    it('should update skills list', () => {
+      tracker.setTargetProfile({
+        skills: ['Rust', 'Go', 'Kubernetes'],
+      });
+
+      const profile = tracker.getTargetProfile();
+      expect(profile.skills).toEqual(['Rust', 'Go', 'Kubernetes']);
+    });
+
+    it('should update locations', () => {
+      tracker.setTargetProfile({
+        locations: ['Austin', 'Denver', 'Remote'],
+      });
+
+      const profile = tracker.getTargetProfile();
+      expect(profile.locations).toEqual(['Austin', 'Denver', 'Remote']);
+    });
+
+    it('should merge partial updates with existing profile', () => {
+      tracker.setTargetProfile({
+        targetRoles: ['CTO'],
+      });
+
+      tracker.setTargetProfile({
+        skills: ['Leadership'],
+      });
+
+      const profile = tracker.getTargetProfile();
+      expect(profile.targetRoles).toEqual(['CTO']);
+      expect(profile.skills).toEqual(['Leadership']);
     });
   });
 
-  describe('getMatches', () => {
-    it('should return all matches above threshold', () => {
-      tracker.addListing({
-        id: '1', title: 'TypeScript Developer', company: 'Tech', location: 'Remote',
-        source: 'LinkedIn', url: 'https://example.com/1', detectedAt: new Date().toISOString(),
-      });
-      tracker.addListing({
-        id: '2', title: 'PHP Developer', company: 'Old Tech', location: 'On-site',
-        source: 'Indeed', url: 'https://example.com/2', detectedAt: new Date().toISOString(),
+  describe('getTargetProfile', () => {
+    it('should return a copy of the profile', () => {
+      const profile1 = tracker.getTargetProfile();
+      const profile2 = tracker.getTargetProfile();
+
+      expect(profile1).toEqual(profile2);
+      expect(profile1).not.toBe(profile2); // Different object references
+    });
+  });
+
+  describe('scoreOpportunity', () => {
+    it('should return high score for perfect match', () => {
+      tracker.setTargetProfile({
+        targetRoles: ['Senior Software Engineer'],
+        targetSalary: { min: 150000, max: 250000 },
+        preferRemote: true,
+        skills: ['TypeScript', 'Node.js', 'React'],
+        locations: ['San Francisco'],
       });
 
-      const matches = tracker.getMatches(50);
+      const opportunity = createTestOpportunity();
+      const match = tracker.scoreOpportunity(opportunity);
 
-      // TypeScript role should score higher
-      expect(matches.length).toBeGreaterThan(0);
-      expect(matches.every((m) => m.matchScore >= 50)).toBe(true);
+      expect(match.matchScore).toBeGreaterThan(0.8);
+      expect(match.skillMatch).toBeGreaterThan(0.8);
+      expect(match.salaryMatch).toBeGreaterThan(0.5);
+      expect(match.locationMatch).toBe(1.0);
     });
 
-    it('should sort by match score descending', () => {
-      tracker.addListing({
-        id: '1', title: 'Developer', company: 'Co A', location: 'Remote',
-        source: 'LinkedIn', url: 'https://example.com/1', detectedAt: new Date().toISOString(),
-      });
-      tracker.addListing({
-        id: '2', title: 'Senior TypeScript AI Engineer', company: 'Co B', location: 'Remote',
-        salary: { min: 120000, max: 150000 },
-        source: 'LinkedIn', url: 'https://example.com/2', detectedAt: new Date().toISOString(),
+    it('should return low score for poor match', () => {
+      tracker.setTargetProfile({
+        targetRoles: ['Data Scientist'],
+        targetSalary: { min: 100000, max: 120000 },
+        preferRemote: false,
+        skills: ['Python', 'PyTorch', 'TensorFlow'],
+        locations: ['Boston'],
       });
 
-      const matches = tracker.getMatches(0);
-
-      expect(matches[0].matchScore).toBeGreaterThanOrEqual(matches[1].matchScore);
-    });
-
-    it('should default to minScore 50', () => {
-      tracker.addListing({
-        id: '1', title: 'TypeScript Developer', company: 'Tech', location: 'Remote',
-        salary: { min: 90000, max: 120000 },
-        source: 'LinkedIn', url: 'https://example.com/1', detectedAt: new Date().toISOString(),
-      });
-      tracker.addListing({
-        id: '2', title: 'PHP Developer', company: 'Old', location: 'On-site',
+      const opportunity = createTestOpportunity({
+        skills: ['Cobol', 'Fortran'],
         salary: { min: 50000, max: 60000 },
-        source: 'Indeed', url: 'https://example.com/2', detectedAt: new Date().toISOString(),
+        location: 'Chicago, IL',
+        remote: false,
       });
 
-      const matches = tracker.getMatches();
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.matchScore).toBeLessThan(0.5);
+    });
 
-      expect(matches.every((m) => m.matchScore >= 50)).toBe(true);
+    it('should provide reasoning for skill match', () => {
+      const opportunity = createTestOpportunity({
+        skills: ['TypeScript', 'Node.js', 'GraphQL'],
+      });
+
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.reasoning.some(r => r.includes('skill'))).toBe(true);
+    });
+
+    it('should provide reasoning for salary match', () => {
+      const opportunity = createTestOpportunity({
+        salary: { min: 180000, max: 220000 },
+      });
+
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.reasoning.some(r => r.includes('salary') || r.includes('$'))).toBe(true);
+    });
+
+    it('should provide reasoning for location match', () => {
+      const opportunity = createTestOpportunity({
+        location: 'Remote',
+        remote: true,
+      });
+
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.reasoning.some(r => r.toLowerCase().includes('remote') || r.toLowerCase().includes('location'))).toBe(true);
+    });
+
+    it('should handle missing salary', () => {
+      const opportunity = createTestOpportunity({ salary: undefined });
+      const match = tracker.scoreOpportunity(opportunity);
+
+      expect(match.salaryMatch).toBe(0.5); // Neutral score
+      expect(match.reasoning.some(r => r.includes('not disclosed'))).toBe(true);
+    });
+
+    it('should handle empty skills list', () => {
+      const opportunity = createTestOpportunity({ skills: [] });
+      const match = tracker.scoreOpportunity(opportunity);
+
+      expect(match.skillMatch).toBe(0.5); // Neutral score
+      expect(match.reasoning.some(r => r.includes('No skills listed'))).toBe(true);
+    });
+
+    it('should round scores to 2 decimal places', () => {
+      const opportunity = createTestOpportunity();
+      const match = tracker.scoreOpportunity(opportunity);
+
+      // Check that scores are rounded
+      expect(Number.isFinite(match.matchScore)).toBe(true);
+      expect(match.matchScore.toString().split('.')[1]?.length ?? 0).toBeLessThanOrEqual(2);
     });
   });
 
-  describe('getWeeklyReport', () => {
-    it('should generate weekly report', () => {
-      tracker.addListing({
-        id: '1', title: 'TypeScript Engineer', company: 'Tech', location: 'Remote',
-        salary: { min: 95000, max: 125000 },
-        source: 'LinkedIn', url: 'https://example.com/1', detectedAt: new Date().toISOString(),
+  describe('calculateSkillMatch', () => {
+    it('should match exact skill names', () => {
+      tracker.setTargetProfile({ skills: ['TypeScript', 'Node.js'] });
+
+      const opportunity = createTestOpportunity({
+        skills: ['TypeScript', 'Node.js'],
       });
 
-      const report = tracker.getWeeklyReport();
-
-      expect(report.weekOf).toBeTruthy();
-      expect(report.newMatches.length).toBeGreaterThan(0);
-      expect(report.recommendation).toBeTruthy();
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.skillMatch).toBe(1.0);
     });
 
-    it('should include new matches from past week', () => {
-      const recent = new Date();
-      const old = new Date(recent.getTime() - 10 * 24 * 60 * 60 * 1000); // 10 days ago
+    it('should match partial skill names', () => {
+      tracker.setTargetProfile({ skills: ['TypeScript'] });
 
-      tracker.addListing({
-        id: '1', title: 'Recent Job', company: 'Co A', location: 'Remote',
-        source: 'LinkedIn', url: 'https://example.com/1', detectedAt: recent.toISOString(),
-      });
-      tracker.addListing({
-        id: '2', title: 'Old Job', company: 'Co B', location: 'Remote',
-        source: 'LinkedIn', url: 'https://example.com/2', detectedAt: old.toISOString(),
+      const opportunity = createTestOpportunity({
+        skills: ['typescript'],
       });
 
-      const report = tracker.getWeeklyReport();
-
-      expect(report.newMatches.some((m) => m.id === '1')).toBe(true);
-      expect(report.newMatches.some((m) => m.id === '2')).toBe(false);
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.skillMatch).toBeGreaterThan(0.8);
     });
 
-    it('should include top 5 matches', () => {
-      // Add 10 listings
-      for (let i = 0; i < 10; i++) {
-        tracker.addListing({
-          id: String(i),
-          title: i < 5 ? 'TypeScript Engineer' : 'PHP Developer',
-          company: `Company ${i}`,
-          location: 'Remote',
-          salary: { min: 80000 + i * 5000, max: 100000 + i * 5000 },
-          source: 'LinkedIn',
-          url: `https://example.com/${i}`,
-          detectedAt: new Date().toISOString(),
-        });
+    it('should be case insensitive', () => {
+      tracker.setTargetProfile({ skills: ['TYPESCRIPT', 'nodejs'] });
+
+      const opportunity = createTestOpportunity({
+        skills: ['typescript', 'NodeJS'],
+      });
+
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.skillMatch).toBeGreaterThan(0.8);
+    });
+  });
+
+  describe('calculateSalaryMatch', () => {
+    it('should give high score for overlapping ranges', () => {
+      tracker.setTargetProfile({
+        targetSalary: { min: 150000, max: 200000 },
+      });
+
+      const opportunity = createTestOpportunity({
+        salary: { min: 160000, max: 190000 },
+      });
+
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.salaryMatch).toBeGreaterThan(0.8);
+    });
+
+    it('should give full score for salary above target', () => {
+      tracker.setTargetProfile({
+        targetSalary: { min: 150000, max: 200000 },
+      });
+
+      const opportunity = createTestOpportunity({
+        salary: { min: 250000, max: 300000 },
+      });
+
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.salaryMatch).toBe(1.0);
+    });
+
+    it('should penalize salary below target', () => {
+      tracker.setTargetProfile({
+        targetSalary: { min: 150000, max: 200000 },
+      });
+
+      const opportunity = createTestOpportunity({
+        salary: { min: 80000, max: 100000 },
+      });
+
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.salaryMatch).toBeLessThan(0.7);
+    });
+  });
+
+  describe('calculateLocationMatch', () => {
+    it('should give full score for remote when preferred', () => {
+      tracker.setTargetProfile({ preferRemote: true, locations: [] });
+
+      const opportunity = createTestOpportunity({ remote: true });
+      const match = tracker.scoreOpportunity(opportunity);
+
+      expect(match.locationMatch).toBe(1.0);
+    });
+
+    it('should give full score for matching location', () => {
+      tracker.setTargetProfile({
+        preferRemote: false,
+        locations: ['San Francisco'],
+      });
+
+      const opportunity = createTestOpportunity({
+        location: 'San Francisco, CA',
+        remote: false,
+      });
+
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.locationMatch).toBe(1.0);
+    });
+
+    it('should give low score for non-matching location', () => {
+      tracker.setTargetProfile({
+        preferRemote: true,
+        locations: ['Seattle'],
+      });
+
+      const opportunity = createTestOpportunity({
+        location: 'Miami, FL',
+        remote: false,
+      });
+
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.locationMatch).toBeLessThan(0.5);
+    });
+  });
+
+  describe('scanOpportunities', () => {
+    it('should return matches sorted by score', async () => {
+      const matches = await runWithTimers(() => tracker.scanOpportunities());
+
+      // Check sorting
+      for (let i = 1; i < matches.length; i++) {
+        expect(matches[i - 1].matchScore).toBeGreaterThanOrEqual(matches[i].matchScore);
       }
-
-      const report = tracker.getWeeklyReport();
-
-      expect(report.topMatches.length).toBeLessThanOrEqual(5);
     });
 
-    it('should include skill gaps', () => {
-      tracker.addListing({
-        id: '1', title: 'Angular Kubernetes Developer', company: 'Tech', location: 'Remote',
-        source: 'LinkedIn', url: 'https://example.com/1', detectedAt: new Date().toISOString(),
-      });
+    it('should filter out low-scoring matches', async () => {
+      const matches = await runWithTimers(() => tracker.scanOpportunities());
 
-      const report = tracker.getWeeklyReport();
-
-      expect(report.skillGaps.length).toBeGreaterThan(0);
+      // All matches should meet minimum threshold (0.4)
+      for (const match of matches) {
+        expect(match.matchScore).toBeGreaterThanOrEqual(0.4);
+      }
     });
 
-    it('should provide recommendation when no matches', () => {
-      const report = tracker.getWeeklyReport();
+    it('should update lastScanAt timestamp', async () => {
+      expect(tracker.getLastScanTime()).toBeNull();
 
-      expect(report.recommendation).toContain('No strong matches');
+      await runWithTimers(() => tracker.scanOpportunities());
+
+      expect(tracker.getLastScanTime()).not.toBeNull();
     });
 
-    it.skip('should provide strong match recommendation', () => {
-      tracker.addListing({
-        id: '1',
-        title: 'Senior TypeScript Node.js AI Engineer',
-        company: 'AI Corp',
-        location: 'Remote - Eastern US',
-        salary: { min: 120000, max: 160000 },
-        source: 'LinkedIn',
-        url: 'https://example.com/1',
-        detectedAt: new Date().toISOString(),
-      });
+    it('should cache results', async () => {
+      await runWithTimers(() => tracker.scanOpportunities());
 
-      const report = tracker.getWeeklyReport();
-
-      expect(report.recommendation).toContain('apply immediately');
-    });
-  });
-
-  describe('getSkillGaps', () => {
-    it.skip('should identify most frequent missing skills', () => {
-      tracker.addListing({
-        id: '1', title: 'Angular Kubernetes Developer', company: 'A', location: 'Remote',
-        source: 'LinkedIn', url: 'https://example.com/1', detectedAt: new Date().toISOString(),
-      });
-      tracker.addListing({
-        id: '2', title: 'Vue Kubernetes Developer', company: 'B', location: 'Remote',
-        source: 'LinkedIn', url: 'https://example.com/2', detectedAt: new Date().toISOString(),
-      });
-      tracker.addListing({
-        id: '3', title: 'Kubernetes Engineer', company: 'C', location: 'Remote',
-        source: 'LinkedIn', url: 'https://example.com/3', detectedAt: new Date().toISOString(),
-      });
-
-      const gaps = tracker.getSkillGaps();
-
-      // Kubernetes should be most frequent (appears 3 times)
-      expect(gaps[0]).toBe('kubernetes');
+      const cached = tracker.getAllMatches();
+      expect(cached.length).toBeGreaterThan(0);
     });
 
-    it('should limit to top 5 skills', () => {
-      tracker.addListing({
-        id: '1', title: 'Angular Vue Rust Go Java AWS Developer', company: 'A', location: 'Remote',
-        source: 'LinkedIn', url: 'https://example.com/1', detectedAt: new Date().toISOString(),
-      });
+    it('should emit event when matches found', async () => {
+      await runWithTimers(() => tracker.scanOpportunities());
 
-      const gaps = tracker.getSkillGaps();
-
-      expect(gaps.length).toBeLessThanOrEqual(5);
+      expect(mockEventBus.emit).toHaveBeenCalledWith(
+        'career:new_matches',
+        expect.objectContaining({
+          count: expect.any(Number),
+          topMatch: expect.any(String),
+        })
+      );
     });
 
-    it('should return empty array when no gaps', () => {
-      tracker.addListing({
-        id: '1', title: 'TypeScript Developer', company: 'A', location: 'Remote',
-        source: 'LinkedIn', url: 'https://example.com/1', detectedAt: new Date().toISOString(),
-      });
+    it('should work without EventBus', async () => {
+      const trackerNoEvents = new CareerTracker();
+      const matches = await runWithTimers(() => trackerNoEvents.scanOpportunities());
 
-      const gaps = tracker.getSkillGaps();
-
-      expect(gaps).toEqual([]);
+      expect(matches).toBeDefined();
+      expect(Array.isArray(matches)).toBe(true);
     });
   });
 
-  describe('custom profile', () => {
-    it('should use custom profile when provided', () => {
-      const customProfile: CareerProfile = {
-        targetRoles: ['Backend Engineer'],
-        skills: {
-          strong: ['Python', 'Django'],
-          moderate: ['PostgreSQL'],
-          learning: ['Go'],
-        },
-        preferences: {
-          remote: false,
-          hybrid: false,
-          salaryMin: 100000,
-          location: 'San Francisco',
-        },
-        differentiators: ['Built large-scale API'],
-      };
+  describe('getTopMatches', () => {
+    it('should return empty array before scan', () => {
+      const matches = tracker.getTopMatches();
+      expect(matches).toEqual([]);
+    });
 
-      const customTracker = new CareerTracker(eventBus, customProfile);
+    it('should return top N matches', async () => {
+      await runWithTimers(() => tracker.scanOpportunities());
 
-      const listing = {
-        title: 'Backend Engineer - Python Django',
-        company: 'Tech Corp',
-        location: 'San Francisco',
-        salary: { min: 110000, max: 140000 },
-      };
+      const top3 = tracker.getTopMatches(3);
+      expect(top3.length).toBeLessThanOrEqual(3);
+    });
 
-      const result = customTracker.scoreListing(listing);
+    it('should default to 10 matches', async () => {
+      await runWithTimers(() => tracker.scanOpportunities());
 
-      expect(result.matchReasons).toContain('Target role match');
-      expect(result.matchScore).toBeGreaterThan(50);
+      const matches = tracker.getTopMatches();
+      expect(matches.length).toBeLessThanOrEqual(10);
+    });
+
+    it('should return matches in descending score order', async () => {
+      await runWithTimers(() => tracker.scanOpportunities());
+
+      const matches = tracker.getTopMatches(5);
+      for (let i = 1; i < matches.length; i++) {
+        expect(matches[i - 1].matchScore).toBeGreaterThanOrEqual(matches[i].matchScore);
+      }
+    });
+  });
+
+  describe('getAllMatches', () => {
+    it('should return all cached matches', async () => {
+      await runWithTimers(() => tracker.scanOpportunities());
+
+      const all = tracker.getAllMatches();
+      const top = tracker.getTopMatches(100);
+
+      expect(all.length).toBe(top.length);
+    });
+
+    it('should return a copy of the array', async () => {
+      await runWithTimers(() => tracker.scanOpportunities());
+
+      const all1 = tracker.getAllMatches();
+      const all2 = tracker.getAllMatches();
+
+      expect(all1).not.toBe(all2);
+    });
+  });
+
+  describe('generateReport', () => {
+    it('should generate markdown report', async () => {
+      const report = await runWithTimers(() => tracker.generateReport());
+
+      expect(report).toContain('# Daily Career Opportunity Report');
+      expect(report).toContain('## Summary');
+      expect(report).toContain('## Target Profile');
+    });
+
+    it('should include summary statistics', async () => {
+      const report = await runWithTimers(() => tracker.generateReport());
+
+      expect(report).toContain('Total Opportunities Found');
+      expect(report).toContain('Above 70% Match');
+    });
+
+    it('should include target profile details', async () => {
+      tracker.setTargetProfile({
+        targetRoles: ['Staff Engineer'],
+        skills: ['Rust', 'WebAssembly'],
+      });
+
+      const report = await runWithTimers(() => tracker.generateReport());
+
+      expect(report).toContain('Staff Engineer');
+      expect(report).toContain('Rust');
+    });
+
+    it('should include top opportunities', async () => {
+      const report = await runWithTimers(() => tracker.generateReport());
+
+      // Should have numbered opportunities
+      expect(report).toContain('### 1.');
+    });
+
+    it('should include match reasoning', async () => {
+      const report = await runWithTimers(() => tracker.generateReport());
+
+      expect(report).toContain('Match Analysis');
+    });
+
+    it('should include sources checked', async () => {
+      const report = await runWithTimers(() => tracker.generateReport());
+
+      expect(report).toContain('## Sources Checked');
+      expect(report).toContain('LinkedIn');
+    });
+
+    it('should trigger scan if no cached data', async () => {
+      tracker.clearCache();
+
+      const report = await runWithTimers(() => tracker.generateReport());
+
+      expect(tracker.getLastScanTime()).not.toBeNull();
+      expect(report).toContain('Total Opportunities Found');
+    });
+  });
+
+  describe('clearCache', () => {
+    it('should clear cached matches', async () => {
+      await runWithTimers(() => tracker.scanOpportunities());
+      expect(tracker.getAllMatches().length).toBeGreaterThan(0);
+
+      tracker.clearCache();
+
+      expect(tracker.getAllMatches().length).toBe(0);
+    });
+
+    it('should reset lastScanAt', async () => {
+      await runWithTimers(() => tracker.scanOpportunities());
+      expect(tracker.getLastScanTime()).not.toBeNull();
+
+      tracker.clearCache();
+
+      expect(tracker.getLastScanTime()).toBeNull();
+    });
+  });
+
+  describe('getStats', () => {
+    it('should return zero stats before scan', () => {
+      const stats = tracker.getStats();
+
+      expect(stats.total).toBe(0);
+      expect(stats.avgScore).toBe(0);
+      expect(stats.topScore).toBe(0);
+      expect(stats.lastScan).toBeNull();
+    });
+
+    it('should return accurate stats after scan', async () => {
+      await runWithTimers(() => tracker.scanOpportunities());
+
+      const stats = tracker.getStats();
+      const matches = tracker.getAllMatches();
+
+      expect(stats.total).toBe(matches.length);
+      expect(stats.topScore).toBe(matches[0]?.matchScore ?? 0);
+      expect(stats.lastScan).not.toBeNull();
+    });
+
+    it('should calculate average score correctly', async () => {
+      await runWithTimers(() => tracker.scanOpportunities());
+
+      const stats = tracker.getStats();
+      const matches = tracker.getAllMatches();
+
+      const expectedAvg = matches.reduce((sum, m) => sum + m.matchScore, 0) / matches.length;
+      expect(stats.avgScore).toBeCloseTo(expectedAvg, 2);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle empty target roles', async () => {
+      tracker.setTargetProfile({ targetRoles: [] });
+
+      const matches = await runWithTimers(() => tracker.scanOpportunities());
+      expect(matches).toBeDefined();
+    });
+
+    it('should handle empty skills list in profile', async () => {
+      tracker.setTargetProfile({ skills: [] });
+
+      const matches = await runWithTimers(() => tracker.scanOpportunities());
+      expect(matches).toBeDefined();
+    });
+
+    it('should handle zero salary range', () => {
+      tracker.setTargetProfile({
+        targetSalary: { min: 0, max: 0 },
+      });
+
+      const opportunity = createTestOpportunity();
+      const match = tracker.scoreOpportunity(opportunity);
+
+      expect(Number.isFinite(match.salaryMatch)).toBe(true);
+    });
+
+    it('should handle opportunity with salary equal to min target', () => {
+      tracker.setTargetProfile({
+        targetSalary: { min: 150000, max: 200000 },
+      });
+
+      const opportunity = createTestOpportunity({
+        salary: { min: 150000, max: 150000 },
+      });
+
+      const match = tracker.scoreOpportunity(opportunity);
+      expect(match.salaryMatch).toBeGreaterThan(0);
+    });
+  });
+
+  describe('singleton export', () => {
+    it('should export careerTracker singleton', async () => {
+      const { careerTracker } = await import('../../../src/autonomous/career-tracker.js');
+      expect(careerTracker).toBeDefined();
+      expect(careerTracker).toBeInstanceOf(CareerTracker);
     });
   });
 });

@@ -1,662 +1,635 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { promises as fs } from 'node:fs';
-import { PortfolioTracker } from '../../../src/autonomous/portfolio-tracker.js';
-import type { EventBus } from '../../../src/kernel/event-bus.js';
-import type { PriceSnapshot } from '../../../src/autonomous/market-monitor.js';
-
-// Mock fs
-vi.mock('node:fs', () => ({
-  promises: {
-    mkdir: vi.fn(),
-    readFile: vi.fn(),
-    writeFile: vi.fn(),
-  },
-}));
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { PortfolioTracker, Holding, MarketMonitor, AssetClass } from '../../../src/autonomous/portfolio-tracker.js';
+import { EventBus } from '../../../src/kernel/event-bus.js';
+import fs from 'node:fs/promises';
+import { existsSync, rmSync } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 
 describe('PortfolioTracker', () => {
   let tracker: PortfolioTracker;
-  let mockEventBus: EventBus;
-  const testDataDir = '/tmp/test-portfolio';
+  let eventBus: EventBus;
+  let testStoragePath: string;
+  let mockMarketMonitor: MarketMonitor;
 
-  beforeEach(() => {
-    vi.clearAllMocks();
+  beforeEach(async () => {
+    // Create unique temp directory for each test
+    testStoragePath = path.join(os.tmpdir(), `ari-portfolio-test-${Date.now()}`);
 
-    // Create mock EventBus
-    mockEventBus = {
-      emit: vi.fn(),
-      on: vi.fn(),
-      off: vi.fn(),
-      once: vi.fn(),
-      clear: vi.fn(),
-      listenerCount: vi.fn(),
-      getHandlerErrorCount: vi.fn(),
-      setHandlerTimeout: vi.fn(),
-    } as unknown as EventBus;
+    eventBus = new EventBus();
+    tracker = new PortfolioTracker(eventBus, { storagePath: testStoragePath });
+    await tracker.init();
 
-    tracker = new PortfolioTracker(mockEventBus, { dataDir: testDataDir });
-
-    // Default mock implementations
-    (fs.mkdir as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
-    (fs.writeFile as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    // Create mock market monitor
+    mockMarketMonitor = {
+      getPrice: vi.fn().mockImplementation(async (asset: string) => {
+        const prices: Record<string, number> = {
+          'BTC': 50000,
+          'ETH': 3000,
+          'AAPL': 180,
+          'CHARIZARD-BASE-4': 500,
+          'VTI': 250,
+        };
+        return prices[asset] ?? null;
+      }),
+      getPrices: vi.fn().mockImplementation(async (assets: Array<{ asset: string; assetClass: AssetClass }>) => {
+        const prices: Record<string, number> = {
+          'BTC': 50000,
+          'ETH': 3000,
+          'AAPL': 180,
+          'CHARIZARD-BASE-4': 500,
+          'VTI': 250,
+        };
+        const result = new Map<string, number | null>();
+        for (const { asset } of assets) {
+          result.set(asset, prices[asset] ?? null);
+        }
+        return result;
+      }),
+      get24hChange: vi.fn().mockResolvedValue(0.05),
+    };
   });
 
-  describe('constructor', () => {
-    it('should create with default data directory', () => {
-      const t = new PortfolioTracker(mockEventBus);
-      expect(t).toBeDefined();
+  afterEach(async () => {
+    // Clean up temp directory
+    if (existsSync(testStoragePath)) {
+      rmSync(testStoragePath, { recursive: true, force: true });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // INITIALIZATION TESTS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('initialization', () => {
+    it('should initialize with empty holdings', async () => {
+      const holdings = tracker.getHoldings();
+      expect(holdings).toEqual([]);
+      expect(tracker.isInitialized()).toBe(true);
     });
 
-    it('should create with custom data directory', () => {
-      const t = new PortfolioTracker(mockEventBus, { dataDir: '/custom/path' });
-      expect(t).toBeDefined();
+    it('should create storage directory if it does not exist', async () => {
+      expect(existsSync(testStoragePath)).toBe(true);
+    });
+
+    it('should be idempotent on multiple init calls', async () => {
+      await tracker.init();
+      await tracker.init();
+      expect(tracker.isInitialized()).toBe(true);
+    });
+
+    it('should load existing holdings on init', async () => {
+      // Add a holding and persist
+      tracker.addHolding({
+        asset: 'BTC',
+        assetClass: 'crypto',
+        quantity: 1,
+        costBasis: 40000,
+        acquiredAt: new Date().toISOString(),
+      });
+      await tracker.persist();
+
+      // Create new tracker pointing to same storage
+      const tracker2 = new PortfolioTracker(eventBus, { storagePath: testStoragePath });
+      await tracker2.init();
+
+      const holdings = tracker2.getHoldings();
+      expect(holdings).toHaveLength(1);
+      expect(holdings[0].asset).toBe('BTC');
     });
   });
 
-  describe('init()', () => {
-    it('should load existing portfolio data', async () => {
-      const portfolioData = {
-        positions: [
-          {
-            asset: 'bitcoin',
-            assetClass: 'crypto',
-            quantity: 0.5,
-            averageCost: 40000,
-          },
-        ],
-        version: '1.0.0',
+  // ═══════════════════════════════════════════════════════════════════════
+  // HOLDING MANAGEMENT TESTS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('addHolding', () => {
+    it('should add a crypto holding', () => {
+      const holding: Holding = {
+        asset: 'BTC',
+        assetClass: 'crypto',
+        quantity: 0.5,
+        costBasis: 25000,
+        acquiredAt: new Date().toISOString(),
       };
 
-      (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
-        JSON.stringify(portfolioData)
-      );
+      tracker.addHolding(holding);
 
-      await tracker.init();
-
-      const portfolio = tracker.getPortfolio();
-      expect(portfolio.positions).toHaveLength(1);
-      expect(portfolio.positions[0].asset).toBe('bitcoin');
-    });
-
-    it('should handle missing portfolio file', async () => {
-      const error = new Error('ENOENT') as NodeJS.ErrnoException;
-      error.code = 'ENOENT';
-      (fs.readFile as ReturnType<typeof vi.fn>).mockRejectedValueOnce(error);
-
-      await tracker.init();
-
-      const portfolio = tracker.getPortfolio();
-      expect(portfolio.positions).toHaveLength(0);
-    });
-
-    it('should emit error for non-ENOENT errors', async () => {
-      const error = new Error('Permission denied');
-      (fs.readFile as ReturnType<typeof vi.fn>).mockRejectedValueOnce(error);
-
-      await tracker.init();
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        'system:error',
-        expect.objectContaining({
-          error: expect.any(Error),
-          context: 'portfolio-tracker:init',
-        })
-      );
-    });
-
-    it('should create data directory', async () => {
-      const error = new Error('ENOENT') as NodeJS.ErrnoException;
-      error.code = 'ENOENT';
-      (fs.readFile as ReturnType<typeof vi.fn>).mockRejectedValueOnce(error);
-
-      await tracker.init();
-
-      expect(fs.mkdir).toHaveBeenCalledWith(testDataDir, { recursive: true });
-    });
-
-    it('should load historical snapshots', async () => {
-      (fs.readFile as ReturnType<typeof vi.fn>)
-        .mockResolvedValueOnce(JSON.stringify({ positions: [], version: '1.0.0' }))
-        .mockResolvedValueOnce(JSON.stringify([
-          {
-            timestamp: '2026-01-01T00:00:00Z',
-            totalValue: 10000,
-            positions: [],
-          },
-        ]));
-
-      await tracker.init();
-      // Should not throw
-      expect(tracker).toBeDefined();
-    });
-  });
-
-  describe('addPosition()', () => {
-    beforeEach(async () => {
-      const error = new Error('ENOENT') as NodeJS.ErrnoException;
-      error.code = 'ENOENT';
-      (fs.readFile as ReturnType<typeof vi.fn>).mockRejectedValue(error);
-      await tracker.init();
-    });
-
-    it('should add new position', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 0.5, 40000);
-
-      const portfolio = tracker.getPortfolio();
-      expect(portfolio.positions).toHaveLength(1);
-      expect(portfolio.positions[0].asset).toBe('bitcoin');
-      expect(portfolio.positions[0].quantity).toBe(0.5);
-      expect(portfolio.positions[0].averageCost).toBe(40000);
-    });
-
-    it('should save after adding position', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 0.5, 40000);
-
-      expect(fs.writeFile).toHaveBeenCalled();
-    });
-
-    it('should emit portfolio_update event', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 0.5, 40000);
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        'investment:portfolio_update',
-        expect.objectContaining({
-          action: 'add_position',
-          asset: 'bitcoin',
-          quantity: 0.5,
-          averageCost: 40000,
-        })
-      );
-    });
-
-    it('should update existing position', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 0.5, 40000);
-      await tracker.addPosition('bitcoin', 'crypto', 1.0, 45000);
-
-      const portfolio = tracker.getPortfolio();
-      expect(portfolio.positions).toHaveLength(1);
-      expect(portfolio.positions[0].quantity).toBe(1.0);
-      expect(portfolio.positions[0].averageCost).toBe(45000);
-    });
-
-    it('should handle multiple positions', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 0.5, 40000);
-      await tracker.addPosition('ethereum', 'crypto', 10, 2000);
-      await tracker.addPosition('AAPL', 'stock', 100, 150);
-
-      const portfolio = tracker.getPortfolio();
-      expect(portfolio.positions).toHaveLength(3);
-    });
-  });
-
-  describe('removePosition()', () => {
-    beforeEach(async () => {
-      const error = new Error('ENOENT') as NodeJS.ErrnoException;
-      error.code = 'ENOENT';
-      (fs.readFile as ReturnType<typeof vi.fn>).mockRejectedValue(error);
-      await tracker.init();
-      await tracker.addPosition('bitcoin', 'crypto', 0.5, 40000);
-    });
-
-    it('should remove position', async () => {
-      await tracker.removePosition('bitcoin');
-
-      const portfolio = tracker.getPortfolio();
-      expect(portfolio.positions).toHaveLength(0);
-    });
-
-    it('should save after removing position', async () => {
-      vi.clearAllMocks();
-      await tracker.removePosition('bitcoin');
-
-      expect(fs.writeFile).toHaveBeenCalled();
-    });
-
-    it('should emit portfolio_update event', async () => {
-      await tracker.removePosition('bitcoin');
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        'investment:portfolio_update',
-        expect.objectContaining({
-          action: 'remove_position',
-          asset: 'bitcoin',
-        })
-      );
-    });
-
-    it('should handle removing non-existent position', async () => {
-      await tracker.removePosition('unknown');
-
-      const portfolio = tracker.getPortfolio();
-      expect(portfolio.positions).toHaveLength(1);
-    });
-  });
-
-  describe('updatePrices()', () => {
-    beforeEach(async () => {
-      const error = new Error('ENOENT') as NodeJS.ErrnoException;
-      error.code = 'ENOENT';
-      (fs.readFile as ReturnType<typeof vi.fn>).mockRejectedValue(error);
-      await tracker.init();
-      await tracker.addPosition('bitcoin', 'crypto', 0.5, 40000);
-      await tracker.addPosition('ethereum', 'crypto', 10, 2000);
-    });
-
-    it('should update prices from snapshots', async () => {
-      const snapshots: PriceSnapshot[] = [
-        {
-          asset: 'bitcoin',
-          assetClass: 'crypto',
-          price: 50000,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date().toISOString(),
-          source: 'test',
-        },
-        {
-          asset: 'ethereum',
-          assetClass: 'crypto',
-          price: 3000,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date().toISOString(),
-          source: 'test',
-        },
-      ];
-
-      await tracker.updatePrices(snapshots);
-
-      const portfolio = tracker.getPortfolio();
-      const btc = portfolio.positions.find(p => p.asset === 'bitcoin');
-      expect(btc?.currentPrice).toBe(50000);
-      expect(btc?.currentValue).toBe(25000); // 0.5 * 50000
-    });
-
-    it('should emit portfolio_update event', async () => {
-      const snapshots: PriceSnapshot[] = [{
-        asset: 'bitcoin',
+      const holdings = tracker.getHoldings();
+      expect(holdings).toHaveLength(1);
+      expect(holdings[0]).toMatchObject({
+        asset: 'BTC',
         assetClass: 'crypto',
-        price: 50000,
-        change24h: 0,
-        change7d: 0,
-        change30d: 0,
-        timestamp: new Date().toISOString(),
-        source: 'test',
-      }];
-
-      await tracker.updatePrices(snapshots);
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        'investment:portfolio_update',
-        expect.objectContaining({
-          action: 'update_prices',
-          snapshotCount: 1,
-        })
-      );
+        quantity: 0.5,
+        costBasis: 25000,
+      });
     });
 
-    it('should save historical snapshot', async () => {
-      const snapshots: PriceSnapshot[] = [{
-        asset: 'bitcoin',
+    it('should add a stock holding', () => {
+      tracker.addHolding({
+        asset: 'AAPL',
+        assetClass: 'stock',
+        quantity: 100,
+        costBasis: 15000,
+        acquiredAt: new Date().toISOString(),
+      });
+
+      const holding = tracker.getHolding('AAPL');
+      expect(holding).toBeDefined();
+      expect(holding?.assetClass).toBe('stock');
+    });
+
+    it('should add a Pokemon card holding', () => {
+      tracker.addHolding({
+        asset: 'CHARIZARD-BASE-4',
+        assetClass: 'pokemon',
+        quantity: 1,
+        costBasis: 300,
+        acquiredAt: new Date().toISOString(),
+      });
+
+      const holdings = tracker.getHoldingsByClass('pokemon');
+      expect(holdings).toHaveLength(1);
+      expect(holdings[0].asset).toBe('CHARIZARD-BASE-4');
+    });
+
+    it('should add an ETF holding', () => {
+      tracker.addHolding({
+        asset: 'VTI',
+        assetClass: 'etf',
+        quantity: 50,
+        costBasis: 12000,
+        acquiredAt: new Date().toISOString(),
+      });
+
+      const holdings = tracker.getHoldingsByClass('etf');
+      expect(holdings).toHaveLength(1);
+    });
+
+    it('should replace existing holding for same asset', () => {
+      tracker.addHolding({
+        asset: 'BTC',
         assetClass: 'crypto',
-        price: 50000,
-        change24h: 0,
-        change7d: 0,
-        change30d: 0,
-        timestamp: new Date().toISOString(),
-        source: 'test',
-      }];
+        quantity: 1,
+        costBasis: 40000,
+        acquiredAt: new Date().toISOString(),
+      });
 
-      await tracker.updatePrices(snapshots);
+      tracker.addHolding({
+        asset: 'BTC',
+        assetClass: 'crypto',
+        quantity: 2,
+        costBasis: 80000,
+        acquiredAt: new Date().toISOString(),
+      });
 
-      // Should have called writeFile for snapshots
-      const calls = (fs.writeFile as ReturnType<typeof vi.fn>).mock.calls;
-      const snapshotCall = calls.find((call: unknown[]) =>
-        (call[0] as string).includes('portfolio-snapshots.json')
-      );
-      expect(snapshotCall).toBeDefined();
+      const holdings = tracker.getHoldings();
+      expect(holdings).toHaveLength(1);
+      expect(holdings[0].quantity).toBe(2);
+    });
+
+    it('should throw on invalid holding', () => {
+      expect(() => tracker.addHolding({
+        asset: '',
+        assetClass: 'crypto',
+        quantity: 1,
+        costBasis: 100,
+        acquiredAt: new Date().toISOString(),
+      })).toThrow();
+    });
+
+    it('should throw on negative quantity', () => {
+      expect(() => tracker.addHolding({
+        asset: 'BTC',
+        assetClass: 'crypto',
+        quantity: -1,
+        costBasis: 100,
+        acquiredAt: new Date().toISOString(),
+      })).toThrow();
     });
   });
 
-  describe('getPortfolio()', () => {
-    beforeEach(async () => {
-      const error = new Error('ENOENT') as NodeJS.ErrnoException;
-      error.code = 'ENOENT';
-      (fs.readFile as ReturnType<typeof vi.fn>).mockRejectedValue(error);
-      await tracker.init();
-    });
-
-    it('should return empty portfolio initially', () => {
-      const portfolio = tracker.getPortfolio();
-
-      expect(portfolio.totalValue).toBe(0);
-      expect(portfolio.totalCost).toBe(0);
-      expect(portfolio.positions).toHaveLength(0);
-    });
-
-    it('should calculate P&L correctly', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 1, 40000);
-
-      const snapshots: PriceSnapshot[] = [{
-        asset: 'bitcoin',
+  describe('removeHolding', () => {
+    it('should remove existing holding', () => {
+      tracker.addHolding({
+        asset: 'BTC',
         assetClass: 'crypto',
-        price: 50000,
-        change24h: 0,
-        change7d: 0,
-        change30d: 0,
-        timestamp: new Date().toISOString(),
-        source: 'test',
-      }];
+        quantity: 1,
+        costBasis: 40000,
+        acquiredAt: new Date().toISOString(),
+      });
 
-      await tracker.updatePrices(snapshots);
+      const result = tracker.removeHolding('BTC');
 
-      const portfolio = tracker.getPortfolio();
-      expect(portfolio.totalValue).toBe(50000);
-      expect(portfolio.totalCost).toBe(40000);
-      expect(portfolio.totalPnL).toBe(10000);
-      expect(portfolio.totalPnLPercent).toBe(25);
+      expect(result).toBe(true);
+      expect(tracker.getHoldings()).toHaveLength(0);
     });
 
-    it('should calculate weights correctly', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 1, 40000);
-      await tracker.addPosition('ethereum', 'crypto', 10, 2000);
-
-      const snapshots: PriceSnapshot[] = [
-        {
-          asset: 'bitcoin',
-          assetClass: 'crypto',
-          price: 50000,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date().toISOString(),
-          source: 'test',
-        },
-        {
-          asset: 'ethereum',
-          assetClass: 'crypto',
-          price: 3000,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date().toISOString(),
-          source: 'test',
-        },
-      ];
-
-      await tracker.updatePrices(snapshots);
-
-      const portfolio = tracker.getPortfolio();
-      const btc = portfolio.positions.find(p => p.asset === 'bitcoin');
-      const eth = portfolio.positions.find(p => p.asset === 'ethereum');
-
-      // Total value = 50000 + 30000 = 80000
-      // BTC weight = 50000 / 80000 = 62.5%
-      // ETH weight = 30000 / 80000 = 37.5%
-      expect(btc?.weight).toBeCloseTo(62.5, 1);
-      expect(eth?.weight).toBeCloseTo(37.5, 1);
-    });
-
-    it('should calculate allocation by asset class', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 1, 40000);
-      await tracker.addPosition('AAPL', 'stock', 100, 150);
-
-      const snapshots: PriceSnapshot[] = [
-        {
-          asset: 'bitcoin',
-          assetClass: 'crypto',
-          price: 50000,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date().toISOString(),
-          source: 'test',
-        },
-        {
-          asset: 'AAPL',
-          assetClass: 'stock',
-          price: 200,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date().toISOString(),
-          source: 'test',
-        },
-      ];
-
-      await tracker.updatePrices(snapshots);
-
-      const portfolio = tracker.getPortfolio();
-
-      // Crypto: 50000
-      // Stock: 20000
-      // Total: 70000
-      expect(portfolio.allocation.crypto.value).toBe(50000);
-      expect(portfolio.allocation.crypto.percent).toBeCloseTo(71.43, 1);
-      expect(portfolio.allocation.stock.value).toBe(20000);
-      expect(portfolio.allocation.stock.percent).toBeCloseTo(28.57, 1);
-    });
-
-    it('should sort positions by value descending', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 1, 40000);
-      await tracker.addPosition('ethereum', 'crypto', 10, 2000);
-      await tracker.addPosition('AAPL', 'stock', 50, 150);
-
-      const snapshots: PriceSnapshot[] = [
-        {
-          asset: 'bitcoin',
-          assetClass: 'crypto',
-          price: 50000,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date().toISOString(),
-          source: 'test',
-        },
-        {
-          asset: 'ethereum',
-          assetClass: 'crypto',
-          price: 3000,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date().toISOString(),
-          source: 'test',
-        },
-        {
-          asset: 'AAPL',
-          assetClass: 'stock',
-          price: 200,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date().toISOString(),
-          source: 'test',
-        },
-      ];
-
-      await tracker.updatePrices(snapshots);
-
-      const portfolio = tracker.getPortfolio();
-      expect(portfolio.positions[0].asset).toBe('bitcoin'); // 50000
-      expect(portfolio.positions[1].asset).toBe('ethereum'); // 30000
-      expect(portfolio.positions[2].asset).toBe('AAPL'); // 10000
+    it('should return false for non-existent holding', () => {
+      const result = tracker.removeHolding('NONEXISTENT');
+      expect(result).toBe(false);
     });
   });
 
-  describe('getWeeklySummary()', () => {
-    beforeEach(async () => {
-      const error = new Error('ENOENT') as NodeJS.ErrnoException;
-      error.code = 'ENOENT';
-      (fs.readFile as ReturnType<typeof vi.fn>).mockRejectedValue(error);
-      await tracker.init();
+  describe('updateHolding', () => {
+    it('should update existing holding quantity', () => {
+      tracker.addHolding({
+        asset: 'BTC',
+        assetClass: 'crypto',
+        quantity: 1,
+        costBasis: 40000,
+        acquiredAt: new Date().toISOString(),
+      });
+
+      const result = tracker.updateHolding('BTC', { quantity: 2 });
+
+      expect(result).toBe(true);
+      expect(tracker.getHolding('BTC')?.quantity).toBe(2);
     });
 
-    it('should return summary with no history', () => {
-      const summary = tracker.getWeeklySummary();
+    it('should update existing holding cost basis', () => {
+      tracker.addHolding({
+        asset: 'BTC',
+        assetClass: 'crypto',
+        quantity: 1,
+        costBasis: 40000,
+        acquiredAt: new Date().toISOString(),
+      });
+
+      tracker.updateHolding('BTC', { costBasis: 45000 });
+
+      expect(tracker.getHolding('BTC')?.costBasis).toBe(45000);
+    });
+
+    it('should return false for non-existent holding', () => {
+      const result = tracker.updateHolding('NONEXISTENT', { quantity: 1 });
+      expect(result).toBe(false);
+    });
+
+    it('should validate updates', () => {
+      tracker.addHolding({
+        asset: 'BTC',
+        assetClass: 'crypto',
+        quantity: 1,
+        costBasis: 40000,
+        acquiredAt: new Date().toISOString(),
+      });
+
+      expect(() => tracker.updateHolding('BTC', { quantity: -1 })).toThrow();
+    });
+  });
+
+  describe('getHoldings', () => {
+    it('should return defensive copy', () => {
+      tracker.addHolding({
+        asset: 'BTC',
+        assetClass: 'crypto',
+        quantity: 1,
+        costBasis: 40000,
+        acquiredAt: new Date().toISOString(),
+      });
+
+      const holdings = tracker.getHoldings();
+      holdings.push({
+        asset: 'ETH',
+        assetClass: 'crypto',
+        quantity: 10,
+        costBasis: 30000,
+        acquiredAt: new Date().toISOString(),
+      });
+
+      expect(tracker.getHoldings()).toHaveLength(1);
+    });
+  });
+
+  describe('getHoldingsByClass', () => {
+    it('should filter by asset class', () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+      tracker.addHolding({ asset: 'ETH', assetClass: 'crypto', quantity: 10, costBasis: 30000, acquiredAt: new Date().toISOString() });
+      tracker.addHolding({ asset: 'AAPL', assetClass: 'stock', quantity: 100, costBasis: 15000, acquiredAt: new Date().toISOString() });
+
+      const cryptos = tracker.getHoldingsByClass('crypto');
+      const stocks = tracker.getHoldingsByClass('stock');
+
+      expect(cryptos).toHaveLength(2);
+      expect(stocks).toHaveLength(1);
+    });
+
+    it('should return empty array for no matches', () => {
+      const pokemon = tracker.getHoldingsByClass('pokemon');
+      expect(pokemon).toHaveLength(0);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PORTFOLIO SUMMARY TESTS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('getPortfolioSummary', () => {
+    it('should return empty summary for no holdings', async () => {
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
 
       expect(summary.totalValue).toBe(0);
-      expect(summary.weeklyChange).toBe(0);
-      expect(summary.weeklyChangePercent).toBe(0);
-      expect(summary.topPerformer).toBeNull();
-      expect(summary.worstPerformer).toBeNull();
+      expect(summary.totalCostBasis).toBe(0);
+      expect(summary.holdings).toHaveLength(0);
     });
 
-    it('should calculate weekly change', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 1, 40000);
+    it('should calculate total value correctly', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+      tracker.addHolding({ asset: 'ETH', assetClass: 'crypto', quantity: 10, costBasis: 25000, acquiredAt: new Date().toISOString() });
 
-      // Initial snapshot (7 days ago)
-      const snapshots1: PriceSnapshot[] = [{
-        asset: 'bitcoin',
-        assetClass: 'crypto',
-        price: 40000,
-        change24h: 0,
-        change7d: 0,
-        change30d: 0,
-        timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        source: 'test',
-      }];
-      await tracker.updatePrices(snapshots1);
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
 
-      // Current snapshot
-      const snapshots2: PriceSnapshot[] = [{
-        asset: 'bitcoin',
-        assetClass: 'crypto',
-        price: 50000,
-        change24h: 0,
-        change7d: 0,
-        change30d: 0,
-        timestamp: new Date().toISOString(),
-        source: 'test',
-      }];
-      await tracker.updatePrices(snapshots2);
-
-      const summary = tracker.getWeeklySummary();
-
-      expect(summary.weeklyChange).toBe(10000);
-      expect(summary.weeklyChangePercent).toBe(25);
+      // BTC: 1 * 50000 = 50000
+      // ETH: 10 * 3000 = 30000
+      // Total: 80000
+      expect(summary.totalValue).toBe(80000);
     });
 
-    it('should identify top and worst performers', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 1, 40000);
-      await tracker.addPosition('ethereum', 'crypto', 10, 2000);
+    it('should calculate unrealized P&L correctly', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
 
-      // Initial snapshots
-      const snapshots1: PriceSnapshot[] = [
-        {
-          asset: 'bitcoin',
-          assetClass: 'crypto',
-          price: 40000,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          source: 'test',
-        },
-        {
-          asset: 'ethereum',
-          assetClass: 'crypto',
-          price: 2000,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          source: 'test',
-        },
-      ];
-      await tracker.updatePrices(snapshots1);
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
 
-      // Current snapshots (BTC up 25%, ETH down 10%)
-      const snapshots2: PriceSnapshot[] = [
-        {
-          asset: 'bitcoin',
-          assetClass: 'crypto',
-          price: 50000,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date().toISOString(),
-          source: 'test',
-        },
-        {
-          asset: 'ethereum',
-          assetClass: 'crypto',
-          price: 1800,
-          change24h: 0,
-          change7d: 0,
-          change30d: 0,
-          timestamp: new Date().toISOString(),
-          source: 'test',
-        },
-      ];
-      await tracker.updatePrices(snapshots2);
-
-      const summary = tracker.getWeeklySummary();
-
-      expect(summary.topPerformer?.asset).toBe('bitcoin');
-      expect(summary.worstPerformer?.asset).toBe('ethereum');
+      // Current: 50000, Cost: 40000, P&L: 10000
+      expect(summary.unrealizedPnL).toBe(10000);
+      expect(summary.unrealizedPnLPercent).toBe(25); // 10000/40000 * 100
     });
 
-    it('should generate recommendations', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 1, 40000);
+    it('should calculate individual holding P&L', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 60000, acquiredAt: new Date().toISOString() });
 
-      const snapshots: PriceSnapshot[] = [{
-        asset: 'bitcoin',
-        assetClass: 'crypto',
-        price: 50000,
-        change24h: 0,
-        change7d: 0,
-        change30d: 0,
-        timestamp: new Date().toISOString(),
-        source: 'test',
-      }];
-      await tracker.updatePrices(snapshots);
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+      const btcHolding = summary.holdings.find(h => h.asset === 'BTC');
 
-      const summary = tracker.getWeeklySummary();
+      expect(btcHolding?.pnl).toBe(-10000); // 50000 - 60000
+      expect(btcHolding?.pnlPercent).toBeCloseTo(-16.67, 1); // -10000/60000 * 100
+    });
 
-      expect(summary.recommendation).toBeTruthy();
-      expect(typeof summary.recommendation).toBe('string');
+    it('should sort holdings by value descending', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+      tracker.addHolding({ asset: 'ETH', assetClass: 'crypto', quantity: 10, costBasis: 25000, acquiredAt: new Date().toISOString() });
+      tracker.addHolding({ asset: 'AAPL', assetClass: 'stock', quantity: 100, costBasis: 15000, acquiredAt: new Date().toISOString() });
+
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+
+      // BTC: 50000, ETH: 30000, AAPL: 18000
+      expect(summary.holdings[0].asset).toBe('BTC');
+      expect(summary.holdings[1].asset).toBe('ETH');
+      expect(summary.holdings[2].asset).toBe('AAPL');
+    });
+
+    it('should emit portfolio update event', async () => {
+      const handler = vi.fn();
+      eventBus.on('investment:portfolio_update', handler);
+
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+      await tracker.getPortfolioSummary(mockMarketMonitor);
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          totalValue: 50000,
+          dailyChange: expect.any(Number),
+        })
+      );
+    });
+
+    it('should handle missing prices gracefully', async () => {
+      tracker.addHolding({ asset: 'UNKNOWN', assetClass: 'crypto', quantity: 1, costBasis: 100, acquiredAt: new Date().toISOString() });
+
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+
+      expect(summary.holdings[0].currentPrice).toBe(0);
+      expect(summary.holdings[0].currentValue).toBe(0);
     });
   });
 
-  describe('save()', () => {
-    beforeEach(async () => {
-      const error = new Error('ENOENT') as NodeJS.ErrnoException;
-      error.code = 'ENOENT';
-      (fs.readFile as ReturnType<typeof vi.fn>).mockRejectedValue(error);
-      await tracker.init();
+  // ═══════════════════════════════════════════════════════════════════════
+  // SNAPSHOT TESTS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('saveSnapshot', () => {
+    it('should save a snapshot', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+      await tracker.saveSnapshot();
+
+      const snapshots = tracker.getSnapshots();
+      expect(snapshots).toHaveLength(1);
     });
 
-    it('should persist portfolio to file', async () => {
-      await tracker.addPosition('bitcoin', 'crypto', 0.5, 40000);
+    it('should limit snapshots to maxSnapshots', async () => {
+      const tracker2 = new PortfolioTracker(eventBus, { storagePath: testStoragePath, maxSnapshots: 3 });
+      await tracker2.init();
 
-      const calls = (fs.writeFile as ReturnType<typeof vi.fn>).mock.calls;
-      const portfolioCall = calls.find((call: unknown[]) =>
-        (call[0] as string).includes('portfolio.json') &&
-        !(call[0] as string).includes('snapshots')
-      );
+      for (let i = 0; i < 5; i++) {
+        await tracker2.saveSnapshot();
+      }
 
-      expect(portfolioCall).toBeDefined();
-      const savedData = JSON.parse(portfolioCall?.[1] as string);
-      expect(savedData.positions).toHaveLength(1);
-      expect(savedData.positions[0].asset).toBe('bitcoin');
+      const snapshots = tracker2.getSnapshots();
+      expect(snapshots).toHaveLength(3);
+    });
+  });
+
+  describe('saveSnapshotWithValues', () => {
+    it('should save snapshot with actual values', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+      await tracker.saveSnapshotWithValues(summary);
+
+      const snapshots = tracker.getSnapshots();
+      expect(snapshots[0].totalValue).toBe(50000);
     });
 
-    it('should handle save errors', async () => {
-      (fs.writeFile as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-        new Error('Disk full')
-      );
+    it('should update existing snapshot for same day', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
 
-      await tracker.save();
+      const summary1 = await tracker.getPortfolioSummary(mockMarketMonitor);
+      await tracker.saveSnapshotWithValues(summary1);
 
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        'system:error',
-        expect.objectContaining({
-          error: expect.any(Error),
-          context: 'portfolio-tracker:save',
-        })
-      );
+      tracker.updateHolding('BTC', { quantity: 2 });
+      const summary2 = await tracker.getPortfolioSummary(mockMarketMonitor);
+      await tracker.saveSnapshotWithValues(summary2);
+
+      const snapshots = tracker.getSnapshots();
+      expect(snapshots).toHaveLength(1);
+      expect(snapshots[0].totalValue).toBe(100000); // 2 BTC * 50000
+    });
+  });
+
+  describe('getChangeOverPeriod', () => {
+    it('should return zero change with no snapshots', () => {
+      const { change, changePercent } = tracker.getChangeOverPeriod(7, 10000);
+      expect(change).toBe(0);
+      expect(changePercent).toBe(0);
+    });
+
+    it('should calculate change over period', async () => {
+      // Add a snapshot from a week ago (manually)
+      const state = tracker.getSnapshotsState();
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      state.snapshots.push({
+        timestamp: weekAgo.toISOString(),
+        totalValue: 40000,
+        holdings: [],
+      });
+
+      const { change, changePercent } = tracker.getChangeOverPeriod(7, 50000);
+      expect(change).toBe(10000);
+      expect(changePercent).toBe(25);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ANALYTICS TESTS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('getAssetAllocation', () => {
+    it('should calculate allocation percentages', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+      tracker.addHolding({ asset: 'VTI', assetClass: 'etf', quantity: 200, costBasis: 40000, acquiredAt: new Date().toISOString() });
+
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+      const allocation = tracker.getAssetAllocation(summary);
+
+      // BTC: 50000, VTI: 50000, Total: 100000
+      expect(allocation.get('crypto')).toBe(50);
+      expect(allocation.get('etf')).toBe(50);
+    });
+
+    it('should return empty map for zero value portfolio', async () => {
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+      const allocation = tracker.getAssetAllocation(summary);
+      expect(allocation.size).toBe(0);
+    });
+  });
+
+  describe('getTopPerformers', () => {
+    it('should return top performers by P&L percent', async () => {
+      // BTC: 50000/40000 = 25% gain
+      // ETH: 30000/25000 = 20% gain
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+      tracker.addHolding({ asset: 'ETH', assetClass: 'crypto', quantity: 10, costBasis: 25000, acquiredAt: new Date().toISOString() });
+
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+      const top = tracker.getTopPerformers(summary, 2);
+
+      expect(top[0].asset).toBe('BTC');
+      expect(top[1].asset).toBe('ETH');
+    });
+  });
+
+  describe('getWorstPerformers', () => {
+    it('should return worst performers by P&L percent', async () => {
+      // BTC: 50000/60000 = -16.67% loss
+      // ETH: 30000/25000 = 20% gain
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 60000, acquiredAt: new Date().toISOString() });
+      tracker.addHolding({ asset: 'ETH', assetClass: 'crypto', quantity: 10, costBasis: 25000, acquiredAt: new Date().toISOString() });
+
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+      const worst = tracker.getWorstPerformers(summary, 2);
+
+      expect(worst[0].asset).toBe('BTC');
+    });
+  });
+
+  describe('getStatistics', () => {
+    it('should calculate portfolio statistics', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+      tracker.addHolding({ asset: 'ETH', assetClass: 'crypto', quantity: 10, costBasis: 35000, acquiredAt: new Date().toISOString() });
+
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+      const stats = tracker.getStatistics(summary);
+
+      expect(stats.holdingsCount).toBe(2);
+      expect(stats.profitableCount).toBe(1); // BTC is profitable
+      expect(stats.losingCount).toBe(1); // ETH is losing
+      expect(stats.largestPosition?.asset).toBe('BTC');
+    });
+
+    it('should handle empty portfolio', async () => {
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+      const stats = tracker.getStatistics(summary);
+
+      expect(stats.holdingsCount).toBe(0);
+      expect(stats.largestPosition).toBeNull();
+      expect(stats.smallestPosition).toBeNull();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PERSISTENCE TESTS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('persist', () => {
+    it('should persist holdings to disk', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+      await tracker.persist();
+
+      const holdingsPath = path.join(testStoragePath, 'holdings.json');
+      expect(existsSync(holdingsPath)).toBe(true);
+
+      const data = await fs.readFile(holdingsPath, 'utf-8');
+      const parsed = JSON.parse(data);
+      expect(parsed.holdings).toHaveLength(1);
+    });
+  });
+
+  describe('clearHoldings', () => {
+    it('should clear all holdings', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+      await tracker.clearHoldings();
+
+      expect(tracker.getHoldings()).toHaveLength(0);
+    });
+  });
+
+  describe('clearSnapshots', () => {
+    it('should clear all snapshots', async () => {
+      await tracker.saveSnapshot();
+      await tracker.clearSnapshots();
+
+      expect(tracker.getSnapshots()).toHaveLength(0);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // EDGE CASES
+  // ═══════════════════════════════════════════════════════════════════════
+
+  describe('edge cases', () => {
+    it('should handle zero cost basis', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 0, acquiredAt: new Date().toISOString() });
+
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+
+      expect(summary.holdings[0].pnlPercent).toBe(0); // Avoid division by zero
+    });
+
+    it('should handle fractional quantities', async () => {
+      tracker.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 0.00001, costBasis: 0.5, acquiredAt: new Date().toISOString() });
+
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+
+      expect(summary.holdings[0].currentValue).toBeCloseTo(0.5, 2); // 0.00001 * 50000
+    });
+
+    it('should handle very large quantities', async () => {
+      tracker.addHolding({ asset: 'ETH', assetClass: 'crypto', quantity: 1000000, costBasis: 2500000000, acquiredAt: new Date().toISOString() });
+
+      const summary = await tracker.getPortfolioSummary(mockMarketMonitor);
+
+      expect(summary.holdings[0].currentValue).toBe(3000000000); // 1M * 3000
+    });
+
+    it('should work without EventBus', async () => {
+      const trackerNoEvents = new PortfolioTracker(undefined, { storagePath: testStoragePath });
+      await trackerNoEvents.init();
+
+      trackerNoEvents.addHolding({ asset: 'BTC', assetClass: 'crypto', quantity: 1, costBasis: 40000, acquiredAt: new Date().toISOString() });
+
+      const summary = await trackerNoEvents.getPortfolioSummary(mockMarketMonitor);
+      expect(summary.totalValue).toBe(50000);
     });
   });
 });

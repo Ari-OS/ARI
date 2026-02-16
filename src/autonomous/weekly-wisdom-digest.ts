@@ -111,6 +111,7 @@ export class WeeklyWisdomDigest {
   /**
    * Generate the weekly wisdom digest.
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async generate(): Promise<WisdomDigest> {
     const now = new Date();
     const weekStart = new Date(now);
@@ -381,7 +382,7 @@ export class WeeklyWisdomDigest {
     for (const d of decisions) {
       const outcome = d.outcome ?? 'pending';
       if (outcome in breakdown) {
-        breakdown[outcome as keyof typeof breakdown]++;
+        breakdown[outcome]++;
       }
     }
     return breakdown;

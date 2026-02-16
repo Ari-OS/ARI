@@ -88,3 +88,7 @@ export { AnthropicProvider } from './providers/anthropic-provider.js';
 export { OpenAIProvider } from './providers/openai-provider.js';
 export { GoogleProvider } from './providers/google-provider.js';
 export { XAIProvider } from './providers/xai-provider.js';
+
+// Embedding service
+export { EmbeddingService } from './embedding-service.js';
+export type { EmbeddingResult, EmbeddingServiceOptions } from './embedding-service.js';

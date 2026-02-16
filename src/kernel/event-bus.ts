@@ -522,38 +522,67 @@ export interface EventMap {
   'learning:improvement_measured': { metric: string; previous: number; current: number; change: number };
 
   // ═══════════════════════════════════════════════════════════════════════
-  // MARKET MONITOR events (Investment Intelligence)
+  // VECTOR STORE & KNOWLEDGE events (Master Plan Phase 2)
   // ═══════════════════════════════════════════════════════════════════════
-  'market:snapshot_complete': { snapshots: number; timestamp: string };
-  'market:price_alert': {
-    asset: string;
-    alertType: 'price_spike' | 'price_drop' | 'volume_anomaly' | 'trend_reversal' | 'new_high' | 'new_low';
-    severity: 'info' | 'notable' | 'significant' | 'critical';
-    message: string;
-    data: {
-      currentPrice: number;
-      previousPrice: number;
-      changePercent: number;
-      threshold: number;
-    };
+  'vector:document_indexed': {
+    documentId: string;
+    contentHash: string;
+    source: string;
+    sourceType: string;
+    domain?: string;
+    chunkIndex: number;
+    chunkTotal: number;
+    timestamp: Date;
   };
+  'vector:search_complete': {
+    resultCount: number;
+    totalSearched: number;
+    topScore: number;
+    duration: number;
+    filters: {
+      domain?: string;
+      sourceType?: string;
+      tags?: string[];
+    };
+    timestamp: Date;
+  };
+  'knowledge:ingested': { sourceType: string; sourceId: string; chunksCreated: number };
+  'knowledge:queried': { query: string; resultCount: number; responseGenerated: boolean };
 
   // ═══════════════════════════════════════════════════════════════════════
-  // PORTFOLIO TRACKER events (Investment Intelligence)
+  // INVESTMENT INTELLIGENCE events (Master Plan Phase 4)
   // ═══════════════════════════════════════════════════════════════════════
-  'investment:portfolio_update': { action: string; timestamp: string; [key: string]: unknown };
+  'market:snapshot_complete': { timestamp: string; pricesChecked: number; alertsGenerated: number };
+  'market:price_alert': { symbol: string; price: number; change: number; threshold: number };
+  'investment:opportunity_detected': { category: string; title: string; score: number };
+  'investment:portfolio_update': { totalValue: number; dailyChange: number };
+  'career:new_matches': { count: number; topMatch: string };
 
   // ═══════════════════════════════════════════════════════════════════════
-  // KNOWLEDGE INGESTION events (RAG Pipeline)
+  // OPERATIONS events (Master Plan Phase 2/7)
   // ═══════════════════════════════════════════════════════════════════════
-  'knowledge:ingested': { documentId: string; source: string; sourceType: string; chunkCount: number; timestamp: string };
+  'ops:backup_complete': { type: string; size: number; duration: number };
+  'ops:backup_failed': { type: string; error: string };
+  'ops:git_synced': { filesCommitted: number; pushed: boolean };
+  'system:health_check': { status: 'healthy' | 'degraded' | 'unhealthy'; failures: string[] };
 
   // ═══════════════════════════════════════════════════════════════════════
-  // BACKUP & OPS events
+  // MEMORY EVOLUTION events (Master Plan Phase 6)
   // ═══════════════════════════════════════════════════════════════════════
-  'backup:completed': { backupPath: string; fileCount: number; duration: number };
-  'backup:failed': { backupPath: string; error: string; duration: number };
-  'backup:pruned': { prunedCount: number; remainingCount: number; duration: number };
+  'memory:daily_captured': { date: string; entryCount: number };
+  'memory:weekly_synthesized': { weekId: string; patternCount: number };
+  'memory:promoted_long_term': { entryId: string; confidence: number };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // TELEGRAM TOPICS events (Master Plan Phase 2)
+  // ═══════════════════════════════════════════════════════════════════════
+  'telegram:topic_message_sent': { topicName: string; messageId: number; success: boolean };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CONTENT PIPELINE events (Master Plan Phase 5)
+  // ═══════════════════════════════════════════════════════════════════════
+  'content:draft_created': { topicId: string; title: string; platform: string };
+  'content:approved': { topicId: string; scheduledFor?: string };
 }
 
 /**

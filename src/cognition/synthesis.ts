@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/require-await */
+ 
 /**
  * ARI Cognitive Layer 0: Cross-Pillar Synthesis
  *

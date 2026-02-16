@@ -26,3 +26,8 @@ export * from './initiative-engine.js';
 export * from './self-improvement-loop.js';
 export * from './user-deliverables.js';
 export * from './backup-manager.js';
+export * from './rag-query.js';
+export * from './ingestion-pipeline.js';
+export * from './portfolio-tracker.js';
+export * from './investment-analyzer.js';
+export * from './opportunity-scanner.js';

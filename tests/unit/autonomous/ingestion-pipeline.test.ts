@@ -1,346 +1,694 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { IngestionPipeline } from '../../../src/autonomous/ingestion-pipeline.js';
-import type { VectorStore, VectorDocument } from '../../../src/system/vector-store.js';
-import type { EmbeddingService } from '../../../src/ai/embedding-service.js';
-import type { EventBus } from '../../../src/kernel/event-bus.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  IngestionPipeline,
+  SourceType,
+  IngestionOptions,
+  DocumentChunk,
+  VectorStore,
+} from '../../../src/autonomous/ingestion-pipeline.js';
+import { EventBus } from '../../../src/kernel/event-bus.js';
+import type { EmbeddingService, EmbeddingResult } from '../../../src/ai/embedding-service.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MOCKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function createMockEmbeddingService(): EmbeddingService {
+  return {
+    embed: vi.fn().mockImplementation(async (text: string): Promise<EmbeddingResult> => ({
+      embedding: new Float32Array(1536).fill(0.1),
+      model: 'text-embedding-3-small',
+      tokens: Math.ceil(text.length / 4),
+      cached: false,
+    })),
+    embedBatch: vi.fn().mockImplementation(async (texts: string[]): Promise<EmbeddingResult[]> => {
+      return texts.map((text) => ({
+        embedding: new Float32Array(1536).fill(0.1),
+        model: 'text-embedding-3-small',
+        tokens: Math.ceil(text.length / 4),
+        cached: false,
+      }));
+    }),
+    getCacheStats: vi.fn().mockReturnValue({ hits: 0, misses: 0, size: 0 }),
+    clearCache: vi.fn(),
+  } as unknown as EmbeddingService;
+}
+
+function createMockVectorStore(): VectorStore & {
+  chunks: DocumentChunk[];
+  addedHashes: Set<string>;
+} {
+  const chunks: DocumentChunk[] = [];
+  const addedHashes = new Set<string>();
+
+  return {
+    chunks,
+    addedHashes,
+    add: vi.fn().mockImplementation(async (newChunks: DocumentChunk[]) => {
+      chunks.push(...newChunks);
+      for (const chunk of newChunks) {
+        addedHashes.add(chunk.metadata.provenance.originalHash);
+      }
+    }),
+    search: vi.fn().mockImplementation(async () => []),
+    delete: vi.fn().mockImplementation(async (documentId: string) => {
+      const indicesToRemove: number[] = [];
+      chunks.forEach((chunk, index) => {
+        if (chunk.documentId === documentId) {
+          indicesToRemove.push(index);
+        }
+      });
+      for (let i = indicesToRemove.length - 1; i >= 0; i--) {
+        chunks.splice(indicesToRemove[i], 1);
+      }
+    }),
+    exists: vi.fn().mockImplementation(async (hash: string) => addedHashes.has(hash)),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TESTS
+// ═══════════════════════════════════════════════════════════════════════════════
 
 describe('IngestionPipeline', () => {
   let pipeline: IngestionPipeline;
-  let mockVectorStore: VectorStore;
-  let mockEmbeddingService: EmbeddingService;
-  let mockEventBus: EventBus;
+  let eventBus: EventBus;
+  let vectorStore: ReturnType<typeof createMockVectorStore>;
+  let embeddingService: EmbeddingService;
+  let testDir: string;
 
-  beforeEach(() => {
-    // Mock VectorStore
-    mockVectorStore = {
-      init: vi.fn(),
-      upsert: vi.fn(),
-      search: vi.fn(),
-      deduplicateByHash: vi.fn().mockResolvedValue(false),
-      getStats: vi.fn(),
-      deleteBySource: vi.fn(),
-      close: vi.fn(),
-    } as unknown as VectorStore;
+  beforeEach(async () => {
+    eventBus = new EventBus();
+    vectorStore = createMockVectorStore();
+    embeddingService = createMockEmbeddingService();
 
-    // Mock EmbeddingService
-    mockEmbeddingService = {
-      embed: vi.fn(),
-      embedBatch: vi.fn().mockImplementation(async (texts: string[]) => {
-        return texts.map(() => new Float32Array(1536).fill(0.1));
-      }),
-      getDimension: vi.fn().mockReturnValue(1536),
-    } as unknown as EmbeddingService;
+    // Create temp directory for file tests
+    testDir = path.join(os.tmpdir(), `ari-ingestion-test-${Date.now()}`);
+    await fs.mkdir(testDir, { recursive: true });
 
-    // Mock EventBus
-    mockEventBus = {
-      on: vi.fn(),
-      off: vi.fn(),
-      emit: vi.fn(),
-      once: vi.fn(),
-      clear: vi.fn(),
-      listenerCount: vi.fn(),
-      getHandlerErrorCount: vi.fn(),
-      setHandlerTimeout: vi.fn(),
-    } as unknown as EventBus;
-
-    pipeline = new IngestionPipeline(mockVectorStore, mockEmbeddingService, mockEventBus);
+    pipeline = new IngestionPipeline(eventBus, vectorStore, embeddingService, {
+      allowedBasePaths: [testDir, os.tmpdir()],
+    });
   });
 
-  it('should ingest direct content successfully', async () => {
-    const result = await pipeline.ingest({
-      content: 'This is test content.',
-      source: 'test-source',
-      sourceType: 'article',
-      title: 'Test Article',
+  afterEach(async () => {
+    try {
+      await fs.rm(testDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BASIC INGESTION TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('ingest', () => {
+    it('should ingest simple content', async () => {
+      const result = await pipeline.ingest('Hello world, this is test content.', {
+        source: 'test-source',
+        sourceType: 'article',
+      });
+
+      expect(result.documentId).toMatch(/^doc_/);
+      expect(result.chunksCreated).toBeGreaterThan(0);
+      expect(result.duration).toBeGreaterThanOrEqual(0);
     });
 
-    expect(result.success).toBe(true);
-    expect(result.documentsStored).toBe(1);
-    expect(result.chunksCreated).toBe(1);
-    expect(result.duplicatesSkipped).toBe(0);
-    expect(result.errors).toHaveLength(0);
+    it('should track tokens used', async () => {
+      const result = await pipeline.ingest('This is some content for token counting.', {
+        source: 'test',
+        sourceType: 'article',
+      });
 
-    expect(mockEmbeddingService.embedBatch).toHaveBeenCalledWith(['This is test content.']);
-    expect(mockVectorStore.upsert).toHaveBeenCalledTimes(1);
-    expect(mockEventBus.emit).toHaveBeenCalledWith('knowledge:ingested', expect.any(Object));
-  });
-
-  it('should skip duplicate content', async () => {
-    // Mock deduplicateByHash to return true (duplicate found)
-    vi.mocked(mockVectorStore.deduplicateByHash).mockResolvedValue(true);
-
-    const result = await pipeline.ingest({
-      content: 'Duplicate content',
-      source: 'test-source',
-      sourceType: 'article',
+      expect(result.tokensUsed).toBeGreaterThan(0);
     });
 
-    expect(result.success).toBe(true);
-    expect(result.documentsStored).toBe(0);
-    expect(result.duplicatesSkipped).toBe(1);
-    expect(mockVectorStore.upsert).not.toHaveBeenCalled();
-  });
+    it('should emit knowledge:ingested event', async () => {
+      const events: unknown[] = [];
+      eventBus.on('knowledge:ingested', (payload) => events.push(payload));
 
-  it('should handle empty content', async () => {
-    const result = await pipeline.ingest({
-      content: '   ',
-      source: 'test-source',
-      sourceType: 'article',
+      await pipeline.ingest('Test content for event emission.', {
+        source: 'test',
+        sourceType: 'article',
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        sourceType: 'article',
+        sourceId: 'test',
+      });
     });
 
-    expect(result.success).toBe(true);
-    expect(result.documentsStored).toBe(0);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]).toContain('Empty content');
-  });
-
-  it('should chunk long content with overlap', async () => {
-    // Create content longer than 800 chars
-    const longContent = 'A'.repeat(1000) + '\n\n' + 'B'.repeat(1000);
-
-    const result = await pipeline.ingest({
-      content: longContent,
-      source: 'test-source',
-      sourceType: 'article',
+    it('should throw on empty content', async () => {
+      await expect(
+        pipeline.ingest('', { source: 'test', sourceType: 'article' })
+      ).rejects.toThrow('Content cannot be empty');
     });
 
-    expect(result.success).toBe(true);
-    expect(result.chunksCreated).toBeGreaterThan(1);
-
-    // Verify embedBatch was called with multiple chunks
-    const embedBatchCalls = vi.mocked(mockEmbeddingService.embedBatch).mock.calls;
-    expect(embedBatchCalls[0][0].length).toBeGreaterThan(1);
-
-    // Verify chunks have overlap by checking upsert calls
-    const upsertCalls = vi.mocked(mockVectorStore.upsert).mock.calls;
-    expect(upsertCalls.length).toBeGreaterThan(1);
-
-    // Verify chunks have parentDocId set
-    const firstChunk = upsertCalls[0][0] as VectorDocument;
-    const secondChunk = upsertCalls[1][0] as VectorDocument;
-    expect(firstChunk.parentDocId).toBe(secondChunk.parentDocId);
-    expect(firstChunk.chunkIndex).toBe(0);
-    expect(secondChunk.chunkIndex).toBe(1);
-  });
-
-  it('should respect paragraph boundaries when chunking', async () => {
-    const content = 'Paragraph 1.\n\nParagraph 2.\n\nParagraph 3.';
-
-    const result = await pipeline.ingest({
-      content,
-      source: 'test-source',
-      sourceType: 'article',
+    it('should throw on whitespace-only content', async () => {
+      await expect(
+        pipeline.ingest('   \n\t  ', { source: 'test', sourceType: 'article' })
+      ).rejects.toThrow('Content cannot be empty');
     });
 
-    expect(result.success).toBe(true);
-    expect(result.chunksCreated).toBe(1); // Small enough to fit in one chunk
-  });
+    it('should accept all source types', async () => {
+      const sourceTypes: SourceType[] = [
+        'article', 'tweet', 'bookmark', 'conversation', 'email', 'file'
+      ];
 
-  it('should normalize content', async () => {
-    const content = '  Multiple   spaces   and\n\n\n\nmultiple newlines  ';
-
-    const result = await pipeline.ingest({
-      content,
-      source: 'test-source',
-      sourceType: 'article',
-    });
-
-    expect(result.success).toBe(true);
-
-    // Check that embedBatch received normalized content
-    const embedBatchCalls = vi.mocked(mockEmbeddingService.embedBatch).mock.calls;
-    const normalizedContent = embedBatchCalls[0][0][0];
-
-    // Should have single spaces and max 2 newlines
-    expect(normalizedContent).not.toContain('   ');
-    expect(normalizedContent).not.toContain('\n\n\n');
-  });
-
-  it('should batch ingest multiple inputs', async () => {
-    const inputs = [
-      { content: 'Content 1', source: 'source-1', sourceType: 'article' as const },
-      { content: 'Content 2', source: 'source-2', sourceType: 'tweet' as const },
-      { content: 'Content 3', source: 'source-3', sourceType: 'bookmark' as const },
-    ];
-
-    const result = await pipeline.ingestBatch(inputs);
-
-    expect(result.success).toBe(true);
-    expect(result.documentsStored).toBe(3);
-    expect(mockVectorStore.upsert).toHaveBeenCalledTimes(3);
-  });
-
-  it('should handle errors gracefully in batch', async () => {
-    // Make embedBatch fail for the second item
-    let callCount = 0;
-    vi.mocked(mockEmbeddingService.embedBatch).mockImplementation(async () => {
-      callCount++;
-      if (callCount === 2) {
-        throw new Error('Embedding failed');
+      for (const sourceType of sourceTypes) {
+        const result = await pipeline.ingest(`Content for ${sourceType}`, {
+          source: `test-${sourceType}`,
+          sourceType,
+        });
+        expect(result.documentId).toBeDefined();
       }
-      return [new Float32Array(1536).fill(0.1)];
     });
 
-    const inputs = [
-      { content: 'Content 1', source: 'source-1', sourceType: 'article' as const },
-      { content: 'Content 2', source: 'source-2', sourceType: 'tweet' as const },
-      { content: 'Content 3', source: 'source-3', sourceType: 'bookmark' as const },
+    it('should include metadata in chunks', async () => {
+      await pipeline.ingest('Test content with metadata.', {
+        source: 'meta-test',
+        sourceType: 'article',
+        title: 'Test Title',
+        domain: 'testing',
+        tags: ['test', 'unit'],
+        sourceUrl: 'https://example.com/article',
+      });
+
+      expect(vectorStore.chunks.length).toBeGreaterThan(0);
+      const chunk = vectorStore.chunks[0];
+      expect(chunk.metadata.title).toBe('Test Title');
+      expect(chunk.metadata.domain).toBe('testing');
+      expect(chunk.metadata.tags).toEqual(['test', 'unit']);
+      expect(chunk.metadata.sourceUrl).toBe('https://example.com/article');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DEDUPLICATION TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('deduplication', () => {
+    it('should deduplicate identical content', async () => {
+      const content = 'Unique content for deduplication testing.';
+
+      const result1 = await pipeline.ingest(content, {
+        source: 'first',
+        sourceType: 'article',
+      });
+
+      const result2 = await pipeline.ingest(content, {
+        source: 'second',
+        sourceType: 'article',
+      });
+
+      expect(result1.documentId).toBe(result2.documentId);
+      expect(result2.chunksCreated).toBe(0); // No new chunks for duplicate
+    });
+
+    it('should not deduplicate different content', async () => {
+      const result1 = await pipeline.ingest('Content version one.', {
+        source: 'first',
+        sourceType: 'article',
+      });
+
+      const result2 = await pipeline.ingest('Content version two.', {
+        source: 'second',
+        sourceType: 'article',
+      });
+
+      expect(result1.documentId).not.toBe(result2.documentId);
+      expect(result2.chunksCreated).toBeGreaterThan(0);
+    });
+
+    it('should check vectorStore for existing hashes', async () => {
+      const content = 'Pre-existing content.';
+      await pipeline.ingest(content, { source: 'original', sourceType: 'article' });
+
+      // Create new pipeline instance (simulates restart)
+      const newPipeline = new IngestionPipeline(
+        eventBus, vectorStore, embeddingService,
+        { allowedBasePaths: [testDir] }
+      );
+
+      const result = await newPipeline.ingest(content, {
+        source: 'duplicate',
+        sourceType: 'article',
+      });
+
+      expect(result.chunksCreated).toBe(0);
+      expect(vectorStore.exists).toHaveBeenCalled();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CHUNKING TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('chunking', () => {
+    it('should chunk large content', async () => {
+      // Create content larger than chunk size (500 tokens * 4 chars = 2000 chars)
+      // Use paragraph breaks (\n\n) since the chunker splits on paragraphs first
+      // Need enough total content to exceed chunk size and force multiple chunks
+      const paragraph = 'Lorem ipsum dolor sit amet consectetur adipiscing elit. '.repeat(10);
+      const largeContent = Array(20).fill(paragraph).join('\n\n');
+
+      const result = await pipeline.ingest(largeContent, {
+        source: 'large-doc',
+        sourceType: 'article',
+      });
+
+      expect(result.chunksCreated).toBeGreaterThan(1);
+    });
+
+    it('should preserve paragraph boundaries when chunking', async () => {
+      const paragraphs = [
+        'First paragraph with important information.',
+        'Second paragraph continues the topic.',
+        'Third paragraph wraps things up.',
+      ];
+      const content = paragraphs.join('\n\n');
+
+      await pipeline.ingest(content, {
+        source: 'paragraph-test',
+        sourceType: 'article',
+      });
+
+      // Chunks should respect paragraph structure
+      expect(vectorStore.chunks.length).toBeGreaterThan(0);
+    });
+
+    it('should include chunk index and total chunks', async () => {
+      const largeContent = 'Test content paragraph.\n\n'.repeat(100);
+
+      await pipeline.ingest(largeContent, {
+        source: 'indexed-chunks',
+        sourceType: 'article',
+      });
+
+      const chunks = vectorStore.chunks;
+      expect(chunks.length).toBeGreaterThan(1);
+
+      for (let i = 0; i < chunks.length; i++) {
+        expect(chunks[i].chunkIndex).toBe(i);
+        expect(chunks[i].totalChunks).toBe(chunks.length);
+      }
+    });
+
+    it('should handle single-line content without paragraphs', async () => {
+      const singleLine = 'A '.repeat(600); // Long single line
+
+      await pipeline.ingest(singleLine, {
+        source: 'single-line',
+        sourceType: 'article',
+      });
+
+      expect(vectorStore.chunks.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FILE INGESTION TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('ingestFile', () => {
+    it('should ingest text file', async () => {
+      const filePath = path.join(testDir, 'test.txt');
+      await fs.writeFile(filePath, 'This is file content for testing.');
+
+      const result = await pipeline.ingestFile(filePath, {
+        source: 'file-test',
+      });
+
+      expect(result.documentId).toMatch(/^doc_/);
+      expect(result.chunksCreated).toBeGreaterThan(0);
+    });
+
+    it('should ingest markdown file', async () => {
+      const filePath = path.join(testDir, 'readme.md');
+      await fs.writeFile(filePath, '# Title\n\nThis is markdown content.');
+
+      const result = await pipeline.ingestFile(filePath, {
+        source: 'markdown-test',
+      });
+
+      expect(result.chunksCreated).toBeGreaterThan(0);
+      expect(vectorStore.chunks[0].metadata.sourceType).toBe('file');
+    });
+
+    it('should throw on non-existent file', async () => {
+      const fakePath = path.join(testDir, 'nonexistent.txt');
+
+      await expect(
+        pipeline.ingestFile(fakePath, { source: 'missing' })
+      ).rejects.toThrow();
+    });
+
+    it('should throw on directory instead of file', async () => {
+      // Directories have no extension, so the implementation throws
+      // "Unsupported file type" before checking if it's a regular file
+      await expect(
+        pipeline.ingestFile(testDir, { source: 'dir' })
+      ).rejects.toThrow('Unsupported file type');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECURITY TESTS: FILE BOMB PROTECTION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('security: file bomb protection', () => {
+    it('should reject files exceeding size limit', async () => {
+      // Create pipeline with small file size limit
+      const limitedPipeline = new IngestionPipeline(
+        eventBus, vectorStore, embeddingService,
+        { maxFileSizeBytes: 100, allowedBasePaths: [testDir] }
+      );
+
+      const filePath = path.join(testDir, 'large.txt');
+      await fs.writeFile(filePath, 'x'.repeat(200)); // 200 bytes > 100 limit
+
+      await expect(
+        limitedPipeline.ingestFile(filePath, { source: 'large' })
+      ).rejects.toThrow('File too large');
+    });
+
+    it('should accept files within size limit', async () => {
+      const limitedPipeline = new IngestionPipeline(
+        eventBus, vectorStore, embeddingService,
+        { maxFileSizeBytes: 1000, allowedBasePaths: [testDir] }
+      );
+
+      const filePath = path.join(testDir, 'small.txt');
+      await fs.writeFile(filePath, 'Small content');
+
+      const result = await limitedPipeline.ingestFile(filePath, { source: 'small' });
+      expect(result.chunksCreated).toBeGreaterThan(0);
+    });
+
+    it('should use default 10MB limit', async () => {
+      const filePath = path.join(testDir, 'normal.txt');
+      await fs.writeFile(filePath, 'Normal sized content.');
+
+      // Should not throw with default limit
+      const result = await pipeline.ingestFile(filePath, { source: 'normal' });
+      expect(result.documentId).toBeDefined();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECURITY TESTS: PATH TRAVERSAL PROTECTION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('security: path traversal protection', () => {
+    it('should reject path with ..', async () => {
+      const maliciousPath = path.join(testDir, '..', '..', 'etc', 'passwd');
+
+      await expect(
+        pipeline.ingestFile(maliciousPath, { source: 'traversal' })
+      ).rejects.toThrow();
+    });
+
+    it('should reject paths outside allowed directories', async () => {
+      // Create file in a non-allowed directory (simulated)
+      const restrictedPipeline = new IngestionPipeline(
+        eventBus, vectorStore, embeddingService,
+        { allowedBasePaths: ['/nonexistent/allowed/path'] }
+      );
+
+      const filePath = path.join(testDir, 'test.txt');
+      await fs.writeFile(filePath, 'Test content');
+
+      await expect(
+        restrictedPipeline.ingestFile(filePath, { source: 'restricted' })
+      ).rejects.toThrow('Path not in allowed directories');
+    });
+
+    it('should reject paths with null bytes', async () => {
+      const nullBytePath = `${testDir}/test.txt\0.exe`;
+
+      await expect(
+        pipeline.ingestFile(nullBytePath, { source: 'null-byte' })
+      ).rejects.toThrow('Invalid path characters');
+    });
+
+    it('should normalize and resolve paths', async () => {
+      const filePath = path.join(testDir, 'test.txt');
+      await fs.writeFile(filePath, 'Test content for normalization.');
+
+      // Use relative path that should resolve correctly
+      const relativePath = path.join(testDir, '.', 'test.txt');
+      const result = await pipeline.ingestFile(relativePath, { source: 'relative' });
+
+      expect(result.documentId).toBeDefined();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECURITY TESTS: EXECUTABLE FILE BLOCKING
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('security: executable file blocking', () => {
+    const blockedExtensions = [
+      '.exe', '.dll', '.so', '.sh', '.bash', '.py', '.js',
+      '.bat', '.cmd', '.ps1', '.jar', '.php', '.rb',
     ];
 
-    const result = await pipeline.ingestBatch(inputs);
+    for (const ext of blockedExtensions) {
+      it(`should block ${ext} files`, async () => {
+        const filePath = path.join(testDir, `malicious${ext}`);
+        await fs.writeFile(filePath, 'Potentially dangerous content');
 
-    expect(result.success).toBe(false);
-    expect(result.documentsStored).toBe(2);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toContain('Embedding failed');
+        await expect(
+          pipeline.ingestFile(filePath, { source: 'blocked' })
+        ).rejects.toThrow('Blocked file type');
+      });
+    }
+
+    const allowedExtensions = ['.txt', '.md', '.json', '.yaml', '.csv', '.html'];
+
+    for (const ext of allowedExtensions) {
+      it(`should allow ${ext} files`, async () => {
+        const filePath = path.join(testDir, `safe${ext}`);
+        await fs.writeFile(filePath, 'Safe content for testing.');
+
+        const result = await pipeline.ingestFile(filePath, { source: 'allowed' });
+        expect(result.documentId).toBeDefined();
+      });
+    }
+
+    it('should reject unsupported extensions', async () => {
+      const filePath = path.join(testDir, 'unknown.xyz');
+      await fs.writeFile(filePath, 'Unknown format');
+
+      await expect(
+        pipeline.ingestFile(filePath, { source: 'unknown' })
+      ).rejects.toThrow('Unsupported file type');
+    });
   });
 
-  it('should fetch and extract content from URL', async () => {
-    // Mock fetch globally
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => '<html><body><p>Fetched content</p></body></html>',
-      status: 200,
-      statusText: 'OK',
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BATCH INGESTION TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('ingestBatch', () => {
+    it('should ingest multiple items', async () => {
+      const items = [
+        { content: 'First document content.', options: { source: 'doc1', sourceType: 'article' as SourceType } },
+        { content: 'Second document content.', options: { source: 'doc2', sourceType: 'tweet' as SourceType } },
+        { content: 'Third document content.', options: { source: 'doc3', sourceType: 'email' as SourceType } },
+      ];
+
+      const results = await pipeline.ingestBatch(items);
+
+      expect(results).toHaveLength(3);
+      results.forEach((result) => {
+        expect(result.documentId).toMatch(/^doc_/);
+        expect(result.chunksCreated).toBeGreaterThan(0);
+      });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
 
-    const result = await pipeline.ingest({
-      url: 'https://example.com/article',
-      source: 'example-article',
-      sourceType: 'article',
+    it('should continue processing after individual failures', async () => {
+      const items = [
+        { content: 'Valid content one.', options: { source: 'valid1', sourceType: 'article' as SourceType } },
+        { content: '', options: { source: 'invalid', sourceType: 'article' as SourceType } }, // Will fail
+        { content: 'Valid content two.', options: { source: 'valid2', sourceType: 'article' as SourceType } },
+      ];
+
+      const results = await pipeline.ingestBatch(items);
+
+      expect(results).toHaveLength(3);
+      expect(results[0].chunksCreated).toBeGreaterThan(0);
+      expect(results[1].chunksCreated).toBe(0); // Failed item
+      expect(results[2].chunksCreated).toBeGreaterThan(0);
     });
 
-    expect(result.success).toBe(true);
-    expect(result.documentsStored).toBe(1);
-    expect(mockFetch).toHaveBeenCalledWith(
-      'https://example.com/article',
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          'User-Agent': 'ARI-Bot/1.0',
-        }),
-      }),
-    );
+    it('should emit error events for failed items', async () => {
+      const errors: unknown[] = [];
+      eventBus.on('system:error', (payload) => errors.push(payload));
 
-    // Verify HTML was stripped
-    const embedBatchCalls = vi.mocked(mockEmbeddingService.embedBatch).mock.calls;
-    const extractedContent = embedBatchCalls[0][0][0];
-    expect(extractedContent).toContain('Fetched content');
-    expect(extractedContent).not.toContain('<html>');
-    expect(extractedContent).not.toContain('<p>');
+      const items = [
+        { content: '', options: { source: 'fail', sourceType: 'article' as SourceType } },
+      ];
+
+      await pipeline.ingestBatch(items);
+
+      expect(errors).toHaveLength(1);
+    });
+
+    it('should return empty array for empty batch', async () => {
+      const results = await pipeline.ingestBatch([]);
+      expect(results).toEqual([]);
+    });
   });
 
-  it('should handle URL fetch errors', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      statusText: 'Not Found',
-    });
-    global.fetch = mockFetch as unknown as typeof fetch;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EMBEDDING INTEGRATION TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
 
-    const result = await pipeline.ingest({
-      url: 'https://example.com/missing',
-      source: 'missing-article',
-      sourceType: 'article',
+  describe('embedding integration', () => {
+    it('should call embedding service with chunk content', async () => {
+      await pipeline.ingest('Content to be embedded.', {
+        source: 'embed-test',
+        sourceType: 'article',
+      });
+
+      expect(embeddingService.embedBatch).toHaveBeenCalled();
     });
 
-    expect(result.success).toBe(false);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toContain('404');
+    it('should attach embeddings to chunks', async () => {
+      await pipeline.ingest('Content with embedding.', {
+        source: 'embed-attach',
+        sourceType: 'article',
+      });
+
+      expect(vectorStore.chunks.length).toBeGreaterThan(0);
+      expect(vectorStore.chunks[0].embedding).toBeDefined();
+      expect(vectorStore.chunks[0].embedding).toBeInstanceOf(Float32Array);
+    });
+
+    it('should batch embed multiple chunks', async () => {
+      const largeContent = 'Paragraph content here.\n\n'.repeat(50);
+
+      await pipeline.ingest(largeContent, {
+        source: 'batch-embed',
+        sourceType: 'article',
+      });
+
+      // Should have called embedBatch once with all chunks
+      expect(embeddingService.embedBatch).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('should extract text from HTML correctly', async () => {
-    const html = `
-      <html>
-        <head>
-          <style>body { color: red; }</style>
-          <script>console.log('test');</script>
-        </head>
-        <body>
-          <h1>Title</h1>
-          <p>Paragraph 1 with &nbsp; non-breaking space.</p>
-          <p>Paragraph 2 with &amp; ampersand.</p>
-          <p>Paragraph 3 with &lt;tag&gt; entities.</p>
-        </body>
-      </html>
-    `;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROVENANCE TRACKING TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
 
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => html,
-      status: 200,
-      statusText: 'OK',
-    });
-    global.fetch = mockFetch as unknown as typeof fetch;
+  describe('provenance tracking', () => {
+    it('should track original content hash', async () => {
+      await pipeline.ingest('Content for provenance.', {
+        source: 'provenance-test',
+        sourceType: 'article',
+      });
 
-    const result = await pipeline.ingest({
-      url: 'https://example.com/article',
-      source: 'test-article',
-      sourceType: 'article',
+      const chunk = vectorStore.chunks[0];
+      expect(chunk.metadata.provenance.originalHash).toBeDefined();
+      expect(chunk.metadata.provenance.originalHash).toMatch(/^[a-f0-9]{64}$/);
     });
 
-    expect(result.success).toBe(true);
+    it('should track chunk hash', async () => {
+      await pipeline.ingest('Chunk hash content.', {
+        source: 'chunk-hash-test',
+        sourceType: 'article',
+      });
 
-    const embedBatchCalls = vi.mocked(mockEmbeddingService.embedBatch).mock.calls;
-    const extractedContent = embedBatchCalls[0][0][0];
+      const chunk = vectorStore.chunks[0];
+      expect(chunk.metadata.provenance.chunkHash).toBeDefined();
+      expect(chunk.metadata.provenance.chunkHash).toMatch(/^[a-f0-9]{64}$/);
+    });
 
-    // Should contain text without HTML tags
-    expect(extractedContent).toContain('Title');
-    expect(extractedContent).toContain('Paragraph 1');
-    expect(extractedContent).toContain('Paragraph 2');
-    expect(extractedContent).toContain('Paragraph 3');
+    it('should track ingestion timestamp', async () => {
+      const before = new Date().toISOString();
 
-    // Should not contain script or style content
-    expect(extractedContent).not.toContain('color: red');
-    expect(extractedContent).not.toContain('console.log');
+      await pipeline.ingest('Timestamp content.', {
+        source: 'timestamp-test',
+        sourceType: 'article',
+      });
 
-    // Should decode HTML entities
-    expect(extractedContent).toContain('non-breaking space');
-    expect(extractedContent).toContain('&');
-    expect(extractedContent).toContain('<tag>');
+      const after = new Date().toISOString();
+      const chunk = vectorStore.chunks[0];
 
-    // Should not contain HTML tags
-    expect(extractedContent).not.toContain('<h1>');
-    expect(extractedContent).not.toContain('<p>');
+      expect(chunk.metadata.ingestedAt).toBeDefined();
+      expect(chunk.metadata.ingestedAt >= before).toBe(true);
+      expect(chunk.metadata.ingestedAt <= after).toBe(true);
+    });
+
+    it('should preserve source information in chunks', async () => {
+      await pipeline.ingest('Source info content.', {
+        source: 'source-info',
+        sourceType: 'email',
+        sourceUrl: 'mailto:test@example.com',
+      });
+
+      const chunk = vectorStore.chunks[0];
+      expect(chunk.metadata.source).toBe('source-info');
+      expect(chunk.metadata.sourceType).toBe('email');
+      expect(chunk.metadata.sourceUrl).toBe('mailto:test@example.com');
+    });
   });
 
-  it('should store metadata correctly', async () => {
-    const metadata = {
-      author: 'Test Author',
-      publishedDate: '2024-01-01',
-      customField: 123,
-    };
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EDGE CASES
+  // ═══════════════════════════════════════════════════════════════════════════
 
-    const result = await pipeline.ingest({
-      content: 'Test content',
-      source: 'test-source',
-      sourceType: 'article',
-      title: 'Test Title',
-      domain: 'example.com',
-      tags: ['tag1', 'tag2'],
-      metadata,
+  describe('edge cases', () => {
+    it('should handle unicode content', async () => {
+      const unicodeContent = 'Hello \u{1F600} world! \u4E2D\u6587 \u0410\u0411\u0412';
+
+      const result = await pipeline.ingest(unicodeContent, {
+        source: 'unicode',
+        sourceType: 'article',
+      });
+
+      expect(result.chunksCreated).toBeGreaterThan(0);
+      expect(vectorStore.chunks[0].content).toContain('\u{1F600}');
     });
 
-    expect(result.success).toBe(true);
+    it('should handle very long single words', async () => {
+      const longWord = 'a'.repeat(3000);
 
-    const upsertCalls = vi.mocked(mockVectorStore.upsert).mock.calls;
-    const doc = upsertCalls[0][0] as VectorDocument;
+      const result = await pipeline.ingest(longWord, {
+        source: 'long-word',
+        sourceType: 'article',
+      });
 
-    expect(doc.title).toBe('Test Title');
-    expect(doc.domain).toBe('example.com');
-    expect(doc.tags).toEqual(['tag1', 'tag2']);
-    expect(doc.metadata).toEqual(metadata);
-  });
-
-  it('should require either content or url', async () => {
-    const result = await pipeline.ingest({
-      source: 'test-source',
-      sourceType: 'article',
-      // No content or url provided
+      expect(result.chunksCreated).toBeGreaterThan(0);
     });
 
-    expect(result.success).toBe(false);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toContain('Must provide either content or url');
+    it('should handle content with only special characters', async () => {
+      const specialContent = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+      const result = await pipeline.ingest(specialContent, {
+        source: 'special',
+        sourceType: 'article',
+      });
+
+      expect(result.documentId).toBeDefined();
+    });
+
+    it('should handle newline variations', async () => {
+      const mixedNewlines = 'Line1\nLine2\r\nLine3\rLine4';
+
+      const result = await pipeline.ingest(mixedNewlines, {
+        source: 'newlines',
+        sourceType: 'article',
+      });
+
+      expect(result.chunksCreated).toBeGreaterThan(0);
+    });
   });
 });

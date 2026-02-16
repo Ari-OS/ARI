@@ -14,3 +14,14 @@ export { LearningMachine } from './learning-machine.js';
 export type { LearnedPattern, PatternType, Interaction, InteractionType } from './learning-machine.js';
 export { Scratchpad } from './scratchpad.js';
 export type { ScratchpadEntry, ScratchpadContext } from './scratchpad.js';
+export { TemporalMemory } from './temporal-memory.js';
+export type {
+  DailyNote,
+  DailyNoteEntry,
+  DailyNoteEntryType,
+  WeeklyMemorySynthesis,
+  LongTermMemoryEntry,
+  LongTermCategory,
+  TemporalMemoryOptions,
+  TemporalMemoryStats,
+} from './temporal-memory.js';

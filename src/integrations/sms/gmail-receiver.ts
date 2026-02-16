@@ -181,14 +181,16 @@ export class GmailReceiver extends EventEmitter {
       const messages = await this.connection.search(searchCriteria, fetchOptions);
 
       for (const message of messages) {
-        const uid = message.attributes.uid;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const uid = message.attributes.uid as number;
         const uidStr = String(uid);
 
         // Skip already processed
         if (this.processedIds.has(uidStr)) continue;
 
         // Parse the full message
-        const all = message.parts.find((p) => p.which === '');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        const all = message.parts.find((p: any) => p.which === '');
         if (!all?.body) continue;
 
         const parsed = await simpleParser(all.body as Buffer);

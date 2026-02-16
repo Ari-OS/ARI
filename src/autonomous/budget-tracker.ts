@@ -233,7 +233,7 @@ export class BudgetTracker {
           this.isProcessing = false;
         }
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         log.error({ error }, 'Operation failed');
       });
   }
@@ -634,7 +634,7 @@ export class BudgetTracker {
       const perf = this.state.taskTypePerformance[taskType];
       if (perf?.preferredModel && perf.preferredModel in MODEL_PRICING) {
         // Verify preferred model fits current budget mode
-        const model = perf.preferredModel as ClaudeModel;
+        const model = perf.preferredModel;
         if (this.modelFitsBudgetMode(model)) {
           return model;
         }
@@ -822,7 +822,7 @@ export class BudgetTracker {
   static getModelsByIntelligence(): Array<{ model: ClaudeModel; intelligence: number }> {
     return Object.entries(MODEL_PRICING)
       .map(([model, pricing]) => ({
-        model: model as ClaudeModel,
+        model: model,
         intelligence: pricing.intelligence,
       }))
       .sort((a, b) => b.intelligence - a.intelligence);

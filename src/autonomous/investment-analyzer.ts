@@ -1,300 +1,625 @@
 /**
- * InvestmentAnalyzer — Deep analysis engine for investment decisions
+ * ARI Investment Analyzer
  *
- * Uses basic technical indicators (SMA, momentum, trend detection) to analyze
- * assets and generate investment recommendations.
+ * Analyzes investment opportunities using the LOGOS cognitive framework.
+ * Provides risk-adjusted returns, Kelly criterion position sizing,
+ * and buy/sell/hold recommendations.
+ *
+ * @module autonomous/investment-analyzer
+ * @layer L5 (Autonomous)
  */
 
+import { z } from 'zod';
 import type { EventBus } from '../kernel/event-bus.js';
+import {
+  calculateKellyFraction,
+  type KellyInput,
+} from '../cognition/logos/index.js';
+import { createLogger } from '../kernel/logger.js';
 
-export interface InvestmentAnalysis {
-  asset: string;
-  assetClass: string;
-  summary: string;
-  technicalSignals: {
-    trend: 'bullish' | 'neutral' | 'bearish';
-    momentum: number;      // -100 to 100
-    volumeTrend: 'increasing' | 'stable' | 'decreasing';
-  };
-  recommendation: {
-    action: 'buy' | 'hold' | 'sell' | 'watch';
-    confidence: number;
-    reasoning: string;
-    timeframe: string;
-  };
-  risks: string[];
-  catalysts: string[];
-}
+const log = createLogger('investment-analyzer');
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ZOD SCHEMAS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Recommendation type for investment analysis
+ */
+export const RecommendationSchema = z.enum([
+  'strong_buy',
+  'buy',
+  'hold',
+  'sell',
+  'strong_sell',
+]);
+export type Recommendation = z.infer<typeof RecommendationSchema>;
+
+/**
+ * Price history data point
+ */
+export const PricePointSchema = z.object({
+  price: z.number().positive(),
+  timestamp: z.string(),
+});
+export type PricePoint = z.infer<typeof PricePointSchema>;
+
+/**
+ * Investment metrics
+ */
+export const InvestmentMetricsSchema = z.object({
+  expectedReturn: z.number(),
+  riskScore: z.number().min(0).max(1),
+  kellyFraction: z.number().min(0).max(1),
+  sharpeRatio: z.number().optional(),
+  volatility: z.number().optional(),
+  maxDrawdown: z.number().optional(),
+  winRate: z.number().min(0).max(1).optional(),
+});
+export type InvestmentMetrics = z.infer<typeof InvestmentMetricsSchema>;
+
+/**
+ * Complete investment analysis result
+ */
+export const InvestmentAnalysisSchema = z.object({
+  asset: z.string(),
+  assetClass: z.string(),
+  recommendation: RecommendationSchema,
+  confidence: z.number().min(0).max(1),
+  reasoning: z.array(z.string()),
+  metrics: InvestmentMetricsSchema,
+  actionItems: z.array(z.string()),
+  provenance: z.object({
+    framework: z.string(),
+    computedAt: z.date(),
+  }).optional(),
+});
+export type InvestmentAnalysis = z.infer<typeof InvestmentAnalysisSchema>;
+
+/**
+ * Analysis context
+ */
+export const AnalysisContextSchema = z.object({
+  riskTolerance: z.enum(['conservative', 'moderate', 'aggressive']).optional(),
+  timeHorizon: z.enum(['short', 'medium', 'long']).optional(),
+  currentPosition: z.number().optional(),
+  portfolioValue: z.number().positive().optional(),
+  marketCondition: z.enum(['bull', 'bear', 'neutral']).optional(),
+});
+export type AnalysisContext = z.infer<typeof AnalysisContextSchema>;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Risk-free rate for Sharpe ratio calculation (annual)
+ */
+const RISK_FREE_RATE = 0.05;
+
+/**
+ * Minimum data points required for analysis
+ */
+const MIN_DATA_POINTS = 5;
+
+/**
+ * Risk tolerance multipliers for Kelly fraction
+ */
+const RISK_MULTIPLIERS: Record<string, number> = {
+  conservative: 0.25,
+  moderate: 0.5,
+  aggressive: 1.0,
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INVESTMENT ANALYZER
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Analyzes investment opportunities using LOGOS cognitive framework.
+ *
+ * Features:
+ * - Calculates expected returns from price history
+ * - Applies Kelly criterion for position sizing
+ * - Computes Sharpe ratio and risk metrics
+ * - Generates actionable recommendations
+ * - Emits events for opportunity detection
+ */
 export class InvestmentAnalyzer {
-  constructor(private eventBus: EventBus) {}
+  private eventBus: EventBus;
+
+  constructor(eventBus: EventBus) {
+    this.eventBus = eventBus;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PUBLIC API
+  // ═══════════════════════════════════════════════════════════════════════
 
   /**
-   * Analyze price history for an asset
+   * Analyze an investment opportunity
+   *
+   * @param asset - Asset identifier (e.g., 'AAPL', 'BTC')
+   * @param assetClass - Asset class (e.g., 'equity', 'crypto', 'bond')
+   * @param priceHistory - Historical price data
+   * @param context - Optional analysis context
+   * @returns Complete investment analysis
    */
-  analyzeAsset(
+  async analyze(
     asset: string,
-    priceHistory: Array<{ price: number; timestamp: string }>
-  ): InvestmentAnalysis {
-    if (priceHistory.length === 0) {
-      throw new Error('Price history cannot be empty');
+    assetClass: string,
+    priceHistory: PricePoint[],
+    context?: Record<string, unknown>
+  ): Promise<InvestmentAnalysis> {
+    // Validate inputs
+    if (!asset || asset.trim().length === 0) {
+      throw new Error('Asset identifier is required');
     }
 
-    const prices = priceHistory.map((p) => p.price);
+    if (!assetClass || assetClass.trim().length === 0) {
+      throw new Error('Asset class is required');
+    }
 
-    // Calculate technical indicators
-    const sma20 = this.calculateSMA(prices, 20);
-    const sma50 = this.calculateSMA(prices, 50);
-    const trend = this.detectTrend(prices);
-    const momentum = this.calculateMomentum(prices, 14);
+    if (!priceHistory || priceHistory.length < MIN_DATA_POINTS) {
+      throw new Error(`Minimum ${MIN_DATA_POINTS} data points required for analysis`);
+    }
 
-    // Determine asset class (simplified)
-    const assetClass = this.inferAssetClass(asset);
+    // Parse context
+    const parsedContext = context ? AnalysisContextSchema.partial().safeParse(context) : null;
+    const analysisContext: Partial<AnalysisContext> = parsedContext?.success
+      ? parsedContext.data
+      : {};
 
-    // Generate recommendation
-    const recommendation = this.generateRecommendation(
-      prices,
-      sma20,
-      sma50,
-      trend,
-      momentum
+    // Calculate returns
+    const returns = this.calculateReturns(priceHistory);
+    const statistics = this.calculateStatistics(returns);
+
+    // Calculate metrics
+    const metrics = await this.calculateMetrics(
+      returns,
+      statistics,
+      analysisContext
     );
 
-    // Generate summary
-    const currentPrice = prices[prices.length - 1];
-    const summary = `${asset} at $${currentPrice.toFixed(2)}, ${trend} trend with ${momentum > 0 ? 'positive' : 'negative'} momentum (${momentum.toFixed(1)})`;
+    // Generate recommendation
+    const { recommendation, confidence, reasoning } = this.generateRecommendation(
+      metrics,
+      statistics,
+      analysisContext
+    );
 
-    // Identify risks and catalysts
-    const risks = this.identifyRisks(trend, momentum, prices);
-    const catalysts = this.identifyCatalysts(trend, momentum, sma20, currentPrice);
+    // Generate action items
+    const actionItems = this.generateActionItems(
+      recommendation,
+      metrics,
+      asset,
+      analysisContext
+    );
 
-    this.eventBus.emit('audit:log', {
-      action: 'investment_analyzed',
-      agent: 'investment-analyzer',
-      trustLevel: 'system',
-      details: { asset, recommendation: recommendation.action, trend, momentum },
-    });
-
-    return {
+    // Build analysis result
+    const analysis: InvestmentAnalysis = {
       asset,
       assetClass,
-      summary,
-      technicalSignals: {
-        trend,
-        momentum,
-        volumeTrend: 'stable', // Placeholder (would need volume data)
-      },
       recommendation,
-      risks,
-      catalysts,
+      confidence,
+      reasoning,
+      metrics,
+      actionItems,
+      provenance: {
+        framework: 'LOGOS Investment Analysis',
+        computedAt: new Date(),
+      },
+    };
+
+    // Emit opportunity event if strong buy/sell
+    if (recommendation === 'strong_buy' || recommendation === 'strong_sell') {
+      this.eventBus.emit('investment:opportunity_detected', {
+        category: assetClass,
+        title: `${recommendation === 'strong_buy' ? 'Buy' : 'Sell'} opportunity: ${asset}`,
+        score: confidence,
+      });
+
+      log.info({
+        asset,
+        recommendation,
+        confidence,
+        expectedReturn: metrics.expectedReturn,
+      }, 'Investment opportunity detected');
+    }
+
+    return analysis;
+  }
+
+  /**
+   * Compare multiple investment opportunities and rank them
+   *
+   * @param analyses - Array of investment analyses to compare
+   * @returns Sorted array with best opportunities first
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async compareOpportunities(
+    analyses: InvestmentAnalysis[]
+  ): Promise<InvestmentAnalysis[]> {
+    if (!analyses || analyses.length === 0) {
+      return [];
+    }
+
+    // Score each analysis
+    const scored = analyses.map(analysis => ({
+      analysis,
+      score: this.calculateOpportunityScore(analysis),
+    }));
+
+    // Sort by score descending
+    scored.sort((a, b) => b.score - a.score);
+
+    return scored.map(s => s.analysis);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PRICE ANALYSIS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Calculate returns from price history
+   */
+  private calculateReturns(priceHistory: PricePoint[]): number[] {
+    const returns: number[] = [];
+
+    // Sort by timestamp
+    const sorted = [...priceHistory].sort((a, b) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    for (let i = 1; i < sorted.length; i++) {
+      const previousPrice = sorted[i - 1].price;
+      const currentPrice = sorted[i].price;
+
+      if (previousPrice > 0) {
+        const returnValue = (currentPrice - previousPrice) / previousPrice;
+        returns.push(returnValue);
+      }
+    }
+
+    return returns;
+  }
+
+  /**
+   * Calculate statistical measures from returns
+   */
+  private calculateStatistics(returns: number[]): {
+    mean: number;
+    stdDev: number;
+    variance: number;
+    winRate: number;
+    avgWin: number;
+    avgLoss: number;
+    maxDrawdown: number;
+  } {
+    if (returns.length === 0) {
+      return {
+        mean: 0,
+        stdDev: 0,
+        variance: 0,
+        winRate: 0,
+        avgWin: 0,
+        avgLoss: 0,
+        maxDrawdown: 0,
+      };
+    }
+
+    // Mean return
+    const mean = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+
+    // Variance and standard deviation
+    const squaredDiffs = returns.map(r => Math.pow(r - mean, 2));
+    const variance = squaredDiffs.reduce((sum, d) => sum + d, 0) / returns.length;
+    const stdDev = Math.sqrt(variance);
+
+    // Win rate
+    const wins = returns.filter(r => r > 0);
+    const losses = returns.filter(r => r < 0);
+    const winRate = returns.length > 0 ? wins.length / returns.length : 0;
+
+    // Average win/loss
+    const avgWin = wins.length > 0
+      ? wins.reduce((sum, w) => sum + w, 0) / wins.length
+      : 0;
+    const avgLoss = losses.length > 0
+      ? Math.abs(losses.reduce((sum, l) => sum + l, 0) / losses.length)
+      : 0;
+
+    // Max drawdown (simplified)
+    let peak = 1;
+    let maxDrawdown = 0;
+    let cumulative = 1;
+
+    for (const r of returns) {
+      cumulative *= (1 + r);
+      if (cumulative > peak) {
+        peak = cumulative;
+      }
+      const drawdown = (peak - cumulative) / peak;
+      if (drawdown > maxDrawdown) {
+        maxDrawdown = drawdown;
+      }
+    }
+
+    return { mean, stdDev, variance, winRate, avgWin, avgLoss, maxDrawdown };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // METRICS CALCULATION
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Calculate investment metrics using LOGOS framework
+   */
+  private async calculateMetrics(
+    returns: number[],
+    statistics: ReturnType<typeof this.calculateStatistics>,
+    context: Partial<AnalysisContext>
+  ): Promise<InvestmentMetrics> {
+    const { mean, stdDev, winRate, avgWin, avgLoss, maxDrawdown } = statistics;
+
+    // Expected return (annualized assuming daily returns)
+    const expectedReturn = mean * 252; // Trading days per year
+
+    // Risk score (0-1, based on volatility and drawdown)
+    const volatilityRisk = Math.min(1, stdDev * 10); // Scale to 0-1
+    const drawdownRisk = maxDrawdown;
+    const riskScore = (volatilityRisk * 0.6 + drawdownRisk * 0.4);
+
+    // Sharpe ratio (annualized)
+    const annualizedStdDev = stdDev * Math.sqrt(252);
+    const sharpeRatio = annualizedStdDev > 0
+      ? (expectedReturn - RISK_FREE_RATE) / annualizedStdDev
+      : 0;
+
+    // Kelly criterion
+    let kellyFraction = 0;
+    if (winRate > 0 && avgWin > 0 && avgLoss > 0) {
+      try {
+        const kellyInput: KellyInput = {
+          winProbability: winRate,
+          winAmount: avgWin,
+          lossAmount: avgLoss,
+        };
+
+        const kellyResult = await calculateKellyFraction(kellyInput);
+        kellyFraction = kellyResult.recommendedFraction;
+
+        // Apply risk tolerance adjustment
+        const riskMultiplier = RISK_MULTIPLIERS[context.riskTolerance || 'moderate'];
+        kellyFraction = Math.min(1, kellyFraction * riskMultiplier);
+      } catch (error) {
+        log.warn({ error }, 'Kelly calculation failed, using conservative estimate');
+        kellyFraction = 0.1;
+      }
+    }
+
+    return {
+      expectedReturn,
+      riskScore,
+      kellyFraction,
+      sharpeRatio,
+      volatility: annualizedStdDev,
+      maxDrawdown,
+      winRate,
     };
   }
 
-  /**
-   * Calculate Simple Moving Average
-   */
-  calculateSMA(prices: number[], period: number): number {
-    if (prices.length < period) {
-      // Not enough data, return average of all prices
-      return prices.reduce((sum, p) => sum + p, 0) / prices.length;
-    }
-
-    const recentPrices = prices.slice(-period);
-    return recentPrices.reduce((sum, p) => sum + p, 0) / period;
-  }
+  // ═══════════════════════════════════════════════════════════════════════
+  // RECOMMENDATION GENERATION
+  // ═══════════════════════════════════════════════════════════════════════
 
   /**
-   * Detect trend from price series
-   */
-  detectTrend(prices: number[]): 'bullish' | 'neutral' | 'bearish' {
-    if (prices.length < 2) {
-      return 'neutral';
-    }
-
-    // Compare recent prices to older prices
-    const recentAvg = this.calculateSMA(prices.slice(-5), 5);
-    const olderAvg = this.calculateSMA(prices.slice(-10, -5), 5);
-
-    const change = ((recentAvg - olderAvg) / olderAvg) * 100;
-
-    if (change > 2) {
-      return 'bullish';
-    } else if (change < -2) {
-      return 'bearish';
-    } else {
-      return 'neutral';
-    }
-  }
-
-  /**
-   * Calculate momentum (rate of change)
-   */
-  calculateMomentum(prices: number[], period: number): number {
-    if (prices.length < period + 1) {
-      return 0;
-    }
-
-    const currentPrice = prices[prices.length - 1];
-    const oldPrice = prices[prices.length - period - 1];
-
-    // Return percentage change scaled to -100 to 100
-    const percentChange = ((currentPrice - oldPrice) / oldPrice) * 100;
-
-    // Clamp to -100 to 100
-    return Math.max(-100, Math.min(100, percentChange * 10));
-  }
-
-  /**
-   * Generate investment recommendation
+   * Generate recommendation based on metrics
    */
   private generateRecommendation(
-    prices: number[],
-    sma20: number,
-    sma50: number,
-    trend: 'bullish' | 'neutral' | 'bearish',
-    momentum: number
-  ): InvestmentAnalysis['recommendation'] {
-    const currentPrice = prices[prices.length - 1];
-    let action: 'buy' | 'hold' | 'sell' | 'watch';
-    let confidence: number;
-    let reasoning: string;
-    let timeframe: string;
+    metrics: InvestmentMetrics,
+    statistics: ReturnType<typeof this.calculateStatistics>,
+    context: Partial<AnalysisContext>
+  ): {
+    recommendation: Recommendation;
+    confidence: number;
+    reasoning: string[];
+  } {
+    const reasoning: string[] = [];
+    let score = 0;
 
-    // Golden cross / death cross detection
-    const goldenCross = sma20 > sma50 && currentPrice > sma20;
-    const deathCross = sma20 < sma50 && currentPrice < sma20;
-
-    // Strong bullish signals
-    if (trend === 'bullish' && momentum > 30 && goldenCross) {
-      action = 'buy';
-      confidence = 85;
-      reasoning = 'Strong uptrend with golden cross signal';
-      timeframe = 'short-term (1-4 weeks)';
-    }
-    // Moderate bullish signals
-    else if (trend === 'bullish' && momentum > 15) {
-      action = 'buy';
-      confidence = 65;
-      reasoning = 'Positive trend and momentum';
-      timeframe = 'medium-term (1-3 months)';
-    }
-    // Strong bearish signals
-    else if (trend === 'bearish' && momentum < -30 && deathCross) {
-      action = 'sell';
-      confidence = 80;
-      reasoning = 'Strong downtrend with death cross signal';
-      timeframe = 'immediate';
-    }
-    // Moderate bearish signals
-    else if (trend === 'bearish' && momentum < -15) {
-      action = 'sell';
-      confidence = 60;
-      reasoning = 'Negative trend and momentum';
-      timeframe = 'short-term (1-2 weeks)';
-    }
-    // Neutral with positive momentum
-    else if (trend === 'neutral' && momentum > 10) {
-      action = 'watch';
-      confidence = 50;
-      reasoning = 'Consolidating with slight positive momentum';
-      timeframe = 'watch for breakout';
-    }
-    // Neutral with negative momentum
-    else if (trend === 'neutral' && momentum < -10) {
-      action = 'hold';
-      confidence = 45;
-      reasoning = 'Consolidating with slight negative momentum';
-      timeframe = 'wait for trend confirmation';
-    }
-    // Default neutral
-    else {
-      action = 'hold';
-      confidence = 40;
-      reasoning = 'No clear trend, waiting for signal';
-      timeframe = 'monitor closely';
+    // Expected return scoring
+    if (metrics.expectedReturn > 0.2) {
+      score += 2;
+      reasoning.push(`Strong expected annual return of ${(metrics.expectedReturn * 100).toFixed(1)}%`);
+    } else if (metrics.expectedReturn > 0.1) {
+      score += 1;
+      reasoning.push(`Positive expected annual return of ${(metrics.expectedReturn * 100).toFixed(1)}%`);
+    } else if (metrics.expectedReturn > 0) {
+      reasoning.push(`Modest expected annual return of ${(metrics.expectedReturn * 100).toFixed(1)}%`);
+    } else {
+      score -= 2;
+      reasoning.push(`Negative expected annual return of ${(metrics.expectedReturn * 100).toFixed(1)}%`);
     }
 
-    return { action, confidence, reasoning, timeframe };
+    // Sharpe ratio scoring
+    const sharpe = metrics.sharpeRatio ?? 0;
+    if (sharpe > 1.5) {
+      score += 2;
+      reasoning.push(`Excellent risk-adjusted returns (Sharpe: ${sharpe.toFixed(2)})`);
+    } else if (sharpe > 1.0) {
+      score += 1;
+      reasoning.push(`Good risk-adjusted returns (Sharpe: ${sharpe.toFixed(2)})`);
+    } else if (sharpe > 0.5) {
+      reasoning.push(`Acceptable risk-adjusted returns (Sharpe: ${sharpe.toFixed(2)})`);
+    } else {
+      score -= 1;
+      reasoning.push(`Poor risk-adjusted returns (Sharpe: ${sharpe.toFixed(2)})`);
+    }
+
+    // Risk scoring
+    if (metrics.riskScore > 0.7) {
+      score -= 2;
+      reasoning.push('High risk profile - significant volatility or drawdown');
+    } else if (metrics.riskScore > 0.5) {
+      score -= 1;
+      reasoning.push('Elevated risk profile');
+    } else if (metrics.riskScore < 0.3) {
+      score += 1;
+      reasoning.push('Low risk profile');
+    }
+
+    // Kelly fraction scoring
+    if (metrics.kellyFraction > 0.2) {
+      score += 1;
+      reasoning.push(`Kelly suggests meaningful position (${(metrics.kellyFraction * 100).toFixed(1)}% of capital)`);
+    } else if (metrics.kellyFraction < 0.05) {
+      score -= 1;
+      reasoning.push('Kelly suggests minimal or no position');
+    }
+
+    // Win rate consideration
+    const winRate = statistics.winRate;
+    if (winRate > 0.6) {
+      score += 1;
+      reasoning.push(`High win rate: ${(winRate * 100).toFixed(0)}%`);
+    } else if (winRate < 0.4) {
+      score -= 1;
+      reasoning.push(`Low win rate: ${(winRate * 100).toFixed(0)}%`);
+    }
+
+    // Market condition adjustment
+    if (context.marketCondition === 'bear') {
+      score -= 1;
+      reasoning.push('Bear market conditions increase caution');
+    } else if (context.marketCondition === 'bull') {
+      score += 0.5;
+      reasoning.push('Bull market conditions favorable');
+    }
+
+    // Time horizon adjustment
+    if (context.timeHorizon === 'short' && metrics.volatility && metrics.volatility > 0.3) {
+      score -= 1;
+      reasoning.push('High volatility unfavorable for short-term horizon');
+    }
+
+    // Determine recommendation
+    let recommendation: Recommendation;
+    if (score >= 4) {
+      recommendation = 'strong_buy';
+    } else if (score >= 2) {
+      recommendation = 'buy';
+    } else if (score >= -1) {
+      recommendation = 'hold';
+    } else if (score >= -3) {
+      recommendation = 'sell';
+    } else {
+      recommendation = 'strong_sell';
+    }
+
+    // Calculate confidence based on data quality and signal strength
+    const signalStrength = Math.abs(score) / 6; // Normalize to 0-1
+    const dataQuality = Math.min(1, (metrics.winRate ?? 0.5) + 0.3); // Base quality + win rate
+    const confidence = Math.min(0.95, (signalStrength * 0.6 + dataQuality * 0.4));
+
+    return { recommendation, confidence, reasoning };
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // ACTION ITEMS
+  // ═══════════════════════════════════════════════════════════════════════
+
   /**
-   * Identify investment risks
+   * Generate actionable items based on recommendation
    */
-  private identifyRisks(
-    trend: 'bullish' | 'neutral' | 'bearish',
-    momentum: number,
-    prices: number[]
+  private generateActionItems(
+    recommendation: Recommendation,
+    metrics: InvestmentMetrics,
+    asset: string,
+    context: Partial<AnalysisContext>
   ): string[] {
-    const risks: string[] = [];
+    const actionItems: string[] = [];
 
-    if (trend === 'bearish') {
-      risks.push('Downtrend may continue');
+    switch (recommendation) {
+      case 'strong_buy':
+        actionItems.push(`Consider allocating up to ${(metrics.kellyFraction * 100).toFixed(0)}% of capital to ${asset}`);
+        actionItems.push('Set limit orders at current price or slight pullback');
+        actionItems.push('Define stop-loss at max acceptable drawdown level');
+        break;
+
+      case 'buy':
+        actionItems.push(`Consider partial position in ${asset} (${((metrics.kellyFraction * 0.5) * 100).toFixed(0)}% of recommended)`);
+        actionItems.push('Monitor for better entry points');
+        actionItems.push('Set alerts for significant price movements');
+        break;
+
+      case 'hold':
+        actionItems.push(`Maintain current position in ${asset} if any`);
+        actionItems.push('Review analysis weekly for condition changes');
+        actionItems.push('Do not add to position at current levels');
+        break;
+
+      case 'sell':
+        actionItems.push(`Consider reducing position in ${asset}`);
+        actionItems.push('Set trailing stop to protect remaining gains');
+        actionItems.push('Identify reentry criteria');
+        break;
+
+      case 'strong_sell':
+        actionItems.push(`Exit position in ${asset} as soon as practical`);
+        actionItems.push('Do not average down');
+        actionItems.push('Review what signals were missed');
+        break;
     }
 
-    if (Math.abs(momentum) > 50) {
-      risks.push('High volatility, potential for sharp reversal');
+    // Add risk management items
+    if (metrics.riskScore > 0.5) {
+      actionItems.push('Consider position sizing due to elevated risk');
     }
 
-    // Check for recent sharp moves
-    const recentChange = prices.length >= 2
-      ? ((prices[prices.length - 1] - prices[prices.length - 2]) / prices[prices.length - 2]) * 100
-      : 0;
-
-    if (Math.abs(recentChange) > 10) {
-      risks.push('Recent sharp price movement may indicate instability');
+    // Portfolio context items
+    if (context.portfolioValue && metrics.kellyFraction > 0) {
+      const suggestedAllocation = context.portfolioValue * metrics.kellyFraction;
+      actionItems.push(`Suggested allocation: $${suggestedAllocation.toFixed(2)} based on Kelly criterion`);
     }
 
-    if (risks.length === 0) {
-      risks.push('Standard market risk');
-    }
-
-    return risks;
+    return actionItems;
   }
 
-  /**
-   * Identify potential catalysts
-   */
-  private identifyCatalysts(
-    trend: 'bullish' | 'neutral' | 'bearish',
-    momentum: number,
-    sma20: number,
-    currentPrice: number
-  ): string[] {
-    const catalysts: string[] = [];
-
-    if (trend === 'bullish' && momentum > 20) {
-      catalysts.push('Strong upward momentum continuing');
-    }
-
-    if (currentPrice > sma20) {
-      catalysts.push('Price above 20-day moving average');
-    }
-
-    if (trend === 'neutral') {
-      catalysts.push('Potential breakout opportunity if trend develops');
-    }
-
-    if (catalysts.length === 0) {
-      catalysts.push('Monitor for trend confirmation');
-    }
-
-    return catalysts;
-  }
+  // ═══════════════════════════════════════════════════════════════════════
+  // COMPARISON UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════
 
   /**
-   * Infer asset class from asset name
+   * Calculate opportunity score for ranking
    */
-  private inferAssetClass(asset: string): string {
-    const assetLower = asset.toLowerCase();
+  private calculateOpportunityScore(analysis: InvestmentAnalysis): number {
+    const { metrics, recommendation, confidence } = analysis;
 
-    if (assetLower.includes('btc') || assetLower.includes('eth') || assetLower.includes('coin')) {
-      return 'Cryptocurrency';
-    }
+    // Base score from recommendation
+    const recommendationScores: Record<Recommendation, number> = {
+      strong_buy: 5,
+      buy: 4,
+      hold: 3,
+      sell: 2,
+      strong_sell: 1,
+    };
+    const baseScore = recommendationScores[recommendation];
 
-    if (assetLower.includes('pokemon') || assetLower.includes('tcg') || assetLower.includes('card')) {
-      return 'Collectible';
-    }
+    // Sharpe ratio contribution (normalized)
+    const sharpeContribution = Math.min(2, Math.max(-1, (metrics.sharpeRatio ?? 0) / 1.5));
 
-    return 'Stock/Equity';
+    // Expected return contribution (normalized)
+    const returnContribution = Math.min(2, Math.max(-1, metrics.expectedReturn * 5));
+
+    // Risk penalty
+    const riskPenalty = metrics.riskScore * 1.5;
+
+    // Confidence multiplier
+    const confidenceMultiplier = 0.5 + confidence;
+
+    // Combined score
+    return (baseScore + sharpeContribution + returnContribution - riskPenalty) * confidenceMultiplier;
   }
 }
+

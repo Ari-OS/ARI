@@ -1,389 +1,736 @@
 /**
- * Tests for TelegramTopicManager
+ * TopicManager Test Suite
+ *
+ * Tests for Telegram forum topic management including:
+ * - Topic creation and caching
+ * - Message routing to topics
+ * - API error handling
+ * - Security (token exposure prevention)
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TelegramTopicManager } from '../../../../src/integrations/telegram/topic-manager.js';
-import type { TopicKey } from '../../../../src/integrations/telegram/topic-manager.js';
-import { existsSync } from 'node:fs';
-import { readFile, unlink } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { TopicManager, type TopicName, type TopicManagerOptions } from '../../../../src/integrations/telegram/topic-manager.js';
+import type { EventBus } from '../../../../src/kernel/event-bus.js';
+import { GrammyError, HttpError } from 'grammy';
 
-const PERSISTENCE_PATH = join(homedir(), '.ari', 'telegram-topics.json');
+// ═══════════════════════════════════════════════════════════════════════════════
+// MOCKS
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Mock fetch globally
-global.fetch = vi.fn();
+// Mock grammY
+vi.mock('grammy', async () => {
+  const actual = await vi.importActual<typeof import('grammy')>('grammy');
+  return {
+    ...actual,
+    Bot: vi.fn().mockImplementation(() => ({
+      api: {
+        getChat: vi.fn(),
+        createForumTopic: vi.fn(),
+        sendMessage: vi.fn(),
+      },
+    })),
+  };
+});
 
-describe('TelegramTopicManager', () => {
-  let manager: TelegramTopicManager;
-  const mockBotToken = 'test-bot-token';
-  const mockGroupChatId = '-1001234567890';
+// Create mock EventBus
+function createMockEventBus(): EventBus {
+  return {
+    emit: vi.fn(),
+    on: vi.fn().mockReturnValue(() => {}),
+    off: vi.fn(),
+    once: vi.fn().mockReturnValue(() => {}),
+    clear: vi.fn(),
+    listenerCount: vi.fn().mockReturnValue(0),
+    getHandlerErrorCount: vi.fn().mockReturnValue(0),
+    setHandlerTimeout: vi.fn(),
+  } as unknown as EventBus;
+}
+
+// Default test options
+const defaultOptions: TopicManagerOptions = {
+  botToken: '123456789:ABCdefGHIjklMNOpqrsTUVwxyz123456789',
+  groupChatId: '-1001234567890',
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONSTRUCTOR TESTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('TopicManager', () => {
+  let eventBus: EventBus;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    manager = new TelegramTopicManager({
-      botToken: mockBotToken,
-      groupChatId: mockGroupChatId,
-    });
-
-    // Clean up persistence file
-    if (existsSync(PERSISTENCE_PATH)) {
-      void unlink(PERSISTENCE_PATH);
-    }
+    eventBus = createMockEventBus();
   });
 
-  describe('isConfigured', () => {
-    it('should return true when properly configured', () => {
-      expect(manager.isConfigured()).toBe(true);
+  describe('constructor', () => {
+    it('should create instance with valid options', () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      expect(manager).toBeDefined();
+      expect(manager.isInitialized()).toBe(false);
     });
 
-    it('should return false when missing botToken', () => {
-      const unconfigured = new TelegramTopicManager({
+    it('should throw error when bot token is missing', () => {
+      expect(() => new TopicManager(eventBus, {
         botToken: '',
-        groupChatId: mockGroupChatId,
-      });
-      expect(unconfigured.isConfigured()).toBe(false);
+        groupChatId: '-1001234567890',
+      })).toThrow('Bot token is required');
     });
 
-    it('should return false when missing groupChatId', () => {
-      const unconfigured = new TelegramTopicManager({
-        botToken: mockBotToken,
+    it('should throw error when group chat ID is missing', () => {
+      expect(() => new TopicManager(eventBus, {
+        botToken: '123:abc',
         groupChatId: '',
+      })).toThrow('Group chat ID is required');
+    });
+
+    it('should throw error when group chat ID is invalid', () => {
+      expect(() => new TopicManager(eventBus, {
+        botToken: '123:abc',
+        groupChatId: 'not-a-number',
+      })).toThrow('Invalid group chat ID: must be a number');
+    });
+
+    it('should accept positive and negative chat IDs', () => {
+      // Positive (rare but valid)
+      const manager1 = new TopicManager(eventBus, {
+        botToken: '123:abc',
+        groupChatId: '1234567890',
       });
-      expect(unconfigured.isConfigured()).toBe(false);
+      expect(manager1).toBeDefined();
+
+      // Negative (normal for supergroups)
+      const manager2 = new TopicManager(eventBus, {
+        botToken: '123:abc',
+        groupChatId: '-1001234567890',
+      });
+      expect(manager2).toBeDefined();
     });
   });
 
-  describe('ensureTopics', () => {
-    it('should create all topics via API', async () => {
-      // Mock successful topic creation
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          result: { message_thread_id: 123 },
-        }),
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZATION TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('init', () => {
+    it('should initialize successfully with forum-enabled supergroup', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.getChat.mockResolvedValue({
+        type: 'supergroup',
+        is_forum: true,
+        id: -1001234567890,
+        title: 'Test Forum',
       });
 
-      await manager.ensureTopics();
-
-      // Should have called createForumTopic for each topic
-      expect(global.fetch).toHaveBeenCalledTimes(7); // 7 topics total
-
-      // Verify API calls
-      const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls;
-      expect(calls[0][0]).toContain('/createForumTopic');
-      expect(calls[0][1].method).toBe('POST');
-
-      // Verify all topics have thread IDs
-      expect(manager.getTopicThreadId('morning_briefing')).toBe(123);
-      expect(manager.getTopicThreadId('market_intel')).toBe(123);
+      await manager.init();
+      expect(manager.isInitialized()).toBe(true);
     });
 
-    it('should throw when not configured', async () => {
-      const unconfigured = new TelegramTopicManager({
-        botToken: '',
-        groupChatId: '',
+    it('should throw error if chat is not a supergroup', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.getChat.mockResolvedValue({
+        type: 'group',
+        id: -1234567890,
+        title: 'Regular Group',
       });
 
-      await expect(unconfigured.ensureTopics()).rejects.toThrow(
-        'TopicManager not configured'
+      await expect(manager.init()).rejects.toThrow('Chat must be a supergroup');
+    });
+
+    it('should throw error if forum topics are not enabled', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.getChat.mockResolvedValue({
+        type: 'supergroup',
+        is_forum: false,
+        id: -1001234567890,
+        title: 'Supergroup without Forum',
+      });
+
+      await expect(manager.init()).rejects.toThrow('Chat must be a forum');
+    });
+
+    it('should not reinitialize if already initialized', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.getChat.mockResolvedValue({
+        type: 'supergroup',
+        is_forum: true,
+        id: -1001234567890,
+        title: 'Test Forum',
+      });
+
+      await manager.init();
+      await manager.init(); // Second call
+
+      expect(bot.api.getChat).toHaveBeenCalledTimes(1);
+    });
+
+    it('should emit system:error on API failure', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.getChat.mockRejectedValue(new Error('Network error'));
+
+      await expect(manager.init()).rejects.toThrow();
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'system:error',
+        expect.objectContaining({
+          context: 'telegram:topic_manager:init',
+        })
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TOPIC CREATION TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('ensureTopic', () => {
+    it('should create topic when not cached', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'ARI Updates',
+        icon_color: 0x6FB9F0,
+      });
+
+      const topicId = await manager.ensureTopic('updates');
+
+      expect(topicId).toBe(42);
+      expect(bot.api.createForumTopic).toHaveBeenCalledWith(
+        -1001234567890,
+        'ARI Updates',
+        { icon_color: 0x6FB9F0 }
       );
     });
 
-    it('should handle API errors gracefully', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ok: false,
-          description: 'Group is not a forum',
-        }),
+    it('should return cached topic ID on subsequent calls', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'ARI Updates',
+        icon_color: 0x6FB9F0,
       });
 
-      await expect(manager.ensureTopics()).rejects.toThrow(
-        'Group does not have forum topics enabled'
-      );
+      await manager.ensureTopic('updates');
+      const secondCall = await manager.ensureTopic('updates');
+
+      expect(secondCall).toBe(42);
+      expect(bot.api.createForumTopic).toHaveBeenCalledTimes(1);
     });
 
-    it('should skip topics that are already loaded', async () => {
-      // Mock first creation
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          result: { message_thread_id: 456 },
-        }),
+    it('should create different topics for different names', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      let callCount = 0;
+      bot.api.createForumTopic.mockImplementation(() => {
+        callCount++;
+        return Promise.resolve({
+          message_thread_id: callCount * 10,
+          name: `Topic ${callCount}`,
+          icon_color: 0x6FB9F0,
+        });
       });
 
-      await manager.ensureTopics();
+      const updatesId = await manager.ensureTopic('updates');
+      const marketId = await manager.ensureTopic('market');
+      const systemId = await manager.ensureTopic('system');
 
-      const firstCallCount = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.length;
+      expect(updatesId).toBe(10);
+      expect(marketId).toBe(20);
+      expect(systemId).toBe(30);
+      expect(bot.api.createForumTopic).toHaveBeenCalledTimes(3);
+    });
 
-      // Call again
-      await manager.ensureTopics();
+    it('should throw error for unknown topic name', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
 
-      // Should not create topics again (only persistence write)
-      expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(firstCallCount);
+      await expect(manager.ensureTopic('invalid' as TopicName))
+        .rejects.toThrow('Unknown topic name: invalid');
+    });
+
+    it('should use correct display names for all topics', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 1,
+        name: 'Test',
+        icon_color: 0x6FB9F0,
+      });
+
+      const topicNames: TopicName[] = ['updates', 'market', 'briefings', 'opportunities', 'system'];
+      const expectedDisplayNames = [
+        'ARI Updates',
+        'Market Alerts',
+        'Daily Briefings',
+        'Opportunities',
+        'System',
+      ];
+
+      for (let i = 0; i < topicNames.length; i++) {
+        manager.clearCache();
+        await manager.ensureTopic(topicNames[i]);
+        expect(bot.api.createForumTopic).toHaveBeenLastCalledWith(
+          -1001234567890,
+          expectedDisplayNames[i],
+          expect.any(Object)
+        );
+      }
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MESSAGE ROUTING TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
 
   describe('sendToTopic', () => {
-    beforeEach(async () => {
-      // Setup topics first
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          result: { message_thread_id: 789 },
-        }),
+    it('should send message to the correct topic', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'ARI Updates',
+        icon_color: 0x6FB9F0,
       });
 
-      await manager.ensureTopics();
-      vi.clearAllMocks();
-    });
-
-    it.skip('should send message with correct thread ID', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          result: { message_id: 999 },
-        }),
+      bot.api.sendMessage.mockResolvedValue({
+        message_id: 123,
+        date: Math.floor(Date.now() / 1000),
       });
 
-      const result = await manager.sendToTopic('morning_briefing', 'Test message');
+      const result = await manager.sendToTopic('updates', 'Hello, world!');
 
-      expect(result.sent).toBe(true);
-      expect(result.messageId).toBe(999);
-
-      // Verify API call
-      const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-      expect(call[0]).toContain('/sendMessage');
-
-      const body = JSON.parse(call[1].body as string);
-      expect(body.chat_id).toBe(mockGroupChatId);
-      expect(body.text).toBe('Test message');
-      expect(body.message_thread_id).toBe(789);
-    });
-
-    it('should use provided options', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({ ok: true, result: { message_id: 1000 } }),
-      });
-
-      await manager.sendToTopic('market_intel', 'Test', {
-        parseMode: 'Markdown',
-        silent: true,
-      });
-
-      const body = JSON.parse(
-        (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body as string
+      expect(result).toBe(true);
+      expect(bot.api.sendMessage).toHaveBeenCalledWith(
+        -1001234567890,
+        'Hello, world!',
+        {
+          message_thread_id: 42,
+          parse_mode: 'HTML',
+        }
       );
-      expect(body.parse_mode).toBe('Markdown');
-      expect(body.disable_notification).toBe(true);
     });
 
-    it('should truncate long messages', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({ ok: true, result: { message_id: 1001 } }),
+    it('should return false for empty messages', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+
+      expect(await manager.sendToTopic('updates', '')).toBe(false);
+      expect(await manager.sendToTopic('updates', '   ')).toBe(false);
+    });
+
+    it('should truncate messages exceeding 4096 characters', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'ARI Updates',
+        icon_color: 0x6FB9F0,
+      });
+
+      bot.api.sendMessage.mockResolvedValue({
+        message_id: 123,
+        date: Math.floor(Date.now() / 1000),
       });
 
       const longMessage = 'x'.repeat(5000);
-      await manager.sendToTopic('general', longMessage);
+      await manager.sendToTopic('updates', longMessage);
 
-      const body = JSON.parse(
-        (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body as string
-      );
-      expect(body.text.length).toBe(4096);
-      expect(body.text).toContain('...');
+      const sentMessage = bot.api.sendMessage.mock.calls[0][1] as string;
+      expect(sentMessage.length).toBe(4096);
+      expect(sentMessage.endsWith('...')).toBe(true);
     });
 
-    it('should return error when topic not found', async () => {
-      const result = await manager.sendToTopic('invalid_topic' as TopicKey, 'Test');
+    it('should emit events on successful send', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
 
-      expect(result.sent).toBe(false);
-      expect(result.reason).toContain('not found');
-    });
-
-    it('should return error when not configured', async () => {
-      const unconfigured = new TelegramTopicManager({
-        botToken: '',
-        groupChatId: '',
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'ARI Updates',
+        icon_color: 0x6FB9F0,
       });
 
-      const result = await unconfigured.sendToTopic('general', 'Test');
+      bot.api.sendMessage.mockResolvedValue({
+        message_id: 123,
+        date: Math.floor(Date.now() / 1000),
+      });
 
-      expect(result.sent).toBe(false);
-      expect(result.reason).toContain('not configured');
-    });
+      await manager.sendToTopic('updates', 'Test message');
 
-    it('should handle API errors', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ok: false,
-          description: 'Chat not found',
+      expect(eventBus.emit).toHaveBeenCalledWith('telegram:message_sent', expect.objectContaining({
+        chatId: -1001234567890,
+        type: 'text',
+      }));
+
+      expect(eventBus.emit).toHaveBeenCalledWith('audit:log', expect.objectContaining({
+        action: 'telegram:topic_message_sent',
+        agent: 'topic-manager',
+        trustLevel: 'system',
+        details: expect.objectContaining({
+          topicName: 'updates',
+          topicId: 42,
+          messageId: 123,
         }),
-      });
-
-      const result = await manager.sendToTopic('general', 'Test');
-
-      expect(result.sent).toBe(false);
-      expect(result.reason).toContain('Chat not found');
+      }));
     });
 
-    it('should handle network errors', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
+    it('should return false on API error', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'ARI Updates',
+        icon_color: 0x6FB9F0,
+      });
+
+      bot.api.sendMessage.mockRejectedValue(new Error('Rate limited'));
+
+      const result = await manager.sendToTopic('updates', 'Test message');
+
+      expect(result).toBe(false);
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'system:error',
+        expect.objectContaining({
+          context: 'telegram:topic_manager:sendToTopic',
+        })
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CACHING TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('caching', () => {
+    it('should return undefined for uncached topics via getTopicId', () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      expect(manager.getTopicId('updates')).toBeUndefined();
+    });
+
+    it('should return cached topic ID after creation', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'ARI Updates',
+        icon_color: 0x6FB9F0,
+      });
+
+      await manager.ensureTopic('updates');
+      expect(manager.getTopicId('updates')).toBe(42);
+    });
+
+    it('should clear cache correctly', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'ARI Updates',
+        icon_color: 0x6FB9F0,
+      });
+
+      await manager.ensureTopic('updates');
+      expect(manager.getTopicId('updates')).toBe(42);
+
+      manager.clearCache();
+      expect(manager.getTopicId('updates')).toBeUndefined();
+    });
+
+    it('should list all cached topics', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      let counter = 0;
+      bot.api.createForumTopic.mockImplementation(() => {
+        counter++;
+        return Promise.resolve({
+          message_thread_id: counter,
+          name: `Topic ${counter}`,
+          icon_color: 0x6FB9F0,
+        });
+      });
+
+      await manager.ensureTopic('updates');
+      await manager.ensureTopic('market');
+
+      const topics = await manager.listTopics();
+      expect(topics.length).toBe(2);
+      expect(topics.map(t => t.id)).toContain(1);
+      expect(topics.map(t => t.id)).toContain(2);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ERROR HANDLING TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('error handling', () => {
+    it('should handle GrammyError correctly', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      const grammyError = new GrammyError(
+        'Bad Request: message thread not found',
+        { ok: false, error_code: 400, description: 'Bad Request: message thread not found' },
+        'sendMessage',
+        {}
+      );
+
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'Test',
+        icon_color: 0x6FB9F0,
+      });
+
+      bot.api.sendMessage.mockRejectedValue(grammyError);
+
+      const result = await manager.sendToTopic('updates', 'Test');
+
+      expect(result).toBe(false);
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'system:error',
+        expect.objectContaining({
+          error: expect.objectContaining({
+            message: expect.stringContaining('sendToTopic'),
+          }),
+        })
+      );
+    });
+
+    it('should handle HttpError correctly', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      const httpError = new HttpError(
+        'https://api.telegram.org/bot123:abc/sendMessage',
+        { status: 503, statusText: 'Service Unavailable' } as Response,
         new Error('Network error')
       );
 
-      const result = await manager.sendToTopic('general', 'Test');
+      bot.api.createForumTopic.mockRejectedValue(httpError);
 
-      expect(result.sent).toBe(false);
-      expect(result.reason).toContain('Network error');
+      await expect(manager.ensureTopic('updates')).rejects.toThrow();
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'system:error',
+        expect.objectContaining({
+          error: expect.objectContaining({
+            message: expect.stringContaining('Network error'),
+          }),
+        })
+      );
     });
 
-    it('should enforce rate limiting', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({ ok: true, result: { message_id: 1002 } }),
-      });
+    it('should handle unknown errors gracefully', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
 
-      // Send 30 messages (rate limit)
-      for (let i = 0; i < 30; i++) {
-        await manager.sendToTopic('general', `Message ${i}`);
-      }
+      bot.api.createForumTopic.mockRejectedValue('String error');
 
-      // 31st should be rate limited
-      const result = await manager.sendToTopic('general', 'Should fail');
-
-      expect(result.sent).toBe(false);
-      expect(result.reason).toContain('Rate limit exceeded');
-    });
-  });
-
-  describe('getTopicThreadId', () => {
-    it('should return undefined for unknown topic', () => {
-      expect(manager.getTopicThreadId('morning_briefing')).toBeUndefined();
-    });
-
-    it('should return thread ID after topics are created', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          result: { message_thread_id: 555 },
-        }),
-      });
-
-      await manager.ensureTopics();
-
-      expect(manager.getTopicThreadId('morning_briefing')).toBe(555);
+      await expect(manager.ensureTopic('updates')).rejects.toBeDefined();
+      expect(eventBus.emit).toHaveBeenCalledWith(
+        'system:error',
+        expect.objectContaining({
+          error: expect.objectContaining({
+            message: expect.stringContaining('Unknown error'),
+          }),
+        })
+      );
     });
   });
 
-  describe('persistence', () => {
-    it.skip('should persist topic IDs to disk', async () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          result: { message_thread_id: 888 },
-        }),
-      });
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECURITY TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
 
-      await manager.ensureTopics();
+  describe('security - token exposure prevention', () => {
+    it('should sanitize bot token from error messages', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
 
-      // Persistence file should exist
-      expect(existsSync(PERSISTENCE_PATH)).toBe(true);
+      const tokenInError = new Error(
+        'Error at https://api.telegram.org/bot123456789:ABCdefGHIjklMNOpqrsTUVwxyz123456789/sendMessage'
+      );
 
-      // Verify content
-      const content = await readFile(PERSISTENCE_PATH, 'utf-8');
-      const data = JSON.parse(content);
+      bot.api.createForumTopic.mockRejectedValue(tokenInError);
 
-      expect(data.version).toBe(1);
-      expect(data.groupChatId).toBe(mockGroupChatId);
-      expect(data.topics.morning_briefing.threadId).toBe(888);
+      await expect(manager.ensureTopic('updates')).rejects.toThrow();
+
+      // Check that emit was called with sanitized error
+      const errorCall = (eventBus.emit as Mock).mock.calls.find(
+        call => call[0] === 'system:error'
+      );
+
+      expect(errorCall).toBeDefined();
+      const errorMessage = errorCall![1].error.message;
+      expect(errorMessage).not.toContain('123456789:ABC');
+      expect(errorMessage).toContain('[REDACTED_TOKEN]');
     });
 
-    it.skip('should load persisted topic IDs on init', async () => {
-      // Create manager and persist topics
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          result: { message_thread_id: 777 },
-        }),
-      });
+    it('should sanitize token patterns from GrammyError descriptions', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
 
-      await manager.ensureTopics();
+      // Simulate an error that might leak token
+      const grammyError = new GrammyError(
+        'Error with token 9876543210:XYZabc123def456ghi789jkl012mno345pqr in request',
+        { ok: false, error_code: 401, description: 'Token leaked: 9876543210:XYZabc123def456ghi789jkl012mno345pqr' },
+        'getChat',
+        {}
+      );
 
-      // Create new manager instance
-      const newManager = new TelegramTopicManager({
-        botToken: mockBotToken,
-        groupChatId: mockGroupChatId,
-      });
+      bot.api.getChat.mockRejectedValue(grammyError);
 
-      vi.clearAllMocks();
+      await expect(manager.init()).rejects.toThrow();
 
-      await newManager.ensureTopics();
+      const errorCall = (eventBus.emit as Mock).mock.calls.find(
+        call => call[0] === 'system:error'
+      );
 
-      // Should not create topics (loaded from disk)
-      expect(global.fetch).not.toHaveBeenCalled();
-      expect(newManager.getTopicThreadId('morning_briefing')).toBe(777);
+      expect(errorCall).toBeDefined();
+      const errorMessage = errorCall![1].error.message;
+      expect(errorMessage).not.toContain('9876543210:XYZ');
     });
 
-    it('should not load topics for different group', async () => {
-      // Create topics for first group
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          result: { message_thread_id: 666 },
-        }),
-      });
-
-      await manager.ensureTopics();
-
-      // Create manager for different group
-      const otherManager = new TelegramTopicManager({
-        botToken: mockBotToken,
-        groupChatId: '-1009876543210',
-      });
-
-      vi.clearAllMocks();
-
-      await otherManager.ensureTopics();
-
-      // Should create new topics (different group)
-      expect(global.fetch).toHaveBeenCalled();
+    it('should not expose bot token in constructor error', () => {
+      // Token is not exposed in constructor errors because we throw
+      // generic errors without the token value
+      expect(() => new TopicManager(eventBus, {
+        botToken: '',
+        groupChatId: '-123',
+      })).toThrow('Bot token is required');
     });
 
-    it('should handle corrupted persistence file gracefully', async () => {
-      // Write invalid JSON
-      const dir = join(homedir(), '.ari');
-      const { writeFile: fsWriteFile } = await import('node:fs/promises');
-      const { existsSync: fsExistsSync } = await import('node:fs');
-      const { mkdir: fsMkdir } = await import('node:fs/promises');
+    it('should not expose chat ID in a way that could be exploited', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
 
-      if (!fsExistsSync(dir)) {
-        await fsMkdir(dir, { recursive: true });
-      }
-      await fsWriteFile(PERSISTENCE_PATH, 'invalid json', 'utf-8');
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          result: { message_thread_id: 999 },
-        }),
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'Test',
+        icon_color: 0x6FB9F0,
       });
 
-      // Should not throw, just create topics fresh
-      await expect(manager.ensureTopics()).resolves.not.toThrow();
+      bot.api.sendMessage.mockResolvedValue({
+        message_id: 123,
+        date: Math.floor(Date.now() / 1000),
+      });
+
+      await manager.sendToTopic('updates', 'Test');
+
+      // Chat ID in audit log is fine (internal logging)
+      const auditCall = (eventBus.emit as Mock).mock.calls.find(
+        call => call[0] === 'audit:log'
+      );
+
+      expect(auditCall).toBeDefined();
+      expect(auditCall![1].details.groupChatId).toBe(-1001234567890);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ADDITIONAL EDGE CASES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('edge cases', () => {
+    it('should handle HTML special characters in messages', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'Test',
+        icon_color: 0x6FB9F0,
+      });
+
+      bot.api.sendMessage.mockResolvedValue({
+        message_id: 123,
+        date: Math.floor(Date.now() / 1000),
+      });
+
+      // HTML content should be passed through (parse_mode: 'HTML')
+      const htmlMessage = '<b>Bold</b> & <i>italic</i>';
+      await manager.sendToTopic('updates', htmlMessage);
+
+      expect(bot.api.sendMessage).toHaveBeenCalledWith(
+        expect.any(Number),
+        htmlMessage,
+        expect.objectContaining({ parse_mode: 'HTML' })
+      );
+    });
+
+    it('should handle exactly 4096 character messages without truncation', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      bot.api.createForumTopic.mockResolvedValue({
+        message_thread_id: 42,
+        name: 'Test',
+        icon_color: 0x6FB9F0,
+      });
+
+      bot.api.sendMessage.mockResolvedValue({
+        message_id: 123,
+        date: Math.floor(Date.now() / 1000),
+      });
+
+      const exactMessage = 'x'.repeat(4096);
+      await manager.sendToTopic('updates', exactMessage);
+
+      const sentMessage = bot.api.sendMessage.mock.calls[0][1] as string;
+      expect(sentMessage.length).toBe(4096);
+      expect(sentMessage).not.toContain('...');
+    });
+
+    it('should handle concurrent topic creation requests', async () => {
+      const manager = new TopicManager(eventBus, defaultOptions);
+      const bot = (manager as unknown as { bot: { api: Record<string, Mock> } }).bot;
+
+      let callCount = 0;
+      bot.api.createForumTopic.mockImplementation(async () => {
+        callCount++;
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 10));
+        return {
+          message_thread_id: 42,
+          name: 'ARI Updates',
+          icon_color: 0x6FB9F0,
+        };
+      });
+
+      // Fire multiple requests concurrently
+      const promises = [
+        manager.ensureTopic('updates'),
+        manager.ensureTopic('updates'),
+        manager.ensureTopic('updates'),
+      ];
+
+      const results = await Promise.all(promises);
+
+      // All should return the same topic ID
+      expect(results).toEqual([42, 42, 42]);
+
+      // Due to caching, later calls might not create new topics
+      // But the first one definitely should
+      expect(callCount).toBeGreaterThanOrEqual(1);
     });
   });
 });

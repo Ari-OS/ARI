@@ -1,283 +1,566 @@
 /**
- * HEALTH MONITOR - System Health Monitoring
+ * HEALTH MONITOR - System Health Check Module
  *
- * Tracks health of ARI's critical components:
- * - Gateway connectivity (HTTP GET to 127.0.0.1:3141/health)
- * - Memory usage (process.memoryUsage() vs 512MB threshold)
- * - Disk space (check ~/.ari/ directory size)
+ * P1 module for comprehensive system health monitoring.
+ * Runs periodic checks on disk, memory, API connectivity,
+ * daemon status, and audit chain integrity.
  *
- * Layer: L5 Execution (can import L0-L4)
+ * L5 Layer (Ops) - can import from L0-L4
  */
 
-import type { EventBus } from '../kernel/event-bus.js';
-import { createLogger } from '../kernel/logger.js';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import { freemem, totalmem, homedir } from 'os';
+import { join } from 'path';
 
-const log = createLogger('health-monitor');
+import { EventBus } from '../kernel/event-bus.js';
+import { AuditLogger } from '../kernel/audit.js';
+import { getDaemonStatus, type DaemonStatus } from './daemon.js';
+
 const execFileAsync = promisify(execFile);
 
-const DEFAULT_PORT = 3141;
-const MEMORY_THRESHOLD_MB = 512;
-const DISK_THRESHOLD_MB = 1024; // 1GB warning
+// ═══════════════════════════════════════════════════════════════════════════
+// Types
+// ═══════════════════════════════════════════════════════════════════════════
 
-export interface HealthCheckResult {
-  name: string;
-  status: 'healthy' | 'degraded' | 'unhealthy';
+/** Health status for HealthMonitor checks */
+export type MonitorHealthStatus = 'healthy' | 'degraded' | 'unhealthy';
+
+export interface HealthCheck {
+  component: string;
+  status: MonitorHealthStatus;
   message: string;
-  duration: number; // ms
-  timestamp: string;
+  metrics?: Record<string, number>;
+  lastChecked: Date;
 }
 
 export interface HealthReport {
-  overall: 'healthy' | 'degraded' | 'unhealthy';
-  checks: HealthCheckResult[];
-  timestamp: string;
+  overall: MonitorHealthStatus;
+  checks: HealthCheck[];
+  failures: string[];
+  timestamp: Date;
 }
 
-type HealthCheckFunction = () => Promise<HealthCheckResult>;
+export interface HealthMonitorOptions {
+  /** Check interval in milliseconds (default: 15 minutes) */
+  intervalMs?: number;
+  /** Disk space warning threshold percentage (default: 80) */
+  diskWarningThreshold?: number;
+  /** Disk space critical threshold percentage (default: 95) */
+  diskCriticalThreshold?: number;
+  /** Memory warning threshold percentage (default: 80) */
+  memoryWarningThreshold?: number;
+  /** Memory critical threshold percentage (default: 95) */
+  memoryCriticalThreshold?: number;
+  /** Gateway port to check (default: 3141) */
+  gatewayPort?: number;
+  /** Custom audit logger instance */
+  auditLogger?: AuditLogger;
+}
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Health Monitor Implementation
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * System health monitoring service.
+ * Performs periodic checks and emits health events via EventBus.
+ */
 export class HealthMonitor {
   private eventBus: EventBus;
-  private checks: Map<string, HealthCheckFunction> = new Map();
+  private auditLogger: AuditLogger;
   private lastReport: HealthReport | null = null;
-  private port: number;
+  private checkInterval: NodeJS.Timeout | null = null;
+  private isRunning = false;
 
-  constructor(eventBus: EventBus, options?: { port?: number }) {
+  // Configuration
+  private readonly intervalMs: number;
+  private readonly diskWarningThreshold: number;
+  private readonly diskCriticalThreshold: number;
+  private readonly memoryWarningThreshold: number;
+  private readonly memoryCriticalThreshold: number;
+  private readonly gatewayPort: number;
+  private readonly ariDataPath: string;
+
+  constructor(eventBus: EventBus, options?: HealthMonitorOptions) {
     this.eventBus = eventBus;
-    this.port = options?.port || DEFAULT_PORT;
+    this.auditLogger = options?.auditLogger ?? new AuditLogger();
 
-    // Register built-in checks
-    this.registerBuiltInChecks();
+    // Configuration with defaults
+    this.intervalMs = options?.intervalMs ?? 15 * 60 * 1000; // 15 minutes
+    this.diskWarningThreshold = options?.diskWarningThreshold ?? 80;
+    this.diskCriticalThreshold = options?.diskCriticalThreshold ?? 95;
+    this.memoryWarningThreshold = options?.memoryWarningThreshold ?? 80;
+    this.memoryCriticalThreshold = options?.memoryCriticalThreshold ?? 95;
+    this.gatewayPort = options?.gatewayPort ?? 3141;
+    this.ariDataPath = join(homedir(), '.ari');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Starts the periodic health check interval.
+   */
+  start(): void {
+    if (this.isRunning) {
+      return;
+    }
+
+    this.isRunning = true;
+
+    // Run initial check
+    void this.runAllChecks();
+
+    // Schedule periodic checks
+    this.checkInterval = setInterval(() => {
+      void this.runAllChecks();
+    }, this.intervalMs);
+
+    this.eventBus.emit('system:heartbeat_started', {
+      timestamp: new Date(),
+      componentCount: 5, // disk, memory, api, daemon, audit
+    });
   }
 
   /**
-   * Register built-in health checks
+   * Stops the periodic health check interval.
    */
-  private registerBuiltInChecks(): void {
-    this.registerCheck('gateway', async () => this.checkGateway());
-    this.registerCheck('memory', async () => this.checkMemory());
-    this.registerCheck('disk', async () => this.checkDisk());
+  stop(): void {
+    if (!this.isRunning) {
+      return;
+    }
+
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+
+    this.isRunning = false;
+
+    this.eventBus.emit('system:heartbeat_stopped', {
+      timestamp: new Date(),
+    });
   }
 
   /**
-   * Register a custom health check
+   * Returns whether the monitor is currently running.
    */
-  registerCheck(name: string, check: HealthCheckFunction): void {
-    this.checks.set(name, check);
-    log.info({ name }, 'Registered health check');
+  isActive(): boolean {
+    return this.isRunning;
   }
 
   /**
-   * Run all health checks
+   * Runs all health checks and generates a comprehensive report.
    */
-  async runAll(): Promise<HealthReport> {
+  async runAllChecks(): Promise<HealthReport> {
     const startTime = Date.now();
-    const checks: HealthCheckResult[] = [];
+    const checks: HealthCheck[] = [];
+    const failures: string[] = [];
 
-    // Run all checks in parallel
-    const checkPromises = Array.from(this.checks.entries()).map(
-      async ([name, check]) => {
-        const checkStart = Date.now();
-        try {
-          const result = await check();
-          return result;
-        } catch (error) {
-          const duration = Date.now() - checkStart;
-          return {
-            name,
-            status: 'unhealthy' as const,
-            message: `Check failed: ${error instanceof Error ? error.message : String(error)}`,
-            duration,
-            timestamp: new Date().toISOString(),
-          };
-        }
+    // Run all checks in parallel for efficiency
+    const [diskCheck, memoryCheck, apiCheck, daemonCheck, auditCheck] =
+      await Promise.all([
+        this.checkDisk(),
+        this.checkMemory(),
+        this.checkApiConnectivity(),
+        this.checkDaemonStatus(),
+        this.checkAuditIntegrity(),
+      ]);
+
+    checks.push(diskCheck, memoryCheck, apiCheck, daemonCheck, auditCheck);
+
+    // Collect failures
+    for (const check of checks) {
+      if (check.status === 'unhealthy') {
+        failures.push(`${check.component}: ${check.message}`);
       }
-    );
+    }
 
-    checks.push(...(await Promise.all(checkPromises)));
-
-    // Determine overall status (worst individual status)
-    const statusPriority = { healthy: 0, degraded: 1, unhealthy: 2 };
-    type HealthStatus = 'healthy' | 'degraded' | 'unhealthy';
-    const worstStatus: HealthStatus = checks.reduce<HealthStatus>((worst, check) => {
-      return statusPriority[check.status] > statusPriority[worst]
-        ? check.status
-        : worst;
-    }, 'healthy');
+    // Determine overall status
+    const overall = this.calculateOverallStatus(checks);
 
     const report: HealthReport = {
-      overall: worstStatus,
+      overall,
       checks,
-      timestamp: new Date().toISOString(),
+      failures,
+      timestamp: new Date(),
     };
 
     this.lastReport = report;
 
-    // Emit audit event
-    this.eventBus.emit('audit:log', {
-      action: 'health_check_completed',
-      agent: 'health-monitor',
-      trustLevel: 'system',
-      details: {
-        overall: report.overall,
-        checkCount: checks.length,
-        duration: Date.now() - startTime,
-      },
+    // Emit health events
+    const latencyMs = Date.now() - startTime;
+    this.eventBus.emit('system:heartbeat', {
+      componentId: 'health-monitor',
+      status: overall,
+      timestamp: new Date(),
+      metrics: { checkCount: checks.length, failureCount: failures.length },
+      latencyMs,
     });
 
-    log.info(
-      { overall: report.overall, checkCount: checks.length },
-      'Health check completed'
-    );
+    // Emit alerts for degraded/unhealthy status
+    if (overall !== 'healthy') {
+      this.emitHealthAlert(report);
+    }
 
     return report;
   }
 
   /**
-   * Get last health report
+   * Returns the last generated health report.
    */
   getLastReport(): HealthReport | null {
     return this.lastReport;
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Individual Health Checks
+  // ─────────────────────────────────────────────────────────────────────────
+
   /**
-   * Check gateway health via HTTP GET
+   * Checks disk space availability.
+   * Uses df command to get filesystem usage.
    */
-  private async checkGateway(): Promise<HealthCheckResult> {
-    const startTime = Date.now();
-    const name = 'gateway';
+  async checkDisk(): Promise<HealthCheck> {
+    const component = 'disk';
+    const lastChecked = new Date();
 
     try {
-      const response = await fetch(`http://127.0.0.1:${this.port}/health`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000), // 5s timeout
-      });
+      // Use df to check disk usage for the home directory
+      const { stdout } = await execFileAsync('df', ['-P', homedir()]);
+      const lines = stdout.trim().split('\n');
 
-      const duration = Date.now() - startTime;
-
-      if (!response.ok) {
+      if (lines.length < 2) {
         return {
-          name,
+          component,
           status: 'unhealthy',
-          message: `Gateway returned ${response.status}`,
-          duration,
-          timestamp: new Date().toISOString(),
+          message: 'Unable to parse disk usage output',
+          lastChecked,
         };
       }
 
+      // Parse df output: Filesystem 512-blocks Used Available Capacity Mounted
+      const fields = lines[1].split(/\s+/);
+      const capacityStr = fields[4]; // e.g., "45%"
+      const usedPercent = parseInt(capacityStr.replace('%', ''), 10);
+      const availableKB = parseInt(fields[3], 10) * 512 / 1024; // Convert 512-blocks to KB
+      const availableGB = Math.round(availableKB / 1024 / 1024 * 100) / 100;
+
+      let status: MonitorHealthStatus = 'healthy';
+      let message = `Disk usage: ${usedPercent}% (${availableGB}GB available)`;
+
+      if (usedPercent >= this.diskCriticalThreshold) {
+        status = 'unhealthy';
+        message = `Critical disk usage: ${usedPercent}% (only ${availableGB}GB available)`;
+      } else if (usedPercent >= this.diskWarningThreshold) {
+        status = 'degraded';
+        message = `High disk usage: ${usedPercent}% (${availableGB}GB available)`;
+      }
+
       return {
-        name,
-        status: 'healthy',
-        message: 'Gateway responding',
-        duration,
-        timestamp: new Date().toISOString(),
+        component,
+        status,
+        message,
+        metrics: {
+          usedPercent,
+          availableGB,
+        },
+        lastChecked,
       };
     } catch (error) {
-      const duration = Date.now() - startTime;
       return {
-        name,
+        component,
         status: 'unhealthy',
-        message: `Gateway unreachable: ${error instanceof Error ? error.message : String(error)}`,
-        duration,
-        timestamp: new Date().toISOString(),
+        message: `Failed to check disk: ${error instanceof Error ? error.message : String(error)}`,
+        lastChecked,
       };
     }
   }
 
   /**
-   * Check memory usage
+   * Checks system memory availability.
+   * Uses Node.js os module for memory stats.
    */
-  private checkMemory(): Promise<HealthCheckResult> {
-    const startTime = Date.now();
-    const name = 'memory';
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async checkMemory(): Promise<HealthCheck> {
+    const component = 'memory';
+    const lastChecked = new Date();
 
     try {
-      const usage = process.memoryUsage();
-      const heapUsedMB = Math.round(usage.heapUsed / 1024 / 1024);
-      const duration = Date.now() - startTime;
+      const totalBytes = totalmem();
+      const freeBytes = freemem();
+      const usedBytes = totalBytes - freeBytes;
+      const usedPercent = Math.round((usedBytes / totalBytes) * 100);
+      const freeGB = Math.round((freeBytes / 1024 / 1024 / 1024) * 100) / 100;
+      const totalGB = Math.round((totalBytes / 1024 / 1024 / 1024) * 100) / 100;
 
-      if (heapUsedMB > MEMORY_THRESHOLD_MB) {
-        return Promise.resolve({
-          name,
-          status: 'degraded',
-          message: `High memory usage: ${heapUsedMB}MB / ${MEMORY_THRESHOLD_MB}MB`,
-          duration,
-          timestamp: new Date().toISOString(),
-        });
+      let status: MonitorHealthStatus = 'healthy';
+      let message = `Memory usage: ${usedPercent}% (${freeGB}GB free of ${totalGB}GB)`;
+
+      if (usedPercent >= this.memoryCriticalThreshold) {
+        status = 'unhealthy';
+        message = `Critical memory usage: ${usedPercent}% (only ${freeGB}GB free)`;
+      } else if (usedPercent >= this.memoryWarningThreshold) {
+        status = 'degraded';
+        message = `High memory usage: ${usedPercent}% (${freeGB}GB free)`;
       }
 
-      if (heapUsedMB > MEMORY_THRESHOLD_MB * 0.8) {
-        return Promise.resolve({
-          name,
-          status: 'degraded',
-          message: `Memory usage: ${heapUsedMB}MB / ${MEMORY_THRESHOLD_MB}MB`,
-          duration,
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      return Promise.resolve({
-        name,
-        status: 'healthy',
-        message: `Memory usage: ${heapUsedMB}MB / ${MEMORY_THRESHOLD_MB}MB`,
-        duration,
-        timestamp: new Date().toISOString(),
-      });
+      return {
+        component,
+        status,
+        message,
+        metrics: {
+          usedPercent,
+          freeGB,
+          totalGB,
+        },
+        lastChecked,
+      };
     } catch (error) {
-      const duration = Date.now() - startTime;
-      return Promise.resolve({
-        name,
+      return {
+        component,
         status: 'unhealthy',
-        message: `Memory check failed: ${error instanceof Error ? error.message : String(error)}`,
-        duration,
-        timestamp: new Date().toISOString(),
-      });
+        message: `Failed to check memory: ${error instanceof Error ? error.message : String(error)}`,
+        lastChecked,
+      };
     }
   }
 
   /**
-   * Check disk space for ~/.ari/ directory
+   * Checks API/Gateway connectivity.
+   * Attempts to reach the local gateway health endpoint.
    */
-  private async checkDisk(): Promise<HealthCheckResult> {
-    const startTime = Date.now();
-    const name = 'disk';
-    const ariDir = join(homedir(), '.ari');
+  async checkApiConnectivity(): Promise<HealthCheck> {
+    const component = 'api';
+    const lastChecked = new Date();
 
     try {
-      // Use 'du -sm' to get directory size in MB
-      const { stdout } = await execFileAsync('du', ['-sm', ariDir]);
-      const sizeMB = parseInt(stdout.split('\t')[0], 10);
-      const duration = Date.now() - startTime;
+      const startTime = Date.now();
+      const url = `http://127.0.0.1:${this.gatewayPort}/health`;
 
-      if (sizeMB > DISK_THRESHOLD_MB) {
+      // Use native fetch with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const latencyMs = Date.now() - startTime;
+
+      if (response.ok) {
         return {
-          name,
-          status: 'degraded',
-          message: `High disk usage: ${sizeMB}MB in ~/.ari/`,
-          duration,
-          timestamp: new Date().toISOString(),
+          component,
+          status: 'healthy',
+          message: `Gateway responding (${latencyMs}ms)`,
+          metrics: { latencyMs, statusCode: response.status },
+          lastChecked,
         };
       }
 
       return {
-        name,
-        status: 'healthy',
-        message: `Disk usage: ${sizeMB}MB in ~/.ari/`,
-        duration,
-        timestamp: new Date().toISOString(),
+        component,
+        status: 'degraded',
+        message: `Gateway returned status ${response.status}`,
+        metrics: { latencyMs, statusCode: response.status },
+        lastChecked,
       };
     } catch (error) {
-      const duration = Date.now() - startTime;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+
+      // Check if it's a connection refused (gateway not running)
+      if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes('fetch failed')) {
+        return {
+          component,
+          status: 'unhealthy',
+          message: `Gateway not responding on port ${this.gatewayPort}`,
+          lastChecked,
+        };
+      }
+
+      // Timeout or abort
+      if (errorMsg.includes('aborted') || errorMsg.includes('timeout')) {
+        return {
+          component,
+          status: 'degraded',
+          message: 'Gateway response timeout (>5s)',
+          lastChecked,
+        };
+      }
+
       return {
-        name,
+        component,
         status: 'unhealthy',
-        message: `Disk check failed: ${error instanceof Error ? error.message : String(error)}`,
-        duration,
-        timestamp: new Date().toISOString(),
+        message: `API check failed: ${errorMsg}`,
+        lastChecked,
       };
     }
+  }
+
+  /**
+   * Checks daemon/launchd service status.
+   * Verifies the ARI daemon is installed and running.
+   */
+  async checkDaemonStatus(): Promise<HealthCheck> {
+    const component = 'daemon';
+    const lastChecked = new Date();
+
+    try {
+      const status: DaemonStatus = await getDaemonStatus();
+
+      if (status.running) {
+        return {
+          component,
+          status: 'healthy',
+          message: 'Daemon running',
+          metrics: { installed: 1, running: 1 },
+          lastChecked,
+        };
+      }
+
+      if (status.installed) {
+        return {
+          component,
+          status: 'degraded',
+          message: 'Daemon installed but not running',
+          metrics: { installed: 1, running: 0 },
+          lastChecked,
+        };
+      }
+
+      return {
+        component,
+        status: 'degraded',
+        message: 'Daemon not installed',
+        metrics: { installed: 0, running: 0 },
+        lastChecked,
+      };
+    } catch (error) {
+      return {
+        component,
+        status: 'unhealthy',
+        message: `Daemon check failed: ${error instanceof Error ? error.message : String(error)}`,
+        lastChecked,
+      };
+    }
+  }
+
+  /**
+   * Checks audit chain integrity.
+   * Verifies hash chain and checkpoint signatures.
+   */
+  async checkAuditIntegrity(): Promise<HealthCheck> {
+    const component = 'audit';
+    const lastChecked = new Date();
+
+    try {
+      // Load audit log
+      await this.auditLogger.load();
+
+      // Verify chain integrity
+      const chainResult = this.auditLogger.verify();
+      if (!chainResult.valid) {
+        return {
+          component,
+          status: 'unhealthy',
+          message: `Audit chain broken: ${chainResult.details}`,
+          metrics: { brokenAt: chainResult.brokenAt ?? -1 },
+          lastChecked,
+        };
+      }
+
+      // Verify checkpoints
+      const checkpointResult = this.auditLogger.verifyCheckpoints();
+      if (!checkpointResult.valid) {
+        const mismatch = checkpointResult.mismatches[0];
+        return {
+          component,
+          status: 'unhealthy',
+          message: `Checkpoint verification failed: ${mismatch.field} mismatch`,
+          metrics: {
+            checkpointsChecked: checkpointResult.checked,
+            mismatches: checkpointResult.mismatches.length,
+          },
+          lastChecked,
+        };
+      }
+
+      const events = this.auditLogger.getEvents();
+      const checkpoints = this.auditLogger.getCheckpoints();
+
+      return {
+        component,
+        status: 'healthy',
+        message: `Audit integrity verified (${events.length} events, ${checkpoints.length} checkpoints)`,
+        metrics: {
+          eventCount: events.length,
+          checkpointCount: checkpoints.length,
+        },
+        lastChecked,
+      };
+    } catch (error) {
+      // File not existing is OK for a fresh install
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes('ENOENT')) {
+        return {
+          component,
+          status: 'healthy',
+          message: 'Audit log not yet created (fresh install)',
+          metrics: { eventCount: 0, checkpointCount: 0 },
+          lastChecked,
+        };
+      }
+
+      return {
+        component,
+        status: 'unhealthy',
+        message: `Audit check failed: ${errorMsg}`,
+        lastChecked,
+      };
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Helper Methods
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Calculates overall status from individual checks.
+   * Rules: any unhealthy = unhealthy, any degraded = degraded, else healthy.
+   */
+  private calculateOverallStatus(checks: HealthCheck[]): MonitorHealthStatus {
+    const hasUnhealthy = checks.some(c => c.status === 'unhealthy');
+    if (hasUnhealthy) {
+      return 'unhealthy';
+    }
+
+    const hasDegraded = checks.some(c => c.status === 'degraded');
+    if (hasDegraded) {
+      return 'degraded';
+    }
+
+    return 'healthy';
+  }
+
+  /**
+   * Emits an alert event for degraded/unhealthy status.
+   */
+  private emitHealthAlert(report: HealthReport): void {
+    const severity = report.overall === 'unhealthy' ? 'critical' : 'warning';
+    const failureCount = report.failures.length;
+
+    this.eventBus.emit('alert:created', {
+      id: `health-${Date.now()}`,
+      severity,
+      title: `System Health ${report.overall.charAt(0).toUpperCase() + report.overall.slice(1)}`,
+      message: failureCount > 0
+        ? `${failureCount} component(s) failing: ${report.failures.join('; ')}`
+        : `System in ${report.overall} state`,
+      source: 'health-monitor',
+    });
   }
 }

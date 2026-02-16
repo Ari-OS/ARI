@@ -550,7 +550,7 @@ export class SelfImprovementLoop {
     // Listen for initiative completion events
     const unsub1 = this.eventBus.on('audit:log', (payload) => {
       if (payload.action === 'initiative:completed' || payload.action === 'initiative:failed') {
-        const details = payload.details as Record<string, unknown>;
+        const details = payload.details;
         const initiativeId = details?.initiativeId as string;
         const status = details?.status as string;
 

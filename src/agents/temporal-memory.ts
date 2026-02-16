@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID } from 'crypto';
 import fs from 'node:fs/promises';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -9,7 +9,10 @@ import type { EventBus } from '../kernel/event-bus.js';
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-export type EntryType =
+/**
+ * Entry types for daily notes
+ */
+export type DailyNoteEntryType =
   | 'conversation'
   | 'task'
   | 'observation'
@@ -18,15 +21,19 @@ export type EntryType =
   | 'learning'
   | 'correction';
 
+/**
+ * A single entry in a daily note
+ */
 export interface DailyNoteEntry {
-  id: string;
   timestamp: string;
-  type: EntryType;
+  type: DailyNoteEntryType;
   content: string;
   source: string;
-  metadata?: Record<string, unknown>;
 }
 
+/**
+ * Daily note - captures learnings throughout the day
+ */
 export interface DailyNote {
   date: string;
   entries: DailyNoteEntry[];
@@ -34,21 +41,34 @@ export interface DailyNote {
   synthesized: boolean;
 }
 
+/**
+ * Weekly synthesis - consolidates patterns from daily notes
+ */
 export interface WeeklyMemorySynthesis {
-  weekId: string;
-  dateRange: { start: string; end: string };
+  weekId: string;  // YYYY-WNN format
   patterns: string[];
   preferences: string[];
   stableKnowledge: string[];
   discarded: string[];
-  entryCount: number;
-  synthesizedAt: string;
 }
 
+/**
+ * Category for long-term memory entries
+ */
+export type LongTermCategory =
+  | 'preference'
+  | 'behavior'
+  | 'knowledge'
+  | 'correction'
+  | 'relationship';
+
+/**
+ * Long-term memory entry - high-confidence, stable knowledge
+ */
 export interface LongTermMemoryEntry {
   id: string;
   content: string;
-  category: 'preference' | 'behavior' | 'knowledge' | 'correction' | 'relationship';
+  category: LongTermCategory;
   confidence: number;
   firstObserved: string;
   lastConfirmed: string;
@@ -56,437 +76,838 @@ export interface LongTermMemoryEntry {
   contradictionCount: number;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TEMPORAL MEMORY
-// ═══════════════════════════════════════════════════════════════════════════
-
-const MAX_DAILY_CHARS = 65_000;
-const MAX_WEEKLY_CHARS = 32_000;
+/**
+ * Options for TemporalMemory constructor
+ */
+export interface TemporalMemoryOptions {
+  storagePath?: string;
+}
 
 /**
- * Temporal Memory — time-based memory synthesis.
+ * Statistics about temporal memory state
+ */
+export interface TemporalMemoryStats {
+  dailyNotes: number;
+  weeklyReports: number;
+  longTermEntries: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DAILY_CHAR_CAP = 65_000;
+const CONFIDENCE_THRESHOLD_FOR_PROMOTION = 0.8;
+const MIN_CONFIRMATIONS_FOR_PROMOTION = 3;
+const CONTRADICTION_PENALTY = 0.15;
+const CONFIRMATION_BOOST = 0.05;
+const MAX_CONFIDENCE = 1.0;
+const MIN_CONFIDENCE = 0.0;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get the current date in YYYY-MM-DD format
+ */
+function getCurrentDate(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+/**
+ * Get the week ID in YYYY-WNN format
+ */
+function getWeekId(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const startOfYear = new Date(year, 0, 1);
+  const dayOfYear = Math.floor(
+    (date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000)
+  );
+  const weekNumber = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
+  return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Check if a date is a Sunday
+ */
+function isSunday(date: Date = new Date()): boolean {
+  return date.getDay() === 0;
+}
+
+/**
+ * Get all dates in a week given the week ID
+ */
+function getDatesInWeek(weekId: string): string[] {
+  const [yearStr, weekPart] = weekId.split('-W');
+  const year = parseInt(yearStr, 10);
+  const week = parseInt(weekPart, 10);
+
+  // Get January 1st of the year
+  const jan1 = new Date(year, 0, 1);
+  // Get the first Monday of the year
+  const firstMonday = new Date(jan1);
+  const dayOffset = (jan1.getDay() + 6) % 7; // Days until Monday
+  firstMonday.setDate(jan1.getDate() - dayOffset + (week - 1) * 7);
+
+  const dates: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(firstMonday);
+    date.setDate(firstMonday.getDate() + i);
+    dates.push(date.toISOString().split('T')[0]);
+  }
+
+  return dates;
+}
+
+/**
+ * Simple text similarity for pattern matching
+ */
+function textSimilarity(a: string, b: string): number {
+  const wordsA = new Set(a.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+  const wordsB = new Set(b.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+
+  let matches = 0;
+  for (const word of wordsA) {
+    if (wordsB.has(word)) matches++;
+  }
+
+  return matches / Math.max(wordsA.size, wordsB.size);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEMPORAL MEMORY CLASS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * TemporalMemory - Evolving memory system with time-based consolidation
  *
- * Daily captures → weekly synthesis → long-term stable knowledge.
- * Persists to ~/.ari/memories/{daily,weekly,long-term}/
+ * Implements a three-tier memory architecture:
+ * 1. Daily Notes - Capture all learnings throughout the day (65K char cap)
+ * 2. Weekly Synthesis - Consolidate patterns every Sunday
+ * 3. Long-term Memory - High-confidence patterns promoted for permanent storage
  *
- * Layer 3 (Agents) — imports from Kernel only.
+ * This is an L3 (agents) layer component.
  */
 export class TemporalMemory {
   private readonly eventBus: EventBus;
-  private readonly baseDir: string;
-  private readonly dailyDir: string;
-  private readonly weeklyDir: string;
-  private readonly longTermDir: string;
+  private readonly storagePath: string;
 
-  private currentDaily: DailyNote | null = null;
-  private longTermEntries: LongTermMemoryEntry[] = [];
+  // In-memory caches
+  private dailyNotes = new Map<string, DailyNote>();
+  private weeklyReports = new Map<string, WeeklyMemorySynthesis>();
+  private longTermMemory = new Map<string, LongTermMemoryEntry>();
 
-  constructor(eventBus: EventBus, baseDir?: string) {
+  // Persistence state
+  private dirty = false;
+  private persistTimer: NodeJS.Timeout | null = null;
+  private readonly PERSIST_DEBOUNCE_MS = 5000;
+
+  constructor(eventBus: EventBus, options?: TemporalMemoryOptions) {
     this.eventBus = eventBus;
-    this.baseDir = baseDir ?? path.join(homedir(), '.ari', 'memories');
-    this.dailyDir = path.join(this.baseDir, 'daily');
-    this.weeklyDir = path.join(this.baseDir, 'weekly');
-    this.longTermDir = path.join(this.baseDir, 'long-term');
+    this.storagePath = options?.storagePath ?? path.join(homedir(), '.ari', 'temporal-memory');
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // LIFECYCLE
+  // ═══════════════════════════════════════════════════════════════════════
+
   /**
-   * Initialize directory structure and load today's notes.
+   * Initialize the temporal memory system
+   * Loads existing data from disk and starts persistence timer
    */
   async init(): Promise<void> {
-    for (const dir of [this.dailyDir, this.weeklyDir, this.longTermDir]) {
-      if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
+    // Create storage directory
+    mkdirSync(this.storagePath, { recursive: true });
+    mkdirSync(path.join(this.storagePath, 'daily'), { recursive: true });
+    mkdirSync(path.join(this.storagePath, 'weekly'), { recursive: true });
+
+    // Load existing data
+    await this.loadFromDisk();
+
+    // Start persistence timer
+    this.persistTimer = setInterval(() => {
+      if (this.dirty) {
+        this.persistToDisk().catch(err => {
+          this.eventBus.emit('audit:log', {
+            action: 'temporal_memory:persist_failed',
+            agent: 'memory_keeper',
+            trustLevel: 'system',
+            details: { error: err instanceof Error ? err.message : String(err) },
+          });
+        });
       }
-    }
-
-    // Load today's daily note
-    const today = this.getDateString();
-    this.currentDaily = await this.loadDailyNote(today);
-
-    // Load long-term entries
-    this.longTermEntries = await this.loadLongTermEntries();
+    }, this.PERSIST_DEBOUNCE_MS);
 
     this.eventBus.emit('audit:log', {
-      action: 'temporal_memory_init',
+      action: 'temporal_memory:initialized',
       agent: 'memory_keeper',
       trustLevel: 'system',
       details: {
-        dailyEntries: this.currentDaily.entries.length,
-        longTermEntries: this.longTermEntries.length,
+        dailyNotes: this.dailyNotes.size,
+        weeklyReports: this.weeklyReports.size,
+        longTermEntries: this.longTermMemory.size,
       },
     });
   }
 
   /**
-   * Capture a new entry in today's daily notes.
+   * Graceful shutdown - persist pending changes
    */
-  async capture(
-    type: EntryType,
-    content: string,
-    source: string,
-    metadata?: Record<string, unknown>,
-  ): Promise<string> {
-    const today = this.getDateString();
-
-    // Ensure current daily is for today
-    if (!this.currentDaily || this.currentDaily.date !== today) {
-      this.currentDaily = await this.loadDailyNote(today);
+  async shutdown(): Promise<void> {
+    if (this.persistTimer) {
+      clearInterval(this.persistTimer);
+      this.persistTimer = null;
     }
 
-    // Check capacity
-    if (this.currentDaily.charCount + content.length > MAX_DAILY_CHARS) {
-      // Trim older entries to make room
-      while (
-        this.currentDaily.entries.length > 0 &&
-        this.currentDaily.charCount + content.length > MAX_DAILY_CHARS
-      ) {
-        const removed = this.currentDaily.entries.shift();
-        if (removed) {
-          this.currentDaily.charCount -= removed.content.length;
-        }
-      }
+    if (this.dirty) {
+      await this.persistToDisk();
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // DAILY NOTES
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Capture a new entry in today's daily note
+   * Enforces the 65K character cap
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async captureEntry(entry: Omit<DailyNoteEntry, 'timestamp'>): Promise<void> {
+    const date = getCurrentDate();
+    const timestamp = new Date().toISOString();
+
+    // Get or create daily note
+    let dailyNote = this.dailyNotes.get(date);
+    if (!dailyNote) {
+      dailyNote = {
+        date,
+        entries: [],
+        charCount: 0,
+        synthesized: false,
+      };
+      this.dailyNotes.set(date, dailyNote);
     }
 
-    const entry: DailyNoteEntry = {
-      id: randomUUID(),
-      timestamp: new Date().toISOString(),
-      type,
-      content,
-      source,
-      metadata,
+    // Check character cap
+    const entryLength = entry.content.length + entry.source.length + entry.type.length;
+    if (dailyNote.charCount + entryLength > DAILY_CHAR_CAP) {
+      // Emit warning but don't add entry
+      this.eventBus.emit('audit:log', {
+        action: 'temporal_memory:daily_cap_reached',
+        agent: 'memory_keeper',
+        trustLevel: 'system',
+        details: { date, charCount: dailyNote.charCount, attemptedAdd: entryLength },
+      });
+      return;
+    }
+
+    // Add entry
+    const fullEntry: DailyNoteEntry = {
+      timestamp,
+      type: entry.type,
+      content: entry.content,
+      source: entry.source,
     };
 
-    this.currentDaily.entries.push(entry);
-    this.currentDaily.charCount += content.length;
+    dailyNote.entries.push(fullEntry);
+    dailyNote.charCount += entryLength;
+    this.dirty = true;
 
-    await this.saveDailyNote(this.currentDaily);
-
-    this.eventBus.emit('audit:log', {
-      action: 'memory_captured',
-      agent: 'memory_keeper',
-      trustLevel: 'system',
-      details: { type, source, charCount: content.length },
+    // Emit event
+    this.eventBus.emit('memory:daily_captured', {
+      date,
+      entryCount: dailyNote.entries.length,
     });
-
-    return entry.id;
   }
 
   /**
-   * Get today's daily note entries.
+   * Get a daily note by date
+   * @param date Optional date in YYYY-MM-DD format, defaults to today
    */
-  getTodayEntries(): DailyNoteEntry[] {
-    return this.currentDaily?.entries ?? [];
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async getDailyNote(date?: string): Promise<DailyNote | null> {
+    const targetDate = date ?? getCurrentDate();
+    return this.dailyNotes.get(targetDate) ?? null;
   }
 
   /**
-   * Get daily note for a specific date.
+   * Get all daily notes in a date range
    */
-  async getDailyNote(date: string): Promise<DailyNote | null> {
-    const filePath = path.join(this.dailyDir, `${date}.json`);
-    if (!existsSync(filePath)) return null;
-    return this.loadDailyNote(date);
-  }
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async getDailyNotesInRange(startDate: string, endDate: string): Promise<DailyNote[]> {
+    const notes: DailyNote[] = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
 
-  /**
-   * Synthesize a week's daily notes into a weekly summary.
-   * Called on Sundays at 5 PM by the scheduler.
-   */
-  async synthesizeWeek(weekId?: string): Promise<WeeklyMemorySynthesis> {
-    const now = new Date();
-    const wId = weekId ?? this.getWeekId(now);
-
-    // Get the last 7 days of daily notes
-    const dailyNotes: DailyNote[] = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      const dateStr = this.getDateString(date);
-      const note = await this.loadDailyNote(dateStr);
-      if (note.entries.length > 0) {
-        dailyNotes.push(note);
+    for (const [dateKey, note] of this.dailyNotes) {
+      const noteDate = new Date(dateKey);
+      if (noteDate >= start && noteDate <= end) {
+        notes.push(note);
       }
     }
 
-    // Extract patterns from all entries
-    const allEntries = dailyNotes.flatMap(n => n.entries);
+    return notes.sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // WEEKLY SYNTHESIS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Synthesize a week's daily notes into patterns
+   * Should be called on Sunday or manually for a specific week
+   * @param weekId Optional week ID in YYYY-WNN format, defaults to current week
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async synthesizeWeek(weekId?: string): Promise<WeeklyMemorySynthesis> {
+    const targetWeekId = weekId ?? getWeekId();
+
+    // Check if already synthesized
+    const existing = this.weeklyReports.get(targetWeekId);
+    if (existing) {
+      return existing;
+    }
+
+    // Get all daily notes for the week
+    const datesInWeek = getDatesInWeek(targetWeekId);
+    const weekNotes: DailyNote[] = [];
+
+    for (const date of datesInWeek) {
+      const note = this.dailyNotes.get(date);
+      if (note) {
+        weekNotes.push(note);
+      }
+    }
+
+    // Extract patterns from entries
+    const allEntries = weekNotes.flatMap(n => n.entries);
     const patterns = this.extractPatterns(allEntries);
     const preferences = this.extractPreferences(allEntries);
-    const corrections = allEntries
-      .filter(e => e.type === 'correction')
-      .map(e => e.content);
+    const stableKnowledge = this.extractStableKnowledge(allEntries);
+    const discarded = this.extractDiscardedPatterns(allEntries);
 
-    // Promote stable knowledge (observed 3+ times this week)
-    const stableKnowledge: string[] = [];
-    const discarded: string[] = [];
-
-    for (const pattern of patterns) {
-      const count = allEntries.filter(e =>
-        e.content.toLowerCase().includes(pattern.toLowerCase()),
-      ).length;
-      if (count >= 3) {
-        stableKnowledge.push(pattern);
-      } else if (count === 1) {
-        discarded.push(pattern);
-      }
-    }
-
-    // Promote corrections to long-term
-    for (const correction of corrections) {
-      await this.promotToLongTerm(correction, 'correction');
-    }
-
-    // Promote stable preferences to long-term
-    for (const pref of preferences) {
-      await this.promotToLongTerm(pref, 'preference');
-    }
-
+    // Create synthesis
     const synthesis: WeeklyMemorySynthesis = {
-      weekId: wId,
-      dateRange: {
-        start: this.getDateString(new Date(now.getTime() - 6 * 86400000)),
-        end: this.getDateString(now),
-      },
+      weekId: targetWeekId,
       patterns,
       preferences,
       stableKnowledge,
       discarded,
-      entryCount: allEntries.length,
-      synthesizedAt: now.toISOString(),
     };
 
-    // Save weekly synthesis
-    await this.saveWeeklySynthesis(synthesis);
-
     // Mark daily notes as synthesized
-    for (const note of dailyNotes) {
+    for (const note of weekNotes) {
       note.synthesized = true;
-      await this.saveDailyNote(note);
     }
 
-    this.eventBus.emit('audit:log', {
-      action: 'weekly_synthesis_complete',
-      agent: 'memory_keeper',
-      trustLevel: 'system',
-      details: {
-        weekId: wId,
-        entryCount: allEntries.length,
-        patternsFound: patterns.length,
-        stableKnowledge: stableKnowledge.length,
-      },
+    // Store synthesis
+    this.weeklyReports.set(targetWeekId, synthesis);
+    this.dirty = true;
+
+    // Emit event
+    this.eventBus.emit('memory:weekly_synthesized', {
+      weekId: targetWeekId,
+      patternCount: patterns.length,
     });
 
     return synthesis;
   }
 
   /**
-   * Promote a piece of knowledge to long-term memory.
+   * Get a weekly synthesis by week ID
    */
-  async promotToLongTerm(
-    content: string,
-    category: LongTermMemoryEntry['category'],
-  ): Promise<string> {
-    // Check if similar entry already exists
-    const existing = this.longTermEntries.find(e =>
-      e.content.toLowerCase() === content.toLowerCase() ||
-      this.similarity(e.content, content) > 0.8,
-    );
-
-    if (existing) {
-      existing.lastConfirmed = new Date().toISOString();
-      existing.confirmationCount++;
-      await this.saveLongTermEntries();
-      return existing.id;
-    }
-
-    const entry: LongTermMemoryEntry = {
-      id: randomUUID(),
-      content,
-      category,
-      confidence: 0.6,
-      firstObserved: new Date().toISOString(),
-      lastConfirmed: new Date().toISOString(),
-      confirmationCount: 1,
-      contradictionCount: 0,
-    };
-
-    this.longTermEntries.push(entry);
-    await this.saveLongTermEntries();
-
-    this.eventBus.emit('audit:log', {
-      action: 'long_term_memory_promoted',
-      agent: 'memory_keeper',
-      trustLevel: 'system',
-      details: { category, contentLength: content.length },
-    });
-
-    return entry.id;
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async getWeeklySynthesis(weekId: string): Promise<WeeklyMemorySynthesis | null> {
+    return this.weeklyReports.get(weekId) ?? null;
   }
 
   /**
-   * Get long-term entries by category.
-   */
-  getLongTermEntries(category?: LongTermMemoryEntry['category']): LongTermMemoryEntry[] {
-    if (!category) return [...this.longTermEntries];
-    return this.longTermEntries.filter(e => e.category === category);
-  }
-
-  /**
-   * Record a contradiction (something was wrong).
-   */
-  async recordContradiction(entryId: string): Promise<void> {
-    const entry = this.longTermEntries.find(e => e.id === entryId);
-    if (entry) {
-      entry.contradictionCount++;
-      entry.confidence = Math.max(
-        0,
-        entry.confidence - 0.1 * (entry.contradictionCount / entry.confirmationCount),
-      );
-      await this.saveLongTermEntries();
-    }
-  }
-
-  /**
-   * Get memory statistics.
-   */
-  getStats(): {
-    dailyEntriestoday: number;
-    longTermEntries: number;
-    byCategory: Record<string, number>;
-  } {
-    const byCategory: Record<string, number> = {};
-    for (const entry of this.longTermEntries) {
-      byCategory[entry.category] = (byCategory[entry.category] ?? 0) + 1;
-    }
-
-    return {
-      dailyEntriestoday: this.currentDaily?.entries.length ?? 0,
-      longTermEntries: this.longTermEntries.length,
-      byCategory,
-    };
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PRIVATE HELPERS
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  private getDateString(date?: Date): string {
-    const d = date ?? new Date();
-    return d.toISOString().split('T')[0];
-  }
-
-  private getWeekId(date: Date): string {
-    const year = date.getFullYear();
-    const startOfYear = new Date(year, 0, 1);
-    const days = Math.floor(
-      (date.getTime() - startOfYear.getTime()) / 86400000,
-    );
-    const week = Math.ceil((days + startOfYear.getDay() + 1) / 7);
-    return `${year}-W${String(week).padStart(2, '0')}`;
-  }
-
-  private loadDailyNote(date: string): Promise<DailyNote> {
-    const filePath = path.join(this.dailyDir, `${date}.json`);
-    if (existsSync(filePath)) {
-      try {
-        const raw = readFileSync(filePath, 'utf-8');
-        return Promise.resolve(JSON.parse(raw) as DailyNote);
-      } catch {
-        // Corrupted file — start fresh
-      }
-    }
-    return Promise.resolve({ date, entries: [], charCount: 0, synthesized: false });
-  }
-
-  private async saveDailyNote(note: DailyNote): Promise<void> {
-    const filePath = path.join(this.dailyDir, `${note.date}.json`);
-    await fs.writeFile(filePath, JSON.stringify(note, null, 2), 'utf-8');
-  }
-
-  private async saveWeeklySynthesis(synthesis: WeeklyMemorySynthesis): Promise<void> {
-    const filePath = path.join(this.weeklyDir, `${synthesis.weekId}.json`);
-    const data = JSON.stringify(synthesis, null, 2);
-    if (data.length > MAX_WEEKLY_CHARS) {
-      // Truncate patterns/discarded to fit
-      synthesis.discarded = synthesis.discarded.slice(0, 5);
-      synthesis.patterns = synthesis.patterns.slice(0, 20);
-    }
-    await fs.writeFile(filePath, JSON.stringify(synthesis, null, 2), 'utf-8');
-  }
-
-  private loadLongTermEntries(): Promise<LongTermMemoryEntry[]> {
-    const filePath = path.join(this.longTermDir, 'entries.json');
-    if (existsSync(filePath)) {
-      try {
-        const raw = readFileSync(filePath, 'utf-8');
-        return Promise.resolve(JSON.parse(raw) as LongTermMemoryEntry[]);
-      } catch {
-        return Promise.resolve([]);
-      }
-    }
-    return Promise.resolve([]);
-  }
-
-  private async saveLongTermEntries(): Promise<void> {
-    const filePath = path.join(this.longTermDir, 'entries.json');
-    await fs.writeFile(
-      filePath,
-      JSON.stringify(this.longTermEntries, null, 2),
-      'utf-8',
-    );
-  }
-
-  /**
-   * Extract patterns from entries (simple keyword frequency analysis).
+   * Extract repeating patterns from entries
    */
   private extractPatterns(entries: DailyNoteEntry[]): string[] {
-    const wordFreq = new Map<string, number>();
     const patterns: string[] = [];
+    const contentGroups = new Map<string, number>();
 
+    // Group similar content
     for (const entry of entries) {
-      const words = entry.content.toLowerCase().split(/\s+/);
-      for (const word of words) {
-        if (word.length > 4) {
-          wordFreq.set(word, (wordFreq.get(word) ?? 0) + 1);
+      if (entry.type === 'learning' || entry.type === 'observation') {
+        // Find similar existing pattern
+        let found = false;
+        for (const [pattern, count] of contentGroups) {
+          if (textSimilarity(entry.content, pattern) > 0.5) {
+            contentGroups.set(pattern, count + 1);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          contentGroups.set(entry.content, 1);
         }
       }
     }
 
-    // Find recurring themes (words appearing 3+ times)
-    const sorted = [...wordFreq.entries()]
-      .filter(([, count]) => count >= 3)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 20);
-
-    for (const [word] of sorted) {
-      patterns.push(word);
+    // Patterns are those that appear multiple times
+    for (const [content, count] of contentGroups) {
+      if (count >= 2) {
+        patterns.push(content);
+      }
     }
 
     return patterns;
   }
 
   /**
-   * Extract preference-like entries.
+   * Extract preference-related entries
    */
   private extractPreferences(entries: DailyNoteEntry[]): string[] {
     return entries
-      .filter(
-        e =>
-          e.type === 'learning' ||
-          e.type === 'correction' ||
-          e.type === 'decision',
-      )
-      .map(e => e.content)
-      .slice(0, 10);
+      .filter(e => e.type === 'decision' || e.type === 'learning')
+      .filter(e => e.content.toLowerCase().includes('prefer') ||
+                   e.content.toLowerCase().includes('like') ||
+                   e.content.toLowerCase().includes('want'))
+      .map(e => e.content);
   }
 
   /**
-   * Simple string similarity (Jaccard index on words).
+   * Extract stable knowledge (high-frequency, consistent patterns)
    */
-  private similarity(a: string, b: string): number {
-    const setA = new Set(a.toLowerCase().split(/\s+/));
-    const setB = new Set(b.toLowerCase().split(/\s+/));
-    const intersection = new Set([...setA].filter(x => setB.has(x)));
-    const union = new Set([...setA, ...setB]);
-    return union.size === 0 ? 0 : intersection.size / union.size;
+  private extractStableKnowledge(entries: DailyNoteEntry[]): string[] {
+    const knowledgeCount = new Map<string, number>();
+
+    for (const entry of entries) {
+      if (entry.type === 'learning' || entry.type === 'observation') {
+        // Normalize content for grouping
+        const normalized = entry.content.toLowerCase().trim();
+        knowledgeCount.set(normalized, (knowledgeCount.get(normalized) ?? 0) + 1);
+      }
+    }
+
+    // Stable knowledge appears 3+ times
+    const stable: string[] = [];
+    for (const [content, count] of knowledgeCount) {
+      if (count >= 3) {
+        stable.push(content);
+      }
+    }
+
+    return stable;
+  }
+
+  /**
+   * Extract discarded patterns (errors, corrections that indicate wrong assumptions)
+   */
+  private extractDiscardedPatterns(entries: DailyNoteEntry[]): string[] {
+    return entries
+      .filter(e => e.type === 'error' || e.type === 'correction')
+      .map(e => e.content);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // LONG-TERM MEMORY
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Promote entries to long-term memory
+   * @param entries Array of content strings to promote
+   * @returns Number of entries actually promoted
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async promoteToLongTerm(entries: string[]): Promise<number> {
+    let promoted = 0;
+
+    for (const content of entries) {
+      // Check if similar entry already exists
+      let existingEntry: LongTermMemoryEntry | null = null;
+      for (const entry of this.longTermMemory.values()) {
+        if (textSimilarity(entry.content, content) > 0.7) {
+          existingEntry = entry;
+          break;
+        }
+      }
+
+      if (existingEntry) {
+        // Update existing entry
+        existingEntry.confirmationCount++;
+        existingEntry.lastConfirmed = new Date().toISOString();
+        existingEntry.confidence = Math.min(
+          MAX_CONFIDENCE,
+          existingEntry.confidence + CONFIRMATION_BOOST
+        );
+      } else {
+        // Create new entry
+        const category = this.categorizeContent(content);
+        const newEntry: LongTermMemoryEntry = {
+          id: randomUUID(),
+          content,
+          category,
+          confidence: CONFIDENCE_THRESHOLD_FOR_PROMOTION,
+          firstObserved: new Date().toISOString(),
+          lastConfirmed: new Date().toISOString(),
+          confirmationCount: 1,
+          contradictionCount: 0,
+        };
+
+        this.longTermMemory.set(newEntry.id, newEntry);
+        promoted++;
+
+        // Emit event
+        this.eventBus.emit('memory:promoted_long_term', {
+          entryId: newEntry.id,
+          confidence: newEntry.confidence,
+        });
+      }
+    }
+
+    this.dirty = true;
+    return promoted;
+  }
+
+  /**
+   * Categorize content for long-term memory
+   */
+  private categorizeContent(content: string): LongTermCategory {
+    const lower = content.toLowerCase();
+
+    if (lower.includes('prefer') || lower.includes('like') || lower.includes('want')) {
+      return 'preference';
+    }
+    if (lower.includes('always') || lower.includes('never') || lower.includes('should')) {
+      return 'behavior';
+    }
+    if (lower.includes('fixed') || lower.includes('corrected') || lower.includes('wrong')) {
+      return 'correction';
+    }
+    if (lower.includes('user') || lower.includes('person') || lower.includes('team')) {
+      return 'relationship';
+    }
+    return 'knowledge';
+  }
+
+  /**
+   * Search long-term memory
+   * @param query Search query string
+   * @returns Matching entries sorted by relevance
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async searchLongTerm(query: string): Promise<LongTermMemoryEntry[]> {
+    const results: Array<{ entry: LongTermMemoryEntry; score: number }> = [];
+
+    for (const entry of this.longTermMemory.values()) {
+      const similarity = textSimilarity(query, entry.content);
+      if (similarity > 0.1) {
+        // Factor in confidence and confirmation count
+        const score = similarity * entry.confidence *
+          Math.log2(entry.confirmationCount + 1);
+        results.push({ entry, score });
+      }
+    }
+
+    // Sort by score descending
+    results.sort((a, b) => b.score - a.score);
+
+    return results.map(r => r.entry);
+  }
+
+  /**
+   * Get a long-term memory entry by ID
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async getLongTermEntry(id: string): Promise<LongTermMemoryEntry | null> {
+    return this.longTermMemory.get(id) ?? null;
+  }
+
+  /**
+   * Record a contradiction to a long-term memory entry
+   * Decreases confidence
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async recordContradiction(id: string): Promise<void> {
+    const entry = this.longTermMemory.get(id);
+    if (!entry) return;
+
+    entry.contradictionCount++;
+    entry.confidence = Math.max(MIN_CONFIDENCE, entry.confidence - CONTRADICTION_PENALTY);
+    this.dirty = true;
+
+    // If confidence drops too low, consider removing
+    if (entry.confidence < 0.2 && entry.contradictionCount > entry.confirmationCount) {
+      this.longTermMemory.delete(id);
+      this.eventBus.emit('audit:log', {
+        action: 'temporal_memory:entry_removed',
+        agent: 'memory_keeper',
+        trustLevel: 'system',
+        details: { id, reason: 'low_confidence_high_contradiction' },
+      });
+    }
+  }
+
+  /**
+   * Record a confirmation of a long-term memory entry
+   * Increases confidence
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async recordConfirmation(id: string): Promise<void> {
+    const entry = this.longTermMemory.get(id);
+    if (!entry) return;
+
+    entry.confirmationCount++;
+    entry.lastConfirmed = new Date().toISOString();
+    entry.confidence = Math.min(MAX_CONFIDENCE, entry.confidence + CONFIRMATION_BOOST);
+    this.dirty = true;
+  }
+
+  /**
+   * Get all long-term memory entries in a category
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async getLongTermByCategory(category: LongTermCategory): Promise<LongTermMemoryEntry[]> {
+    const results: LongTermMemoryEntry[] = [];
+    for (const entry of this.longTermMemory.values()) {
+      if (entry.category === category) {
+        results.push(entry);
+      }
+    }
+    return results.sort((a, b) => b.confidence - a.confidence);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // AUTOMATIC PROMOTION
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Check weekly synthesis for entries ready to promote to long-term
+   * Called automatically after weekly synthesis
+   */
+  async checkForPromotion(weekId: string): Promise<number> {
+    const synthesis = this.weeklyReports.get(weekId);
+    if (!synthesis) return 0;
+
+    // Combine stable knowledge with patterns that meet threshold
+    const candidates = [...synthesis.stableKnowledge, ...synthesis.patterns];
+
+    // Filter candidates that meet promotion criteria
+    const readyForPromotion = candidates.filter(content => {
+      // Check if this content appears across multiple weeks
+      let weekCount = 0;
+      for (const report of this.weeklyReports.values()) {
+        if (report.patterns.includes(content) || report.stableKnowledge.includes(content)) {
+          weekCount++;
+        }
+      }
+      return weekCount >= MIN_CONFIRMATIONS_FOR_PROMOTION;
+    });
+
+    return this.promoteToLongTerm(readyForPromotion);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // STATISTICS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Get statistics about the temporal memory system
+   */
+  getStats(): TemporalMemoryStats {
+    return {
+      dailyNotes: this.dailyNotes.size,
+      weeklyReports: this.weeklyReports.size,
+      longTermEntries: this.longTermMemory.size,
+    };
+  }
+
+  /**
+   * Get detailed statistics
+   */
+  getDetailedStats(): {
+    dailyNotes: number;
+    weeklyReports: number;
+    longTermEntries: number;
+    totalDailyEntries: number;
+    totalCharacters: number;
+    entriesByType: Record<DailyNoteEntryType, number>;
+    entriesByCategory: Record<LongTermCategory, number>;
+    averageLongTermConfidence: number;
+  } {
+    let totalEntries = 0;
+    let totalChars = 0;
+    const entriesByType: Record<DailyNoteEntryType, number> = {
+      conversation: 0,
+      task: 0,
+      observation: 0,
+      error: 0,
+      decision: 0,
+      learning: 0,
+      correction: 0,
+    };
+
+    for (const note of this.dailyNotes.values()) {
+      totalEntries += note.entries.length;
+      totalChars += note.charCount;
+      for (const entry of note.entries) {
+        entriesByType[entry.type]++;
+      }
+    }
+
+    const entriesByCategory: Record<LongTermCategory, number> = {
+      preference: 0,
+      behavior: 0,
+      knowledge: 0,
+      correction: 0,
+      relationship: 0,
+    };
+
+    let totalConfidence = 0;
+    for (const entry of this.longTermMemory.values()) {
+      entriesByCategory[entry.category]++;
+      totalConfidence += entry.confidence;
+    }
+
+    return {
+      dailyNotes: this.dailyNotes.size,
+      weeklyReports: this.weeklyReports.size,
+      longTermEntries: this.longTermMemory.size,
+      totalDailyEntries: totalEntries,
+      totalCharacters: totalChars,
+      entriesByType,
+      entriesByCategory,
+      averageLongTermConfidence: this.longTermMemory.size > 0
+        ? totalConfidence / this.longTermMemory.size
+        : 0,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PERSISTENCE
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Load all data from disk
+   */
+  private async loadFromDisk(): Promise<void> {
+    // Load daily notes
+    const dailyDir = path.join(this.storagePath, 'daily');
+    try {
+      if (existsSync(dailyDir)) {
+        const files = await fs.readdir(dailyDir);
+        for (const file of files) {
+          if (file.endsWith('.json')) {
+            try {
+              const content = readFileSync(path.join(dailyDir, file), 'utf-8');
+              const note = JSON.parse(content) as DailyNote;
+              if (note.date && Array.isArray(note.entries)) {
+                this.dailyNotes.set(note.date, note);
+              }
+            } catch {
+              // Skip invalid files
+            }
+          }
+        }
+      }
+    } catch {
+      // Directory may not exist yet
+    }
+
+    // Load weekly reports
+    const weeklyDir = path.join(this.storagePath, 'weekly');
+    try {
+      if (existsSync(weeklyDir)) {
+        const files = await fs.readdir(weeklyDir);
+        for (const file of files) {
+          if (file.endsWith('.json')) {
+            try {
+              const content = readFileSync(path.join(weeklyDir, file), 'utf-8');
+              const report = JSON.parse(content) as WeeklyMemorySynthesis;
+              if (report.weekId) {
+                this.weeklyReports.set(report.weekId, report);
+              }
+            } catch {
+              // Skip invalid files
+            }
+          }
+        }
+      }
+    } catch {
+      // Directory may not exist yet
+    }
+
+    // Load long-term memory
+    const longTermPath = path.join(this.storagePath, 'long-term.json');
+    try {
+      if (existsSync(longTermPath)) {
+        const content = readFileSync(longTermPath, 'utf-8');
+        const entries = JSON.parse(content) as LongTermMemoryEntry[];
+        for (const entry of entries) {
+          if (entry.id && entry.content) {
+            this.longTermMemory.set(entry.id, entry);
+          }
+        }
+      }
+    } catch {
+      // File may not exist yet
+    }
+  }
+
+  /**
+   * Persist all data to disk
+   */
+  private async persistToDisk(): Promise<void> {
+    // Persist daily notes (one file per day)
+    const dailyDir = path.join(this.storagePath, 'daily');
+    for (const [date, note] of this.dailyNotes) {
+      const filePath = path.join(dailyDir, `${date}.json`);
+      const tempPath = `${filePath}.tmp`;
+      await fs.writeFile(tempPath, JSON.stringify(note, null, 2));
+      await fs.rename(tempPath, filePath);
+    }
+
+    // Persist weekly reports (one file per week)
+    const weeklyDir = path.join(this.storagePath, 'weekly');
+    for (const [weekId, report] of this.weeklyReports) {
+      const filePath = path.join(weeklyDir, `${weekId}.json`);
+      const tempPath = `${filePath}.tmp`;
+      await fs.writeFile(tempPath, JSON.stringify(report, null, 2));
+      await fs.rename(tempPath, filePath);
+    }
+
+    // Persist long-term memory (single file)
+    const longTermPath = path.join(this.storagePath, 'long-term.json');
+    const tempPath = `${longTermPath}.tmp`;
+    const entries = Array.from(this.longTermMemory.values());
+    await fs.writeFile(tempPath, JSON.stringify(entries, null, 2));
+    await fs.rename(tempPath, longTermPath);
+
+    this.dirty = false;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Clear all data (for testing)
+   */
+  clear(): void {
+    this.dailyNotes.clear();
+    this.weeklyReports.clear();
+    this.longTermMemory.clear();
+    this.dirty = false;
+  }
+
+  /**
+   * Check if today is Sunday (useful for automatic weekly synthesis)
+   */
+  isSynthesisDay(): boolean {
+    return isSunday();
+  }
+
+  /**
+   * Get the current week ID
+   */
+  getCurrentWeekId(): string {
+    return getWeekId();
   }
 }

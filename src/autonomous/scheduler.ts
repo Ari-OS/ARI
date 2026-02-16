@@ -265,6 +265,155 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
       description: 'Mid-day progress check and urgent initiative execution',
     },
   },
+
+  // ============================================================================
+  // MASTER PLAN PHASE 2-4: New scheduled tasks (2026-02-16)
+  // All times in Eastern Time (ET)
+  // ============================================================================
+
+  // ── Health & Operations ─────────────────────────────────────────────────────
+  {
+    id: 'health-check',
+    name: 'System Health Check',
+    cron: '*/15 * * * *', // Every 15 minutes
+    handler: 'health_check',
+    enabled: true,
+    essential: true, // Critical system monitoring
+    metadata: {
+      category: 'OPERATIONS',
+      description: 'Check disk, memory, API connectivity, daemon status, audit integrity',
+    },
+  },
+  {
+    id: 'backup-daily',
+    name: 'Daily Backup',
+    cron: '0 3 * * *', // 3:00 AM daily
+    handler: 'backup_daily',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'OPERATIONS',
+      description: 'Backup ~/.ari/data/, contexts/, knowledge/ with pruning',
+    },
+  },
+  {
+    id: 'git-sync',
+    name: 'Git Sync',
+    cron: '0 * * * *', // Every hour on the hour
+    handler: 'git_sync',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'OPERATIONS',
+      description: 'Auto-commit and push changes to remote',
+    },
+  },
+
+  // ── Knowledge & Memory ──────────────────────────────────────────────────────
+  {
+    id: 'gmail-ingest',
+    name: 'Gmail Ingestion',
+    cron: '0 7 * * *', // 7:00 AM daily
+    handler: 'gmail_ingest',
+    enabled: true,
+    essential: true, // User-facing knowledge capture
+    metadata: {
+      category: 'KNOWLEDGE',
+      description: 'Scan and ingest important emails into knowledge base',
+    },
+  },
+  {
+    id: 'memory-weekly',
+    name: 'Weekly Memory Consolidation',
+    cron: '0 17 * * 0', // Sunday 5:00 PM
+    handler: 'memory_weekly',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'KNOWLEDGE',
+      description: 'Synthesize weekly patterns, promote stable knowledge to long-term',
+    },
+  },
+
+  // ── Market & Investment Intelligence ────────────────────────────────────────
+  {
+    id: 'market-price-check',
+    name: 'Market Price Check',
+    cron: '*/30 8-22 * * *', // Every 30 min, 8AM-10PM
+    handler: 'market_price_check',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'INVESTMENT',
+      description: 'Check crypto, stocks, Pokemon card prices and generate alerts',
+    },
+  },
+  {
+    id: 'portfolio-update',
+    name: 'Portfolio Update',
+    cron: '0 8,14,20 * * *', // 8AM, 2PM, 8PM
+    handler: 'portfolio_update',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'INVESTMENT',
+      description: 'Update portfolio values and track daily changes',
+    },
+  },
+  {
+    id: 'opportunity-daily',
+    name: 'Daily Opportunity Scan',
+    cron: '0 7 * * *', // 7:00 AM daily
+    handler: 'opportunity_daily',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'INVESTMENT',
+      description: 'Scan for investment, career, content, and side project opportunities',
+    },
+  },
+
+  // ── Career Tracking ─────────────────────────────────────────────────────────
+  {
+    id: 'career-scan',
+    name: 'Career Opportunity Scan',
+    cron: '0 8 * * 1-5', // 8:00 AM weekdays only
+    handler: 'career_scan',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'CAREER',
+      description: 'Scan job boards for CS/SWE opportunities matching profile',
+    },
+  },
+
+  // ── AI Evolution ────────────────────────────────────────────────────────────
+  {
+    id: 'model-evolution',
+    name: 'Model Evolution Review',
+    cron: '0 10 * * 1', // Monday 10:00 AM
+    handler: 'model_evolution',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'AI',
+      description: 'Review model performance, cost efficiency, and routing optimizations',
+    },
+  },
+
+  // ── AI Council (Nightly Strategic Review) ───────────────────────────────────
+  {
+    id: 'ai-council-nightly',
+    name: 'AI Council Nightly Review',
+    cron: '0 22 * * *', // 10:00 PM daily
+    handler: 'ai_council_nightly',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'STRATEGIC',
+      description: 'Multi-model council review: LeadAnalyst + 4 Specialists + Moderator',
+    },
+  },
 ];
 
 export class Scheduler {

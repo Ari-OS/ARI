@@ -5,6 +5,32 @@ export { SystemRouter } from './router.js';
 export { ContextLayerManager } from './context-layers.js';
 export type { ContextLayer, LayeredContext, Session as ContextSession } from './context-layers.js';
 
+// VectorStore exports
+export {
+  VectorStore,
+  createVectorStore,
+  computeContentHash,
+  cosineSimilarity,
+  VectorStoreError,
+  DuplicateContentError,
+  InvalidEmbeddingError,
+  DocumentNotFoundError,
+  VectorDocumentSchema,
+  SearchOptionsSchema,
+  SearchResultSchema,
+  StoreStatsSchema,
+  UpsertDocumentInputSchema,
+  SourceTypeSchema as VectorSourceTypeSchema,
+} from './vector-store.js';
+export type {
+  VectorDocument,
+  SearchOptions,
+  SearchResult,
+  StoreStats,
+  UpsertDocumentInput,
+  SourceType as VectorSourceType,
+} from './vector-store.js';
+
 // Sessions exports
 export {
   SessionManager,
