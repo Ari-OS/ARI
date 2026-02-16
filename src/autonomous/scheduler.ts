@@ -414,6 +414,32 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
       description: 'Multi-model council review: LeadAnalyst + 4 Specialists + Moderator',
     },
   },
+
+  // ── Intelligence Scanner & Daily Digest ────────────────────────────────────
+  {
+    id: 'intelligence-scan',
+    name: 'Intelligence Scan',
+    cron: '0 6 * * *', // 6:00 AM daily (before morning briefing)
+    handler: 'intelligence_scan',
+    enabled: true,
+    essential: true, // Core user-facing deliverable
+    metadata: {
+      category: 'INTELLIGENCE',
+      description: 'Scan Anthropic, OpenAI, xAI, HN, GitHub, X/Twitter for relevant intel',
+    },
+  },
+  {
+    id: 'daily-digest-delivery',
+    name: 'Daily Digest Delivery',
+    cron: '30 6 * * *', // 6:30 AM daily (after scan, before Pryce wakes)
+    handler: 'daily_digest_delivery',
+    enabled: true,
+    essential: true, // Core user-facing deliverable
+    metadata: {
+      category: 'INTELLIGENCE',
+      description: 'Generate and deliver curated daily knowledge report via Telegram',
+    },
+  },
 ];
 
 export class Scheduler {

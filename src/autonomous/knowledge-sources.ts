@@ -14,8 +14,21 @@
  * - DOCUMENTATION: Official technical documentation
  */
 
-export type SourceCategory = 'OFFICIAL' | 'RESEARCH' | 'DOCUMENTATION';
+export type SourceCategory = 'OFFICIAL' | 'RESEARCH' | 'DOCUMENTATION' | 'NEWS' | 'SOCIAL';
 export type SourceTrust = 'verified' | 'standard';
+
+/**
+ * Interest domains for relevance scoring
+ */
+export type InterestDomain =
+  | 'ai'              // AI/ML, LLMs, agents
+  | 'programming'     // TypeScript, Node.js, web dev
+  | 'security'        // Cybersecurity, AppSec
+  | 'career'          // Jobs, salary, remote work
+  | 'investment'      // Crypto, stocks, Pokemon TCG
+  | 'business'        // SaaS, freelancing, startups
+  | 'tools'           // Developer tools, productivity
+  | 'general';        // Broad tech news
 
 export interface KnowledgeSource {
   id: string;
@@ -28,6 +41,8 @@ export interface KnowledgeSource {
   contentType: 'html' | 'json' | 'markdown' | 'rss';
   updateFrequency: 'daily' | 'weekly' | 'monthly';
   enabled: boolean;
+  domains?: InterestDomain[]; // What interest domains this source covers
+  priority?: number; // 1-10, higher = check first (default 5)
 }
 
 /**
@@ -54,6 +69,34 @@ export const KNOWLEDGE_SOURCES: KnowledgeSource[] = [
     contentType: 'html',
     updateFrequency: 'weekly',
     enabled: true,
+    domains: ['ai', 'programming'],
+    priority: 10,
+  },
+  {
+    id: 'anthropic-news',
+    name: 'Anthropic News',
+    url: 'https://www.anthropic.com/news',
+    category: 'OFFICIAL',
+    trust: 'verified',
+    description: 'Anthropic blog — model releases, research, company updates',
+    contentType: 'html',
+    updateFrequency: 'daily',
+    enabled: true,
+    domains: ['ai', 'business'],
+    priority: 10,
+  },
+  {
+    id: 'anthropic-research',
+    name: 'Anthropic Research',
+    url: 'https://www.anthropic.com/research',
+    category: 'OFFICIAL',
+    trust: 'verified',
+    description: 'Anthropic research publications and findings',
+    contentType: 'html',
+    updateFrequency: 'weekly',
+    enabled: true,
+    domains: ['ai', 'security'],
+    priority: 9,
   },
   {
     id: 'anthropic-cookbook',
@@ -66,6 +109,8 @@ export const KNOWLEDGE_SOURCES: KnowledgeSource[] = [
     contentType: 'markdown',
     updateFrequency: 'weekly',
     enabled: true,
+    domains: ['ai', 'programming'],
+    priority: 8,
   },
   {
     id: 'anthropic-courses',
@@ -77,6 +122,8 @@ export const KNOWLEDGE_SOURCES: KnowledgeSource[] = [
     contentType: 'markdown',
     updateFrequency: 'monthly',
     enabled: true,
+    domains: ['ai', 'programming'],
+    priority: 7,
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -176,11 +223,167 @@ export const KNOWLEDGE_SOURCES: KnowledgeSource[] = [
     name: 'AI Alignment Forum',
     url: 'https://www.alignmentforum.org/',
     category: 'RESEARCH',
-    trust: 'standard', // Contains user posts, requires extra filtering
+    trust: 'standard',
     description: 'AI safety and alignment research discussions',
     contentType: 'html',
     updateFrequency: 'weekly',
-    enabled: false, // Disabled by default - user content requires review
+    enabled: false,
+    domains: ['ai', 'security'],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI COMPANIES — Competitor and ecosystem intelligence
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: 'openai-blog',
+    name: 'OpenAI Blog',
+    url: 'https://openai.com/blog',
+    category: 'OFFICIAL',
+    trust: 'verified',
+    description: 'OpenAI product announcements, research, and model releases',
+    contentType: 'html',
+    updateFrequency: 'daily',
+    enabled: true,
+    domains: ['ai', 'business'],
+    priority: 9,
+  },
+  {
+    id: 'openai-research',
+    name: 'OpenAI Research',
+    url: 'https://openai.com/research',
+    category: 'RESEARCH',
+    trust: 'verified',
+    description: 'OpenAI research papers and technical reports',
+    contentType: 'html',
+    updateFrequency: 'weekly',
+    enabled: true,
+    domains: ['ai'],
+    priority: 7,
+  },
+  {
+    id: 'google-deepmind-blog',
+    name: 'Google DeepMind Blog',
+    url: 'https://deepmind.google/discover/blog/',
+    category: 'OFFICIAL',
+    trust: 'verified',
+    description: 'Google DeepMind research and product announcements',
+    contentType: 'html',
+    updateFrequency: 'weekly',
+    enabled: true,
+    domains: ['ai'],
+    priority: 7,
+  },
+  {
+    id: 'xai-blog',
+    name: 'xAI Blog',
+    url: 'https://x.ai/blog',
+    category: 'OFFICIAL',
+    trust: 'verified',
+    description: 'xAI/Grok announcements and research',
+    contentType: 'html',
+    updateFrequency: 'weekly',
+    enabled: true,
+    domains: ['ai', 'business'],
+    priority: 7,
+  },
+  {
+    id: 'meta-ai-blog',
+    name: 'Meta AI Blog',
+    url: 'https://ai.meta.com/blog/',
+    category: 'OFFICIAL',
+    trust: 'verified',
+    description: 'Meta AI (Llama) research and open-source model releases',
+    contentType: 'html',
+    updateFrequency: 'weekly',
+    enabled: true,
+    domains: ['ai'],
+    priority: 6,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEWS & AGGREGATORS — Tech news and trending content
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: 'hackernews-top',
+    name: 'Hacker News Top Stories',
+    url: 'https://hacker-news.firebaseio.com/v0/topstories.json',
+    category: 'NEWS',
+    trust: 'standard',
+    description: 'Hacker News top stories (IDs) — use /v0/item/{id}.json for details',
+    contentType: 'json',
+    updateFrequency: 'daily',
+    enabled: true,
+    domains: ['ai', 'programming', 'business', 'tools'],
+    priority: 8,
+  },
+  {
+    id: 'hackernews-best',
+    name: 'Hacker News Best Stories',
+    url: 'https://hacker-news.firebaseio.com/v0/beststories.json',
+    category: 'NEWS',
+    trust: 'standard',
+    description: 'Hacker News best stories — higher signal than top',
+    contentType: 'json',
+    updateFrequency: 'daily',
+    enabled: true,
+    domains: ['ai', 'programming', 'business', 'tools'],
+    priority: 7,
+  },
+  {
+    id: 'github-trending',
+    name: 'GitHub Trending',
+    url: 'https://github.com/trending',
+    category: 'NEWS',
+    trust: 'verified',
+    description: 'GitHub trending repositories — what developers are building',
+    contentType: 'html',
+    updateFrequency: 'daily',
+    enabled: true,
+    domains: ['programming', 'tools', 'ai'],
+    priority: 7,
+  },
+  {
+    id: 'github-trending-typescript',
+    name: 'GitHub Trending TypeScript',
+    url: 'https://github.com/trending/typescript',
+    category: 'NEWS',
+    trust: 'verified',
+    description: 'GitHub trending TypeScript repos — directly relevant to ARI',
+    contentType: 'html',
+    updateFrequency: 'daily',
+    enabled: true,
+    domains: ['programming', 'tools'],
+    priority: 8,
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SOCIAL — X/Twitter (requires API token, handled by twitter client)
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: 'x-user-likes',
+    name: 'X/Twitter User Likes',
+    url: 'https://api.x.com/2/users/:user_id/liked_tweets',
+    category: 'SOCIAL',
+    trust: 'standard',
+    description: 'User liked tweets — signals what Pryce finds interesting',
+    contentType: 'json',
+    updateFrequency: 'daily',
+    enabled: true,
+    domains: ['ai', 'business', 'investment', 'general'],
+    priority: 9,
+  },
+  {
+    id: 'x-ai-list',
+    name: 'X/Twitter AI Leaders',
+    url: 'https://api.x.com/2/lists/:list_id/tweets',
+    category: 'SOCIAL',
+    trust: 'standard',
+    description: 'Curated list of AI leaders and researchers on X',
+    contentType: 'json',
+    updateFrequency: 'daily',
+    enabled: true,
+    domains: ['ai', 'business'],
+    priority: 8,
   },
 ];
 
@@ -203,6 +406,33 @@ export function getEnabledSources(): KnowledgeSource[] {
  */
 export function getVerifiedSources(): KnowledgeSource[] {
   return KNOWLEDGE_SOURCES.filter(s => s.enabled && s.trust === 'verified');
+}
+
+/**
+ * Get sources by interest domain, sorted by priority
+ */
+export function getSourcesByDomain(domain: InterestDomain): KnowledgeSource[] {
+  return KNOWLEDGE_SOURCES
+    .filter(s => s.enabled && s.domains?.includes(domain))
+    .sort((a, b) => (b.priority ?? 5) - (a.priority ?? 5));
+}
+
+/**
+ * Get daily-update sources (for intelligence scanning), sorted by priority
+ */
+export function getDailySources(): KnowledgeSource[] {
+  return KNOWLEDGE_SOURCES
+    .filter(s => s.enabled && s.updateFrequency === 'daily')
+    .sort((a, b) => (b.priority ?? 5) - (a.priority ?? 5));
+}
+
+/**
+ * Get news and social sources (for intelligence scanning)
+ */
+export function getIntelligenceSources(): KnowledgeSource[] {
+  return KNOWLEDGE_SOURCES
+    .filter(s => s.enabled && (s.category === 'NEWS' || s.category === 'SOCIAL' || s.updateFrequency === 'daily'))
+    .sort((a, b) => (b.priority ?? 5) - (a.priority ?? 5));
 }
 
 /**

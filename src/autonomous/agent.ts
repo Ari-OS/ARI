@@ -36,6 +36,9 @@ import { PortfolioTracker } from './portfolio-tracker.js';
 import { OpportunityScanner } from './opportunity-scanner.js';
 import { CareerTracker } from './career-tracker.js';
 import { TemporalMemory } from '../agents/temporal-memory.js';
+import { IntelligenceScanner } from './intelligence-scanner.js';
+import { DailyDigestGenerator } from './daily-digest.js';
+import { XClient } from '../integrations/twitter/client.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -89,6 +92,8 @@ export class AutonomousAgent {
   private briefingGenerator: BriefingGenerator | null = null;
   private initiativeEngine: InitiativeEngine;
   private selfImprovementLoop: SelfImprovementLoop | null = null;
+  private intelligenceScanner: IntelligenceScanner | null = null;
+  private dailyDigest: DailyDigestGenerator | null = null;
 
   // Budget-aware components
   private costTracker: CostTracker | null = null;
@@ -219,6 +224,20 @@ export class AutonomousAgent {
 
     // Initialize briefing generator for scheduled reports
     this.briefingGenerator = new BriefingGenerator(notificationManager, this.eventBus);
+
+    // Initialize intelligence scanner + daily digest
+    const xClient = new XClient({
+      enabled: !!process.env.X_BEARER_TOKEN,
+      bearerToken: process.env.X_BEARER_TOKEN,
+      userId: process.env.X_USER_ID,
+    });
+    if (process.env.X_BEARER_TOKEN) {
+      await xClient.init();
+    }
+    this.intelligenceScanner = new IntelligenceScanner(this.eventBus, xClient);
+    await this.intelligenceScanner.init();
+    this.dailyDigest = new DailyDigestGenerator(this.eventBus);
+    log.info('Intelligence scanner and daily digest initialized');
 
     // AI provider is injected via constructor — no local initialization needed
     if (this.aiProvider) {
@@ -1125,6 +1144,84 @@ export class AutonomousAgent {
     this.scheduler.registerHandler('e2e_daily_run', () => {
       log.info('E2E daily test run (pending Playwright setup)');
       return Promise.resolve();
+    });
+
+    // ==========================================================================
+    // INTELLIGENCE SCANNER: Proactive knowledge gathering + daily digest
+    // ==========================================================================
+
+    // Intelligence scan at 6:00 AM (before morning briefing)
+    this.scheduler.registerHandler('intelligence_scan', async () => {
+      try {
+        if (!this.intelligenceScanner) return;
+
+        log.info('Starting intelligence scan');
+        const result = await this.intelligenceScanner.scan();
+
+        log.info({
+          sources: result.sourcesScanned,
+          items: result.itemsFound,
+          deduped: result.itemsAfterDedup,
+          errors: result.errors.length,
+        }, 'Intelligence scan complete');
+
+        // Generate digest from scan results
+        if (this.dailyDigest && result.topItems.length > 0) {
+          const digest = await this.dailyDigest.generate(result);
+
+          // Deliver via Telegram
+          if (notificationManager.isReady()) {
+            await notificationManager.notify({
+              category: 'daily',
+              title: 'Daily Intel',
+              body: digest.telegramHtml,
+              priority: 'normal',
+            });
+          }
+
+          log.info({
+            sections: digest.sections.length,
+            items: digest.stats.itemsIncluded,
+          }, 'Daily digest delivered');
+        }
+      } catch (error) {
+        log.error({ error }, 'Intelligence scan failed');
+      }
+    });
+
+    // Daily digest delivery at 6:30 AM (fallback if scan ran separately)
+    this.scheduler.registerHandler('daily_digest_delivery', async () => {
+      try {
+        if (!this.dailyDigest) return;
+
+        // Check if we already have today's digest
+        const existing = await this.dailyDigest.getLatest();
+        const today = new Date().toISOString().split('T')[0];
+
+        if (existing && existing.generatedAt.startsWith(today)) {
+          log.info('Daily digest already delivered today');
+          return;
+        }
+
+        // If no scan results yet, run a fresh scan
+        if (this.intelligenceScanner) {
+          const result = await this.intelligenceScanner.scan();
+          if (result.topItems.length > 0) {
+            const digest = await this.dailyDigest.generate(result);
+
+            if (notificationManager.isReady()) {
+              await notificationManager.notify({
+                category: 'daily',
+                title: 'Daily Intel',
+                body: digest.telegramHtml,
+                priority: 'normal',
+              });
+            }
+          }
+        }
+      } catch (error) {
+        log.error({ error }, 'Daily digest delivery failed');
+      }
     });
   }
 

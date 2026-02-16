@@ -583,6 +583,14 @@ export interface EventMap {
   // ═══════════════════════════════════════════════════════════════════════
   'content:draft_created': { topicId: string; title: string; platform: string };
   'content:approved': { topicId: string; scheduledFor?: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // INTELLIGENCE SCANNER events (Master Plan Phase 4)
+  // ═══════════════════════════════════════════════════════════════════════
+  'intelligence:scan_started': { scanId: string; startedAt: string };
+  'intelligence:scan_complete': { scanId: string; itemsFound: number; topScore: number; duration: number };
+  'intelligence:new_item': { id: string; title: string; score: number; domains: string[]; source: string };
+  'intelligence:digest_generated': { date: string; sections: number; items: number };
 }
 
 /**

@@ -48,7 +48,7 @@ describe('Knowledge Sources', () => {
     });
 
     it('should have valid categories', () => {
-      const validCategories: SourceCategory[] = ['OFFICIAL', 'RESEARCH', 'DOCUMENTATION'];
+      const validCategories: SourceCategory[] = ['OFFICIAL', 'RESEARCH', 'DOCUMENTATION', 'NEWS', 'SOCIAL'];
       for (const source of KNOWLEDGE_SOURCES) {
         expect(validCategories).toContain(source.category);
       }
