@@ -20,6 +20,7 @@ import { GmailSMS, type SMSResult } from '../integrations/sms/gmail-sms.js';
 import { NotionInbox } from '../integrations/notion/inbox.js';
 import { TelegramSender, type TelegramSendResult, type TelegramSenderConfig } from '../integrations/telegram/sender.js';
 import { dailyAudit } from './daily-audit.js';
+import { priorityScorer, legacyPriorityToOverrides, type ScoringResult } from './priority-scorer.js';
 import type {
   SMSConfig,
   NotionConfig,
@@ -109,51 +110,26 @@ const DEFAULT_CONFIG: NotificationConfig = {
   timezone: 'America/Indiana/Indianapolis',
   cooldowns: {
     error: 5,
-    security: 0, // Always send security
-    opportunity: 0,
-    milestone: 30,
-    insight: 60,
-    question: 0,
+    security: 0,       // Always send security
+    opportunity: 15,   // Reduced spam — was 0
+    milestone: 120,    // Nice-to-know, not urgent — was 30
+    insight: 360,      // Max 2-3/day — was 60
+    question: 0,       // ARI needs input — keep at 0
     reminder: 0,
-    finance: 30,
-    task: 15,
-    system: 60,
-    daily: 1440,    // Once per day
-    budget: 60,     // Once per hour max
-    billing: 1440,  // Once per day
-    value: 720,     // Twice per day max
-    adaptive: 1440, // Once per day
+    finance: 60,       // Reduced noise — was 30
+    task: 30,          // Batch more — was 15
+    system: 120,       // Background info — was 60
+    daily: 1440,       // Once per day
+    budget: 120,       // Reduced fatigue — was 60
+    billing: 1440,     // Once per day
+    value: 720,        // Twice per day max
+    adaptive: 1440,    // Once per day
   },
 };
 
 // ─── Priority Mapping ────────────────────────────────────────────────────────
-
-const CATEGORY_PRIORITIES: Record<NotificationCategory, InternalPriority> = {
-  error: 'high',
-  security: 'critical',
-  opportunity: 'high',
-  milestone: 'normal',
-  insight: 'low',
-  question: 'high',
-  reminder: 'normal',
-  finance: 'normal',
-  task: 'low',
-  system: 'low',
-  daily: 'normal',
-  budget: 'high',      // Budget alerts are important
-  billing: 'normal',   // Billing cycle notifications
-  value: 'low',        // Value analytics
-  adaptive: 'low',     // Adaptive recommendations
-};
-
-// Map our internal priorities to P0-P4 for routing
-const PRIORITY_TO_P: Record<InternalPriority, TypedPriority> = {
-  critical: 'P0',
-  high: 'P1',
-  normal: 'P2',
-  low: 'P3',
-  silent: 'P4',
-};
+// Static CATEGORY_PRIORITIES and PRIORITY_TO_P removed — replaced by PriorityScorer.
+// See src/autonomous/priority-scorer.ts for multi-factor dynamic scoring.
 
 // ─── Multi-Channel Notification Manager ──────────────────────────────────────
 
@@ -220,14 +196,19 @@ export class NotificationManager {
 
   /**
    * Main entry point - intelligently routes notification
+   *
+   * Uses PriorityScorer for multi-factor dynamic scoring.
+   * Legacy callers passing explicit priority strings are bridged via legacyPriorityToOverrides.
    */
   async notify(request: NotificationRequest): Promise<NotificationResult> {
     if (!this.initialized) {
       return { sent: false, reason: 'Not initialized' };
     }
 
-    const priority = request.priority ?? CATEGORY_PRIORITIES[request.category];
-    const pLevel = PRIORITY_TO_P[priority];
+    // Score using multi-factor priority system
+    const scoringResult = this.scoreNotification(request);
+    const priority = request.priority ?? this.pLevelToInternal(scoringResult.priority);
+    const pLevel = scoringResult.priority;
 
     // Check for escalation (3 same P1 errors → P0)
     const escalatedPriority = this.checkEscalation(request, pLevel);
@@ -249,6 +230,35 @@ export class NotificationManager {
 
     // Route based on priority and time
     return this.routeNotification(request, priority, finalPLevel);
+  }
+
+  /**
+   * Score a notification using the multi-factor priority system.
+   * If caller provides an explicit legacy priority, bridge it to factor overrides.
+   */
+  private scoreNotification(request: NotificationRequest): ScoringResult {
+    const overrides = request.priority
+      ? legacyPriorityToOverrides(request.priority)
+      : undefined;
+
+    return priorityScorer.score({
+      category: request.category,
+      overrides,
+    });
+  }
+
+  /**
+   * Convert P-level back to internal priority string (for backward compatibility).
+   */
+  private pLevelToInternal(pLevel: TypedPriority): InternalPriority {
+    const map: Record<TypedPriority, InternalPriority> = {
+      P0: 'critical',
+      P1: 'high',
+      P2: 'normal',
+      P3: 'low',
+      P4: 'silent',
+    };
+    return map[pLevel];
   }
 
   /**
@@ -755,6 +765,13 @@ export class NotificationManager {
       title: '▫ Summary',
       body: lines.join('\n'),
     };
+  }
+
+  /**
+   * Get the priority scorer instance for engagement tracking.
+   */
+  getScorer(): typeof priorityScorer {
+    return priorityScorer;
   }
 
   /**

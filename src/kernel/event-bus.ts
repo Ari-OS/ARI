@@ -596,6 +596,13 @@ export interface EventMap {
   // ── Life Monitor events ─────────────────────────────────────────────────
   'life_monitor:scan_complete': { alerts: number; critical: number; urgent: number };
   'life_monitor:report_ready': { alertCount: number; critical: number; urgent: number; summary: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // NOTIFICATION INTERACTION events (Telegram Inline Keyboard Callbacks)
+  // ═══════════════════════════════════════════════════════════════════════
+  'notification:snoozed': { notificationId: string; snoozeUntil: number };
+  'notification:detail_requested': { notificationId: string; action: string; chatId?: number; messageId?: number };
+  'notification:saved': { notificationId: string; category?: string; title?: string };
 }
 
 /**

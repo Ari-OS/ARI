@@ -15,6 +15,9 @@ import { handleCrypto } from './commands/crypto.js';
 import { handlePokemon } from './commands/pokemon.js';
 import { handleSpeak } from './commands/speak.js';
 import { handleDev } from './commands/dev.js';
+import { parseCallbackData, generateAckedKeyboard } from '../../autonomous/notification-keyboard.js';
+import { notificationLifecycle } from '../../autonomous/notification-lifecycle.js';
+import { priorityScorer } from '../../autonomous/priority-scorer.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TELEGRAM BOT SETUP
@@ -125,6 +128,139 @@ export function createBot(deps: BotDependencies): Bot {
     await ctx.reply(
       'Audio files aren\'t supported yet — text me instead and I\'ll handle it.',
     );
+  });
+
+  // ── Inline keyboard callback handler ────────────────────────────────
+  bot.on('callback_query:data', async (ctx) => {
+    const data = ctx.callbackQuery.data;
+    const parsed = parseCallbackData(data);
+
+    if (!parsed) {
+      await ctx.answerCallbackQuery({ text: 'Unknown action' });
+      return;
+    }
+
+    const { action, notificationId } = parsed;
+    const record = notificationLifecycle.get(notificationId);
+
+    // Handle the action
+    switch (action) {
+      case 'ack': {
+        if (record) {
+          // Transition to ACKNOWLEDGED if in valid state
+          try {
+            if (record.state === 'SENT') {
+              notificationLifecycle.transition(notificationId, 'READ', 'Callback: read');
+            }
+            if (record.state === 'READ' || record.state === 'SENT') {
+              notificationLifecycle.transition(notificationId, 'ACKNOWLEDGED', 'User acknowledged');
+            }
+          } catch {
+            // State transition may fail if already in terminal state — ignore
+          }
+          // Track engagement: user cares about this category
+          priorityScorer.updateEngagement(record.category, true);
+        }
+        await ctx.answerCallbackQuery({ text: 'Acknowledged' });
+        break;
+      }
+
+      case 'dismiss': {
+        if (record) {
+          try {
+            if (record.state === 'SENT') {
+              notificationLifecycle.transition(notificationId, 'READ', 'Callback: dismissed');
+            }
+            notificationLifecycle.transition(notificationId, 'ACKNOWLEDGED', 'User dismissed');
+            notificationLifecycle.transition(notificationId, 'RESOLVED', 'Dismissed by user');
+          } catch {
+            // Ignore state errors
+          }
+          // Track engagement: user doesn't care about this category
+          priorityScorer.updateEngagement(record.category, false);
+        }
+        await ctx.answerCallbackQuery({ text: 'Dismissed' });
+        break;
+      }
+
+      case 'lessLike': {
+        if (record) {
+          // Strong negative signal — update engagement twice
+          priorityScorer.updateEngagement(record.category, false);
+          priorityScorer.updateEngagement(record.category, false);
+        }
+        await ctx.answerCallbackQuery({ text: 'Noted — you\'ll see fewer of these' });
+        break;
+      }
+
+      case 'snooze': {
+        await ctx.answerCallbackQuery({ text: 'Snoozed — will remind in 1 hour' });
+        // Emit event for scheduler to pick up
+        eventBus.emit('notification:snoozed', {
+          notificationId,
+          snoozeUntil: Date.now() + 60 * 60 * 1000, // 1 hour
+        });
+        break;
+      }
+
+      case 'details':
+      case 'moreInfo':
+      case 'breakdown':
+      case 'fullDigest':
+      case 'todayTasks': {
+        // Emit event for the autonomous agent to handle detail expansion
+        eventBus.emit('notification:detail_requested', {
+          notificationId,
+          action,
+          chatId: ctx.callbackQuery.message?.chat.id,
+          messageId: ctx.callbackQuery.message?.message_id,
+        });
+        await ctx.answerCallbackQuery({ text: 'Loading...' });
+        if (record) {
+          priorityScorer.updateEngagement(record.category, true);
+        }
+        break;
+      }
+
+      case 'save': {
+        if (record) {
+          priorityScorer.updateEngagement(record.category, true);
+        }
+        eventBus.emit('notification:saved', {
+          notificationId,
+          category: record?.category,
+          title: record?.title,
+        });
+        await ctx.answerCallbackQuery({ text: 'Saved for later' });
+        break;
+      }
+
+      case 'skip': {
+        if (record) {
+          priorityScorer.updateEngagement(record.category, false);
+        }
+        await ctx.answerCallbackQuery({ text: 'Skipped' });
+        break;
+      }
+
+      default: {
+        await ctx.answerCallbackQuery({ text: 'OK' });
+      }
+    }
+
+    // Update the message to show acknowledged state
+    try {
+      const ackedKb = generateAckedKeyboard(action);
+      const originalText = ctx.callbackQuery.message && 'text' in ctx.callbackQuery.message
+        ? ctx.callbackQuery.message.text
+        : undefined;
+
+      if (originalText && ctx.callbackQuery.message) {
+        await ctx.editMessageReplyMarkup({ reply_markup: ackedKb });
+      }
+    } catch {
+      // Message may be too old to edit — ignore
+    }
   });
 
   return bot;

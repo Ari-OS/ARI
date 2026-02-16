@@ -75,7 +75,11 @@ export class TelegramSender {
    */
   async send(
     text: string,
-    options?: { forceDelivery?: boolean; silent?: boolean }
+    options?: {
+      forceDelivery?: boolean;
+      silent?: boolean;
+      replyMarkup?: Record<string, unknown>;
+    }
   ): Promise<TelegramSendResult> {
     if (!this.isReady()) {
       return { sent: false, reason: 'Telegram not configured' };
@@ -93,15 +97,22 @@ export class TelegramSender {
 
     try {
       const url = `${TELEGRAM_API}/bot${this.config.botToken}/sendMessage`;
+      const body: Record<string, unknown> = {
+        chat_id: this.config.ownerChatId,
+        text: finalText,
+        parse_mode: this.config.parseMode,
+        disable_notification: options?.silent ?? false,
+      };
+
+      // Attach inline keyboard if provided
+      if (options?.replyMarkup) {
+        body.reply_markup = options.replyMarkup;
+      }
+
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: this.config.ownerChatId,
-          text: finalText,
-          parse_mode: this.config.parseMode,
-          disable_notification: options?.silent ?? false,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = (await response.json()) as {
@@ -125,6 +136,58 @@ export class TelegramSender {
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
       return { sent: false, reason: `Telegram send error: ${msg}` };
+    }
+  }
+
+  /**
+   * Edit an existing message (for updating notification content or removing keyboards)
+   */
+  async editMessage(
+    messageId: number,
+    text: string,
+    replyMarkup?: Record<string, unknown>,
+  ): Promise<TelegramSendResult> {
+    if (!this.isReady()) {
+      return { sent: false, reason: 'Telegram not configured' };
+    }
+
+    try {
+      const url = `${TELEGRAM_API}/bot${this.config.botToken}/editMessageText`;
+      const body: Record<string, unknown> = {
+        chat_id: this.config.ownerChatId,
+        message_id: messageId,
+        text: text.length > 4096 ? text.slice(0, 4093) + '...' : text,
+        parse_mode: this.config.parseMode,
+      };
+
+      if (replyMarkup) {
+        body.reply_markup = replyMarkup;
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = (await response.json()) as {
+        ok: boolean;
+        result?: { message_id: number };
+        description?: string;
+      };
+
+      if (!data.ok) {
+        return { sent: false, reason: `Telegram edit error: ${data.description ?? 'Unknown'}` };
+      }
+
+      return {
+        sent: true,
+        reason: 'Edited',
+        messageId: data.result?.message_id,
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      return { sent: false, reason: `Telegram edit error: ${msg}` };
     }
   }
 
