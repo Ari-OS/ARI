@@ -215,7 +215,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'self-improvement-daily',
     name: 'Daily Self-Improvement Analysis',
-    cron: '0 21 * * *', // 9:00 PM daily
+    cron: '30 21 * * *', // 9:30 PM daily (after evening summary at 9:00 PM)
     handler: 'self_improvement_daily',
     enabled: true,
     essential: false,
@@ -272,18 +272,8 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   // ============================================================================
 
   // ── Health & Operations ─────────────────────────────────────────────────────
-  {
-    id: 'health-check',
-    name: 'System Health Check',
-    cron: '*/15 * * * *', // Every 15 minutes
-    handler: 'health_check',
-    enabled: true,
-    essential: true, // Critical system monitoring
-    metadata: {
-      category: 'OPERATIONS',
-      description: 'Check disk, memory, API connectivity, daemon status, audit integrity',
-    },
-  },
+  // NOTE: System health checks run via 'agent-health-check' task above (*/15)
+  // Removed duplicate 'health-check' task that was firing at the same interval
   {
     id: 'backup-daily',
     name: 'Daily Backup',
@@ -445,7 +435,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'daily-digest-delivery',
     name: 'Daily Digest Delivery',
-    cron: '30 6 * * *', // 6:30 AM daily (after scan, before Pryce wakes)
+    cron: '45 6 * * *', // 6:45 AM daily (15 min after morning briefing to avoid duplicates)
     handler: 'daily_digest_delivery',
     enabled: true,
     essential: true, // Core user-facing deliverable

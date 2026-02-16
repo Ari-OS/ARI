@@ -72,6 +72,11 @@ export class HealthMonitor {
   private lastReport: HealthReport | null = null;
   private checkInterval: NodeJS.Timeout | null = null;
   private isRunning = false;
+  private lastAlertTime: number = 0;
+  private lastAlertStatus: MonitorHealthStatus = 'healthy';
+
+  // Alert cooldown: don't spam the same status within this window
+  private static readonly ALERT_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
   // Configuration
   private readonly intervalMs: number;
@@ -90,8 +95,10 @@ export class HealthMonitor {
     this.intervalMs = options?.intervalMs ?? 15 * 60 * 1000; // 15 minutes
     this.diskWarningThreshold = options?.diskWarningThreshold ?? 80;
     this.diskCriticalThreshold = options?.diskCriticalThreshold ?? 95;
-    this.memoryWarningThreshold = options?.memoryWarningThreshold ?? 80;
-    this.memoryCriticalThreshold = options?.memoryCriticalThreshold ?? 95;
+    // macOS uses aggressive memory compression — freemem() reports very low
+    // values even when the system is healthy. Use higher thresholds.
+    this.memoryWarningThreshold = options?.memoryWarningThreshold ?? 90;
+    this.memoryCriticalThreshold = options?.memoryCriticalThreshold ?? 98;
     this.gatewayPort = options?.gatewayPort ?? 3141;
     this.ariDataPath = join(homedir(), '.ari');
   }
@@ -200,9 +207,20 @@ export class HealthMonitor {
       latencyMs,
     });
 
-    // Emit alerts for degraded/unhealthy status
+    // Emit alerts for degraded/unhealthy status (with cooldown to prevent spam)
     if (overall !== 'healthy') {
-      this.emitHealthAlert(report);
+      const now = Date.now();
+      const statusChanged = overall !== this.lastAlertStatus;
+      const cooldownExpired = (now - this.lastAlertTime) >= HealthMonitor.ALERT_COOLDOWN_MS;
+
+      if (statusChanged || cooldownExpired) {
+        this.emitHealthAlert(report);
+        this.lastAlertTime = now;
+        this.lastAlertStatus = overall;
+      }
+    } else {
+      // Reset tracking when healthy so next degradation alerts immediately
+      this.lastAlertStatus = 'healthy';
     }
 
     return report;
