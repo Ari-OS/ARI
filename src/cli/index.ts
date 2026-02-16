@@ -1,5 +1,11 @@
 #!/usr/bin/env node
-import 'dotenv/config';
+import { config } from 'dotenv';
+import { join } from 'path';
+import { homedir } from 'os';
+
+// Load .env from ~/.ari/.env (primary) and project root (fallback)
+config({ path: join(homedir(), '.ari', '.env') });
+config(); // Also load from cwd/.env if present (won't override existing)
 import { Command } from 'commander';
 import { registerGatewayCommand } from './commands/gateway.js';
 import { registerAuditCommand } from './commands/audit.js';

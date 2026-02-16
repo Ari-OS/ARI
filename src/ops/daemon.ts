@@ -3,7 +3,7 @@
  * Manages com.ari.gateway as a LaunchAgent
  */
 
-import { writeFile, unlink, mkdir } from 'fs/promises';
+import { writeFile, readFile, unlink, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -80,6 +80,29 @@ export async function installDaemon(options: DaemonOptions = {}): Promise<void> 
         <string>--max-old-space-size=4096</string>`
     : '';
 
+  // Load env vars from ~/.ari/.env and inject into plist
+  const envVarsToInject = [
+    'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GOOGLE_AI_API_KEY', 'XAI_API_KEY',
+    'ARI_API_KEY', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_OWNER_USER_ID', 'TELEGRAM_CHAT_ID',
+    'NOTION_API_KEY', 'NOTION_INBOX_DATABASE_ID', 'NOTION_DAILY_LOG_PARENT_ID',
+    'X_BEARER_TOKEN', 'X_USER_ID', 'ELEVENLABS_API_KEY', 'COINGECKO_API_KEY',
+  ];
+  let envPlistEntries = '';
+  try {
+    const envContent = await readFile(join(homedir(), '.ari', '.env'), 'utf-8');
+    for (const key of envVarsToInject) {
+      const match = envContent.match(new RegExp(`^${key}=(.+)$`, 'm'));
+      if (match?.[1]) {
+        const value = match[1].trim();
+        envPlistEntries += `
+        <key>${key}</key>
+        <string>${value}</string>`;
+      }
+    }
+  } catch {
+    // .env not found — will rely on dotenv at runtime
+  }
+
   const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -117,7 +140,7 @@ export async function installDaemon(options: DaemonOptions = {}): Promise<void> 
         <key>PATH</key>
         <string>/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
         <key>NODE_ENV</key>
-        <string>production</string>${nodeOptions}
+        <string>production</string>${nodeOptions}${envPlistEntries}
     </dict>${resourceLimits}
 </dict>
 </plist>`;
