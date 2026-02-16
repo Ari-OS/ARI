@@ -3,6 +3,7 @@ import type { EventBus } from '../../kernel/event-bus.js';
 import type { AIOrchestrator } from '../../ai/orchestrator.js';
 import type { CostTracker } from '../../observability/cost-tracker.js';
 import type { PluginRegistry } from '../registry.js';
+import type { PerplexityClient } from '../../integrations/perplexity/client.js';
 import type { TelegramBotConfig } from './types.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { createLoggingMiddleware } from './middleware/logging.js';
@@ -18,10 +19,23 @@ import { handleDev } from './commands/dev.js';
 import { handleContent } from './commands/content.js';
 import { handleDiagram } from './commands/diagram.js';
 import { handleTask } from './commands/task.js';
+// New Phase 5 commands
+import { handleCalendar } from './commands/calendar.js';
+import { handleRemind } from './commands/remind.js';
+import { handleSearch } from './commands/search.js';
+import { handleMarket } from './commands/market.js';
+import { handleKnowledge } from './commands/knowledge.js';
+import { handleGrowth } from './commands/growth.js';
+import { handleMemory } from './commands/memory.js';
+import { handleSettings } from './commands/settings.js';
+import { handleSkills } from './commands/skills.js';
 import { parseCallbackData, generateAckedKeyboard } from '../../autonomous/notification-keyboard.js';
 import { notificationLifecycle } from '../../autonomous/notification-lifecycle.js';
 import { priorityScorer } from '../../autonomous/priority-scorer.js';
 import { ChatSessionManager } from './chat-session.js';
+import { IntentRouter } from './intent-router.js';
+import { ConversationStore } from './conversation-store.js';
+import { handleVoice } from './voice-handler.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TELEGRAM BOT SETUP
@@ -34,6 +48,7 @@ export interface BotDependencies {
   registry: PluginRegistry | null;
   config: TelegramBotConfig;
   notionInbox?: import('../../integrations/notion/inbox.js').NotionInbox | null;
+  perplexityClient?: PerplexityClient | null;
 }
 
 /**
@@ -43,7 +58,7 @@ export interface BotDependencies {
  * Uses long polling (NOT webhook) — ADR-001 loopback-only compliance.
  */
 export function createBot(deps: BotDependencies): Bot {
-  const { eventBus, orchestrator, costTracker, registry, config, notionInbox } = deps;
+  const { eventBus, orchestrator, costTracker, registry, config, notionInbox, perplexityClient } = deps;
 
   if (!config.botToken) {
     throw new Error('Telegram bot token not configured. Set TELEGRAM_BOT_TOKEN.');
@@ -51,6 +66,20 @@ export function createBot(deps: BotDependencies): Bot {
 
   const bot = new Bot(config.botToken);
   const sessionManager = new ChatSessionManager();
+  const conversationStore = new ConversationStore();
+  const intentRouter = new IntentRouter(orchestrator, eventBus);
+
+  // Register intent routes for natural language detection
+  registerIntentRoutes(intentRouter, deps, conversationStore);
+
+  // Set default handler — falls through to conversational AI
+  intentRouter.setDefaultHandler(async (ctx) => {
+    if (orchestrator) {
+      await handleAsk(ctx, orchestrator, sessionManager);
+    } else {
+      await ctx.reply('Use /help to see available commands.');
+    }
+  });
 
   // ── Middleware chain ──────────────────────────────────────────────
 
@@ -67,19 +96,16 @@ export function createBot(deps: BotDependencies): Bot {
 
   bot.command('start', async (ctx) => {
     await ctx.reply(
-      '<b>Welcome to ARI</b> — Your AI Operating System\n\n' +
-      'Commands:\n' +
-      '/ask — Ask ARI anything\n' +
-      '/status — System status\n' +
-      '/budget — Budget overview\n' +
+      '<b>ARI</b> — Your AI Operating System\n\n' +
+      '<b>Talk to me</b> — just type naturally\n\n' +
+      '<b>Quick commands:</b>\n' +
+      '/ask — Ask anything\n' +
+      '/calendar — Today\'s schedule\n' +
+      '/market — Portfolio &amp; prices\n' +
+      '/search — Web search\n' +
+      '/task — Capture a task\n' +
       '/briefing — On-demand briefing\n' +
-      '/crypto — Crypto prices &amp; portfolio\n' +
-      '/content — Content pipeline\n' +
-      '/task — Quick task capture\n' +
-      '/pokemon — Pokemon TCG cards\n' +
-      '/speak — Text to speech\n' +
-      '/diagram — Architecture diagrams\n' +
-      '/dev — Developer tools',
+      '/help — All commands',
       { parse_mode: 'HTML' },
     );
   });
@@ -87,35 +113,38 @@ export function createBot(deps: BotDependencies): Bot {
   bot.command('help', async (ctx) => {
     await ctx.reply(
       '<b>ARI Commands</b>\n\n' +
-      '<b>General</b>\n' +
-      '/ask &lt;question&gt; — Ask ARI\n' +
+      '<b>Core</b>\n' +
+      '/ask — Ask ARI anything\n' +
       '/status — System health\n' +
-      '/budget — Budget status\n' +
-      '/briefing — Get briefing\n\n' +
-      '<b>Crypto</b>\n' +
-      '/crypto price [coins...]\n' +
-      '/crypto portfolio\n' +
-      '/crypto alerts\n\n' +
-      '<b>Pokemon TCG</b>\n' +
-      '/pokemon search &lt;query&gt;\n' +
-      '/pokemon collection\n\n' +
+      '/briefing — On-demand briefing\n' +
+      '/settings — Notification preferences\n\n' +
+      '<b>Productivity</b>\n' +
+      '/calendar — Calendar events\n' +
+      '/remind — View reminders\n' +
+      '/task — Quick task capture\n' +
+      '/search — Web search\n\n' +
+      '<b>Markets</b>\n' +
+      '/market — Portfolio overview\n' +
+      '/crypto — Crypto prices\n' +
+      '/budget — Budget status\n\n' +
+      '<b>Knowledge</b>\n' +
+      '/knowledge — Search knowledge base\n' +
+      '/memory — Store/recall memories\n' +
+      '/skills — Available skills\n\n' +
       '<b>Content</b>\n' +
-      '/content drafts — View queue\n' +
-      '/content approve &lt;id&gt;\n' +
-      '/content reject &lt;id&gt;\n\n' +
-      '<b>Tasks</b>\n' +
-      '/task &lt;name&gt; — Quick capture\n' +
-      '/task list — Pending tasks\n' +
-      '/task done &lt;id&gt; — Complete\n\n' +
-      '<b>Architecture</b>\n' +
-      '/diagram layers|scheduler|notifications|data-flow|eventbus\n\n' +
+      '/content — Content pipeline\n' +
+      '/growth — Growth dashboard\n\n' +
       '<b>Other</b>\n' +
-      '/speak &lt;text&gt; — Text to speech\n' +
-      '/dev — Developer tools',
+      '/pokemon — Pokemon TCG cards\n' +
+      '/speak — Text to speech\n' +
+      '/diagram — Architecture diagrams\n' +
+      '/dev — Developer tools\n\n' +
+      '<i>Or just type naturally — I understand context.</i>',
       { parse_mode: 'HTML' },
     );
   });
 
+  // Original commands
   bot.command('ask', (ctx) => handleAsk(ctx, orchestrator, sessionManager));
   bot.command('status', (ctx) => handleStatus(ctx, registry));
   bot.command('budget', (ctx) => handleBudget(ctx, costTracker));
@@ -128,28 +157,41 @@ export function createBot(deps: BotDependencies): Bot {
   bot.command('diagram', (ctx) => handleDiagram(ctx));
   bot.command('dev', (ctx) => handleDev(ctx));
 
-  // ── Natural language fallback ──────────────────────────────────────
+  // New Phase 5 commands
+  bot.command('calendar', (ctx) => handleCalendar(ctx, eventBus));
+  bot.command('remind', (ctx) => handleRemind(ctx, eventBus));
+  bot.command('search', (ctx) => handleSearch(ctx, perplexityClient ?? null));
+  bot.command('market', (ctx) => handleMarket(ctx, eventBus, registry));
+  bot.command('knowledge', (ctx) => handleKnowledge(ctx, eventBus));
+  bot.command('growth', (ctx) => handleGrowth(ctx, registry));
+  bot.command('memory', (ctx) => handleMemory(ctx, eventBus));
+  bot.command('settings', (ctx) => handleSettings(ctx, eventBus));
+  bot.command('skills', (ctx) => handleSkills(ctx, eventBus));
+
+  // ── Natural language fallback (via intent router) ─────────────────
 
   bot.on('message:text', async (ctx) => {
-    // Treat unrecognized messages as /ask queries (with conversation memory)
-    if (orchestrator) {
-      await handleAsk(ctx, orchestrator, sessionManager);
-    } else {
-      await ctx.reply('Use /help to see available commands.');
-    }
+    // Route through two-tier intent detection before falling back to /ask
+    await intentRouter.route(ctx);
   });
 
-  // ── Voice message handler ──────────────────────────────────────────
+  // ── Voice message handler (via Whisper transcription) ──────────────
+
+  const voiceDeps = {
+    whisperApiKey: process.env.OPENAI_API_KEY ?? null,
+    eventBus,
+  };
+
   bot.on('message:voice', async (ctx) => {
-    await ctx.reply(
-      'Voice messages aren\'t supported yet — text me instead and I\'ll handle it.',
-    );
+    await handleVoice(ctx, voiceDeps, async (voiceCtx, text) => {
+      await intentRouter.routeText(voiceCtx, text);
+    });
   });
 
   bot.on('message:audio', async (ctx) => {
-    await ctx.reply(
-      'Audio files aren\'t supported yet — text me instead and I\'ll handle it.',
-    );
+    await handleVoice(ctx, voiceDeps, async (audioCtx, text) => {
+      await intentRouter.routeText(audioCtx, text);
+    });
   });
 
   // ── Inline keyboard callback handler ────────────────────────────────
@@ -286,4 +328,78 @@ export function createBot(deps: BotDependencies): Bot {
   });
 
   return bot;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INTENT ROUTE REGISTRATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Register fast-path regex patterns for common intents.
+ * These bypass AI classification entirely — ~80% of messages hit these.
+ */
+function registerIntentRoutes(
+  router: IntentRouter,
+  deps: BotDependencies,
+  _conversationStore: ConversationStore,
+): void {
+  const { eventBus, registry, perplexityClient } = deps;
+
+  router.registerRoute({
+    intent: 'crypto_price',
+    patterns: [
+      /\b(?:bitcoin|btc|eth|sol|crypto)\b.*\b(?:price|worth|value|cost)\b/i,
+      /\bhow\s+(?:much|is)\s+(?:btc|eth|sol|bitcoin|ethereum)\b/i,
+    ],
+    handler: async (ctx) => handleCrypto(ctx, registry),
+    priority: 8,
+  });
+
+  router.registerRoute({
+    intent: 'calendar_query',
+    patterns: [
+      /\b(?:calendar|schedule|meeting|event)s?\b/i,
+      /\bwhat(?:'s| is) (?:on )?(?:my |the )?(?:schedule|agenda|calendar)\b/i,
+    ],
+    handler: async (ctx) => handleCalendar(ctx, eventBus),
+    priority: 8,
+  });
+
+  router.registerRoute({
+    intent: 'market_check',
+    patterns: [
+      /\b(?:market|stocks?|portfolio|positions?)\b/i,
+      /\bhow(?:'s| is| are) (?:the )?(?:market|stocks?)\b/i,
+    ],
+    handler: async (ctx) => handleMarket(ctx, eventBus, registry),
+    priority: 7,
+  });
+
+  router.registerRoute({
+    intent: 'web_search',
+    patterns: [
+      /\b(?:search|look\s+up|research|find\s+out)\s+(?:for\s+)?(.+)/i,
+    ],
+    handler: async (ctx) => handleSearch(ctx, perplexityClient ?? null),
+    priority: 6,
+  });
+
+  router.registerRoute({
+    intent: 'briefing_request',
+    patterns: [
+      /\b(?:briefing|morning\s+update|summary|daily\s+digest)\b/i,
+    ],
+    handler: async (ctx) => handleBriefing(ctx, registry),
+    priority: 7,
+  });
+
+  router.registerRoute({
+    intent: 'status_check',
+    patterns: [
+      /\b(?:system\s+)?status\b/i,
+      /\bhow\s+are\s+you\b/i,
+    ],
+    handler: async (ctx) => handleStatus(ctx, registry),
+    priority: 5,
+  });
 }

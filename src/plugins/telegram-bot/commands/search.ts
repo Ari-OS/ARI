@@ -1,0 +1,63 @@
+import type { Context } from 'grammy';
+import type { PerplexityClient } from '../../../integrations/perplexity/client.js';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// /search — Web search with Perplexity AI
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function handleSearch(
+  ctx: Context,
+  perplexityClient: PerplexityClient | null,
+): Promise<void> {
+  const text = ctx.message?.text ?? '';
+  const query = text.replace(/^\/search\s*/i, '').trim();
+
+  if (!query) {
+    await ctx.reply(
+      '<b>Web Search</b>\n\n' +
+      'Usage: <code>/search [query]</code>\n\n' +
+      'Examples:\n' +
+      '<code>/search TypeScript best practices</code>\n' +
+      '<code>/search latest news on AI</code>',
+      { parse_mode: 'HTML' },
+    );
+    return;
+  }
+
+  if (!perplexityClient) {
+    await ctx.reply('Search requires PERPLEXITY_API_KEY to be configured.');
+    return;
+  }
+
+  try {
+    await ctx.reply('Searching...', { parse_mode: 'HTML' });
+
+    const result = await perplexityClient.search(query);
+
+    const lines: string[] = [];
+    lines.push(`<b>Search Results:</b> ${query}`);
+    lines.push('');
+    lines.push(result.answer);
+
+    if (result.citations.length > 0) {
+      lines.push('');
+      lines.push('<b>Sources:</b>');
+      for (const citation of result.citations.slice(0, 5)) {
+        lines.push(`  - ${citation}`);
+      }
+    }
+
+    const response = lines.join('\n');
+
+    // Telegram has a 4096 character limit per message
+    if (response.length > 4000) {
+      const truncated = response.slice(0, 3900) + '\n\n... (result truncated)';
+      await ctx.reply(truncated, { parse_mode: 'HTML' });
+    } else {
+      await ctx.reply(response, { parse_mode: 'HTML' });
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    await ctx.reply(`Search failed: ${message}`);
+  }
+}
