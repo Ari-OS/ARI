@@ -40,6 +40,7 @@ import { IntelligenceScanner } from './intelligence-scanner.js';
 import { DailyDigestGenerator } from './daily-digest.js';
 import { LifeMonitor } from './life-monitor.js';
 import { NotificationRouter } from './notification-router.js';
+import { governanceReporter } from './governance-reporter.js';
 import { XClient } from '../integrations/twitter/client.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -262,6 +263,24 @@ export class AutonomousAgent {
     this.notificationRouter = new NotificationRouter(this.eventBus);
     this.notificationRouter.init();
     log.info('Intelligence scanner, daily digest, life monitor, and notification router initialized');
+
+    // Wire governance events → GovernanceReporter for morning briefing inclusion
+    this.eventBus.on('vote:started', (payload) => {
+      governanceReporter.recordEvent('vote:started', payload as Record<string, unknown>);
+    });
+    this.eventBus.on('vote:completed', (payload) => {
+      governanceReporter.recordEvent('vote:completed', payload as Record<string, unknown>);
+    });
+    this.eventBus.on('vote:vetoed', (payload) => {
+      governanceReporter.recordEvent('vote:vetoed', payload as Record<string, unknown>);
+    });
+    this.eventBus.on('arbiter:ruling', (payload) => {
+      governanceReporter.recordEvent('arbiter:ruling', payload as Record<string, unknown>);
+    });
+    this.eventBus.on('overseer:gate', (payload) => {
+      governanceReporter.recordEvent('overseer:gate', payload as Record<string, unknown>);
+    });
+    log.info('Governance reporter wired to EventBus');
 
     // AI provider is injected via constructor — no local initialization needed
     if (this.aiProvider) {
@@ -766,10 +785,12 @@ export class AutonomousAgent {
     // Morning briefing at 6:30am — unified report with intelligence + life monitor + career
     this.scheduler.registerHandler('morning_briefing', async () => {
       if (this.briefingGenerator) {
+        const governance = governanceReporter.generateSnapshot();
         await this.briefingGenerator.morningBriefing({
           digest: this.lastDigest,
           lifeMonitorReport: this.lastLifeMonitorReport,
           careerMatches: this.lastCareerMatches.length > 0 ? this.lastCareerMatches : null,
+          governance,
         });
       }
       log.info('Morning briefing completed (unified report)');
