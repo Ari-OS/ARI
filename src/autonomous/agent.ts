@@ -99,6 +99,11 @@ export class AutonomousAgent {
   private lifeMonitor: LifeMonitor | null = null;
   private notificationRouter: NotificationRouter | null = null;
 
+  // Cached scan results for unified morning briefing
+  private lastDigest: import('./daily-digest.js').DailyDigest | null = null;
+  private lastLifeMonitorReport: import('./life-monitor.js').LifeMonitorReport | null = null;
+  private lastCareerMatches: Array<{ title: string; company: string; matchScore: number; remote: boolean }> = [];
+
   // Budget-aware components
   private costTracker: CostTracker | null = null;
   private approvalQueue: ApprovalQueue | null = null;
@@ -758,18 +763,26 @@ export class AutonomousAgent {
    * Register handlers for scheduled tasks
    */
   private registerSchedulerHandlers(): void {
-    // Morning briefing at 7am
+    // Morning briefing at 6:30am — unified report with intelligence + life monitor + career
     this.scheduler.registerHandler('morning_briefing', async () => {
       if (this.briefingGenerator) {
-        await this.briefingGenerator.morningBriefing();
+        await this.briefingGenerator.morningBriefing({
+          digest: this.lastDigest,
+          lifeMonitorReport: this.lastLifeMonitorReport,
+          careerMatches: this.lastCareerMatches.length > 0 ? this.lastCareerMatches : null,
+        });
       }
-      log.info('Morning briefing completed');
+      log.info('Morning briefing completed (unified report)');
     });
 
-    // Evening summary at 9pm
+    // Evening summary at 9pm — build session prep with career updates
     this.scheduler.registerHandler('evening_summary', async () => {
       if (this.briefingGenerator) {
-        await this.briefingGenerator.eveningSummary();
+        await this.briefingGenerator.eveningSummary({
+          careerMatches: this.lastCareerMatches.length > 0
+            ? this.lastCareerMatches.map(m => ({ title: m.title, company: m.company, matchScore: m.matchScore }))
+            : null,
+        });
       }
       log.info('Evening summary completed');
     });
@@ -1102,7 +1115,7 @@ export class AutonomousAgent {
       }
     });
 
-    // Career scan at 8 AM weekdays
+    // Career scan at 8 AM weekdays — store matches for unified briefings
     this.scheduler.registerHandler('career_scan', async () => {
       try {
         const tracker = new CareerTracker(this.eventBus);
@@ -1110,11 +1123,21 @@ export class AutonomousAgent {
         const strong = matches.filter((m) => m.matchScore >= 80);
         log.info({ total: matches.length, strongMatches: strong.length }, 'Career scan completed');
 
-        if (strong.length > 0) {
+        // Store matches for morning/evening briefings
+        this.lastCareerMatches = strong.map((m) => ({
+          title: m.opportunity.title,
+          company: m.opportunity.company,
+          matchScore: m.matchScore,
+          remote: m.opportunity.remote,
+        }));
+
+        // Only send immediate notification for exceptional matches (90%+)
+        const exceptional = strong.filter((m) => m.matchScore >= 90);
+        if (exceptional.length > 0) {
           await notificationManager.opportunity(
-            'Career Matches',
-            strong.slice(0, 3).map((m) => `${m.opportunity.title} (${m.matchScore}%)`).join('\n'),
-            strong[0].matchScore >= 90 ? 'high' : 'medium'
+            'Strong Career Match',
+            exceptional.slice(0, 2).map((m) => `${m.opportunity.title} at ${m.opportunity.company} (${m.matchScore}%)`).join('\n'),
+            'high'
           );
         }
       } catch (error) {
@@ -1174,7 +1197,7 @@ export class AutonomousAgent {
     // INTELLIGENCE SCANNER: Proactive knowledge gathering + daily digest
     // ==========================================================================
 
-    // Intelligence scan at 6:00 AM (before morning briefing)
+    // Intelligence scan at 6:00 AM — store results for unified morning briefing
     this.scheduler.registerHandler('intelligence_scan', async () => {
       try {
         if (!this.intelligenceScanner) return;
@@ -1189,31 +1212,21 @@ export class AutonomousAgent {
           errors: result.errors.length,
         }, 'Intelligence scan complete');
 
-        // Generate digest from scan results
+        // Generate and store digest for morning briefing (no separate notification)
         if (this.dailyDigest && result.topItems.length > 0) {
-          const digest = await this.dailyDigest.generate(result);
-
-          // Deliver via Telegram
-          if (notificationManager.isReady()) {
-            await notificationManager.notify({
-              category: 'daily',
-              title: 'Daily Intel',
-              body: digest.telegramHtml,
-              priority: 'normal',
-            });
-          }
+          this.lastDigest = await this.dailyDigest.generate(result);
 
           log.info({
-            sections: digest.sections.length,
-            items: digest.stats.itemsIncluded,
-          }, 'Daily digest delivered');
+            sections: this.lastDigest.sections.length,
+            items: this.lastDigest.stats.itemsIncluded,
+          }, 'Daily digest generated — will be included in morning briefing');
         }
       } catch (error) {
         log.error({ error }, 'Intelligence scan failed');
       }
     });
 
-    // Life monitor scan at 6:15 AM (after intelligence scan, before digest)
+    // Life monitor scan at 6:15 AM — store for unified morning briefing
     this.scheduler.registerHandler('life_monitor_scan', async () => {
       try {
         if (!this.lifeMonitor) return;
@@ -1221,19 +1234,24 @@ export class AutonomousAgent {
         log.info('Starting life monitor scan');
         const report = await this.lifeMonitor.scan();
 
-        // Send critical/urgent alerts immediately via Telegram
-        if (report.criticalCount > 0 || report.urgentCount > 0) {
+        // Store for unified morning briefing
+        this.lastLifeMonitorReport = report;
+
+        // Only send CRITICAL alerts as separate immediate notifications
+        if (report.criticalCount > 0) {
           if (notificationManager.isReady()) {
             await notificationManager.notify({
               category: 'system',
-              title: 'Action Items',
-              body: report.telegramHtml,
-              priority: report.criticalCount > 0 ? 'critical' : 'high',
+              title: 'Critical Alert',
+              body: report.summary,
+              priority: 'critical',
+              telegramHtml: report.telegramHtml,
             });
           }
         }
+        // Non-critical alerts will be included in the morning briefing
 
-        // Include warnings in morning briefing (handled by briefing generator)
+        // Emit event for other systems that need this data
         this.eventBus.emit('life_monitor:report_ready', {
           alertCount: report.alerts.length,
           critical: report.criticalCount,
@@ -1245,7 +1263,7 @@ export class AutonomousAgent {
           alerts: report.alerts.length,
           critical: report.criticalCount,
           urgent: report.urgentCount,
-        }, 'Life monitor scan complete');
+        }, 'Life monitor scan complete — stored for morning briefing');
       } catch (error) {
         log.error({ error }, 'Life monitor scan failed');
       }

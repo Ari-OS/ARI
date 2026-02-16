@@ -151,7 +151,7 @@ export class LifeMonitor {
       if (result.status === 'fulfilled') {
         alerts.push(...result.value);
       } else {
-        log.warn({ error: result.reason }, 'Monitor check failed');
+        log.warn({ error: result.reason as unknown }, 'Monitor check failed');
       }
     }
 
@@ -389,7 +389,7 @@ export class LifeMonitor {
 
   // ─── Monitor: System Resources ─────────────────────────────────────────────
 
-  private async checkSystemResources(): Promise<MonitorAlert[]> {
+  private checkSystemResources(): Promise<MonitorAlert[]> {
     const alerts: MonitorAlert[] = [];
 
     // Check disk space using execFileSync (safe, no shell injection)
@@ -463,7 +463,7 @@ export class LifeMonitor {
       }
     }
 
-    return alerts;
+    return Promise.resolve(alerts);
   }
 
   // ─── Monitor: Budget Health ────────────────────────────────────────────────

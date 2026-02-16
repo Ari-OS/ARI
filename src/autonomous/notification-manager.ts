@@ -59,6 +59,7 @@ export interface NotificationRequest {
   actionUrl?: string;
   expiresAt?: Date;
   dedupKey?: string; // For deduplication
+  telegramHtml?: string; // Pre-formatted HTML for Telegram (bypasses auto-formatting)
 }
 
 export interface NotificationResult {
@@ -361,8 +362,9 @@ export class NotificationManager {
       return undefined;
     }
 
-    const icon = this.getCategoryIcon(request.category);
-    const message = `${icon} <b>${this.escapeHtml(request.title)}</b>\n${this.escapeHtml(request.body)}`;
+    // Use pre-formatted HTML if provided, otherwise auto-format
+    const message = request.telegramHtml
+      ?? `${this.getCategoryIcon(request.category)} <b>${this.escapeHtml(request.title)}</b>\n${this.escapeHtml(request.body)}`;
 
     return await this.telegram.send(message, { forceDelivery: force, silent });
   }
@@ -645,21 +647,22 @@ export class NotificationManager {
    * Get icon for category
    */
   private getCategoryIcon(category: NotificationCategory): string {
+    // Strategic emoji as structural markers — research-backed for mobile scanning
     const icons: Record<NotificationCategory, string> = {
-      error: '✗',
-      security: '◆',
-      opportunity: '◇',
-      milestone: '★',
-      insight: '◈',
-      question: '?',
-      reminder: '○',
-      finance: '$',
+      error: '🔴',
+      security: '🔒',
+      opportunity: '💡',
+      milestone: '🏆',
+      insight: '💡',
+      question: '❓',
+      reminder: '⏰',
+      finance: '💰',
       task: '✓',
-      system: '▪',
-      daily: '▫',
-      budget: '⚡',
+      system: '⚙️',
+      daily: '📋',
+      budget: '💰',
       billing: '📊',
-      value: '💎',
+      value: '📈',
       adaptive: '🧠',
     };
     return icons[category];

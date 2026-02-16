@@ -5,29 +5,29 @@
  * Designed for quick scanning on mobile.
  */
 
-// Status indicators
+// Status indicators — strategic emoji for quick mobile scanning
 const STATUS = {
   success: '✓',
   failure: '✗',
   warning: '⚠',
   info: 'ℹ',
   pending: '○',
-  working: '◉',
-  money: '◈',
-  alert: '◆',
-  insight: '◇',
-  question: '?',
+  working: '⚡',
+  money: '💰',
+  alert: '🔴',
+  insight: '💡',
+  question: '❓',
 } as const;
 
-// Category icons
+// Category icons — subtle emoji as structural section markers
 const ICONS = {
   task: '▸',
-  finance: '◈',
-  security: '◆',
-  learning: '◇',
-  social: '▹',
-  system: '▪',
-  daily: '▫',
+  finance: '💰',
+  security: '🔒',
+  learning: '📚',
+  social: '🌐',
+  system: '⚙️',
+  daily: '📋',
 } as const;
 
 /**

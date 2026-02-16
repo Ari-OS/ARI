@@ -38,7 +38,7 @@ describe('Message Formatter', () => {
       const result = formatThresholdAlert('CPU Usage', 95, 80, 'critical');
 
       expect(result.title).toContain('CPU Usage');
-      expect(result.title).toContain('◆'); // critical icon
+      expect(result.title).toContain('🔴'); // critical icon
       expect(result.message).toContain('Current:');
       expect(result.message).toContain('Threshold:');
     });
@@ -214,7 +214,7 @@ describe('Message Formatter', () => {
     it('should format actionable insight', () => {
       const result = formatInsight('finance', 'You spent 20% more this week', true);
 
-      expect(result.title).toBe('◇ Finance Insight');
+      expect(result.title).toBe('💡 Finance Insight');
       expect(result.message).toContain('You spent 20% more');
       expect(result.message).toContain('→ Action available');
     });
@@ -222,14 +222,14 @@ describe('Message Formatter', () => {
     it('should format non-actionable insight', () => {
       const result = formatInsight('health', 'Sleep quality improved', false);
 
-      expect(result.title).toBe('◇ Health Insight');
+      expect(result.title).toBe('💡 Health Insight');
       expect(result.message).not.toContain('Action available');
     });
 
     it('should capitalize domain', () => {
       const result = formatInsight('SECURITY', 'No issues detected', false);
 
-      expect(result.title).toBe('◇ Security Insight');
+      expect(result.title).toBe('💡 Security Insight');
     });
   });
 
@@ -237,7 +237,7 @@ describe('Message Formatter', () => {
     it('should format question with options', () => {
       const result = formatQuestion('Which task first?', ['Deploy', 'Review', 'Document']);
 
-      expect(result.title).toBe('? Input Needed');
+      expect(result.title).toBe('❓ Input Needed');
       expect(result.message).toContain('Which task first?');
       expect(result.message).toContain('Options:');
       expect(result.message).toContain('1. Deploy');
@@ -321,7 +321,7 @@ describe('Message Formatter', () => {
     it('should format cost alert with progress bar', () => {
       const result = formatCostAlert(50, 100, 15);
 
-      expect(result.title).toBe('◈ Budget Update');
+      expect(result.title).toBe('💰 Budget Update');
       expect(result.message).toContain('50%');
       expect(result.message).toContain('$50.00 / $100.00');
       expect(result.message).toContain('15 days remaining');

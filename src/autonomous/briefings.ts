@@ -1,23 +1,30 @@
 /**
  * ARI Briefings Module
  *
- * Generates intelligent morning briefings and evening summaries
- * that respect the operator's time while keeping him informed.
+ * Generates unified morning briefings and evening summaries that
+ * consolidate intelligence, life monitor alerts, career matches,
+ * and audit data into a single scannable Telegram message.
  *
- * Morning Briefing (7 AM): SMS ping + Notion page
- * - Queued notifications from overnight
+ * Design Principles (Research-Backed):
+ * - Inverted pyramid: most important info first
+ * - Layer-cake scanning: bold section headers, concise bullets
+ * - Max 5 items per section (Miller's Law)
+ * - Subtle emoji as structural markers (1 per section header)
+ * - Personal tone: warm but competent, never sycophantic
+ * - Under 4096 chars for Telegram message limit
+ *
+ * Morning Briefing (6:30 AM): Unified Telegram message
+ * - System health + overnight queue
+ * - Intelligence highlights (from daily digest)
+ * - Life monitor alerts (subscriptions, deadlines)
+ * - Career matches (if any)
  * - Today's priorities
- * - Weather/calendar integration (future)
  *
- * Evening Summary (9 PM): Notion only
- * - Day's accomplishments
- * - Open issues
- * - Tomorrow's priorities
- *
- * Weekly Review (Sunday 6 PM): Notion only
- * - Week's metrics
- * - Patterns and trends
- * - Next week planning
+ * Evening Summary (9 PM): Build session prep
+ * - Day's accomplishments + changelog
+ * - Open issues needing attention
+ * - Suggested build tasks for tonight
+ * - Career/intelligence updates since morning
  */
 
 import { NotificationManager } from './notification-manager.js';
@@ -26,6 +33,10 @@ import { dailyAudit, type DailyAudit } from './daily-audit.js';
 import { ChangelogGenerator } from './changelog-generator.js';
 import { EventBus } from '../kernel/event-bus.js';
 import type { NotionConfig } from './types.js';
+import type { DailyDigest } from './daily-digest.js';
+import type { LifeMonitorReport } from './life-monitor.js';
+
+// ─── Interfaces ─────────────────────────────────────────────────────────────
 
 export interface BriefingContent {
   type: 'morning' | 'evening' | 'weekly';
@@ -42,6 +53,28 @@ export interface BriefingResult {
   smsSent?: boolean;
   error?: string;
 }
+
+export interface MorningBriefingContext {
+  digest?: DailyDigest | null;
+  lifeMonitorReport?: LifeMonitorReport | null;
+  careerMatches?: Array<{
+    title: string;
+    company: string;
+    matchScore: number;
+    remote: boolean;
+  }> | null;
+}
+
+export interface EveningContext {
+  suggestedTasks?: string[];
+  careerMatches?: Array<{
+    title: string;
+    company: string;
+    matchScore: number;
+  }> | null;
+}
+
+// ─── Briefing Generator ─────────────────────────────────────────────────────
 
 export class BriefingGenerator {
   private notificationManager: NotificationManager;
@@ -71,9 +104,12 @@ export class BriefingGenerator {
   }
 
   /**
-   * Generate and send morning briefing
+   * Generate and send unified morning briefing
+   *
+   * Consolidates intelligence digest, life monitor alerts, career matches,
+   * and audit data into a single, well-formatted Telegram message.
    */
-  async morningBriefing(): Promise<BriefingResult> {
+  async morningBriefing(context?: MorningBriefingContext): Promise<BriefingResult> {
     const now = new Date();
     const dayName = now.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -109,13 +145,22 @@ export class BriefingGenerator {
       })) ?? undefined;
     }
 
-    // Send SMS ping (short, actionable)
+    // Build Telegram HTML for unified morning report
+    const telegramHtml = this.formatMorningHtml(
+      dayName,
+      queueResult,
+      auditData,
+      context,
+    );
+
+    // Send via Telegram with pre-formatted HTML
     const smsMessage = this.formatMorningSMS(content, queueResult);
     const smsResult = await this.notificationManager.notify({
       category: 'daily',
       title: `Good morning, ${dayName}`,
       body: smsMessage,
       priority: content.issues.length > 0 ? 'normal' : 'low',
+      telegramHtml,
     });
 
     await dailyAudit.logActivity(
@@ -124,7 +169,13 @@ export class BriefingGenerator {
       content.summary,
       {
         outcome: 'success',
-        details: { type: 'morning', notionPageId },
+        details: {
+          type: 'morning',
+          notionPageId,
+          hasIntelligence: !!(context?.digest),
+          hasLifeMonitor: !!(context?.lifeMonitorReport),
+          hasCareerMatches: !!(context?.careerMatches?.length),
+        },
       }
     );
 
@@ -141,9 +192,12 @@ export class BriefingGenerator {
   }
 
   /**
-   * Generate and send evening summary
+   * Generate and send evening summary for build session prep
+   *
+   * Includes today's accomplishments, changelog, open issues,
+   * and suggested tasks for tonight's build session.
    */
-  async eveningSummary(): Promise<BriefingResult> {
+  async eveningSummary(context?: EveningContext): Promise<BriefingResult> {
     const auditData = await this.getRecentAuditData();
 
     const content: BriefingContent = {
@@ -167,13 +221,16 @@ export class BriefingGenerator {
       }
     }
 
-    // Send evening summary via Telegram for build session prep
-    const eveningMessage = this.formatEveningSummary(content);
+    // Build Telegram HTML for evening message
+    const telegramHtml = this.formatEveningHtml(content, auditData, context);
+
+    // Send evening summary via Telegram
     await this.notificationManager.notify({
       category: 'daily',
       title: 'Evening Summary',
-      body: eveningMessage,
+      body: this.formatEveningSummary(content),
       priority: 'low',
+      telegramHtml,
     });
 
     await dailyAudit.logActivity(
@@ -225,12 +282,16 @@ export class BriefingGenerator {
       })) ?? undefined;
     }
 
+    // Build weekly review HTML
+    const telegramHtml = this.formatWeeklyHtml(content, weekData);
+
     // Send weekly review via Telegram
     await this.notificationManager.notify({
       category: 'daily',
       title: 'Weekly Review',
       body: `${content.summary}\n\n${content.actionItems?.map(a => `- ${a}`).join('\n') ?? ''}`,
       priority: 'normal',
+      telegramHtml,
     });
 
     await dailyAudit.logActivity(
@@ -260,7 +321,246 @@ export class BriefingGenerator {
     };
   }
 
+  // ─── Telegram HTML Formatters ─────────────────────────────────────────────
+
+  /**
+   * Format unified morning briefing as Telegram HTML
+   *
+   * Structure: greeting → system status → intel → alerts → career → priorities
+   * Uses inverted pyramid (most important first) and layer-cake scanning.
+   */
+  private formatMorningHtml(
+    dayName: string,
+    queueResult: { processed: number; sent: number },
+    auditData: DailyAudit | null,
+    context?: MorningBriefingContext,
+  ): string {
+    const lines: string[] = [];
+
+    // ── Greeting ──
+    const greeting = this.getContextualGreeting(dayName);
+    lines.push(`<b>${greeting}</b>`);
+    lines.push('');
+
+    // ── System Status (1 line) ──
+    const queueNote = queueResult.processed > 0
+      ? `${queueResult.processed} items processed overnight`
+      : 'Clean overnight — no queued items';
+    const yesterdayCount = auditData?.activities.filter(a => a.outcome === 'success').length ?? 0;
+    const yesterdayNote = yesterdayCount > 0 ? ` · ${yesterdayCount} tasks completed yesterday` : '';
+    lines.push(`⚙️ ${this.esc(queueNote)}${this.esc(yesterdayNote)}`);
+    lines.push('');
+
+    // ── Intelligence Highlights ──
+    if (context?.digest && context.digest.sections.length > 0) {
+      lines.push('<b>📰 Today\'s Intel</b>');
+      const topItems = context.digest.sections
+        .flatMap(s => s.items)
+        .slice(0, 4);
+      for (const item of topItems) {
+        const headline = this.esc(item.headline.slice(0, 100));
+        if (item.url) {
+          lines.push(`▸ <a href="${item.url}">${headline}</a>`);
+        } else {
+          lines.push(`▸ ${headline}`);
+        }
+      }
+      if (context.digest.stats.itemsIncluded > 4) {
+        lines.push(`  <i>${context.digest.stats.itemsIncluded - 4} more in full digest</i>`);
+      }
+      lines.push('');
+    }
+
+    // ── ARI's Take (from digest) ──
+    if (context?.digest?.ariTake && context.digest.ariTake.length > 0) {
+      lines.push('<b>💡 ARI\'s Take</b>');
+      for (const take of context.digest.ariTake.slice(0, 2)) {
+        lines.push(`▸ ${this.esc(take.slice(0, 150))}`);
+      }
+      lines.push('');
+    }
+
+    // ── Life Monitor Alerts ──
+    if (context?.lifeMonitorReport && context.lifeMonitorReport.alerts.length > 0) {
+      const report = context.lifeMonitorReport;
+      const alertIcon = report.criticalCount > 0 ? '🔴' : report.urgentCount > 0 ? '⚠' : 'ℹ';
+      lines.push(`<b>${alertIcon} Action Items</b>`);
+      lines.push(this.esc(report.summary.slice(0, 200)));
+      lines.push('');
+    }
+
+    // ── Career Matches ──
+    if (context?.careerMatches && context.careerMatches.length > 0) {
+      lines.push('<b>💼 Career Matches</b>');
+      for (const match of context.careerMatches.slice(0, 3)) {
+        const remote = match.remote ? ' (remote)' : '';
+        lines.push(`▸ ${this.esc(match.title)} at ${this.esc(match.company)} — ${match.matchScore}%${this.esc(remote)}`);
+      }
+      lines.push('');
+    }
+
+    // ── Issues needing attention ──
+    const issues = this.extractIssues(auditData);
+    if (issues.length > 0) {
+      lines.push('<b>⚠ Needs Attention</b>');
+      for (const issue of issues.slice(0, 3)) {
+        lines.push(`▸ ${this.esc(issue)}`);
+      }
+      lines.push('');
+    }
+
+    // ── Closing ──
+    lines.push(`Have a good ${dayName}. I'll check in at 9 PM.`);
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Format evening summary as Telegram HTML
+   *
+   * Structure: results → highlights → issues → build suggestions → closing
+   */
+  private formatEveningHtml(
+    content: BriefingContent,
+    auditData: DailyAudit | null,
+    context?: EveningContext,
+  ): string {
+    const lines: string[] = [];
+
+    // ── Header ──
+    lines.push('<b>🌙 Evening Summary</b>');
+    lines.push('');
+
+    // ── Today's Results ──
+    if (auditData) {
+      const completed = auditData.activities.filter(a => a.outcome === 'success').length;
+      const failed = auditData.activities.filter(a => a.outcome === 'failure').length;
+      lines.push(`<b>📊 Today's Results</b>`);
+      lines.push(`✓ ${completed} completed · ✗ ${failed} failed`);
+
+      if (content.highlights.length > 0) {
+        for (const h of content.highlights.slice(0, 3)) {
+          lines.push(`▸ ${this.esc(h)}`);
+        }
+      }
+      lines.push('');
+    }
+
+    // ── Changelog ──
+    if (content.summary.includes('commit') || content.summary.includes('Commit')) {
+      lines.push(`<b>📝 Code Changes</b>`);
+      lines.push(this.esc(content.summary.split('\n').filter(l => l.includes('commit') || l.includes('Commit')).slice(0, 3).join('\n') || content.summary.slice(0, 200)));
+      lines.push('');
+    }
+
+    // ── Open Issues ──
+    if (content.issues.length > 0) {
+      lines.push('<b>⚠ Open Issues</b>');
+      for (const issue of content.issues.slice(0, 3)) {
+        lines.push(`▸ ${this.esc(issue)}`);
+      }
+      lines.push('');
+    }
+
+    // ── Tonight's Build Context ──
+    if (context?.suggestedTasks && context.suggestedTasks.length > 0) {
+      lines.push('<b>🔧 Tonight\'s Build Context</b>');
+      for (const task of context.suggestedTasks.slice(0, 3)) {
+        lines.push(`▸ ${this.esc(task)}`);
+      }
+      lines.push('');
+    }
+
+    // ── Career Updates ──
+    if (context?.careerMatches && context.careerMatches.length > 0) {
+      lines.push('<b>💼 New Career Matches</b>');
+      for (const match of context.careerMatches.slice(0, 2)) {
+        lines.push(`▸ ${this.esc(match.title)} at ${this.esc(match.company)} — ${match.matchScore}%`);
+      }
+      lines.push('');
+    }
+
+    // ── Closing ──
+    lines.push('Good luck building tonight. 🛠️');
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Format weekly review as Telegram HTML
+   */
+  private formatWeeklyHtml(
+    content: BriefingContent,
+    weekData: DailyAudit[],
+  ): string {
+    const lines: string[] = [];
+
+    lines.push('<b>📊 Weekly Review</b>');
+    lines.push('');
+
+    // ── Metrics ──
+    const totalActivities = weekData.reduce((sum, d) => sum + d.activities.length, 0);
+    const totalSuccess = weekData.reduce(
+      (sum, d) => sum + d.activities.filter(a => a.outcome === 'success').length, 0
+    );
+    const rate = totalActivities > 0 ? Math.round((totalSuccess / totalActivities) * 100) : 0;
+    lines.push(`<b>📈 Performance</b>`);
+    lines.push(`${totalSuccess}/${totalActivities} tasks successful (${rate}%) across ${weekData.length} days`);
+    lines.push('');
+
+    // ── Highlights ──
+    if (content.highlights.length > 0) {
+      lines.push('<b>🏆 Highlights</b>');
+      for (const h of content.highlights.slice(0, 5)) {
+        lines.push(`▸ ${this.esc(h)}`);
+      }
+      lines.push('');
+    }
+
+    // ── Issues ──
+    if (content.issues.length > 0) {
+      lines.push('<b>⚠ Unresolved</b>');
+      for (const i of content.issues.slice(0, 3)) {
+        lines.push(`▸ ${this.esc(i)}`);
+      }
+      lines.push('');
+    }
+
+    // ── Next Week ──
+    if (content.actionItems && content.actionItems.length > 0) {
+      lines.push('<b>🎯 Next Week</b>');
+      for (const a of content.actionItems.slice(0, 3)) {
+        lines.push(`▸ ${this.esc(a)}`);
+      }
+      lines.push('');
+    }
+
+    lines.push('<i>Keep building. Consistency compounds.</i>');
+
+    return lines.join('\n');
+  }
+
   // ─── Private Helpers ────────────────────────────────────────────────────────
+
+  private getContextualGreeting(dayName: string): string {
+    const greetings: Record<string, string> = {
+      Monday: '☀️ Happy Monday, Pryce — fresh week ahead',
+      Tuesday: '☀️ Good morning, Pryce',
+      Wednesday: '☀️ Good morning — halfway through the week',
+      Thursday: '☀️ Good morning, Pryce',
+      Friday: '☀️ Happy Friday, Pryce',
+      Saturday: '☀️ Good morning — weekend build time',
+      Sunday: '☀️ Good morning, Pryce — easy Sunday',
+    };
+    return greetings[dayName] ?? `☀️ Good morning, Pryce`;
+  }
+
+  private esc(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
 
   private async getRecentAuditData(): Promise<DailyAudit | null> {
     try {
@@ -271,8 +571,6 @@ export class BriefingGenerator {
   }
 
   private async getWeekAuditData(): Promise<DailyAudit[]> {
-    // For now, just get today's data
-    // Future: implement multi-day audit retrieval
     const today = await this.getRecentAuditData();
     return today ? [today] : [];
   }
@@ -428,7 +726,6 @@ export class BriefingGenerator {
   }
 
   private suggestNextWeekPriorities(weekData: DailyAudit[]): string[] {
-    // Extract failed tasks as potential priorities
     const failedTasks = weekData
       .flatMap((d) =>
         d.activities
@@ -436,7 +733,6 @@ export class BriefingGenerator {
           .map((a) => a.title)
       );
 
-    // Dedupe and suggest top 3
     const unique = [...new Set(failedTasks)];
     return unique.slice(0, 3).map((t) => `Retry: ${t}`);
   }
