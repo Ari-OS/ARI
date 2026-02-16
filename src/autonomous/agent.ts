@@ -38,6 +38,7 @@ import { CareerTracker } from './career-tracker.js';
 import { TemporalMemory } from '../agents/temporal-memory.js';
 import { IntelligenceScanner } from './intelligence-scanner.js';
 import { DailyDigestGenerator } from './daily-digest.js';
+import { LifeMonitor } from './life-monitor.js';
 import { XClient } from '../integrations/twitter/client.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -94,6 +95,7 @@ export class AutonomousAgent {
   private selfImprovementLoop: SelfImprovementLoop | null = null;
   private intelligenceScanner: IntelligenceScanner | null = null;
   private dailyDigest: DailyDigestGenerator | null = null;
+  private lifeMonitor: LifeMonitor | null = null;
 
   // Budget-aware components
   private costTracker: CostTracker | null = null;
@@ -237,7 +239,9 @@ export class AutonomousAgent {
     this.intelligenceScanner = new IntelligenceScanner(this.eventBus, xClient);
     await this.intelligenceScanner.init();
     this.dailyDigest = new DailyDigestGenerator(this.eventBus);
-    log.info('Intelligence scanner and daily digest initialized');
+    this.lifeMonitor = new LifeMonitor(this.eventBus);
+    await this.lifeMonitor.init();
+    log.info('Intelligence scanner, daily digest, and life monitor initialized');
 
     // AI provider is injected via constructor — no local initialization needed
     if (this.aiProvider) {
@@ -1186,6 +1190,44 @@ export class AutonomousAgent {
         }
       } catch (error) {
         log.error({ error }, 'Intelligence scan failed');
+      }
+    });
+
+    // Life monitor scan at 6:15 AM (after intelligence scan, before digest)
+    this.scheduler.registerHandler('life_monitor_scan', async () => {
+      try {
+        if (!this.lifeMonitor) return;
+
+        log.info('Starting life monitor scan');
+        const report = await this.lifeMonitor.scan();
+
+        // Send critical/urgent alerts immediately via Telegram
+        if (report.criticalCount > 0 || report.urgentCount > 0) {
+          if (notificationManager.isReady()) {
+            await notificationManager.notify({
+              category: 'system',
+              title: 'Action Items',
+              body: report.telegramHtml,
+              priority: report.criticalCount > 0 ? 'critical' : 'high',
+            });
+          }
+        }
+
+        // Include warnings in morning briefing (handled by briefing generator)
+        this.eventBus.emit('life_monitor:report_ready', {
+          alertCount: report.alerts.length,
+          critical: report.criticalCount,
+          urgent: report.urgentCount,
+          summary: report.summary,
+        });
+
+        log.info({
+          alerts: report.alerts.length,
+          critical: report.criticalCount,
+          urgent: report.urgentCount,
+        }, 'Life monitor scan complete');
+      } catch (error) {
+        log.error({ error }, 'Life monitor scan failed');
       }
     });
 

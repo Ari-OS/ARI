@@ -591,6 +591,10 @@ export interface EventMap {
   'intelligence:scan_complete': { scanId: string; itemsFound: number; topScore: number; duration: number };
   'intelligence:new_item': { id: string; title: string; score: number; domains: string[]; source: string };
   'intelligence:digest_generated': { date: string; sections: number; items: number };
+
+  // ── Life Monitor events ─────────────────────────────────────────────────
+  'life_monitor:scan_complete': { alerts: number; critical: number; urgent: number };
+  'life_monitor:report_ready': { alertCount: number; critical: number; urgent: number; summary: string };
 }
 
 /**

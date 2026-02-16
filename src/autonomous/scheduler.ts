@@ -415,6 +415,20 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     },
   },
 
+  // ── Life Monitor ───────────────────────────────────────────────────────────
+  {
+    id: 'life-monitor-scan',
+    name: 'Life Monitor Scan',
+    cron: '15 6 * * *', // 6:15 AM daily (after intel scan, before digest)
+    handler: 'life_monitor_scan',
+    enabled: true,
+    essential: true, // Core user-facing — actionable alerts
+    metadata: {
+      category: 'MONITOR',
+      description: 'Scan API credits, subscriptions, system health, budget, stale work, ARI health',
+    },
+  },
+
   // ── Intelligence Scanner & Daily Digest ────────────────────────────────────
   {
     id: 'intelligence-scan',
