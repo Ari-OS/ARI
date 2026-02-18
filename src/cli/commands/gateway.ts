@@ -17,6 +17,7 @@ import { WebSocketBroadcaster } from '../../api/ws.js';
 import * as Storage from '../../system/storage.js';
 import { AutonomousAgent } from '../../autonomous/agent.js';
 import { dailyAudit } from '../../autonomous/daily-audit.js';
+import { SessionState } from '../../system/session-state.js';
 
 // AI Orchestrator — the unified LLM pipeline
 import { AIOrchestrator } from '../../ai/orchestrator.js';
@@ -166,6 +167,7 @@ export function registerGatewayCommand(program: Command): void {
 
       // Autonomous agent — created early so RAG function can be passed to plugins
       const autonomousAgent = new AutonomousAgent(eventBus, undefined, aiOrchestrator ?? undefined);
+      const sessionState = new SessionState(undefined, eventBus);
       // Late-binding: agent.queryRAG() available after agent.init() (called later)
       const ragQueryLateBinding = async (question: string) => autonomousAgent.queryRAG(question);
 
@@ -262,6 +264,19 @@ export function registerGatewayCommand(program: Command): void {
       const shutdown = async (signal: string) => {
         console.log(`\nReceived ${signal}, shutting down gracefully...`);
         try {
+          // Save session state before stopping
+          try {
+            sessionState.update({
+              systemHealth: 'healthy',
+              currentTask: undefined,
+              pendingItems: [],
+              activeAgents: [],
+              uptime: Math.floor(process.uptime()),
+            });
+          } catch {
+            // Non-critical — proceed with shutdown
+          }
+
           // Stop autonomous agent first
           await autonomousAgent.stop();
 
@@ -345,6 +360,12 @@ export function registerGatewayCommand(program: Command): void {
         try {
           await autonomousAgent.start();
           console.log('Autonomous agent started');
+
+          // Restore session state — ARI reads what she was working on
+          const restored = sessionState.load();
+          if (restored?.currentTask) {
+            console.log('Session restored — last task:', restored.currentTask);
+          }
         } catch (error) {
           console.warn('Autonomous agent failed to start:', error);
           console.warn('ARI will continue without autonomous capabilities');
