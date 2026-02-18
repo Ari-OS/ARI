@@ -565,7 +565,7 @@ export interface EventMap {
   // INVESTMENT INTELLIGENCE events (Master Plan Phase 4)
   // ═══════════════════════════════════════════════════════════════════════
   'market:snapshot_complete': { timestamp: string; pricesChecked: number; alertsGenerated: number };
-  'market:price_alert': { symbol: string; price: number; change: number; threshold: number };
+  'market:price_alert': { symbol: string; price: number; change: number; threshold: number; context?: string };
   'market:flash_crash': { asset: string; dropPercent: number; previousPrice: number; currentPrice: number };
   'market:anomaly_detected': { asset: string; zScore: number; price: number; baselineMean: number };
   'market:premarket_briefing': { alertCount: number; timestamp: string };

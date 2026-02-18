@@ -479,6 +479,18 @@ export class AutonomousAgent {
       }
     }
 
+    // Phase 6: Wire EarningsCalendar for pre-earnings volatility warnings
+    if (process.env.ALPHA_VANTAGE_API_KEY) {
+      try {
+        const { EarningsCalendar } = await import('../integrations/alpha-vantage/earnings-calendar.js');
+        const earningsCalendar = new EarningsCalendar(process.env.ALPHA_VANTAGE_API_KEY);
+        this.marketMonitor.setEarningsCalendar(earningsCalendar);
+        log.info('Earnings calendar wired into market monitor (3-day look-ahead)');
+      } catch (error) {
+        log.warn({ error: error instanceof Error ? error.message : String(error) }, 'Failed to wire earnings calendar');
+      }
+    }
+
     // Initialize portfolio tracker
     this.portfolioTracker = new PortfolioTracker(this.eventBus);
     await this.portfolioTracker.init();

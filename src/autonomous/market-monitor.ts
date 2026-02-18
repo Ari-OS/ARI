@@ -384,6 +384,11 @@ interface PerplexityLike {
   search(query: string): Promise<{ answer?: string; content?: string; text?: string }>;
 }
 
+/** Minimal EarningsCalendar interface to avoid direct import */
+interface EarningsCalendarLike {
+  getEarningsWithin(symbols: string[], days?: number): Promise<{ symbol: string; name: string; daysUntil: number; estimate: number | null }[]>;
+}
+
 export class MarketMonitor {
   private readonly eventBus: EventBus;
   private readonly cryptoClient: CoinGeckoClient;
@@ -396,10 +401,16 @@ export class MarketMonitor {
   private readonly allTimeLows: Map<string, number> = new Map();
   private readonly baseline: RollingBaseline = new RollingBaseline(7);
   private perplexity: PerplexityLike | null = null; // Phase 6: "why?" queries
+  private earningsCalendar: EarningsCalendarLike | null = null; // Phase 6: earnings context
 
   /** Inject Perplexity client for anomaly "why?" queries (optional) */
   setPerplexityClient(client: PerplexityLike): void {
     this.perplexity = client;
+  }
+
+  /** Inject EarningsCalendar for pre-earnings alerts (optional) */
+  setEarningsCalendar(calendar: EarningsCalendarLike): void {
+    this.earningsCalendar = calendar;
   }
 
   constructor(eventBus: EventBus, config?: Partial<MarketMonitorConfig>) {
@@ -526,7 +537,45 @@ export class MarketMonitor {
       }
     }
 
+    // Phase 6: Check upcoming earnings for stock/ETF watchlist
+    if (this.earningsCalendar) {
+      const stockSymbols = Array.from(this.watchlist.entries())
+        .filter(([, entry]) => entry.assetClass === 'stock' || entry.assetClass === 'etf')
+        .map(([symbol]) => symbol.toUpperCase());
+
+      if (stockSymbols.length > 0) {
+        void this.checkUpcomingEarnings(stockSymbols);
+      }
+    }
+
     return alerts;
+  }
+
+  /**
+   * Check for upcoming earnings and emit warnings (3-day look-ahead).
+   * Fire-and-forget — does not block checkAlerts().
+   */
+  async checkUpcomingEarnings(symbols: string[]): Promise<void> {
+    if (!this.earningsCalendar) return;
+
+    try {
+      const upcoming = await this.earningsCalendar.getEarningsWithin(symbols, 3);
+
+      for (const event of upcoming) {
+        const urgency = event.daysUntil === 0 ? 'today' : event.daysUntil === 1 ? 'tomorrow' : `in ${event.daysUntil} days`;
+        log.info({ symbol: event.symbol, daysUntil: event.daysUntil }, `Earnings ${urgency}`);
+
+        this.eventBus.emit('market:price_alert', {
+          symbol: event.symbol,
+          price: 0, // Not a price alert — earnings context
+          change: 0,
+          threshold: 0,
+          context: `EARNINGS ${urgency.toUpperCase()}${event.estimate !== null ? ` — EPS estimate: $${event.estimate}` : ''}`,
+        });
+      }
+    } catch (error) {
+      log.warn({ error: error instanceof Error ? error.message : String(error) }, 'Earnings calendar check failed');
+    }
   }
 
   /**
