@@ -535,6 +535,13 @@ export class AutonomousAgent {
   }
 
   /**
+   * Get the underlying scheduler (for API route deps wiring)
+   */
+  getScheduler(): import('../autonomous/scheduler.js').Scheduler {
+    return this.scheduler;
+  }
+
+  /**
    * Start the autonomous agent loop
    */
   async start(): Promise<void> {

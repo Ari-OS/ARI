@@ -240,6 +240,8 @@ export function registerGatewayCommand(program: Command): void {
             adaptiveLearner,
             // Autonomous agent
             autonomousAgent,
+            // Scheduler (exposed for API trigger endpoints)
+            scheduler: autonomousAgent.getScheduler(),
             // Cognitive Layer 0
             cognitionLayer,
           },
