@@ -31,6 +31,8 @@ import { registerCryptoCommand } from './commands/crypto.js';
 import { registerPokemonCommand } from './commands/pokemon.js';
 import { registerSpeakCommand } from './commands/speak.js';
 import { registerDiagramCommand } from './commands/diagram.js';
+import { registerVideoCommand } from './commands/video.js';
+import { registerYouTubeCommand } from './commands/youtube.js';
 
 const program = new Command();
 
@@ -63,5 +65,7 @@ registerCryptoCommand(program);
 registerPokemonCommand(program);
 registerSpeakCommand(program);
 registerDiagramCommand(program);
+registerVideoCommand(program);
+registerYouTubeCommand(program);
 
 program.parse();

@@ -1,6 +1,7 @@
 import type { Context } from 'grammy';
 import type { PerplexityClient } from '../../../integrations/perplexity/client.js';
 import { formatForTelegram, splitTelegramMessage } from '../format.js';
+import { humanizeQuick } from '../../content-engine/humanizer.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // /search — Web search with Perplexity AI
@@ -38,8 +39,8 @@ export async function handleSearch(
     const lines: string[] = [];
     lines.push(`<b>Search Results:</b> ${query}`);
     lines.push('');
-    // Perplexity returns markdown — convert to Telegram HTML
-    lines.push(formatForTelegram(result.answer));
+    // Humanize then format — strips AI-speak before display
+    lines.push(formatForTelegram(humanizeQuick(result.answer)));
 
     if (result.citations.length > 0) {
       lines.push('');

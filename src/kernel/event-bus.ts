@@ -660,6 +660,10 @@ export interface EventMap {
   // ═══════════════════════════════════════════════════════════════════════
   'video:approval_requested': { requestId: string; type: string; videoProjectId: string; timestamp: string };
   'video:approval_response': { requestId: string; action: string; feedback?: string };
+  'video:stage_started': { projectId: string; stage: string; timestamp: string };
+  'video:stage_completed': { projectId: string; stage: string; data: Record<string, unknown>; timestamp: string };
+  'video:stage_update': { stage: string; message: string; topic: string };
+  'video:published': { projectId: string; youtubeVideoId: string; title: string; platform: string };
 
   // ═══════════════════════════════════════════════════════════════════════
   // MISSING EVENTS — Phase 0 Bug 6 additions

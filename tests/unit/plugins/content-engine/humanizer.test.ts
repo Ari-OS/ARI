@@ -41,8 +41,11 @@ describe('humanizeQuick', () => {
     expect(humanizeQuick('You should utilize this feature.')).toBe('You should use this feature.');
   });
 
-  it('replaces "delve into" with "explore"', () => {
-    expect(humanizeQuick("Let's delve into the problem.")).toBe("Let's explore the problem.");
+  it('replaces "delve into" (strips ai opener chain)', () => {
+    // "Let's delve into" → "Let's explore" → strips "Let's explore" opener → more direct
+    expect(humanizeQuick("Let's delve into the problem.")).toBe("Here's the problem.");
+    // Mid-sentence "delve into" still works independently
+    expect(humanizeQuick('We should delve into this topic.')).toBe('We should explore this topic.');
   });
 
   it('replaces "Facilitate" with "help"', () => {

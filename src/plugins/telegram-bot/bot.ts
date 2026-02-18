@@ -39,6 +39,7 @@ import { ChatSessionManager } from './chat-session.js';
 import { IntentRouter } from './intent-router.js';
 import { ConversationStore } from './conversation-store.js';
 import { handleVoice } from './voice-handler.js';
+import { ApprovalGate } from '../../plugins/video-pipeline/approval-gate.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TELEGRAM BOT SETUP
@@ -225,6 +226,34 @@ export function createBot(deps: BotDependencies): Bot {
 
     // Skip slash commands — they're handled above
     if (text.startsWith('/')) return;
+
+    // ── Video pipeline approval commands ────────────────────────────────
+    // Patterns: "approve <id>", "reject <id>", "edit <id> [feedback]"
+    const approveMatch = /^approve\s+([a-f0-9-]{8,})/i.exec(text);
+    const rejectMatch = /^reject\s+([a-f0-9-]{8,})/i.exec(text);
+    const editMatch = /^edit\s+([a-f0-9-]{8,})\s*(.*)/is.exec(text);
+
+    if (approveMatch?.[1] ?? rejectMatch?.[1] ?? editMatch?.[1]) {
+      const requestId = (approveMatch?.[1] ?? rejectMatch?.[1] ?? editMatch?.[1])!;
+
+      if (!ApprovalGate.hasPendingRequest(requestId)) {
+        await ctx.reply(`No pending approval request: <code>${requestId}</code>`, { parse_mode: 'HTML' });
+        return;
+      }
+
+      if (approveMatch) {
+        ApprovalGate.handleApprovalResponse(eventBus, requestId, 'approve');
+        await ctx.reply(`✅ Approved: <code>${requestId}</code>`, { parse_mode: 'HTML' });
+      } else if (rejectMatch) {
+        ApprovalGate.handleApprovalResponse(eventBus, requestId, 'reject', 'Rejected via Telegram');
+        await ctx.reply(`❌ Rejected: <code>${requestId}</code>`, { parse_mode: 'HTML' });
+      } else if (editMatch) {
+        const feedback = editMatch[2]?.trim() ?? '';
+        ApprovalGate.handleApprovalResponse(eventBus, requestId, 'edit', feedback || 'Edit requested');
+        await ctx.reply(`✏️ Edit requested for <code>${requestId}</code>: ${feedback || '(no feedback)'}`, { parse_mode: 'HTML' });
+      }
+      return;
+    }
 
     // Persist user message to ConversationStore for context
     if (chatId && text) {
