@@ -6,38 +6,23 @@
  * interesting and surface relevant content in the daily digest.
  *
  * API: X API v2 (Free tier: 10K reads/month)
- * Auth: OAuth 2.0 Bearer Token
+ * Auth: OAuth 2.0 Bearer Token (read) / OAuth 1.0a (write)
  *
  * Required env:
  * - X_BEARER_TOKEN: App-level bearer token from developer.x.com
  * - X_USER_ID: Pryce's X user ID (numeric)
+ * - X_API_KEY: OAuth 1.0a consumer key (for write endpoints)
+ * - X_API_SECRET: OAuth 1.0a consumer secret (for write endpoints)
+ * - X_ACCESS_TOKEN: OAuth 1.0a access token (for write endpoints)
+ * - X_ACCESS_SECRET: OAuth 1.0a access token secret (for write endpoints)
  */
 
+import { createHmac, randomBytes } from 'node:crypto';
 import { createLogger } from '../../kernel/logger.js';
 
 const log = createLogger('twitter-client');
 
 const X_API_BASE = 'https://api.x.com/2';
-
-// ─── Security: Redact sensitive data from error responses ────────────────────
-
-/**
- * Sanitize error response body before logging.
- * Removes potential token fragments and sensitive data.
- */
-function sanitizeErrorBody(body: string): string {
-  return body
-    // Redact bearer tokens
-    .replace(/Bearer\s+[\w-]+/gi, 'Bearer [REDACTED]')
-    // Redact API keys
-    .replace(/api[_-]?key["']?\s*[:=]\s*["']?[\w-]+/gi, 'api_key: [REDACTED]')
-    // Redact tokens in JSON
-    .replace(/"(token|key|secret|password|bearer)":\s*"[^"]+"/gi, '"$1": "[REDACTED]"')
-    // Redact authorization headers
-    .replace(/authorization["']?\s*[:=]\s*["']?[^"',}\s]+/gi, 'authorization: [REDACTED]')
-    // Limit length to prevent log bloat
-    .slice(0, 500);
-}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -47,6 +32,10 @@ export interface XClientConfig {
   userId?: string;
   maxLikesPerFetch?: number;
   rateLimitPerMonth?: number;
+  apiKey?: string;
+  apiSecret?: string;
+  accessToken?: string;
+  accessSecret?: string;
 }
 
 export interface XTweet {
@@ -171,6 +160,15 @@ export class XClient {
     return this.initialized;
   }
 
+  canPost(): boolean {
+    return !!(
+      this.config.apiKey &&
+      this.config.apiSecret &&
+      this.config.accessToken &&
+      this.config.accessSecret
+    );
+  }
+
   /**
    * Fetch user's liked tweets
    */
@@ -247,8 +245,13 @@ export class XClient {
     if (!this.isReady()) {
       throw new Error('X client not initialized');
     }
+    if (!this.canPost()) {
+      throw new Error(
+        'X API write operations require OAuth 1.0a credentials: X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET'
+      );
+    }
 
-    const response = await this.apiPost('/tweets', { text });
+    const response = await this.oauthPost('/tweets', { text });
     const data = response.data as { id?: string; text?: string } | undefined;
     return {
       id: data?.id ?? '',
@@ -259,6 +262,11 @@ export class XClient {
   async postThread(tweets: string[]): Promise<XThreadResult> {
     if (!this.isReady()) {
       throw new Error('X client not initialized');
+    }
+    if (!this.canPost()) {
+      throw new Error(
+        'X API write operations require OAuth 1.0a credentials: X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET'
+      );
     }
     if (tweets.length === 0) {
       return { ids: [], texts: [] };
@@ -274,7 +282,7 @@ export class XClient {
         body.reply = { in_reply_to_tweet_id: replyToId };
       }
 
-      const response = await this.apiPost('/tweets', body);
+      const response = await this.oauthPost('/tweets', body);
       const data = response.data as { id?: string; text?: string } | undefined;
       const tweetId = data?.id ?? '';
       ids.push(tweetId);
@@ -295,87 +303,169 @@ export class XClient {
     return data?.deleted ?? false;
   }
 
-  /**
-   * Reply to a tweet
-   */
-  async replyToTweet(tweetId: string, text: string): Promise<XPostResult> {
+  async getUserTimeline(username: string, maxResults = 10): Promise<XFetchResult> {
     if (!this.isReady()) {
       throw new Error('X client not initialized');
     }
 
-    const body = {
-      text,
-      reply: { in_reply_to_tweet_id: tweetId },
-    };
+    // Step 1: Resolve user ID from username
+    const userResp = await this.apiCall(
+      `/users/by/username/${encodeURIComponent(username)}`,
+      {},
+    );
+    const userId = (userResp as { data?: { id?: string } }).data?.id ?? '';
 
-    const response = await this.apiPost('/tweets', body);
-    const data = response.data as { id?: string; text?: string } | undefined;
-    return {
-      id: data?.id ?? '',
-      text: data?.text ?? text,
-    };
-  }
-
-  /**
-   * Like a tweet
-   */
-  async likeTweet(tweetId: string): Promise<boolean> {
-    if (!this.isReady()) {
-      throw new Error('X client not initialized');
-    }
-
-    const response = await this.apiPost(`/users/${this.config.userId}/likes`, {
-      tweet_id: tweetId,
-    });
-    const data = response.data as { liked?: boolean } | undefined;
-    return data?.liked ?? false;
-  }
-
-  /**
-   * Bookmark a tweet
-   */
-  async bookmarkTweet(tweetId: string): Promise<boolean> {
-    if (!this.isReady()) {
-      throw new Error('X client not initialized');
-    }
-
-    const response = await this.apiPost(`/users/${this.config.userId}/bookmarks`, {
-      tweet_id: tweetId,
-    });
-    const data = response.data as { bookmarked?: boolean } | undefined;
-    return data?.bookmarked ?? false;
-  }
-
-  /**
-   * Get a user's recent tweets by username
-   */
-  async getUserTimeline(username: string, maxResults?: number): Promise<XFetchResult> {
-    if (!this.isReady()) {
-      return { tweets: [], fetchedAt: new Date().toISOString(), source: 'list' };
-    }
-
-    // First get user ID from username
-    const userResponse = await this.apiCall(`/users/by/username/${username}`, {});
-    const userData = userResponse.data as Array<{ id?: string }> | undefined;
-    const userId = userData?.[0]?.id ?? (userResponse as unknown as { data?: { id?: string } })?.data?.id;
-
-    if (!userId) {
-      log.warn({ username }, 'User not found');
-      return { tweets: [], fetchedAt: new Date().toISOString(), source: 'list' };
-    }
-
-    // Then get their tweets
-    const response = await this.apiCall(`/users/${userId}/tweets`, {
-      max_results: String(maxResults ?? 10),
-      'tweet.fields': 'created_at,public_metrics,entities,referenced_tweets',
-      expansions: 'author_id',
-      'user.fields': 'username,name',
-    });
-
+    // Step 2: Fetch timeline for that user ID
+    const response = await this.apiCall(
+      `/users/${userId}/tweets`,
+      {
+        max_results: String(maxResults),
+        'tweet.fields': 'created_at,public_metrics,author_id',
+        'user.fields': 'username,name',
+        expansions: 'author_id',
+      },
+    );
     return this.parseResponse(response, 'list');
   }
 
+  async likeTweet(tweetId: string): Promise<boolean> {
+    if (!this.isReady() || !this.canPost()) {
+      throw new Error('X write operations require OAuth 1.0a credentials');
+    }
+
+    const userId = await this.getAuthenticatedUserId();
+    const response = await this.oauthPost(`/users/${userId}/likes`, { tweet_id: tweetId });
+    const data = response as { data?: { liked?: boolean } };
+    return data?.data?.liked ?? false;
+  }
+
+  async bookmarkTweet(tweetId: string): Promise<boolean> {
+    if (!this.isReady() || !this.canPost()) {
+      throw new Error('X write operations require OAuth 1.0a credentials');
+    }
+
+    const userId = await this.getAuthenticatedUserId();
+    const response = await this.oauthPost(`/users/${userId}/bookmarks`, { tweet_id: tweetId });
+    const data = response as { data?: { bookmarked?: boolean } };
+    return data?.data?.bookmarked ?? false;
+  }
+
+  async replyToTweet(tweetId: string, text: string): Promise<XPostResult> {
+    if (!this.isReady() || !this.canPost()) {
+      throw new Error('X write operations require OAuth 1.0a credentials');
+    }
+
+    const response = await this.oauthPost('/tweets', {
+      text,
+      reply: { in_reply_to_tweet_id: tweetId },
+    });
+    const data = response as { id?: string; text?: string };
+    return { id: data?.id ?? '', text: data?.text ?? text };
+  }
+
+  private async getAuthenticatedUserId(): Promise<string> {
+    const response = await this.apiCall('/users/me', {});
+    const data = response as { data?: { id?: string } };
+    return data?.data?.id ?? '';
+  }
+
   // ─── Private ─────────────────────────────────────────────────────────────
+
+  /**
+   * Build an OAuth 1.0a Authorization header for a POST request.
+   * Signature method: HMAC-SHA1 per RFC 5849.
+   */
+  private buildOAuthHeader(method: string, url: string): string {
+    const apiKey = this.config.apiKey ?? '';
+    const apiSecret = this.config.apiSecret ?? '';
+    const accessToken = this.config.accessToken ?? '';
+    const accessSecret = this.config.accessSecret ?? '';
+
+    const nonce = randomBytes(16).toString('hex');
+    const timestamp = String(Math.floor(Date.now() / 1000));
+
+    // Collect OAuth params (excluding oauth_signature)
+    const oauthParams: Record<string, string> = {
+      oauth_consumer_key: apiKey,
+      oauth_nonce: nonce,
+      oauth_signature_method: 'HMAC-SHA1',
+      oauth_timestamp: timestamp,
+      oauth_token: accessToken,
+      oauth_version: '1.0',
+    };
+
+    // Build the parameter string: percent-encode keys and values, sort, join
+    const paramString = Object.entries(oauthParams)
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .sort()
+      .join('&');
+
+    // Build the signature base string
+    const signatureBase = [
+      method.toUpperCase(),
+      encodeURIComponent(url),
+      encodeURIComponent(paramString),
+    ].join('&');
+
+    // Sign with HMAC-SHA1
+    const signingKey = `${encodeURIComponent(apiSecret)}&${encodeURIComponent(accessSecret)}`;
+    const signature = createHmac('sha1', signingKey)
+      .update(signatureBase)
+      .digest('base64');
+
+    // Build the Authorization header value
+    const headerParams: Record<string, string> = {
+      ...oauthParams,
+      oauth_signature: signature,
+    };
+
+    const headerValue = Object.entries(headerParams)
+      .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
+      .join(', ');
+
+    return `OAuth ${headerValue}`;
+  }
+
+  /**
+   * POST using OAuth 1.0a user context auth (required for write endpoints).
+   */
+  private async oauthPost(
+    endpoint: string,
+    body: Record<string, unknown>
+  ): Promise<XApiResponse> {
+    if (this.requestCount >= (this.config.rateLimitPerMonth ?? 10000)) {
+      const elapsed = Date.now() - this.lastReset;
+      if (elapsed < 30 * 24 * 60 * 60 * 1000) {
+        log.warn('Monthly rate limit reached');
+        return {};
+      }
+      this.requestCount = 0;
+      this.lastReset = Date.now();
+    }
+
+    const url = `${X_API_BASE}${endpoint}`;
+    const authHeader = this.buildOAuthHeader('POST', url);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: authHeader,
+        'Content-Type': 'application/json',
+        'User-Agent': 'ARI-Content-Engine/1.0',
+      },
+      body: JSON.stringify(body),
+    });
+
+    this.requestCount++;
+
+    if (!response.ok) {
+      const text = await response.text();
+      log.error({ status: response.status, body: text }, 'X API OAuth POST error');
+      throw new Error(`X API POST ${endpoint} failed: ${response.status}`);
+    }
+
+    return (await response.json()) as XApiResponse;
+  }
 
   private async apiPost(
     endpoint: string,
@@ -407,7 +497,7 @@ export class XClient {
 
     if (!response.ok) {
       const text = await response.text();
-      log.error({ status: response.status, body: sanitizeErrorBody(text) }, 'X API POST error');
+      log.error({ status: response.status, body: text }, 'X API POST error');
       throw new Error(`X API POST ${endpoint} failed: ${response.status}`);
     }
 
@@ -439,7 +529,7 @@ export class XClient {
 
     if (!response.ok) {
       const text = await response.text();
-      log.error({ status: response.status, body: sanitizeErrorBody(text) }, 'X API DELETE error');
+      log.error({ status: response.status, body: text }, 'X API DELETE error');
       throw new Error(`X API DELETE ${endpoint} failed: ${response.status}`);
     }
 
@@ -477,7 +567,7 @@ export class XClient {
 
     if (!response.ok) {
       const text = await response.text();
-      log.error({ status: response.status, body: sanitizeErrorBody(text) }, 'X API error');
+      log.error({ status: response.status, body: text }, 'X API error');
       return {};
     }
 

@@ -107,15 +107,19 @@ describe('workspace-loader', () => {
 
   describe('loadIdentityPrompt', () => {
     it('should combine SOUL, IDENTITY, and USER files', async () => {
+      // loadIdentityPrompt loads all 9 workspace files; first 3 have content
       vi.mocked(readFile)
         .mockResolvedValueOnce('SOUL content')
         .mockResolvedValueOnce('IDENTITY content')
-        .mockResolvedValueOnce('USER content');
+        .mockResolvedValueOnce('USER content')
+        .mockRejectedValue(new Error('ENOENT')); // GOALS, PREFERENCES, AGENTS, HEARTBEAT, MEMORY, TOOLS missing
 
       const result = await loadIdentityPrompt();
 
-      expect(result).toBe('SOUL content\n\n---\n\nIDENTITY content\n\n---\n\nUSER content');
-      expect(readFile).toHaveBeenCalledTimes(3);
+      expect(result).toContain('SOUL content');
+      expect(result).toContain('IDENTITY content');
+      expect(result).toContain('USER content');
+      expect(readFile).toHaveBeenCalledTimes(9); // 9 workspace files
       expect(readFile).toHaveBeenCalledWith(join(WORKSPACE_DIR, 'SOUL.md'), 'utf-8');
       expect(readFile).toHaveBeenCalledWith(join(WORKSPACE_DIR, 'IDENTITY.md'), 'utf-8');
       expect(readFile).toHaveBeenCalledWith(join(WORKSPACE_DIR, 'USER.md'), 'utf-8');
@@ -125,11 +129,14 @@ describe('workspace-loader', () => {
       vi.mocked(readFile)
         .mockResolvedValueOnce('SOUL content')
         .mockRejectedValueOnce(new Error('ENOENT')) // IDENTITY missing
-        .mockResolvedValueOnce('USER content');
+        .mockResolvedValueOnce('USER content')
+        .mockRejectedValue(new Error('ENOENT')); // remaining files missing
 
       const result = await loadIdentityPrompt();
 
-      expect(result).toBe('SOUL content\n\n---\n\nUSER content');
+      expect(result).toContain('SOUL content');
+      expect(result).toContain('USER content');
+      expect(result).not.toContain('IDENTITY');
     });
 
     it('should return empty string when all files are missing', async () => {
@@ -151,8 +158,8 @@ describe('workspace-loader', () => {
 
       await loadIdentityPrompt();
 
-      // All three promises should be created before any resolve
-      expect(promises.length).toBe(3);
+      // All 9 workspace files should be requested in parallel
+      expect(promises.length).toBe(9);
     });
   });
 });

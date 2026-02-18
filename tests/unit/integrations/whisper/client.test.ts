@@ -60,11 +60,10 @@ describe('WhisperClient', () => {
       expect(client).toBeDefined();
     });
 
-    it('should warn when local URL is not loopback-only', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      void new WhisperClient({ mode: 'local', localUrl: 'http://192.168.1.100:8080' });
-      expect(warnSpy).not.toThrow();
-      warnSpy.mockRestore();
+    it('should throw when local URL is not loopback-only', () => {
+      expect(() => {
+        new WhisperClient({ mode: 'local', localUrl: 'http://192.168.1.100:8080' });
+      }).toThrow('loopback');
     });
 
     it('should allow localhost as valid loopback', () => {

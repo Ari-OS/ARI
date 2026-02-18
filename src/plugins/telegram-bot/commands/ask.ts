@@ -1,6 +1,7 @@
 import type { Context } from 'grammy';
 import type { AIOrchestrator } from '../../../ai/orchestrator.js';
 import type { ChatSessionManager } from '../chat-session.js';
+import { formatForTelegram, splitTelegramMessage } from '../format.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // /ask — Natural language query → orchestrator (with conversation memory)
@@ -34,7 +35,7 @@ export async function handleAsk(
     if (sessionManager && chatId) {
       // Conversational mode — pass full session history
       const messages = sessionManager.addUserMessage(chatId, query);
-      const systemPrompt = sessionManager.getSystemPrompt();
+      const systemPrompt = await sessionManager.getSystemPrompt();
 
       response = await orchestrator.chat(
         messages.map((m) => ({ role: m.role, content: m.content })),
@@ -49,7 +50,12 @@ export async function handleAsk(
       response = await orchestrator.query(query, 'core');
     }
 
-    await ctx.reply(response || 'No response generated.', { parse_mode: 'HTML' });
+    // Convert markdown → Telegram HTML and split if needed
+    const formatted = formatForTelegram(response || 'No response generated.');
+    const chunks = splitTelegramMessage(formatted);
+    for (const chunk of chunks) {
+      await ctx.reply(chunk, { parse_mode: 'HTML' });
+    }
   } catch (error) {
     await ctx.reply(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }

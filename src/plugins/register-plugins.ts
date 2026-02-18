@@ -3,6 +3,8 @@ import { PokemonTcgPlugin } from './pokemon-tcg/index.js';
 import { TtsPlugin } from './tts/index.js';
 import { TelegramBotPlugin } from './telegram-bot/index.js';
 import { ContentEnginePlugin } from './content-engine/index.js';
+import { SEOEnginePlugin } from './seo-engine/index.js';
+import { VideoPipelinePlugin } from './video-pipeline/index.js';
 import type { PluginRegistry } from './registry.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -19,6 +21,8 @@ export async function registerAllPlugins(registry: PluginRegistry): Promise<void
   await registry.register(new PokemonTcgPlugin());
   await registry.register(new TtsPlugin());
   await registry.register(new ContentEnginePlugin());
+  await registry.register(new SEOEnginePlugin());
+  await registry.register(new VideoPipelinePlugin());
 
   // Interface plugin (depends on others via registry, but graceful degradation)
   await registry.register(new TelegramBotPlugin());

@@ -1,6 +1,7 @@
 import type { Context } from 'grammy';
 import type { PluginRegistry } from '../../../plugins/registry.js';
 import type { ContentEnginePlugin } from '../../content-engine/index.js';
+import { formatForTelegram, splitTelegramMessage } from '../format.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // /content — Content Engine commands (drafts, approve, reject, publish)
@@ -91,11 +92,15 @@ export async function handleContent(
           if (draft.content.length > 1) {
             lines.push(`<b>[${i + 1}/${draft.content.length}]</b>`);
           }
-          lines.push(draft.content[i]);
+          lines.push(formatForTelegram(draft.content[i]));
           if (i < draft.content.length - 1) lines.push('');
         }
 
-        await ctx.reply(lines.join('\n'), { parse_mode: 'HTML' });
+        const previewResponse = lines.join('\n');
+        const previewChunks = splitTelegramMessage(previewResponse);
+        for (const chunk of previewChunks) {
+          await ctx.reply(chunk, { parse_mode: 'HTML' });
+        }
         break;
       }
 

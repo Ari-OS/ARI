@@ -32,6 +32,7 @@ import { NotionInbox } from '../integrations/notion/inbox.js';
 import { dailyAudit, type DailyAudit } from './daily-audit.js';
 import { ChangelogGenerator } from './changelog-generator.js';
 import { EventBus } from '../kernel/event-bus.js';
+import { splitTelegramMessage } from '../plugins/telegram-bot/format.js';
 import type { NotionConfig } from './types.js';
 import type { DailyDigest } from './daily-digest.js';
 import type { LifeMonitorReport } from './life-monitor.js';
@@ -374,7 +375,7 @@ export class BriefingGenerator {
     queueResult: { processed: number; sent: number },
     auditData: DailyAudit | null,
     context?: MorningBriefingContext,
-  ): string {
+  ): string[] {
     const lines: string[] = [];
 
     // ── Greeting ──
@@ -609,7 +610,9 @@ export class BriefingGenerator {
     // ── Closing ──
     lines.push(`Have a strong ${dayName}. Evening check-in at 9.`);
 
-    return lines.join('\n');
+    const fullHtml = lines.join('\n');
+    // Split into multiple messages if exceeding Telegram's 4096-char limit
+    return splitTelegramMessage(fullHtml);
   }
 
   /**
@@ -621,7 +624,7 @@ export class BriefingGenerator {
     content: BriefingContent,
     auditData: DailyAudit | null,
     context?: EveningContext,
-  ): string {
+  ): string[] {
     const lines: string[] = [];
 
     // ── Header ──
@@ -690,7 +693,9 @@ export class BriefingGenerator {
     // ── Closing ──
     lines.push('Build strong tonight. I\'m here if you need me.');
 
-    return lines.join('\n');
+    const fullHtml = lines.join('\n');
+    // Split into multiple messages if exceeding Telegram's 4096-char limit
+    return splitTelegramMessage(fullHtml);
   }
 
   /**
@@ -699,7 +704,7 @@ export class BriefingGenerator {
   private formatWeeklyHtml(
     content: BriefingContent,
     weekData: DailyAudit[],
-  ): string {
+  ): string[] {
     const lines: string[] = [];
 
     lines.push('<b>📊 Weekly Review</b>');
@@ -744,7 +749,9 @@ export class BriefingGenerator {
 
     lines.push('<i>Keep building. Consistency compounds.</i>');
 
-    return lines.join('\n');
+    const fullHtml = lines.join('\n');
+    // Split into multiple messages if exceeding Telegram's 4096-char limit
+    return splitTelegramMessage(fullHtml);
   }
 
   // ─── Private Helpers ────────────────────────────────────────────────────────

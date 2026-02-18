@@ -232,7 +232,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'initiative-comprehensive-scan',
     name: 'Initiative Comprehensive Scan',
-    cron: '0 6 * * *', // 6:00 AM daily (before morning briefing)
+    cron: '30 5 * * *', // 5:30 AM daily (before morning briefing)
     handler: 'initiative_comprehensive_scan',
     enabled: true,
     essential: false, // Background proactive task
@@ -256,7 +256,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'initiative-midday-check',
     name: 'Initiative Midday Check',
-    cron: '0 14 * * *', // 2:00 PM daily
+    cron: '30 14 * * *', // 2:30 PM daily
     handler: 'initiative_midday_check',
     enabled: true,
     essential: false, // Background proactive task
@@ -372,6 +372,18 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     metadata: {
       category: 'INVESTMENT',
       description: 'Full weekly analysis: start vs end, trends, z-scores, portfolio change',
+    },
+  },
+  {
+    id: 'portfolio-premarket',
+    name: 'Pre-Market Portfolio',
+    cron: '0 6 * * 1-5', // 6:00 AM weekdays (before 6:30 AM morning briefing)
+    handler: 'portfolio_update',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'INVESTMENT',
+      description: 'Early portfolio snapshot so lastPortfolio is populated by morning briefing',
     },
   },
   {

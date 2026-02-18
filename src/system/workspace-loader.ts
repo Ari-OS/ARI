@@ -37,18 +37,56 @@ export async function loadWorkspaceFile(filename: string): Promise<string> {
   }
 }
 
+// All 9 workspace files — loaded in priority order (identity first)
+const ALL_WORKSPACE_FILES = [
+  'SOUL.md',
+  'IDENTITY.md',
+  'USER.md',
+  'GOALS.md',
+  'PREFERENCES.md',
+  'AGENTS.md',
+  'HEARTBEAT.md',
+  'MEMORY.md',
+  'TOOLS.md',
+] as const;
+
+const TOTAL_CHAR_BUDGET = 150_000;
+const PER_FILE_CHAR_LIMIT = 20_000;
+
 /**
- * Load and combine SOUL.md, IDENTITY.md, and USER.md into a single prompt.
+ * Load and combine all 9 workspace files into a single prompt.
+ * Enforces per-file (20K) and total (150K) character budgets.
  * Returns empty string if no files exist.
  */
 export async function loadIdentityPrompt(): Promise<string> {
-  const [soul, identity, user] = await Promise.all([
-    loadWorkspaceFile('SOUL.md'),
-    loadWorkspaceFile('IDENTITY.md'),
-    loadWorkspaceFile('USER.md'),
-  ]);
+  const contents = await Promise.all(
+    ALL_WORKSPACE_FILES.map((f) => loadWorkspaceFile(f)),
+  );
 
-  return [soul, identity, user].filter(Boolean).join('\n\n---\n\n');
+  const sections: string[] = [];
+  let totalChars = 0;
+
+  for (let i = 0; i < ALL_WORKSPACE_FILES.length; i++) {
+    let content = contents[i];
+    if (!content) continue;
+
+    // Per-file budget
+    if (content.length > PER_FILE_CHAR_LIMIT) {
+      content = content.slice(0, PER_FILE_CHAR_LIMIT);
+    }
+
+    // Total budget
+    if (totalChars + content.length > TOTAL_CHAR_BUDGET) {
+      const remaining = TOTAL_CHAR_BUDGET - totalChars;
+      if (remaining <= 0) break;
+      content = content.slice(0, remaining);
+    }
+
+    sections.push(content);
+    totalChars += content.length;
+  }
+
+  return sections.join('\n\n---\n\n');
 }
 
 /**

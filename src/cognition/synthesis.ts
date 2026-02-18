@@ -11,7 +11,7 @@
  * @version 1.0.0
  */
 
-import type { EventBus } from '../kernel/event-bus.js';
+import type { CognitiveEventEmitter } from './types.js';
 import { calculateExpectedValue } from './logos/index.js';
 import { detectCognitiveBias } from './ethos/index.js';
 import { checkVirtueAlignment } from './pathos/index.js';
@@ -73,7 +73,7 @@ export interface SynthesisResult {
  */
 export async function synthesize(
   decision: { description: string; context: Record<string, unknown> },
-  eventBus?: EventBus,
+  eventBus?: CognitiveEventEmitter,
 ): Promise<SynthesisResult> {
   const startTime = Date.now();
 

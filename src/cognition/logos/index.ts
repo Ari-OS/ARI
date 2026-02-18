@@ -23,7 +23,7 @@
 // =============================================================================
 
 // Note: z (Zod) available for runtime validation at API boundaries
-import { EventBus } from '../../kernel/event-bus.js';
+import { CognitiveEventEmitter, createNoopEmitter } from '../types.js';
 import type {
   Belief,
   Evidence,
@@ -32,13 +32,13 @@ import type {
 import { BayesianError } from '../errors.js';
 
 // Module-level EventBus — defaults to private, can be replaced with shared bus
-let eventBus = new EventBus();
+let eventBus: CognitiveEventEmitter = createNoopEmitter();
 
 /**
  * Replace the module-level EventBus with a shared instance.
  * Called by CognitionLayer.initialize() to connect LOGOS events to the kernel bus.
  */
-export function setLogosEventBus(bus: EventBus): void {
+export function setLogosEventBus(bus: CognitiveEventEmitter): void {
   eventBus = bus;
 }
 

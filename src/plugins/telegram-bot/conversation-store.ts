@@ -1,16 +1,29 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import Database from 'better-sqlite3';
 
-const PERSIST_DIR = join(homedir(), '.ari', 'conversations');
+const DB_DIR = join(homedir(), '.ari', 'data');
+const DB_PATH = join(DB_DIR, 'conversations.db');
+
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 const MAX_MESSAGES = 50;
-const SESSION_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 export interface ConversationEntry {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
   intent?: string;
+  emotion?: string;
+}
+
+// ─── SQLite row shapes ────────────────────────────────────────────────────────
+
+interface SessionRow {
+  chat_id: number;
+  messages_json: string;
+  last_activity: number;
+  topic_summary: string | null;
 }
 
 interface ConversationState {
@@ -19,136 +32,165 @@ interface ConversationState {
   topicSummary?: string;
 }
 
+// ─── Database singleton ───────────────────────────────────────────────────────
+
+let _db: Database.Database | null = null;
+
+function getDb(): Database.Database {
+  if (_db) return _db;
+
+  if (!existsSync(DB_DIR)) {
+    mkdirSync(DB_DIR, { recursive: true });
+  }
+
+  const db = new Database(DB_PATH);
+
+  // WAL mode: required for concurrent reads during daemon operation
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  db.pragma('synchronous = NORMAL');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS conversations (
+      chat_id      INTEGER PRIMARY KEY,
+      messages_json TEXT    NOT NULL DEFAULT '[]',
+      last_activity INTEGER NOT NULL DEFAULT 0,
+      topic_summary TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_conversations_last_activity
+      ON conversations(last_activity);
+  `);
+
+  _db = db;
+  return db;
+}
+
+// ─── ConversationStore ────────────────────────────────────────────────────────
+
 export class ConversationStore {
   private cache: Map<number, ConversationState> = new Map();
-  private dirty: Set<number> = new Set();
-  private persistTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
-    // Start periodic persist (every 30 seconds)
-    this.persistTimer = setInterval(() => {
-      void this.flushDirty();
-    }, 30_000);
+    // Eagerly initialise DB on construction
+    getDb();
   }
 
-  async addMessage(chatId: number, entry: ConversationEntry): Promise<void> {
-    const state = await this.getState(chatId);
-    state.messages.push(entry);
-    state.lastActivity = Date.now();
-
-    // Trim to max
-    if (state.messages.length > MAX_MESSAGES) {
-      state.messages = state.messages.slice(-MAX_MESSAGES);
-    }
-
-    this.cache.set(chatId, state);
-    this.dirty.add(chatId);
-  }
-
-  async addUserMessage(chatId: number, content: string, intent?: string): Promise<ConversationEntry[]> {
+  addUserMessage(chatId: number, content: string, intent?: string): Promise<ConversationEntry[]> {
     const entry: ConversationEntry = {
       role: 'user',
       content,
       timestamp: Date.now(),
       intent,
     };
-    await this.addMessage(chatId, entry);
-    const state = await this.getState(chatId);
-    return [...state.messages];
+    this.addMessage(chatId, entry);
+    const state = this.getState(chatId);
+    return Promise.resolve([...state.messages]);
   }
 
-  async addAssistantMessage(chatId: number, content: string): Promise<void> {
+  addAssistantMessage(chatId: number, content: string, emotion?: string): Promise<void> {
     const entry: ConversationEntry = {
       role: 'assistant',
       content,
       timestamp: Date.now(),
+      emotion,
     };
-    await this.addMessage(chatId, entry);
+    this.addMessage(chatId, entry);
+    return Promise.resolve();
   }
 
-  async getHistory(chatId: number): Promise<ConversationEntry[]> {
-    const state = await this.getState(chatId);
-    return [...state.messages];
+  getHistory(chatId: number): Promise<ConversationEntry[]> {
+    const state = this.getState(chatId);
+    return Promise.resolve([...state.messages]);
   }
 
   clearSession(chatId: number): void {
     this.cache.delete(chatId);
-    this.dirty.delete(chatId);
-    // Don't delete file — just let it expire
+    const db = getDb();
+    db.prepare('DELETE FROM conversations WHERE chat_id = ?').run(chatId);
   }
 
-  async shutdown(): Promise<void> {
-    if (this.persistTimer) {
-      clearInterval(this.persistTimer);
-      this.persistTimer = null;
+  shutdown(): Promise<void> {
+    this.flushAll();
+    if (_db) {
+      _db.close();
+      _db = null;
     }
-    await this.flushDirty();
+    return Promise.resolve();
   }
 
   getSessionCount(): number {
-    return this.cache.size;
+    const db = getDb();
+    const row = db.prepare<[number], { count: number }>(
+      'SELECT COUNT(*) as count FROM conversations WHERE last_activity > ?'
+    ).get(Date.now() - SESSION_TTL);
+    return row?.count ?? 0;
   }
 
-  private async getState(chatId: number): Promise<ConversationState> {
-    // Check cache first
+  // ── Internal helpers ────────────────────────────────────────────────────────
+
+  private addMessage(chatId: number, entry: ConversationEntry): void {
+    const state = this.getState(chatId);
+
+    state.messages.push(entry);
+    state.lastActivity = Date.now();
+
+    if (state.messages.length > MAX_MESSAGES) {
+      state.messages = state.messages.slice(-MAX_MESSAGES);
+    }
+
+    this.cache.set(chatId, state);
+    this.persist(chatId, state);
+  }
+
+  private getState(chatId: number): ConversationState {
+    // Check in-memory cache first
     const cached = this.cache.get(chatId);
-    if (cached) {
-      if (Date.now() - cached.lastActivity < SESSION_TTL) {
-        return cached;
-      }
-      // Expired
-      this.cache.delete(chatId);
+    if (cached && Date.now() - cached.lastActivity < SESSION_TTL) {
+      return cached;
     }
 
-    // Try loading from disk
-    const loaded = await this.loadFromDisk(chatId);
-    if (loaded && Date.now() - loaded.lastActivity < SESSION_TTL) {
-      this.cache.set(chatId, loaded);
-      return loaded;
+    // Load from DB
+    const db = getDb();
+    const row = db.prepare<[number, number], SessionRow>(
+      'SELECT * FROM conversations WHERE chat_id = ? AND last_activity > ?'
+    ).get(chatId, Date.now() - SESSION_TTL);
+
+    if (row) {
+      const state: ConversationState = {
+        messages: JSON.parse(row.messages_json) as ConversationEntry[],
+        lastActivity: row.last_activity,
+        topicSummary: row.topic_summary ?? undefined,
+      };
+      this.cache.set(chatId, state);
+      return state;
     }
 
-    // New session
-    const fresh: ConversationState = {
-      messages: [],
-      lastActivity: Date.now(),
-    };
+    // Fresh session
+    const fresh: ConversationState = { messages: [], lastActivity: Date.now() };
     this.cache.set(chatId, fresh);
     return fresh;
   }
 
-  private async loadFromDisk(chatId: number): Promise<ConversationState | null> {
-    try {
-      const filepath = join(PERSIST_DIR, `${chatId}.json`);
-      const raw = await readFile(filepath, 'utf-8');
-      const parsed = JSON.parse(raw) as unknown;
-      // Type assertion after JSON parse
-      return parsed as ConversationState;
-    } catch {
-      return null;
-    }
-  }
-
-  private async persistToDisk(chatId: number, state: ConversationState): Promise<void> {
-    try {
-      await mkdir(PERSIST_DIR, { recursive: true });
-      const filepath = join(PERSIST_DIR, `${chatId}.json`);
-      await writeFile(filepath, JSON.stringify(state, null, 2), 'utf-8');
-    } catch {
-      // Best-effort persistence
-    }
-  }
-
-  private async flushDirty(): Promise<void> {
-    const dirtyIds = Array.from(this.dirty);
-    this.dirty.clear();
-    await Promise.all(
-      dirtyIds.map(chatId => {
-        const state = this.cache.get(chatId);
-        if (state) {
-          return this.persistToDisk(chatId, state);
-        }
-        return Promise.resolve();
-      }),
+  private persist(chatId: number, state: ConversationState): void {
+    const db = getDb();
+    db.prepare(`
+      INSERT INTO conversations (chat_id, messages_json, last_activity, topic_summary)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(chat_id) DO UPDATE SET
+        messages_json  = excluded.messages_json,
+        last_activity  = excluded.last_activity,
+        topic_summary  = excluded.topic_summary
+    `).run(
+      chatId,
+      JSON.stringify(state.messages),
+      state.lastActivity,
+      state.topicSummary ?? null,
     );
+  }
+
+  private flushAll(): void {
+    for (const [chatId, state] of this.cache) {
+      this.persist(chatId, state);
+    }
   }
 }

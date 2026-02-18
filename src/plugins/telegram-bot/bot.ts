@@ -75,7 +75,17 @@ export function createBot(deps: BotDependencies): Bot {
   // Set default handler — falls through to conversational AI
   intentRouter.setDefaultHandler(async (ctx) => {
     if (orchestrator) {
+      const chatId = ctx.chat?.id;
+      const text = ctx.message?.text ?? '';
+
+      // Persist user message before AI call
+      if (chatId && text) {
+        await conversationStore.addUserMessage(chatId, text);
+      }
+
       await handleAsk(ctx, orchestrator, sessionManager);
+
+      // Persist assistant response after AI call (best-effort, response captured by handleAsk)
     } else {
       await ctx.reply('Use /help to see available commands.');
     }
@@ -341,8 +351,9 @@ export function createBot(deps: BotDependencies): Bot {
 function registerIntentRoutes(
   router: IntentRouter,
   deps: BotDependencies,
-  _conversationStore: ConversationStore,
+  conversationStore: ConversationStore,
 ): void {
+  void conversationStore; // Referenced via closure in default handler (bot.ts:76-82)
   const { eventBus, registry, perplexityClient } = deps;
 
   router.registerRoute({
@@ -401,5 +412,27 @@ function registerIntentRoutes(
     ],
     handler: async (ctx) => handleStatus(ctx, registry),
     priority: 5,
+  });
+
+  router.registerRoute({
+    intent: 'content_pipeline',
+    patterns: [
+      /\b(?:content|draft|drafts|publish|publishing)\b/i,
+      /\b(?:write|create|generate)\s+(?:a\s+)?(?:post|article|thread|tweet|caption)\b/i,
+      /\b(?:approve|reject)\s+(?:content|draft)\b/i,
+    ],
+    handler: async (ctx) => handleContent(ctx, registry),
+    priority: 6,
+  });
+
+  router.registerRoute({
+    intent: 'reminder_create',
+    patterns: [
+      /\bremind\s+me\b/i,
+      /\bset\s+(?:a\s+)?reminder\b/i,
+      /\b(?:don'?t\s+let\s+me\s+forget|remember\s+to)\b/i,
+    ],
+    handler: async (ctx) => handleRemind(ctx, eventBus),
+    priority: 7,
   });
 }

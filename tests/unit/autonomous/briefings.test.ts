@@ -228,23 +228,14 @@ describe('BriefingGenerator', () => {
         },
       });
 
-      expect(mockNotify).toHaveBeenCalledWith(
-        expect.objectContaining({
-          telegramHtml: expect.stringContaining('Governance'),
-        })
-      );
+      // telegramHtml is now string[] — join all parts to check content
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const htmlContent = notifyCall.telegramHtml.join('\n');
+      expect(htmlContent).toContain('Governance');
       // Check council votes rendered
-      expect(mockNotify).toHaveBeenCalledWith(
-        expect.objectContaining({
-          telegramHtml: expect.stringContaining('2 passed'),
-        })
-      );
+      expect(htmlContent).toContain('2 passed');
       // Check veto rendered
-      expect(mockNotify).toHaveBeenCalledWith(
-        expect.objectContaining({
-          telegramHtml: expect.stringContaining('AEGIS'),
-        })
-      );
+      expect(htmlContent).toContain('AEGIS');
     });
 
     it('should omit governance section when no activity', async () => {
@@ -262,11 +253,9 @@ describe('BriefingGenerator', () => {
         },
       });
 
-      expect(mockNotify).toHaveBeenCalledWith(
-        expect.objectContaining({
-          telegramHtml: expect.not.stringContaining('Governance'),
-        })
-      );
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const htmlContent = notifyCall.telegramHtml.join('\n');
+      expect(htmlContent).not.toContain('Governance');
     });
 
     it('should set higher priority when issues exist', async () => {

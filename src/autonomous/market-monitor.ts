@@ -210,13 +210,24 @@ interface CacheEntry<T> {
   expiresAt: number;
 }
 
+interface PriceCacheEntry {
+  price: number;
+  timestamp: number;
+}
+
 /**
  * Alpha Vantage API client for stocks and ETFs.
  * Free tier: 25 requests/day, so aggressive caching is essential.
+ * Daily request tracking prevents exceeding the free tier limit.
  */
 class AlphaVantageClient {
   private readonly apiKey: string | undefined;
   private readonly cache: Map<string, CacheEntry<unknown>> = new Map();
+  private readonly priceCache = new Map<string, PriceCacheEntry>();
+  private readonly CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+  private readonly DAILY_LIMIT = 20; // Leave 5 buffer from 25
+  private dailyRequestCount = 0;
+  private dailyRequestDate = ''; // YYYY-MM-DD, resets at midnight
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey;
@@ -225,9 +236,33 @@ class AlphaVantageClient {
   async getQuote(symbol: string): Promise<AlphaVantageQuote | null> {
     if (!this.apiKey) return null;
 
+    // Check price cache first (does not count against daily limit)
+    const priceCached = this.priceCache.get(symbol);
+    if (priceCached && Date.now() - priceCached.timestamp < this.CACHE_TTL) {
+      const key = `quote:${symbol}`;
+      const fullCached = this.getStaleCached<AlphaVantageQuote>(key);
+      if (fullCached) return fullCached;
+    }
+
     const key = `quote:${symbol}`;
     const cached = this.getCached<AlphaVantageQuote>(key);
     if (cached) return cached;
+
+    // Reset counter at midnight
+    const today = new Date().toISOString().slice(0, 10);
+    if (this.dailyRequestDate !== today) {
+      this.dailyRequestCount = 0;
+      this.dailyRequestDate = today;
+    }
+
+    // Check daily limit
+    if (this.dailyRequestCount >= this.DAILY_LIMIT) {
+      const staleCached = this.getStaleCached<AlphaVantageQuote>(key);
+      if (staleCached) return staleCached;
+      throw new Error(`Alpha Vantage daily limit reached (${this.DAILY_LIMIT})`);
+    }
+
+    this.dailyRequestCount++;
 
     try {
       const url = `${ALPHA_VANTAGE_BASE_URL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${this.apiKey}`;
@@ -245,6 +280,13 @@ class AlphaVantageClient {
       }
 
       this.setCache(key, data);
+
+      // Update price cache with current price
+      const price = parseFloat(data['Global Quote']['05. price']);
+      if (!isNaN(price)) {
+        this.priceCache.set(symbol, { price, timestamp: Date.now() });
+      }
+
       return data;
     } catch {
       return this.getStaleCached<AlphaVantageQuote>(key);
@@ -257,6 +299,22 @@ class AlphaVantageClient {
     const key = `timeseries:${symbol}`;
     const cached = this.getCached<AlphaVantageTimeSeriesDaily>(key);
     if (cached) return cached;
+
+    // Reset counter at midnight
+    const today = new Date().toISOString().slice(0, 10);
+    if (this.dailyRequestDate !== today) {
+      this.dailyRequestCount = 0;
+      this.dailyRequestDate = today;
+    }
+
+    // Check daily limit
+    if (this.dailyRequestCount >= this.DAILY_LIMIT) {
+      const staleCached = this.getStaleCached<AlphaVantageTimeSeriesDaily>(key);
+      if (staleCached) return staleCached;
+      throw new Error(`Alpha Vantage daily limit reached (${this.DAILY_LIMIT})`);
+    }
+
+    this.dailyRequestCount++;
 
     try {
       const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${this.apiKey}`;
@@ -281,6 +339,7 @@ class AlphaVantageClient {
 
   clearCache(): void {
     this.cache.clear();
+    this.priceCache.clear();
   }
 
   private getCached<T>(key: string): T | null {

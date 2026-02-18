@@ -17,7 +17,7 @@
  * @version 1.0.0
  */
 
-import { EventBus } from '../../kernel/event-bus.js';
+import { CognitiveEventEmitter, createNoopEmitter } from '../types.js';
 import type {
   CBTReframe,
   CognitiveDistortion,
@@ -38,13 +38,13 @@ import {
 import { CBTError, StoicError, ReflectionError, WisdomError } from '../errors.js';
 
 // Module-level EventBus — defaults to private, can be replaced with shared bus
-let eventBus = new EventBus();
+let eventBus: CognitiveEventEmitter = createNoopEmitter();
 
 /**
  * Replace the module-level EventBus with a shared instance.
  * Called by CognitionLayer.initialize() to connect PATHOS events to the kernel bus.
  */
-export function setPathosEventBus(bus: EventBus): void {
+export function setPathosEventBus(bus: CognitiveEventEmitter): void {
   eventBus = bus;
 }
 

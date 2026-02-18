@@ -13,6 +13,13 @@ import { TrendAnalyzer } from './trend-analyzer.js';
 import { ContentDrafter } from './content-drafter.js';
 import { DraftQueue } from './draft-queue.js';
 import { ContentPublisher } from './publisher.js';
+import { ContentRepurposer } from './repurposer.js';
+import { EngagementBot } from './engagement-bot.js';
+import { ContentAnalytics } from './analytics.js';
+import { FeedbackLoop } from './feedback-loop.js';
+import { IntentMonitor } from './intent-monitor.js';
+import { ContentQualityScorer } from './quality-scorer.js';
+import { RevisionEngine } from './revision-engine.js';
 import type { XClient } from '../../integrations/twitter/client.js';
 import { createLogger } from '../../kernel/logger.js';
 
@@ -36,6 +43,13 @@ export class ContentEnginePlugin implements DomainPlugin {
   private drafter!: ContentDrafter;
   private draftQueue!: DraftQueue;
   private publisher!: ContentPublisher;
+  private repurposer: ContentRepurposer | null = null;
+  private engagementBot: EngagementBot | null = null;
+  private analytics: ContentAnalytics | null = null;
+  private feedbackLoop: FeedbackLoop | null = null;
+  private intentMonitor: IntentMonitor | null = null;
+  private qualityScorer: ContentQualityScorer | null = null;
+  private revisionEngine: RevisionEngine | null = null;
 
   async initialize(deps: PluginDependencies): Promise<void> {
     this.eventBus = deps.eventBus;
@@ -44,8 +58,31 @@ export class ContentEnginePlugin implements DomainPlugin {
     this.draftQueue = new DraftQueue(deps.eventBus, deps.dataDir);
     await this.draftQueue.init();
 
+    // Components that accept null xClient — instantiate now, xClient wired later via initPublisher
+    this.analytics = new ContentAnalytics(null);
+    await this.analytics.loadMetrics();
+    this.feedbackLoop = new FeedbackLoop(this.analytics);
+    this.engagementBot = new EngagementBot(null, null);
+    this.intentMonitor = new IntentMonitor(null, null);
+
     if (deps.orchestrator) {
       this.drafter = new ContentDrafter(deps.orchestrator, this.config);
+      this.repurposer = new ContentRepurposer(deps.orchestrator);
+      this.qualityScorer = new ContentQualityScorer(deps.orchestrator);
+      const orch = deps.orchestrator;
+      this.revisionEngine = new RevisionEngine({
+        chat: (messages: Array<{ role: string; content: string }>, systemPrompt?: string) =>
+          orch.chat(
+            messages.map((m) => ({
+              role: m.role === 'assistant' ? 'assistant' : 'user',
+              content: m.content,
+            })),
+            systemPrompt,
+          ),
+      });
+      // Wire orchestrator into engagement and intent components
+      this.engagementBot = new EngagementBot(null, deps.orchestrator);
+      this.intentMonitor = new IntentMonitor(null, deps.orchestrator);
     }
 
     // Publisher requires XClient — initialized externally if available
@@ -129,5 +166,33 @@ export class ContentEnginePlugin implements DomainPlugin {
 
   getConfig(): ContentEngineConfig {
     return this.config;
+  }
+
+  getRepurposer(): ContentRepurposer | null {
+    return this.repurposer;
+  }
+
+  getEngagementBot(): EngagementBot | null {
+    return this.engagementBot;
+  }
+
+  getAnalytics(): ContentAnalytics | null {
+    return this.analytics;
+  }
+
+  getFeedbackLoop(): FeedbackLoop | null {
+    return this.feedbackLoop;
+  }
+
+  getIntentMonitor(): IntentMonitor | null {
+    return this.intentMonitor;
+  }
+
+  getQualityScorer(): ContentQualityScorer | null {
+    return this.qualityScorer;
+  }
+
+  getRevisionEngine(): RevisionEngine | null {
+    return this.revisionEngine;
   }
 }

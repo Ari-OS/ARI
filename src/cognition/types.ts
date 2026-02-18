@@ -11,6 +11,30 @@
 import { z } from 'zod';
 
 // =============================================================================
+// LAYER 0 EVENT EMITTER — keeps L0 self-contained (no kernel imports)
+// =============================================================================
+
+/**
+ * Minimal event emitter interface for Layer 0 cognitive code.
+ * Accepts the real EventBus (L1) at runtime via dependency injection,
+ * but L0 only depends on this local interface — no kernel imports.
+ */
+export interface CognitiveEventEmitter {
+  emit(event: string, payload: unknown): void;
+  on(event: string, handler: (payload: unknown) => void): () => void;
+}
+
+/** No-op emitter used when no bus is provided at construction time. */
+const NOOP_EMITTER: CognitiveEventEmitter = {
+  emit: () => undefined,
+  on: () => () => undefined,
+};
+
+export function createNoopEmitter(): CognitiveEventEmitter {
+  return NOOP_EMITTER;
+}
+
+// =============================================================================
 // COMMON TYPES
 // =============================================================================
 

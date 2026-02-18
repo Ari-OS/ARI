@@ -1,5 +1,6 @@
 import type { Context } from 'grammy';
 import type { EventBus } from '../../../kernel/event-bus.js';
+import { splitTelegramMessage } from '../format.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // /memory — Store, recall, and manage memory
@@ -89,12 +90,9 @@ export async function handleMemory(
       }
 
       const response = lines.join('\n');
-
-      if (response.length > 4000) {
-        const truncated = response.slice(0, 3900) + '\n\n... (truncated)';
-        await ctx.reply(truncated, { parse_mode: 'HTML' });
-      } else {
-        await ctx.reply(response, { parse_mode: 'HTML' });
+      const chunks = splitTelegramMessage(response);
+      for (const chunk of chunks) {
+        await ctx.reply(chunk, { parse_mode: 'HTML' });
       }
 
       eventBus.emit('telegram:memory_recalled', {

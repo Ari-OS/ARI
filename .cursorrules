@@ -18,32 +18,36 @@ Every line of code serves this mission. No bloat. No shortcuts. No compromise.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         6. INTERFACES (CLI)                              │
-│  src/cli/ — Commander.js commands, user-facing interface                │
-│                              ↓ imports                                   │
+│                         6. INTERFACES (CLI)                            │
+│  src/cli/ — Commander.js commands, user-facing interface               │
+│                              ↓ imports                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                         5. EXECUTION (Ops)                               │
-│  src/ops/ — macOS launchd daemon, infrastructure management             │
-│                              ↓ imports                                   │
+│                         5. EXECUTION (Ops)                             │
+│  src/ops/ — macOS launchd daemon, infrastructure management            │
+│                              ↓ imports                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                      4. STRATEGIC (Governance)                           │
-│  src/governance/ — Council (13 members), Arbiter (5 rules),             │
-│                    Overseer (5 quality gates)                           │
-│                              ↓ imports                                   │
+│                      4. STRATEGIC (Governance)                         │
+│  src/governance/ — Council (VOTING_AGENTS), Arbiter (constitutional    │
+│                    rules), Overseer (5 quality gates)                  │
+│                              ↓ imports                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                          3. CORE (Agents)                                │
-│  src/agents/ — Core orchestrator, Guardian (threat detection),          │
-│                Planner (DAG), Executor (tools), MemoryManager           │
-│                              ↓ imports                                   │
+│                          3. CORE (Agents)                              │
+│  src/agents/ — Core orchestrator, Guardian (threat detection),         │
+│                Planner (DAG), Executor (tools), MemoryManager          │
+│                              ↓ imports                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                         2. SYSTEM (Router)                               │
-│  src/system/ — Event routing, context triggers, storage                 │
-│                              ↓ imports                                   │
+│                         2. SYSTEM (Router)                             │
+│  src/system/ — Event routing, context triggers, storage                │
+│                              ↓ imports                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                          1. KERNEL (Core)                                │
-│  src/kernel/ — Gateway (127.0.0.1 ONLY), Sanitizer (21 patterns),       │
-│                Audit (SHA-256 chain), EventBus, Config, Types           │
-│                         [SELF-CONTAINED]                                 │
+│                          1. KERNEL (Core)                              │
+│  src/kernel/ — Gateway (127.0.0.1 ONLY), Sanitizer (42 patterns,      │
+│                14 categories), Audit (SHA-256 chain), EventBus, Types  │
+│                              ↓ imports                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                       0. COGNITIVE (Foundation)                        │
+│  src/cognition/ — LOGOS (reasoning), ETHOS (ethics), PATHOS (empathy)  │
+│                         [SELF-CONTAINED]                               │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -51,6 +55,7 @@ Every line of code serves this mission. No bloat. No shortcuts. No compromise.
 - **Lower layers CANNOT import from higher layers** — This is absolute
 - **All inter-layer communication goes through EventBus** — No exceptions
 - **Kernel is self-contained** — Zero external layer dependencies
+- **Cognitive (L0) is self-contained** — LOGOS/ETHOS/PATHOS have no imports
 
 ---
 
@@ -234,6 +239,7 @@ function processTask(input: unknown): Task {
 - **Coverage**: 80% minimum overall
 - **Security Paths**: 100% coverage (kernel/sanitizer, agents/guardian, governance/arbiter)
 - **Location**: `tests/unit/[layer]/[component].test.ts`
+- **Current**: 5,460+ tests across 218+ files
 
 ### Test Structure
 ```typescript
@@ -281,10 +287,10 @@ describe('ComponentUnderTest', () => {
 Located in `/dashboard/` — separate package, own dependencies.
 
 ### Tech Stack
-- React 18 + TypeScript
-- Tailwind CSS (purple/black theme)
+- React 19 + TypeScript 5.7
+- Tailwind CSS v4 (dark theme only)
 - TanStack Query (server state)
-- Vite (build tool)
+- Vite 7 (build tool)
 
 ### Component Pattern
 ```tsx
@@ -343,8 +349,6 @@ type(scope): lowercase description
 
 Extended description of what changed and why.
 Reference any issues or design decisions.
-
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 ```
 
 ### Types
@@ -357,10 +361,11 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 - `chore` — Build, config, dependencies
 
 ### Pre-commit Checks (Automated)
-1. ESLint passes
-2. TypeScript compiles
-3. All tests pass
-4. Commit message follows convention
+1. PII scan passes
+2. ESLint passes
+3. TypeScript compiles
+4. All tests pass
+5. Commit message follows convention (lowercase subjects enforced)
 
 ---
 
@@ -373,7 +378,7 @@ npm run build        # Compile TypeScript → dist/
 npm run dev          # Watch mode
 
 # Quality
-npm test             # Run all 187 tests
+npm test             # Run all tests
 npm run test:watch   # Watch mode
 npm run test:coverage # Coverage report
 npm run typecheck    # TypeScript only
@@ -392,7 +397,7 @@ cd dashboard && npm run build  # Production build
 ### Shadow Integration (Jung)
 Don't suppress the darkness — integrate it. Log suspicious behavior, understand patterns, learn from threats.
 ```typescript
-// ✅ CORRECT: Acknowledge, log, handle
+// CORRECT: Acknowledge, log, handle
 if (riskScore > 0.8) {
   this.eventBus.emit('security:threat_detected', {
     risk: riskScore,
@@ -402,7 +407,7 @@ if (riskScore > 0.8) {
   throw new SecurityError('Threat detected and logged');
 }
 
-// ❌ WRONG: Silent suppression
+// WRONG: Silent suppression
 if (riskScore > 0.8) return; // The shadow grows in darkness
 ```
 
@@ -420,31 +425,31 @@ Delete mercilessly. Simplify relentlessly.
 
 ## ABSOLUTE DON'Ts
 
-- ❌ **NEVER** bypass kernel for input processing
-- ❌ **NEVER** modify audit logs (immutable hash chain)
-- ❌ **NEVER** use external network (loopback only)
-- ❌ **NEVER** import higher layers from lower layers
-- ❌ **NEVER** suppress errors silently
-- ❌ **NEVER** skip permission checks
-- ❌ **NEVER** use `any` type
-- ❌ **NEVER** hardcode secrets or credentials
-- ❌ **NEVER** over-engineer simple solutions
-- ❌ **NEVER** add features without tests
+- **NEVER** bypass kernel for input processing
+- **NEVER** modify audit logs (immutable hash chain)
+- **NEVER** use external network (loopback only)
+- **NEVER** import higher layers from lower layers
+- **NEVER** suppress errors silently
+- **NEVER** skip permission checks
+- **NEVER** use `any` type
+- **NEVER** hardcode secrets or credentials
+- **NEVER** over-engineer simple solutions
+- **NEVER** add features without tests
 
 ---
 
 ## ABSOLUTE DO's
 
-- ✅ **ALWAYS** read files before editing
-- ✅ **ALWAYS** run tests after changes
-- ✅ **ALWAYS** emit audit events for state changes
-- ✅ **ALWAYS** validate input with Zod schemas
-- ✅ **ALWAYS** handle errors explicitly
-- ✅ **ALWAYS** use EventBus for inter-layer communication
-- ✅ **ALWAYS** maintain 80%+ test coverage
-- ✅ **ALWAYS** write clear commit messages
-- ✅ **ALWAYS** consider security implications
-- ✅ **ALWAYS** keep it simple
+- **ALWAYS** read files before editing
+- **ALWAYS** run tests after changes
+- **ALWAYS** emit audit events for state changes
+- **ALWAYS** validate input with Zod schemas
+- **ALWAYS** handle errors explicitly
+- **ALWAYS** use EventBus for inter-layer communication
+- **ALWAYS** maintain 80%+ test coverage
+- **ALWAYS** write clear commit messages
+- **ALWAYS** consider security implications
+- **ALWAYS** keep it simple
 
 ---
 
@@ -454,12 +459,28 @@ Delete mercilessly. Simplify relentlessly.
 |------|---------|------------------|
 | `src/kernel/types.ts` | All Zod schemas | Single source of truth for types |
 | `src/kernel/event-bus.ts` | Inter-layer communication | All layers depend on this |
-| `src/kernel/sanitizer.ts` | 21 injection patterns | Security boundary |
+| `src/kernel/sanitizer.ts` | 42 injection patterns, 14 categories | Security boundary |
 | `src/kernel/audit.ts` | SHA-256 hash chain | Tamper-evident logging |
 | `src/kernel/gateway.ts` | Fastify server | Entry point, loopback only |
 | `src/agents/core.ts` | Message pipeline | Orchestrates all agents |
+| `src/cognition/` | LOGOS/ETHOS/PATHOS | Cognitive foundation (Layer 0) |
 | `CLAUDE.md` | AI assistant context | Comprehensive project docs |
 | `SECURITY.md` | Security model | Invariants and threat model |
+
+---
+
+## Locked ADRs (DO NOT CHANGE)
+
+| ADR | Decision |
+|-----|----------|
+| 001 | Loopback-only gateway |
+| 002 | SHA-256 hash chain audit |
+| 003 | EventBus single coupling point |
+| 004 | Seven-layer architecture (L0-L6) |
+| 005 | Content ≠ Command |
+| 006 | Zod for validation |
+| 007 | Vitest for testing |
+| 008 | macOS-first (Phase 1-3) |
 
 ---
 

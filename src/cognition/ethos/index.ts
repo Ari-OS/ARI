@@ -17,7 +17,7 @@
  * @version 1.0.0
  */
 
-import { EventBus } from '../../kernel/event-bus.js';
+import { CognitiveEventEmitter, createNoopEmitter } from '../types.js';
 import type {
   BiasAnalysis,
   BiasDetection,
@@ -31,13 +31,13 @@ import { BIAS_PATTERNS, EMOTION_MAPPINGS } from '../constants.js';
 import { BiasDetectionError, EmotionalStateError } from '../errors.js';
 
 // Module-level EventBus — defaults to private, can be replaced with shared bus
-let eventBus = new EventBus();
+let eventBus: CognitiveEventEmitter = createNoopEmitter();
 
 /**
  * Replace the module-level EventBus with a shared instance.
  * Called by CognitionLayer.initialize() to connect ETHOS events to the kernel bus.
  */
-export function setEthosEventBus(bus: EventBus): void {
+export function setEthosEventBus(bus: CognitiveEventEmitter): void {
   eventBus = bus;
 }
 

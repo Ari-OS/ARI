@@ -16,6 +16,7 @@ import path from 'node:path';
 import { homedir } from 'node:os';
 import { EventBus } from '../kernel/event-bus.js';
 import { createLogger } from '../kernel/logger.js';
+import { execFileNoThrow } from '../utils/execFileNoThrow.js';
 
 const log = createLogger('backup-manager');
 
@@ -462,17 +463,19 @@ export class BackupManager {
   }
 
   private async compressDirectory(srcDir: string, destArchive: string): Promise<void> {
-    const { execFileSync } = await import('node:child_process');
     const parentDir = path.dirname(srcDir);
     const dirName = path.basename(srcDir);
-    // Use execFileSync with argument array to prevent shell injection
-    execFileSync('tar', ['-czf', destArchive, '-C', parentDir, dirName]);
+    const result = await execFileNoThrow('tar', ['-czf', destArchive, '-C', parentDir, dirName]);
+    if (result.status !== 0) {
+      throw new Error(`tar compress failed (status ${result.status}): ${result.stderr}`);
+    }
   }
 
   private async decompressArchive(archivePath: string, destDir: string): Promise<void> {
-    const { execFileSync } = await import('node:child_process');
-    // Use execFileSync with argument array to prevent shell injection
-    execFileSync('tar', ['-xzf', archivePath, '-C', destDir]);
+    const result = await execFileNoThrow('tar', ['-xzf', archivePath, '-C', destDir]);
+    if (result.status !== 0) {
+      throw new Error(`tar decompress failed (status ${result.status}): ${result.stderr}`);
+    }
   }
 
   private async updateLatestSymlink(targetPath: string): Promise<void> {

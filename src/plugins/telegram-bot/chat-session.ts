@@ -1,6 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
+import { loadWorkspaceFile } from '../../system/workspace-loader.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CHAT SESSION — Per-user conversation memory for Telegram
@@ -60,10 +58,10 @@ export class ChatSessionManager {
    * Get the system prompt built from workspace files.
    * Cached for 5 minutes to avoid rebuilding on every message.
    */
-  getSystemPrompt(): string {
+  async getSystemPrompt(): Promise<string> {
     const now = Date.now();
     if (!this.cachedPrompt || (now - this.promptCacheTime) > ChatSessionManager.PROMPT_CACHE_TTL) {
-      this.cachedPrompt = buildSystemPrompt();
+      this.cachedPrompt = await buildSystemPrompt();
       this.promptCacheTime = now;
     }
     return this.cachedPrompt;
@@ -112,16 +110,8 @@ export class ChatSessionManager {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SYSTEM PROMPT BUILDER — Loads from ~/.ari/workspace/ files
+// SYSTEM PROMPT BUILDER — Loads from ~/.ari/workspace/ via shared workspace-loader
 // ═══════════════════════════════════════════════════════════════════════════════
-
-function loadWorkspaceFile(filename: string): string {
-  const filepath = join(homedir(), '.ari', 'workspace', filename);
-  if (existsSync(filepath)) {
-    return readFileSync(filepath, 'utf-8').trim();
-  }
-  return '';
-}
 
 function getTimeOfDayContext(): string {
   const hour = new Date().getHours();
@@ -132,10 +122,15 @@ function getTimeOfDayContext(): string {
   return 'night';
 }
 
-function buildSystemPrompt(): string {
-  const soul = loadWorkspaceFile('SOUL.md');
-  const identity = loadWorkspaceFile('IDENTITY.md');
-  const user = loadWorkspaceFile('USER.md');
+async function buildSystemPrompt(): Promise<string> {
+  const [soul, identity, user, goals, preferences] = await Promise.all([
+    loadWorkspaceFile('SOUL.md'),
+    loadWorkspaceFile('IDENTITY.md'),
+    loadWorkspaceFile('USER.md'),
+    loadWorkspaceFile('GOALS.md'),
+    loadWorkspaceFile('PREFERENCES.md'),
+  ]);
+
   const timeOfDay = getTimeOfDayContext();
 
   const parts: string[] = [
@@ -175,6 +170,14 @@ function buildSystemPrompt(): string {
 
   if (user) {
     parts.push('', user);
+  }
+
+  if (goals) {
+    parts.push('', goals);
+  }
+
+  if (preferences) {
+    parts.push('', preferences);
   }
 
   return parts.join('\n');

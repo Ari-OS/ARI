@@ -68,16 +68,9 @@ export class WhisperClient {
       language: config.language,
     };
 
-    // Security: Enforce loopback-only for local mode per ARI's security invariants
-    if (
-      this.config.mode === 'local' &&
-      this.config.localUrl &&
-      !this.config.localUrl.includes('127.0.0.1') &&
-      !this.config.localUrl.includes('localhost')
-    ) {
-      logger.warn(
-        'Whisper local URL is not loopback-only; ARI security policy prefers 127.0.0.1'
-      );
+    // Security: Enforce loopback-only for local mode per ARI's security invariants (ADR-001)
+    if (this.config.mode === 'local' && this.config.localUrl) {
+      this.validateEndpoint(this.config.localUrl);
     }
 
     logger.info('Whisper client initialized', {
@@ -85,6 +78,26 @@ export class WhisperClient {
       model: this.config.model,
       url: this.config.mode === 'local' ? this.config.localUrl : DEFAULT_API_URL,
     });
+  }
+
+  /**
+   * Validate that a local endpoint is loopback-only (ADR-001 security invariant).
+   * Throws if the URL resolves to anything other than 127.0.0.1 or localhost.
+   */
+  private validateEndpoint(url: string): void {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new Error(`Whisper: invalid local URL: ${url}`);
+    }
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname !== '127.0.0.1' && hostname !== 'localhost' && hostname !== '::1') {
+      throw new Error(
+        `Whisper local mode requires loopback URL (127.0.0.1 or localhost). ` +
+        `Got: ${hostname}. Non-loopback endpoints are not permitted (ADR-001).`,
+      );
+    }
   }
 
   /**

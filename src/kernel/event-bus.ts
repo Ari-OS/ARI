@@ -656,13 +656,62 @@ export interface EventMap {
   'integration:perplexity_ready': { timestamp: string };
 
   // ═══════════════════════════════════════════════════════════════════════
-  // X API CREDIT TRACKING events (Pay-Per-Use Model)
+  // VIDEO PIPELINE events (Approval Gate)
+  // ═══════════════════════════════════════════════════════════════════════
+  'video:approval_requested': { requestId: string; type: string; videoProjectId: string; timestamp: string };
+  'video:approval_response': { requestId: string; action: string; feedback?: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // MISSING EVENTS — Phase 0 Bug 6 additions
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Alert events
+  'alert:system_unhealthy': { timestamp: string; components: string[]; severity: string };
+
+  // Backup events (canonical names alongside ops:backup_*)
+  'backup:completed': { type: string; path: string; size: number; duration: number };
+  'backup:failed': { type: string; error: string; retryable: boolean };
+  'backup:pruned': { deletedCount: number; remainingCount: number; freedBytes: number };
+
+  // Investment events
+  'investment:analysis_complete': { symbol: string; recommendation: string; confidence: number; timestamp: string };
+
+  // Career events
+  'career:weekly_report': { matchCount: number; topMatches: string[]; timestamp: string };
+
+  // Pokemon events
+  'pokemon:price_spike': { cardId: string; cardName: string; priceUsd: number; changePercent: number; timestamp: string };
+  'pokemon:investment_signal': { cardId: string; cardName: string; signal: 'buy' | 'sell' | 'hold'; confidence: number; timestamp: string };
+
+  // Calendar events
+  'calendar:events_fetched': { timestamp: string; eventCount: number; nextEvent: string | null };
+  'calendar:reminder': { title: string; startsAt: string; minutesBefore: number };
+
+  // Health check events
+  'health:check_complete': { timestamp: string; healthy: boolean; components: Record<string, boolean> };
+
+  // Content events
+  'content:rejected': { timestamp: string; draftId: string; reason: string };
+
+  // Project events
+  'project:proposed': { timestamp: string; name: string; description: string };
+  'project:approved': { timestamp: string; name: string; scaffoldedAt: string };
+
+  // Preference events
+  'preference:updated': { timestamp: string; key: string; value: unknown };
+  'preference:learned': { timestamp: string; pattern: string; confidence: number };
+
+  // Feedback events (Phase 3 — 👍/👎)
+  'feedback:signal': { messageId: string; chatId: number; signal: 'positive' | 'negative'; context?: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // X (formerly Twitter) events
   // ═══════════════════════════════════════════════════════════════════════
   'x:cost_tracked': { operation: string; endpoint: string; cost: number; itemCount: number; deduplicated: number; timestamp: string };
   'x:limit_approaching': { percentUsed: number; spent: number; limit: number; level: 'warning' | 'critical'; timestamp: string };
-  'x:operation_skipped': { operation: string; reason: string; priority: number; timestamp: string };
   'x:daily_reset': { previousDate: string; previousSpent: number; newDate: string; timestamp: string };
   'x:request_deduplicated': { operation: string; originalCount: number; deduplicatedCount: number; savedCost: number; timestamp: string };
+  'x:operation_skipped': { operation: string; reason: string; priority: number; timestamp: string };
 }
 
 /**

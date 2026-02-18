@@ -61,7 +61,7 @@ export interface NotificationRequest {
   actionUrl?: string;
   expiresAt?: Date;
   dedupKey?: string; // For deduplication
-  telegramHtml?: string; // Pre-formatted HTML for Telegram (bypasses auto-formatting)
+  telegramHtml?: string | string[]; // Pre-formatted HTML for Telegram (bypasses auto-formatting; array sends as multiple messages)
 }
 
 export interface NotificationResult {
@@ -365,6 +365,10 @@ export class NotificationManager {
 
   /**
    * Send Telegram notification
+   *
+   * When telegramHtml is a string[], sends each part as a separate message to
+   * stay within Telegram's 4096-character limit. The first part's result is
+   * returned; subsequent parts are fire-and-forget (errors are swallowed).
    */
   private async sendTelegram(
     request: NotificationRequest,
@@ -375,11 +379,32 @@ export class NotificationManager {
       return undefined;
     }
 
-    // Use pre-formatted HTML if provided, otherwise auto-format
-    const message = request.telegramHtml
-      ?? `${this.getCategoryIcon(request.category)} <b>${this.escapeHtml(request.title)}</b>\n${this.escapeHtml(request.body)}`;
+    // Build the parts to send
+    let parts: string[];
+    if (Array.isArray(request.telegramHtml)) {
+      parts = request.telegramHtml;
+    } else if (request.telegramHtml) {
+      parts = [request.telegramHtml];
+    } else {
+      parts = [
+        `${this.getCategoryIcon(request.category)} <b>${this.escapeHtml(request.title)}</b>\n${this.escapeHtml(request.body)}`,
+      ];
+    }
 
-    return await this.telegram.send(message, { forceDelivery: force, silent });
+    // Send first part and capture result for the caller
+    const firstResult = await this.telegram.send(parts[0], { forceDelivery: force, silent });
+
+    // Send remaining parts (continuation messages); errors are swallowed to
+    // avoid failing the whole notification over a partial send.
+    for (const part of parts.slice(1)) {
+      try {
+        await this.telegram.send(part, { forceDelivery: force, silent });
+      } catch {
+        // Continuation part failed — first part already delivered, so non-fatal
+      }
+    }
+
+    return firstResult;
   }
 
   /**

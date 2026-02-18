@@ -28,7 +28,7 @@ import { generateDailyBrief, formatDailyBrief } from './user-deliverables.js';
 import { CostTracker, ThrottleLevel } from '../observability/cost-tracker.js';
 import { ApprovalQueue } from './approval-queue.js';
 import { AuditLogger } from '../kernel/audit.js';
-import { HealthMonitor } from '../ops/health-monitor.js';
+
 import { GitSync } from '../ops/git-sync.js';
 import { BackupManager } from './backup-manager.js';
 import { MarketMonitor } from './market-monitor.js';
@@ -43,12 +43,13 @@ import { NotificationRouter } from './notification-router.js';
 import { governanceReporter } from './governance-reporter.js';
 import { XClient } from '../integrations/twitter/client.js';
 import type { ContentEnginePlugin } from '../plugins/content-engine/index.js';
+import { DocumentIngestor } from '../system/document-ingestor.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const log = createLogger('autonomous-agent');
 
-const AUTONOMOUS_SYSTEM_PROMPT = `You are ARI (Artificial Reasoning Intelligence), a personal AI assistant running on a local machine.
+const FALLBACK_SYSTEM_PROMPT = `You are ARI (Artificial Reasoning Intelligence), a personal AI assistant running on a local machine.
 
 Your capabilities:
 - Answer questions and provide information
@@ -103,6 +104,7 @@ export class AutonomousAgent {
   private marketMonitor: MarketMonitor | null = null;
   private portfolioTracker: PortfolioTracker | null = null;
   private contentEngine: ContentEnginePlugin | null = null;
+  private documentIngestor: DocumentIngestor | null = null;
 
   // Cached scan results for unified morning briefing
   private lastDigest: import('./daily-digest.js').DailyDigest | null = null;
@@ -199,6 +201,12 @@ export class AutonomousAgent {
     // Initialize knowledge index
     await this.knowledgeIndex.init();
 
+    // Initialize document ingestor for RAG pipeline
+    const ingestorDataDir = path.join(process.env.HOME || '~', '.ari', 'knowledge', 'ingested');
+    this.documentIngestor = new DocumentIngestor(ingestorDataDir);
+    await this.documentIngestor.init();
+    log.info({ dataDir: ingestorDataDir }, 'Document ingestor initialized');
+
     // Initialize agent spawner
     await this.agentSpawner.init();
 
@@ -264,6 +272,10 @@ export class AutonomousAgent {
       enabled: !!process.env.X_BEARER_TOKEN,
       bearerToken: process.env.X_BEARER_TOKEN,
       userId: process.env.X_USER_ID,
+      apiKey: process.env.X_API_KEY,
+      apiSecret: process.env.X_API_SECRET,
+      accessToken: process.env.X_ACCESS_TOKEN,
+      accessSecret: process.env.X_ACCESS_SECRET,
     });
     if (process.env.X_BEARER_TOKEN) {
       await xClient.init();
@@ -324,14 +336,18 @@ export class AutonomousAgent {
     await this.portfolioTracker.init();
     log.info('Portfolio tracker initialized');
 
-    // Initialize content engine plugin
+    // Initialize content engine plugin with real orchestrator
     try {
       const { ContentEnginePlugin } = await import('../plugins/content-engine/index.js');
+      const { AIOrchestrator } = await import('../ai/orchestrator.js');
       this.contentEngine = new ContentEnginePlugin();
       const ceDataDir = path.join(process.env.HOME || '~', '.ari', 'plugins', 'content-engine', 'data');
+      const contentOrchestrator = new AIOrchestrator(this.eventBus, {
+        costTracker: this.costTracker ?? undefined,
+      });
       await this.contentEngine.initialize({
         eventBus: this.eventBus,
-        orchestrator: null as unknown as import('../ai/orchestrator.js').AIOrchestrator,
+        orchestrator: contentOrchestrator,
         config: {},
         dataDir: ceDataDir,
         costTracker: this.costTracker,
@@ -728,7 +744,7 @@ export class AutonomousAgent {
       }
 
       // Process the task through AI (single call — replaces parseCommand + processCommand)
-      const prompt = AUTONOMOUS_SYSTEM_PROMPT + '\n\nTask: ' + task.content;
+      const prompt = await this.getAutonomousPrompt('Task: ' + task.content);
       const responseMessage = await this.aiProvider.query(prompt, 'autonomous');
 
       // Update task as completed
@@ -769,6 +785,76 @@ export class AutonomousAgent {
       this.state.errors++;
       await this.saveState();
     }
+  }
+
+  /**
+   * Build the system prompt, loading identity from workspace files when available.
+   * Falls back to FALLBACK_SYSTEM_PROMPT if workspace files are absent or unreadable.
+   */
+  private async getAutonomousPrompt(taskSuffix?: string): Promise<string> {
+    try {
+      const { loadIdentityPrompt } = await import('../system/workspace-loader.js');
+      const identity = await loadIdentityPrompt();
+      if (identity && identity.length > 100) {
+        const base = identity;
+        return taskSuffix ? `${base}\n\n## Current Task\n${taskSuffix}` : base;
+      }
+    } catch (error) {
+      log.warn({ error: error instanceof Error ? error.message : String(error) }, 'Failed to load workspace identity, using fallback');
+    }
+    const base = FALLBACK_SYSTEM_PROMPT;
+    return taskSuffix ? `${base}\n\n## Current Task\n${taskSuffix}` : base;
+  }
+
+  /**
+   * Build a plain-text summary of the morning briefing context for knowledge ingestion.
+   * Converts structured briefing data into a searchable text representation.
+   */
+  private buildBriefingText(context: {
+    digest?: import('./daily-digest.js').DailyDigest | null;
+    lifeMonitorReport?: import('./life-monitor.js').LifeMonitorReport | null;
+    careerMatches?: Array<{ title: string; company: string; matchScore: number; remote: boolean }> | null;
+    portfolio?: import('./briefings.js').BriefingPortfolio | null;
+    marketAlerts?: Array<{ asset: string; change: string; severity: string }> | null;
+    weather?: { location: string; tempF: number; condition: string } | null;
+    techNews?: Array<{ title: string; source: string }> | null;
+  }): string {
+    const date = new Date().toISOString().slice(0, 10);
+    const parts: string[] = [`Morning Briefing ${date}`];
+
+    if (context.digest) {
+      parts.push(`Intelligence: ${context.digest.stats.itemsIncluded} items from ${context.digest.stats.sourcesScanned} sources`);
+    }
+
+    if (context.lifeMonitorReport) {
+      parts.push(`Life Monitor: ${context.lifeMonitorReport.summary}`);
+    }
+
+    if (context.careerMatches && context.careerMatches.length > 0) {
+      const topMatch = context.careerMatches[0];
+      parts.push(`Career: ${topMatch.title} at ${topMatch.company} (${topMatch.matchScore}% match)`);
+    }
+
+    if (context.portfolio) {
+      const sign = context.portfolio.dailyChangePercent >= 0 ? '+' : '';
+      parts.push(`Portfolio: $${context.portfolio.totalValue.toLocaleString()} (${sign}${context.portfolio.dailyChangePercent.toFixed(1)}%)`);
+    }
+
+    if (context.marketAlerts && context.marketAlerts.length > 0) {
+      const alerts = context.marketAlerts.map(a => `${a.asset.toUpperCase()} ${a.change}`).join(', ');
+      parts.push(`Market Alerts: ${alerts}`);
+    }
+
+    if (context.weather) {
+      parts.push(`Weather: ${context.weather.location} ${context.weather.tempF}F ${context.weather.condition}`);
+    }
+
+    if (context.techNews && context.techNews.length > 0) {
+      const headlines = context.techNews.slice(0, 5).map(n => n.title).join('; ');
+      parts.push(`Tech News: ${headlines}`);
+    }
+
+    return parts.join('\n');
   }
 
   /**
@@ -849,7 +935,7 @@ export class AutonomousAgent {
     this.scheduler.registerHandler('morning_briefing', async () => {
       if (this.briefingGenerator) {
         const governance = governanceReporter.generateSnapshot();
-        await this.briefingGenerator.morningBriefing({
+        const briefingContext = {
           digest: this.lastDigest,
           lifeMonitorReport: this.lastLifeMonitorReport,
           careerMatches: this.lastCareerMatches.length > 0 ? this.lastCareerMatches : null,
@@ -861,7 +947,15 @@ export class AutonomousAgent {
           pendingReminders: this.lastPendingReminders.length > 0 ? this.lastPendingReminders : null,
           weather: this.lastWeather,
           techNews: this.lastTechNews.length > 0 ? this.lastTechNews : null,
-        });
+        };
+        const briefingResult = await this.briefingGenerator.morningBriefing(briefingContext);
+
+        // Auto-ingest briefing into knowledge for RAG retrieval
+        if (this.documentIngestor && briefingResult.success) {
+          const telegramHtml = this.buildBriefingText(briefingContext);
+          const htmlStr = Array.isArray(telegramHtml) ? telegramHtml.join('\n') : telegramHtml;
+          await this.documentIngestor.ingestBriefing(htmlStr, new Date().toISOString().slice(0, 10));
+        }
       }
       log.info('Morning briefing completed (unified report)');
     });
@@ -1091,28 +1185,6 @@ export class AutonomousAgent {
     // ==========================================================================
     // PHASE 2-4 HANDLERS: System health, market, ops, memory
     // ==========================================================================
-
-    // System health check every 15 minutes
-    this.scheduler.registerHandler('health_check', async () => {
-      try {
-        const monitor = new HealthMonitor(this.eventBus);
-        const report = await monitor.runAllChecks();
-        log.info({ overall: report.overall, checks: report.checks.length }, 'Health check completed');
-
-        if (report.overall !== 'healthy') {
-          const failing = report.checks
-            .filter((c) => c.status !== 'healthy')
-            .map((c) => c.component)
-            .join(', ');
-          await notificationManager.error(
-            'System Health',
-            `Status: ${report.overall} — ${failing}`
-          );
-        }
-      } catch (error) {
-        log.error({ error }, 'Health check failed');
-      }
-    });
 
     // Market background collection (every 4 hours — silent, builds baseline)
     this.scheduler.registerHandler('market_background_collect', async () => {
@@ -1976,30 +2048,6 @@ export class AutonomousAgent {
       }
     });
 
-    // Perplexity research handler — for ad-hoc research tasks
-    this.scheduler.registerHandler('perplexity_research', async () => {
-      const apiKey = process.env.PERPLEXITY_API_KEY;
-      if (!apiKey) {
-        log.debug('Perplexity research skipped (API key not configured)');
-        return;
-      }
-
-      try {
-        const { PerplexityClient } = await import('../integrations/perplexity/client.js');
-        void new PerplexityClient(apiKey); // Instantiate to validate
-
-        // Emit ready event — actual research happens on-demand via Telegram or tasks
-        this.eventBus.emit('integration:perplexity_ready', {
-          timestamp: new Date().toISOString(),
-        });
-        log.info('Perplexity client ready for research requests');
-      } catch (error: unknown) {
-        this.eventBus.emit('system:error', {
-          error: error instanceof Error ? error : new Error(String(error)),
-          context: 'perplexity_research',
-        });
-      }
-    });
   }
 
   /**

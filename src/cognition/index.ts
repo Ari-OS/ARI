@@ -76,7 +76,7 @@ export * from './synthesis.js';
 // COGNITIVE LAYER FACADE
 // =============================================================================
 
-import { EventBus } from '../kernel/event-bus.js';
+import { CognitiveEventEmitter, createNoopEmitter } from './types.js';
 import type {
   Pillar,
   CognitiveHealth,
@@ -214,7 +214,7 @@ class CognitiveMetricsTracker {
  */
 export class CognitionLayer {
   private static instance: CognitionLayer | null = null;
-  private eventBus: EventBus;
+  private eventBus: CognitiveEventEmitter;
   private initialized: boolean = false;
   private initializationTime: Date | null = null;
   private metrics: CognitiveMetricsTracker = new CognitiveMetricsTracker();
@@ -226,15 +226,15 @@ export class CognitionLayer {
   public ethos: typeof import('./ethos/index.js') | null = null;
   public pathos: typeof import('./pathos/index.js') | null = null;
 
-  private constructor(eventBus?: EventBus) {
-    this.eventBus = eventBus ?? new EventBus();
+  private constructor(eventBus?: CognitiveEventEmitter) {
+    this.eventBus = eventBus ?? createNoopEmitter();
   }
 
   /**
    * Get the singleton instance of CognitionLayer.
    * Pass an EventBus on first call to connect cognitive events to the kernel bus.
    */
-  public static getInstance(eventBus?: EventBus): CognitionLayer {
+  public static getInstance(eventBus?: CognitiveEventEmitter): CognitionLayer {
     if (!CognitionLayer.instance) {
       CognitionLayer.instance = new CognitionLayer(eventBus);
     }
@@ -562,7 +562,7 @@ export class CognitionLayer {
 /**
  * Get the singleton CognitionLayer instance
  */
-export function getCognitionLayer(eventBus?: EventBus): CognitionLayer {
+export function getCognitionLayer(eventBus?: CognitiveEventEmitter): CognitionLayer {
   return CognitionLayer.getInstance(eventBus);
 }
 
@@ -570,7 +570,7 @@ export function getCognitionLayer(eventBus?: EventBus): CognitionLayer {
  * Initialize the cognitive layer.
  * Pass an EventBus to connect all cognitive events to the kernel bus.
  */
-export async function initializeCognition(eventBus?: EventBus): Promise<CognitionLayer> {
+export async function initializeCognition(eventBus?: CognitiveEventEmitter): Promise<CognitionLayer> {
   const layer = CognitionLayer.getInstance(eventBus);
   await layer.initialize();
   return layer;

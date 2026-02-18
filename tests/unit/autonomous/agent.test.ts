@@ -108,6 +108,19 @@ vi.mock('../../../src/kernel/event-bus.js', () => ({
   })),
 }));
 
+// Mock Scheduler — prevents real cron tasks from running during tests
+vi.mock('../../../src/autonomous/scheduler.js', () => ({
+  Scheduler: vi.fn().mockImplementation(() => ({
+    init: vi.fn().mockResolvedValue(undefined),
+    start: vi.fn(),
+    stop: vi.fn(),
+    checkAndRun: vi.fn().mockResolvedValue(undefined),
+    registerHandler: vi.fn(),
+    registerTask: vi.fn(),
+    getState: vi.fn().mockReturnValue([]),
+  })),
+}));
+
 import { AutonomousAgent } from '../../../src/autonomous/agent.js';
 import { EventBus } from '../../../src/kernel/event-bus.js';
 
@@ -358,8 +371,12 @@ describe('AutonomousAgent', () => {
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
+      // Temporarily use real timers so async chains complete naturally
+      vi.useRealTimers();
       await agent.start();
-      await vi.advanceTimersByTimeAsync(100);
+      // Wait for the poll() async chain to complete
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      vi.useFakeTimers();
 
       expect(mockAIQuery).toHaveBeenCalledWith(expect.stringContaining('Test task'), 'autonomous');
       expect(mockAISummarize).toHaveBeenCalled();

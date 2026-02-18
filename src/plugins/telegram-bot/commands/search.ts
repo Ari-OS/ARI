@@ -1,5 +1,6 @@
 import type { Context } from 'grammy';
 import type { PerplexityClient } from '../../../integrations/perplexity/client.js';
+import { formatForTelegram, splitTelegramMessage } from '../format.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // /search — Web search with Perplexity AI
@@ -37,7 +38,8 @@ export async function handleSearch(
     const lines: string[] = [];
     lines.push(`<b>Search Results:</b> ${query}`);
     lines.push('');
-    lines.push(result.answer);
+    // Perplexity returns markdown — convert to Telegram HTML
+    lines.push(formatForTelegram(result.answer));
 
     if (result.citations.length > 0) {
       lines.push('');
@@ -48,13 +50,9 @@ export async function handleSearch(
     }
 
     const response = lines.join('\n');
-
-    // Telegram has a 4096 character limit per message
-    if (response.length > 4000) {
-      const truncated = response.slice(0, 3900) + '\n\n... (result truncated)';
-      await ctx.reply(truncated, { parse_mode: 'HTML' });
-    } else {
-      await ctx.reply(response, { parse_mode: 'HTML' });
+    const chunks = splitTelegramMessage(response);
+    for (const chunk of chunks) {
+      await ctx.reply(chunk, { parse_mode: 'HTML' });
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

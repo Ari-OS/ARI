@@ -1,14 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ChatSessionManager } from '../../../../src/plugins/telegram-bot/chat-session.js';
 
-// Mock fs and os
-vi.mock('node:fs', () => ({
-  readFileSync: vi.fn().mockReturnValue('# Test'),
-  existsSync: vi.fn().mockReturnValue(false),
-  default: {
-    readFileSync: vi.fn().mockReturnValue('# Test'),
-    existsSync: vi.fn().mockReturnValue(false),
-  },
+// Mock the shared workspace-loader used by chat-session
+vi.mock('../../../../src/system/workspace-loader.js', () => ({
+  loadWorkspaceFile: vi.fn().mockResolvedValue(''),
 }));
 
 vi.mock('node:os', () => ({
@@ -143,40 +138,40 @@ describe('ChatSessionManager', () => {
   });
 
   describe('getSystemPrompt', () => {
-    it('should return a non-empty system prompt', () => {
-      const prompt = manager.getSystemPrompt();
+    it('should return a non-empty system prompt', async () => {
+      const prompt = await manager.getSystemPrompt();
       expect(prompt).toBeTruthy();
       expect(prompt).toContain('ARI');
       expect(prompt).toContain('Pryce');
     });
 
-    it('should include time-of-day context', () => {
-      const prompt = manager.getSystemPrompt();
+    it('should include time-of-day context', async () => {
+      const prompt = await manager.getSystemPrompt();
       expect(prompt).toContain('Time of day');
     });
 
-    it('should include conversation rules', () => {
-      const prompt = manager.getSystemPrompt();
+    it('should include conversation rules', async () => {
+      const prompt = await manager.getSystemPrompt();
       expect(prompt).toContain('Conversation Rules');
       expect(prompt).toContain('emoji');
     });
 
-    it('should cache system prompt within TTL', () => {
-      const prompt1 = manager.getSystemPrompt();
-      const prompt2 = manager.getSystemPrompt();
+    it('should cache system prompt within TTL', async () => {
+      const prompt1 = await manager.getSystemPrompt();
+      const prompt2 = await manager.getSystemPrompt();
       // Should be identical (cached)
       expect(prompt1).toBe(prompt2);
     });
 
-    it('should refresh system prompt after TTL expires', () => {
-      const prompt1 = manager.getSystemPrompt();
+    it('should refresh system prompt after TTL expires', async () => {
+      const prompt1 = await manager.getSystemPrompt();
 
       // Advance time by 6 minutes (TTL is 5 minutes)
       vi.useFakeTimers();
       const now = Date.now();
       vi.setSystemTime(now + 6 * 60 * 1000);
 
-      const prompt2 = manager.getSystemPrompt();
+      const prompt2 = await manager.getSystemPrompt();
 
       // Should have different timestamps in the prompt
       expect(prompt2).toBeTruthy();

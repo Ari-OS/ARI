@@ -56,7 +56,7 @@ describe('/search command', () => {
     expect(resultReply).toContain('Sources');
   });
 
-  it('should truncate long results', async () => {
+  it('should split long results into multiple messages', async () => {
     const longAnswer = 'x'.repeat(5000);
     const mockClient = {
       search: vi.fn().mockResolvedValue({
@@ -70,9 +70,14 @@ describe('/search command', () => {
     const ctx = createMockCtx('/search query');
     await handleSearch(ctx, mockClient);
 
-    const resultReply = (ctx.reply as ReturnType<typeof vi.fn>).mock.calls[1][0] as string;
-    expect(resultReply).toContain('truncated');
-    expect(resultReply.length).toBeLessThan(4500);
+    // Should be 3+ calls: "Searching..." + at least 2 result chunks
+    const callCount = (ctx.reply as ReturnType<typeof vi.fn>).mock.calls.length;
+    expect(callCount).toBeGreaterThanOrEqual(3);
+    // Each chunk should be within Telegram limits
+    for (let i = 1; i < callCount; i++) {
+      const chunk = (ctx.reply as ReturnType<typeof vi.fn>).mock.calls[i][0] as string;
+      expect(chunk.length).toBeLessThanOrEqual(4096);
+    }
   });
 
   it('should handle search errors', async () => {

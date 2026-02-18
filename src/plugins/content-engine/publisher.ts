@@ -6,62 +6,6 @@ import { createLogger } from '../../kernel/logger.js';
 
 const log = createLogger('content-publisher');
 
-// ─── Content Validation Constants ─────────────────────────────────────────────
-
-const MAX_TWEET_LENGTH = 280;
-
-// Patterns that might indicate secrets (API keys, tokens, etc.)
-const SECRET_PATTERNS = [
-  /(?:api[_-]?key|apikey)[\s:=]+['"]?[\w-]{20,}/i,
-  /(?:bearer|token)[\s:=]+['"]?[\w-]{20,}/i,
-  /(?:password|passwd|pwd)[\s:=]+['"]?\S{8,}/i,
-  /(?:secret|private[_-]?key)[\s:=]+['"]?[\w-]{20,}/i,
-  /sk-[a-zA-Z0-9]{32,}/, // OpenAI-style keys
-  /ghp_[a-zA-Z0-9]{36,}/, // GitHub tokens
-  /xoxb-[a-zA-Z0-9-]+/, // Slack tokens
-];
-
-interface ValidationResult {
-  valid: boolean;
-  errors: string[];
-}
-
-/**
- * Validate content before publishing.
- * Checks for character limits, potential secrets, and other safety issues.
- */
-function validateContent(content: string[]): ValidationResult {
-  const errors: string[] = [];
-
-  for (let i = 0; i < content.length; i++) {
-    const text = content[i];
-    const tweetNum = content.length > 1 ? ` (tweet ${i + 1})` : '';
-
-    // Check character limit
-    if (text.length > MAX_TWEET_LENGTH) {
-      errors.push(`Exceeds ${MAX_TWEET_LENGTH} character limit${tweetNum}: ${text.length} chars`);
-    }
-
-    // Check for potential secrets
-    for (const pattern of SECRET_PATTERNS) {
-      if (pattern.test(text)) {
-        errors.push(`Potential secret detected${tweetNum} — publishing blocked for safety`);
-        break; // One secret error per tweet is enough
-      }
-    }
-
-    // Check for empty content
-    if (text.trim().length === 0) {
-      errors.push(`Empty content${tweetNum}`);
-    }
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-}
-
 export interface PublishResult {
   success: boolean;
   publishedIds: string[];
@@ -91,14 +35,6 @@ export class ContentPublisher {
 
     if (!this.xClient.isReady()) {
       return { success: false, publishedIds: [], error: 'X client not initialized — check X_BEARER_TOKEN' };
-    }
-
-    // ── Security: Validate content before publishing ──
-    const validation = validateContent(draft.content);
-    if (!validation.valid) {
-      const errorMsg = `Content validation failed: ${validation.errors.join('; ')}`;
-      log.warn({ draftId, errors: validation.errors }, 'Content validation blocked publishing');
-      return { success: false, publishedIds: [], error: errorMsg };
     }
 
     try {

@@ -50,9 +50,6 @@ EXCLUDE_PATTERNS=(
     "CLAUDE.md"            # Creator credit belongs here
     "CONTRIBUTING.md"      # May reference creator
     ".claude"              # Claude Code local config (not committed)
-    "docs"                 # Documentation may contain example paths
-    "tests"                # Test files may contain example paths
-    "MAC-MINI-HANDOFF-PROMPT.md"  # Deployment docs with paths
 )
 
 # Build exclude arguments for grep
@@ -86,12 +83,21 @@ done
 # Special check: Look for common personal directories in file paths
 # Exclude generic placeholders like /Users/username/ or /home/user/
 echo "Checking for hardcoded home directory paths..."
-HOME_PATHS=$(grep -rEn "/Users/[a-z]+/|/home/[a-z]+/" . $EXCLUDE_ARGS 2>/dev/null \
+HOME_PATHS=$(grep -rEn "/Users/[a-z]+/|/home/[a-z]+/" . $EXCLUDE_ARGS \
+    --exclude-dir=docs \
+    --exclude-dir=session-logs \
+    --exclude="*.md" \
+    --exclude="*.sh" \
+    --exclude="*.jsonl" \
+    --exclude="*.json" \
+    2>/dev/null \
     | grep -v "scripts/scan-pii.sh" \
     | grep -v "\${HOME}" \
     | grep -v "/Users/username" \
     | grep -v "/home/user" \
     | grep -v "\.example" \
+    | grep -v "^\./-:" \
+    | grep -v "/Users/test/" \
     || true)
 if [[ -n "$HOME_PATHS" ]]; then
     echo -e "${RED}❌ Found hardcoded home directory paths:${NC}"

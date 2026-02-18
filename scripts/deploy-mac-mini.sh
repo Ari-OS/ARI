@@ -12,11 +12,11 @@
 
 set -euo pipefail
 
-MINI_HOST="${MINI_HOST:-<USER>@<MAC_MINI_IP>}"
-MINI_IP="${MINI_IP:-<MAC_MINI_IP>}"
+MINI_HOST="${MINI_HOST:-ari@100.81.73.34}"
+MINI_IP="${MINI_IP:-100.81.73.34}"
 MAC_MINI="$MINI_HOST"
 SSH_KEY="$HOME/.ssh/id_ed25519"
-ARI_DIR="~/ARI"
+ARI_DIR="/Users/ari/ARI"
 
 # Colors
 RED='\033[0;31m'
@@ -48,14 +48,20 @@ ssh -i "$SSH_KEY" "$MAC_MINI" bash -s <<'REMOTE'
 set -euo pipefail
 cd ~/ARI
 
+source ~/.zshrc 2>/dev/null || true
+source ~/.zprofile 2>/dev/null || true
+
 echo "[remote] Git pull..."
 git pull --ff-only
 
-echo "[remote] Installing dependencies..."
-npm install --no-audit --no-fund
+echo "[remote] Installing dependencies (NODE_ENV=development, --ignore-scripts)..."
+NODE_ENV=development npm install --ignore-scripts
 
-echo "[remote] Building..."
-npm run build
+echo "[remote] Rebuilding better-sqlite3 native module..."
+(cd node_modules/better-sqlite3 && npx node-gyp rebuild) 2>&1 | tail -3 || true
+
+echo "[remote] Building TypeScript..."
+NODE_ENV=development npm run build
 
 echo "[remote] Running tests..."
 npm test -- --reporter=dot 2>&1 | tail -5

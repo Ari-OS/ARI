@@ -82,12 +82,35 @@ export async function installDaemon(options: DaemonOptions = {}): Promise<void> 
 
   // Load env vars from ~/.ari/.env and inject into plist
   const envVarsToInject = [
-    'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GOOGLE_AI_API_KEY', 'XAI_API_KEY',
-    'ARI_API_KEY', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_OWNER_USER_ID', 'TELEGRAM_ALLOWED_USER_IDS',
+    // Core
+    'ANTHROPIC_API_KEY', 'ARI_API_KEY',
+    'TELEGRAM_BOT_TOKEN', 'TELEGRAM_OWNER_USER_ID', 'TELEGRAM_ALLOWED_USER_IDS',
+
+    // AI Providers
+    'OPENAI_API_KEY', 'GOOGLE_AI_API_KEY', 'XAI_API_KEY',
+
+    // Notion
     'NOTION_API_KEY', 'NOTION_INBOX_DATABASE_ID', 'NOTION_DAILY_LOG_PARENT_ID', 'NOTION_TASKS_DATABASE_ID',
-    'X_BEARER_TOKEN', 'X_USER_ID', 'ALPHA_VANTAGE_API_KEY', 'ELEVENLABS_API_KEY', 'COINGECKO_API_KEY',
-    'GITHUB_TOKEN', 'WEATHER_API_KEY', 'PERPLEXITY_API_KEY', 'WEATHER_LOCATION',
+
+    // X/Twitter (read + write)
+    'X_BEARER_TOKEN', 'X_USER_ID',
+    'X_API_KEY', 'X_API_SECRET', 'X_ACCESS_TOKEN', 'X_ACCESS_SECRET',
+
+    // Market
+    'ALPHA_VANTAGE_API_KEY', 'COINGECKO_API_KEY',
+
+    // Media
+    'ELEVENLABS_API_KEY',
+
+    // Integrations
+    'GITHUB_TOKEN',
+    'WEATHER_API_KEY', 'WEATHER_LOCATION',
+    'PERPLEXITY_API_KEY',
+    'HEYGEN_API_KEY',
     'GMAIL_EMAIL', 'GMAIL_APP_PASSWORD',
+
+    // Settings
+    'ARI_LOG_LEVEL', 'NODE_ENV',
   ];
   let envPlistEntries = '';
   try {

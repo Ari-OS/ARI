@@ -1,5 +1,6 @@
 import type { Context } from 'grammy';
 import type { PluginRegistry } from '../../../plugins/registry.js';
+import { formatForTelegram, splitTelegramMessage } from '../format.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // /briefing — On-demand briefing from all plugins
@@ -25,11 +26,15 @@ export async function handleBriefing(
     const lines = ['<b>ARI Briefing</b>', ''];
     for (const c of contributions) {
       lines.push(`<b>${c.section}</b>`);
-      lines.push(c.content);
+      lines.push(formatForTelegram(c.content));
       lines.push('');
     }
 
-    await ctx.reply(lines.join('\n'), { parse_mode: 'HTML' });
+    const response = lines.join('\n');
+    const chunks = splitTelegramMessage(response);
+    for (const chunk of chunks) {
+      await ctx.reply(chunk, { parse_mode: 'HTML' });
+    }
   } catch (error) {
     await ctx.reply(`Error generating briefing: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
