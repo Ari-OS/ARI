@@ -20,8 +20,4 @@ export {
 // Plugin registry
 export { PluginRegistry } from './registry.js';
 
-// Bridge files
-export { BriefingAggregator } from './briefing-aggregator.js';
-export { SchedulerBridge } from './scheduler-bridge.js';
-export { AlertBridge } from './alert-bridge.js';
-export { InitiativeBridge } from './initiative-bridge.js';
+// Bridge files removed — deprecated plugin bridges deleted in phase 3.5.1
