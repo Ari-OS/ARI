@@ -56,6 +56,8 @@ export interface PluginDependencies {
   costTracker: CostTracker | null;
   registry?: PluginRegistry;
   notionInbox?: unknown;
+  /** RAG query function — injected from AutonomousAgent when available */
+  ragQuery?: (question: string) => Promise<{ answer: string; sources: Array<{ title?: string; snippet: string; score: number }> } | null>;
 }
 
 // ── Briefing Contribution ────────────────────────────────────────────

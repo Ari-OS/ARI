@@ -76,6 +76,7 @@ export class PluginRegistry {
     orchestrator: AIOrchestrator;
     costTracker: CostTracker | null;
     notionInbox?: unknown;
+    ragQuery?: (question: string) => Promise<{ answer: string; sources: Array<{ title?: string; snippet: string; score: number }> } | null>;
   }): Promise<void> {
     const initOrder = this.resolveDependencyOrder();
 
@@ -103,6 +104,7 @@ export class PluginRegistry {
           costTracker: deps.costTracker,
           registry: this,
           notionInbox: deps.notionInbox,
+          ragQuery: deps.ragQuery,
         };
 
         await plugin.initialize(pluginDeps);

@@ -164,6 +164,11 @@ export function registerGatewayCommand(program: Command): void {
         }
       }
 
+      // Autonomous agent — created early so RAG function can be passed to plugins
+      const autonomousAgent = new AutonomousAgent(eventBus, undefined, aiOrchestrator ?? undefined);
+      // Late-binding: agent.queryRAG() available after agent.init() (called later)
+      const ragQueryLateBinding = async (question: string) => autonomousAgent.queryRAG(question);
+
       // Initialize Plugin System (requires AI Orchestrator for chat-capable plugins)
       const pluginRegistry = new PluginRegistry(eventBus);
       if (aiOrchestrator) {
@@ -178,6 +183,7 @@ export function registerGatewayCommand(program: Command): void {
             orchestrator: aiOrchestrator,
             costTracker,
             notionInbox,
+            ragQuery: ragQueryLateBinding,
           });
 
           const activePlugins = pluginRegistry.listPlugins().filter(p => p.status === 'active');
@@ -210,9 +216,6 @@ export function registerGatewayCommand(program: Command): void {
       } else {
         console.warn('Warning: API key authentication disabled');
       }
-
-      // Autonomous agent (for 24/7 operation) — created before API routes so health endpoint can reference it
-      const autonomousAgent = new AutonomousAgent(eventBus, undefined, aiOrchestrator ?? undefined);
 
       // Register API routes plugin BEFORE starting the server
       try {

@@ -52,6 +52,8 @@ export interface BotDependencies {
   config: TelegramBotConfig;
   notionInbox?: import('../../integrations/notion/inbox.js').NotionInbox | null;
   perplexityClient?: PerplexityClient | null;
+  /** Optional RAG query function — injected from AutonomousAgent when available */
+  ragQuery?: (question: string) => Promise<{ answer: string; sources: Array<{ title?: string; snippet: string; score: number }> } | null>;
 }
 
 /**
@@ -75,7 +77,7 @@ export function createBot(deps: BotDependencies): Bot {
   // Register intent routes for natural language detection
   registerIntentRoutes(intentRouter, deps, conversationStore);
 
-  // Set default handler — falls through to conversational AI
+  // Set default handler — falls through to conversational AI (with RAG augmentation)
   intentRouter.setDefaultHandler(async (ctx) => {
     if (orchestrator) {
       const chatId = ctx.chat?.id;
@@ -89,11 +91,40 @@ export function createBot(deps: BotDependencies): Bot {
         await conversationStore.addUserMessage(chatId, text, 'conversational');
       }
 
-      // Get AI response via handleAsk
-      await handleAsk(ctx, orchestrator, sessionManager);
+      // Try RAG-augmented response first (if RAG is available and question-like)
+      if (deps.ragQuery && text.length > 10) {
+        try {
+          const ragResult = await deps.ragQuery(text);
+          if (ragResult && ragResult.sources.length > 0) {
+            // RAG found relevant context — use the RAG-generated answer
+            const { humanizeQuick } = await import('../../plugins/content-engine/humanizer.js');
+            const humanized = humanizeQuick(ragResult.answer);
+            const { formatForTelegram, splitTelegramMessage } = await import('./format.js');
+            const formatted = formatForTelegram(humanized);
+            const chunks = splitTelegramMessage(formatted);
 
-      // Persist assistant response (best-effort)
-      // We don't have direct access to the response text here — handled by handleAsk
+            const { InlineKeyboard: IK } = await import('grammy');
+            const msgId = ctx.message?.message_id.toString() ?? Date.now().toString();
+            const feedbackKb = new IK()
+              .text('👍', `fb:positive:${msgId}`)
+              .text('👎', `fb:negative:${msgId}`);
+
+            for (let i = 0; i < chunks.length; i++) {
+              if (i < chunks.length - 1) {
+                await ctx.reply(chunks[i], { parse_mode: 'HTML' });
+              } else {
+                await ctx.reply(chunks[i], { parse_mode: 'HTML', reply_markup: feedbackKb });
+              }
+            }
+            return;
+          }
+        } catch {
+          // RAG failed — fall through to standard AI
+        }
+      }
+
+      // Standard AI response via handleAsk
+      await handleAsk(ctx, orchestrator, sessionManager);
     } else {
       await ctx.reply('Use /help to see available commands.');
     }

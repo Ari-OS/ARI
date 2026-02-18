@@ -75,6 +75,7 @@ export class TelegramBotPlugin implements DomainPlugin {
         config: this.config,
         notionInbox: deps.notionInbox as import('../../integrations/notion/inbox.js').NotionInbox | null | undefined ?? null,
         perplexityClient,
+        ragQuery: deps.ragQuery,
       });
 
       // Start long polling (non-blocking)

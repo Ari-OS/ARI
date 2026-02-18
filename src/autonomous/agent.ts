@@ -44,6 +44,10 @@ import { governanceReporter } from './governance-reporter.js';
 import { XClient } from '../integrations/twitter/client.js';
 import type { ContentEnginePlugin } from '../plugins/content-engine/index.js';
 import { DocumentIngestor } from '../system/document-ingestor.js';
+import { VectorStore } from '../system/vector-store.js';
+import { EmbeddingService } from '../ai/embedding-service.js';
+import { IngestionPipeline } from './ingestion-pipeline.js';
+import { RAGQueryEngine } from './rag-query.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -105,6 +109,12 @@ export class AutonomousAgent {
   private portfolioTracker: PortfolioTracker | null = null;
   private contentEngine: ContentEnginePlugin | null = null;
   private documentIngestor: DocumentIngestor | null = null;
+
+  // RAG pipeline components (Phase 4)
+  private vectorStore: VectorStore | null = null;
+  private embeddingService: EmbeddingService | null = null;
+  private ingestionPipeline: IngestionPipeline | null = null;
+  private ragQueryEngine: RAGQueryEngine | null = null;
 
   // Cached scan results for unified morning briefing
   private lastDigest: import('./daily-digest.js').DailyDigest | null = null;
@@ -232,6 +242,114 @@ export class AutonomousAgent {
     // Log budget status on init
     const throttleStatus = this.costTracker.getThrottleStatus();
     log.info({ usagePercent: throttleStatus.usagePercent.toFixed(1), level: throttleStatus.level }, 'Budget initialized');
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Phase 4: Three-Tier Memory + RAG Pipeline
+    // Hot  → ConversationContext (in-process, 10 turns — handled by Telegram ConversationStore)
+    // Warm → ConversationStore (SQLite, 7-day TTL — Phase 0)
+    // Cold → VectorStore (SQLite, semantic search via cosine similarity)
+    // ═══════════════════════════════════════════════════════════════════════
+    try {
+      const vectorDbPath = path.join(process.env.HOME || '~', '.ari', 'data', 'vectors.db');
+      this.vectorStore = new VectorStore(vectorDbPath, this.eventBus);
+      await this.vectorStore.init();
+
+      this.embeddingService = new EmbeddingService(this.eventBus);
+
+      // Adapter: system VectorStore → IngestionPipeline VectorStore interface
+      const vs = this.vectorStore;
+      const ingestionVectorAdapter = {
+        add: async (chunks: Array<{ id: string; content: string; embedding?: Float32Array; hash: string; chunkIndex?: number; totalChunks?: number; metadata: Record<string, unknown> }>) => {
+          for (const chunk of chunks) {
+            if (chunk.embedding) {
+              await vs.upsert({
+                content: chunk.content,
+                embedding: chunk.embedding,
+                source: typeof chunk.metadata.source === 'string' ? chunk.metadata.source : 'ingestion',
+                sourceType: (chunk.metadata.sourceType as 'article' | 'tweet' | 'bookmark' | 'conversation' | 'email' | 'file') ?? 'file',
+                title: chunk.metadata.title as string | undefined,
+                domain: chunk.metadata.domain as string | undefined,
+                tags: (chunk.metadata.tags as string[]) ?? [],
+                metadata: chunk.metadata,
+                chunkIndex: chunk.chunkIndex ?? 0,
+                chunkTotal: chunk.totalChunks ?? 1,
+              });
+            }
+          }
+        },
+        search: async (embedding: Float32Array, limit = 10) => {
+          const results = await vs.search(embedding, { limit });
+          return results.map(r => ({
+            id: r.document.id,
+            documentId: r.document.parentDocId ?? r.document.id,
+            content: r.document.content,
+            chunkIndex: r.document.chunkIndex,
+            totalChunks: r.document.chunkTotal,
+            embedding: r.document.embedding,
+            hash: r.document.contentHash,
+            metadata: r.document.metadata,
+          }));
+        },
+        delete: async (documentId: string) => { await vs.delete(documentId); },
+        exists: async (hash: string) => !!(await vs.getByHash(hash)),
+      };
+
+      this.ingestionPipeline = new IngestionPipeline(
+        this.eventBus,
+        ingestionVectorAdapter as unknown as import('./ingestion-pipeline.js').VectorStore,
+        this.embeddingService,
+      );
+
+      // RAGQueryEngine needs AIOrchestrator for answer generation
+      const { AIOrchestrator } = await import('../ai/orchestrator.js');
+      const ragOrchestrator = new AIOrchestrator(this.eventBus, {
+        costTracker: this.costTracker ?? undefined,
+      });
+
+      // Adapter: system VectorStore → RAGVectorStore interface
+      const ragVectorAdapter = {
+        search: async (embedding: Float32Array, options?: { limit?: number; minScore?: number; domain?: string }) => {
+          const results = await vs.search(embedding, options);
+          return results.map(r => ({
+            document: {
+              id: r.document.id,
+              content: r.document.content,
+              title: r.document.title,
+              metadata: r.document.metadata,
+            },
+            score: r.score,
+          }));
+        },
+        getById: async (id: string) => {
+          const doc = await vs.getById(id);
+          if (!doc) return null;
+          return {
+            id: doc.id,
+            content: doc.content,
+            title: doc.title,
+            metadata: doc.metadata,
+          };
+        },
+      };
+
+      this.ragQueryEngine = new RAGQueryEngine(
+        this.eventBus,
+        ragVectorAdapter,
+        this.embeddingService,
+        ragOrchestrator,
+      );
+
+      // Index workspace files on init (identity context for RAG)
+      await this.indexWorkspaceFiles();
+
+      const stats = this.vectorStore.getStats();
+      log.info({
+        totalDocuments: stats.totalDocuments,
+        totalChunks: stats.totalChunks,
+      }, 'RAG pipeline initialized (VectorStore + EmbeddingService + IngestionPipeline + RAGQueryEngine)');
+    } catch (error) {
+      log.warn({ error: error instanceof Error ? error.message : String(error) }, 'RAG pipeline init failed (non-critical — needs OPENAI_API_KEY for embeddings)');
+    }
 
     // Initialize notification manager with configured channels
     const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -806,6 +924,110 @@ export class AutonomousAgent {
     return taskSuffix ? `${base}\n\n## Current Task\n${taskSuffix}` : base;
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // RAG PIPELINE HELPERS (Phase 4)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Index all workspace files (SOUL, IDENTITY, USER, etc.) into VectorStore
+   * so RAG can retrieve ARI's identity context when answering questions.
+   */
+  private async indexWorkspaceFiles(): Promise<void> {
+    if (!this.ingestionPipeline) return;
+
+    const workspaceDir = path.join(process.env.HOME || '~', '.ari', 'workspace');
+    const files = [
+      'SOUL.md', 'IDENTITY.md', 'USER.md', 'GOALS.md',
+      'PREFERENCES.md', 'AGENTS.md', 'HEARTBEAT.md', 'MEMORY.md', 'TOOLS.md',
+    ];
+
+    let indexed = 0;
+    for (const file of files) {
+      try {
+        const filePath = path.join(workspaceDir, file);
+        const content = await fs.readFile(filePath, 'utf-8');
+        if (content.length > 50) {
+          await this.ingestionPipeline.ingest(content, {
+            source: `workspace/${file}`,
+            sourceType: 'file',
+            title: file.replace('.md', ''),
+            domain: 'identity',
+            tags: ['workspace', 'identity', file.toLowerCase().replace('.md', '')],
+          });
+          indexed++;
+        }
+      } catch {
+        // File doesn't exist — skip
+      }
+    }
+    if (indexed > 0) {
+      log.info({ indexed, total: files.length }, 'Workspace files indexed into VectorStore');
+    }
+  }
+
+  /**
+   * Periodic RAG index refresh: re-index workspace files + ingest recent briefings.
+   * Called by scheduler 4x daily (2, 8, 14, 20 hours).
+   */
+  private async refreshRAGIndex(): Promise<void> {
+    if (!this.ingestionPipeline) return;
+
+    await this.indexWorkspaceFiles();
+    log.info('RAG index refreshed');
+  }
+
+  /**
+   * Query the RAG knowledge base. Returns answer + sources or null if RAG is unavailable.
+   * Used by Telegram handlers to augment AI responses with retrieved context.
+   */
+  async queryRAG(question: string, options?: {
+    maxDocuments?: number;
+    minScore?: number;
+    domain?: string;
+  }): Promise<{ answer: string; sources: Array<{ title?: string; snippet: string; score: number }> } | null> {
+    if (!this.ragQueryEngine) return null;
+
+    try {
+      const result = await this.ragQueryEngine.query(question, options);
+      return {
+        answer: result.answer,
+        sources: result.sources.map(s => ({
+          title: s.title,
+          snippet: s.snippet,
+          score: s.score,
+        })),
+      };
+    } catch (error) {
+      log.warn({ error: error instanceof Error ? error.message : String(error) }, 'RAG query failed');
+      return null;
+    }
+  }
+
+  /**
+   * Ingest content into the RAG pipeline (for briefings, conversations, etc.)
+   */
+  async ingestToRAG(content: string, options: {
+    source: string;
+    sourceType?: string;
+    title?: string;
+    domain?: string;
+    tags?: string[];
+  }): Promise<void> {
+    if (!this.ingestionPipeline) return;
+
+    try {
+      await this.ingestionPipeline.ingest(content, {
+        source: options.source,
+        sourceType: (options.sourceType ?? 'conversation') as 'article' | 'tweet' | 'bookmark' | 'conversation' | 'email' | 'file',
+        title: options.title,
+        domain: options.domain,
+        tags: options.tags,
+      });
+    } catch (error) {
+      log.warn({ error: error instanceof Error ? error.message : String(error) }, 'RAG ingestion failed');
+    }
+  }
+
   /**
    * Build a plain-text summary of the morning briefing context for knowledge ingestion.
    * Converts structured briefing data into a searchable text representation.
@@ -955,6 +1177,16 @@ export class AutonomousAgent {
           const telegramHtml = this.buildBriefingText(briefingContext);
           const htmlStr = Array.isArray(telegramHtml) ? telegramHtml.join('\n') : telegramHtml;
           await this.documentIngestor.ingestBriefing(htmlStr, new Date().toISOString().slice(0, 10));
+
+          // Also ingest into RAG vector pipeline for semantic search
+          const today = new Date().toISOString().slice(0, 10);
+          await this.ingestToRAG(htmlStr, {
+            source: `briefing/${today}`,
+            sourceType: 'file',
+            title: `Morning Briefing ${today}`,
+            domain: 'briefings',
+            tags: ['briefing', 'morning', today],
+          });
         }
       }
       log.info('Morning briefing completed (unified report)');
@@ -1002,7 +1234,9 @@ export class AutonomousAgent {
     // Knowledge indexing 3x daily
     this.scheduler.registerHandler('knowledge_index', async () => {
       await this.knowledgeIndex.reindexAll();
-      log.info('Knowledge index updated');
+      // Also refresh RAG vector index
+      await this.refreshRAGIndex();
+      log.info('Knowledge index + RAG vector index updated');
     });
 
     // Changelog generation at 7pm
