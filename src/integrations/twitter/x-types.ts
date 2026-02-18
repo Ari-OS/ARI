@@ -76,7 +76,7 @@ export const DEFAULT_X_CREDIT_CONFIG: XCreditConfig = {
     create_thread: 5,
     like: 2,
     retweet: 2,
-    bookmark: 1,
+    bookmark: 2,
   },
   xaiCreditBonus: {
     enabled: true,

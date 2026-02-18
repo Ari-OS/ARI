@@ -24,13 +24,15 @@ export class XCostTracker {
   private usagePath: string;
   private alertedWarning = false;
   private alertedCritical = false;
+  private readonly persistEnabled: boolean;
 
-  constructor(eventBus: EventBus, config: XCreditConfig) {
+  constructor(eventBus: EventBus, config: XCreditConfig, storagePath?: string | null) {
     this.eventBus = eventBus;
     this.config = config;
+    this.persistEnabled = storagePath !== null;
 
     const today = this.getUTCDate();
-    this.usagePath = this.getUsagePath(today);
+    this.usagePath = storagePath ?? this.getUsagePath(today);
     this.usage = this.createEmptyUsage(today);
   }
 
@@ -59,6 +61,8 @@ export class XCostTracker {
    * Load usage from disk
    */
   async load(): Promise<void> {
+    if (!this.persistEnabled) return;
+
     this.checkDateRollover();
 
     try {
@@ -136,6 +140,8 @@ export class XCostTracker {
    * Save usage to disk
    */
   async save(): Promise<void> {
+    if (!this.persistEnabled) return;
+
     try {
       await mkdir(join(homedir(), '.ari', 'data', 'x-api'), { recursive: true });
       await writeFile(this.usagePath, JSON.stringify(this.usage, null, 2));

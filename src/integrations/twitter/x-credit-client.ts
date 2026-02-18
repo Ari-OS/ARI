@@ -43,13 +43,19 @@ export class XCreditClient {
   constructor(
     client: XClient,
     eventBus: EventBus,
-    config: Partial<XCreditConfig> = {}
+    config: Partial<XCreditConfig> = {},
+    options?: { persist?: boolean },
   ) {
     this.client = client;
     this.eventBus = eventBus;
     this.config = { ...DEFAULT_X_CREDIT_CONFIG, ...config };
-    this.dedupCache = new XDedupCache();
-    this.costTracker = new XCostTracker(eventBus, this.config);
+
+    // When persist is false (default), caches stay in-memory only.
+    // Production callers (createXCreditClient) pass persist: true to
+    // enable disk-backed state recovery across restarts.
+    const storagePath = options?.persist ? undefined : null;
+    this.dedupCache = new XDedupCache(storagePath);
+    this.costTracker = new XCostTracker(eventBus, this.config, storagePath);
   }
 
   /**
@@ -596,5 +602,5 @@ export function createXCreditClient(
     userId,
   });
 
-  return new XCreditClient(baseClient, eventBus, config);
+  return new XCreditClient(baseClient, eventBus, config, { persist: true });
 }

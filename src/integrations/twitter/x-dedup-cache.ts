@@ -29,10 +29,12 @@ export class XDedupCache {
   private cacheDate: string;
   private cachePath: string;
   private savingsAccumulated = 0;
+  private readonly persistEnabled: boolean;
 
-  constructor() {
+  constructor(storagePath?: string | null) {
     this.cacheDate = this.getUTCDate();
-    this.cachePath = this.getCachePath(this.cacheDate);
+    this.persistEnabled = storagePath !== null;
+    this.cachePath = storagePath ?? this.getCachePath(this.cacheDate);
   }
 
   private getCachePath(date: string): string {
@@ -47,6 +49,8 @@ export class XDedupCache {
    * Load cache from disk
    */
   async load(): Promise<void> {
+    if (!this.persistEnabled) return;
+
     this.checkDateRollover();
 
     try {
@@ -80,6 +84,8 @@ export class XDedupCache {
    * Save cache to disk
    */
   async save(): Promise<void> {
+    if (!this.persistEnabled) return;
+
     try {
       await mkdir(join(homedir(), '.ari', 'data', 'x-api'), { recursive: true });
       await writeFile(
