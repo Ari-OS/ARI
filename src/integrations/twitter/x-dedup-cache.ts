@@ -196,7 +196,9 @@ export class XDedupCache {
       this.seenUserIds.clear();
       this.savingsAccumulated = 0;
       this.cacheDate = currentDate;
-      this.cachePath = this.getCachePath(currentDate);
+      if (this.persistEnabled) {
+        this.cachePath = this.getCachePath(currentDate);
+      }
     }
   }
 

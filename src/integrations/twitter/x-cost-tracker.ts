@@ -203,7 +203,9 @@ export class XCostTracker {
 
       // Reset for new day
       this.usage = this.createEmptyUsage(today);
-      this.usagePath = this.getUsagePath(today);
+      if (this.persistEnabled) {
+        this.usagePath = this.getUsagePath(today);
+      }
       this.alertedWarning = false;
       this.alertedCritical = false;
     }
