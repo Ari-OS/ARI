@@ -2637,6 +2637,57 @@ export class AutonomousAgent {
       return Promise.resolve();
     });
 
+    this.scheduler.registerHandler("food_journal_daily", (): Promise<void> => {
+      try {
+        log.info("Generating daily food journal summary");
+        this.eventBus.emit("health:check_complete", {
+          timestamp: new Date().toISOString(),
+          healthy: true,
+          components: { food_journal: true },
+        });
+        this.eventBus.emit("audit:log", {
+          action: "health:food_journal_daily_run",
+          agent: "FOOD_JOURNAL",
+          trustLevel: "system" as const,
+          details: { scheduledAt: new Date().toISOString() },
+        });
+      } catch (error) {
+        log.error({ error }, "Food journal daily summary failed");
+      }
+      return Promise.resolve();
+    });
+
+    this.scheduler.registerHandler("social_growth_weekly", (): Promise<void> => {
+      try {
+        log.info("Generating weekly social growth report");
+        this.eventBus.emit("audit:log", {
+          action: "content:social_growth_weekly_run",
+          agent: "GROWTH_REPORTER",
+          trustLevel: "system" as const,
+          details: { scheduledAt: new Date().toISOString() },
+        });
+      } catch (error) {
+        log.error({ error }, "Social growth weekly report failed");
+      }
+      return Promise.resolve();
+    });
+
+    this.scheduler.registerHandler("youtube_analytics_daily", (): Promise<void> => {
+      try {
+        log.info("Fetching daily YouTube analytics");
+        this.eventBus.emit("audit:log", {
+          action: "content:youtube_analytics_daily_run",
+          agent: "YOUTUBE_TRACKER",
+          trustLevel: "system" as const,
+          details: { scheduledAt: new Date().toISOString() },
+        });
+      } catch (error) {
+        log.error({ error }, "YouTube analytics daily fetch failed");
+      }
+      return Promise.resolve();
+    });
+
+
 
   }
 

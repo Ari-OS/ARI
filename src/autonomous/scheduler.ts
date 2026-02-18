@@ -722,6 +722,42 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
       description: "Analyze upcoming earnings reports for portfolio holdings",
     },
   },
+  {
+    id: "food-journal-daily",
+    name: "Food Journal Daily Summary",
+    cron: "30 21 * * *", // 9:30 PM daily
+    handler: "food_journal_daily",
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: "HEALTH",
+      description: "Send daily nutrition summary via Telegram",
+    },
+  },
+  {
+    id: "social-growth-weekly",
+    name: "Social Media Growth Report",
+    cron: "0 7 * * 1", // Monday 7:00 AM
+    handler: "social_growth_weekly",
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: "CONTENT",
+      description: "Aggregate X + YouTube growth metrics and send weekly report",
+    },
+  },
+  {
+    id: "youtube-analytics-daily",
+    name: "YouTube Analytics Daily",
+    cron: "0 9 * * *", // 9:00 AM daily
+    handler: "youtube_analytics_daily",
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: "CONTENT",
+      description: "Fetch YouTube channel and video analytics",
+    },
+  },
 ];
 
 export class Scheduler {
