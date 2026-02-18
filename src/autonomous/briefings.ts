@@ -122,6 +122,14 @@ export interface EveningContext {
   }> | null;
   portfolio?: BriefingPortfolio | null;
   llmCostToday?: LlmCostSummary | null;
+  /** Autonomy dial level (0-100) */
+  autonomyLevel?: number | null;
+  /** CRM contacts needing follow-up */
+  crmFollowUps?: Array<{ name: string; daysSince: number; urgency: string }> | null;
+  /** Pending soul evolution proposals */
+  soulProposals?: Array<{ trait: string; direction: string }> | null;
+  /** Human 3.0 quadrant scores */
+  quadrantScores?: { mind: number; body: number; spirit: number; vocation: number } | null;
 }
 
 // ─── Briefing Generator ─────────────────────────────────────────────────────
@@ -710,6 +718,42 @@ export class BriefingGenerator {
       if (c.avgLatencyMs !== undefined) {
         lines.push(`▸ Avg latency: ${c.avgLatencyMs.toFixed(0)}ms`);
       }
+      lines.push('');
+    }
+
+    // ── CRM Follow-ups ──
+    if (context?.crmFollowUps && context.crmFollowUps.length > 0) {
+      lines.push('<b>📇 CRM Follow-ups</b>');
+      for (const c of context.crmFollowUps.slice(0, 3)) {
+        const icon = c.urgency === 'critical' ? '🔴' : c.urgency === 'high' ? '🟡' : '⚪';
+        lines.push(`▸ ${icon} ${this.esc(c.name)} — ${c.daysSince}d since last contact`);
+      }
+      lines.push('');
+    }
+
+    // ── Soul Evolution ──
+    if (context?.soulProposals && context.soulProposals.length > 0) {
+      lines.push('<b>🌱 Soul Proposals Pending</b>');
+      for (const p of context.soulProposals.slice(0, 3)) {
+        lines.push(`▸ ${this.esc(p.trait)}: ${this.esc(p.direction)}`);
+      }
+      lines.push('');
+    }
+
+    // ── Human 3.0 Quadrant Scores ──
+    if (context?.quadrantScores) {
+      const q = context.quadrantScores;
+      lines.push('<b>🧭 Life Balance</b>');
+      lines.push(`▸ 🧠 Mind ${q.mind}/100 · 💪 Body ${q.body}/100`);
+      lines.push(`▸ 🙏 Spirit ${q.spirit}/100 · 💼 Vocation ${q.vocation}/100`);
+      lines.push('');
+    }
+
+    // ── Autonomy Dial ──
+    if (context?.autonomyLevel !== undefined && context.autonomyLevel !== null) {
+      const level = context.autonomyLevel;
+      const icon = level >= 80 ? '🟢' : level >= 50 ? '🟡' : '🔴';
+      lines.push(`${icon} <b>Autonomy:</b> ${level}%`);
       lines.push('');
     }
 

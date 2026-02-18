@@ -109,6 +109,9 @@ export async function installDaemon(options: DaemonOptions = {}): Promise<void> 
     'HEYGEN_API_KEY',
     'GMAIL_EMAIL', 'GMAIL_APP_PASSWORD',
 
+    // Readwise & Toggl
+    'READWISE_TOKEN', 'TOGGL_API_TOKEN',
+
     // Settings
     'ARI_LOG_LEVEL', 'NODE_ENV',
   ];

@@ -809,6 +809,81 @@ function registerIntentRoutes(
     description: '"Note: quick thought" — capture a note',
   });
 
+  // ── Phase B.4: CRM, Health, Knowledge, Life Review intents ────────────────
+
+  router.registerRoute({
+    intent: 'crm_follow_up',
+    patterns: [
+      /\b(?:who\s+should\s+i\s+follow\s+up\s+with|follow[\s-]?ups?|stale\s+contacts?)\b/i,
+      /\bwhat\s+do\s+i\s+know\s+about\s+(.+)/i,
+      /\b(?:crm|contacts?)\s*(?:check|scan|review)\b/i,
+    ],
+    handler: withTyping(async (ctx) => {
+      await ctx.reply(
+        '📇 <b>CRM</b>\n\n' +
+        'CRM follow-up engine is connected. Use the scheduled daily scan ' +
+        'or ask "who should I follow up with?" for stale contacts.\n\n' +
+        '<i>Daily CRM scan runs at 2 AM ET.</i>',
+        { parse_mode: 'HTML' },
+      );
+    }),
+    priority: 5,
+    description: '"Follow up with" or "stale contacts" — CRM lookup',
+  });
+
+  router.registerRoute({
+    intent: 'life_review',
+    patterns: [
+      /\b(?:how\s+am\s+i\s+doing|life\s+review|weekly\s+review|life\s+balance)\b/i,
+      /\b(?:mind|body|spirit|vocation)\s+score\b/i,
+      /\bhow(?:'s| is)\s+my\s+(?:week|balance|progress)\b/i,
+    ],
+    handler: withTyping(async (ctx) => {
+      await ctx.reply(
+        '📊 <b>Life Review</b>\n\n' +
+        'Your weekly life review covers Mind, Body, Spirit, and Vocation.\n' +
+        'The full review is delivered every Sunday at 8 PM ET.\n\n' +
+        '<i>Ask "how am I doing this week?" for a quick check.</i>',
+        { parse_mode: 'HTML' },
+      );
+    }),
+    priority: 5,
+    description: '"How am I doing" or "life review" — weekly balance check',
+  });
+
+  router.registerRoute({
+    intent: 'knowledge_query',
+    patterns: [
+      /\bwhat\s+do\s+(?:i|we|you)\s+know\s+about\s+(.+)/i,
+      /\bknowledge\s+(?:base|search|lookup)\b/i,
+      /\b(?:search|find)\s+(?:in\s+)?(?:my\s+)?(?:notes|knowledge|docs)\b/i,
+    ],
+    handler: withTyping(async (ctx) => {
+      const text = ctx.message?.text ?? '';
+      const topicMatch = text.match(/about\s+(.+)/i);
+      const topic = topicMatch?.[1] ?? 'general';
+      if (deps.ragQuery) {
+        const result = await deps.ragQuery(topic);
+        if (result) {
+          const sources = result.sources.slice(0, 3)
+            .map(s => `• ${s.title ?? s.snippet.slice(0, 60)}`).join('\n');
+          await ctx.reply(
+            `🧠 <b>Knowledge</b>\n\n${result.answer}\n\n` +
+            (sources ? `<b>Sources:</b>\n${sources}` : ''),
+            { parse_mode: 'HTML' },
+          );
+          return;
+        }
+      }
+      await ctx.reply(
+        '🧠 Knowledge base search is available when RAG is configured.\n' +
+        'Try: "what do I know about [topic]"',
+      );
+    }),
+    priority: 5,
+    description: '"What do I know about X" — knowledge base search',
+  });
+
   router.registerRoute({
     intent: 'help_request',
     patterns: [
@@ -827,9 +902,11 @@ function registerIntentRoutes(
         '/briefing, /search, /knowledge\n\n' +
         '<b>📣 Content</b>\n' +
         '/content, /growth\n\n' +
+        '<b>📇 CRM & Life</b>\n' +
+        '"follow ups", "how am I doing", "what do I know about X"\n\n' +
         '<b>🔧 System</b>\n' +
         '/status, /settings, /skills\n\n' +
-        '<i>Examples: "What\'s BTC at?" • "What\'s on my calendar?" • "Search for AI news"</i>',
+        '<i>Examples: "What\'s BTC at?" • "Who should I follow up with?" • "How am I doing this week?"</i>',
         { parse_mode: 'HTML' },
       );
     },

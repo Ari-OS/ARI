@@ -53,6 +53,12 @@ L6 Interfaces  ← CLI, Dashboard (L0-L5)
 | 006 | Zod for validation |
 | 007 | Vitest for testing |
 | 008 | macOS-first (Phase 1-3) |
+| 009 | EventBus typed events with payload validation |
+| 010 | SQLite WAL mode for all local databases |
+| 011 | execFileNoThrow for all subprocess calls |
+| 012 | Eastern Time for all cron schedules |
+| 013 | Telegram message limit 4096 chars, split at section boundaries |
+| 014 | Video approval gate — never auto-publish |
 
 ## Code Standards
 
