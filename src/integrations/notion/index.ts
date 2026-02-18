@@ -2,7 +2,6 @@
  * ARI Notion Integration
  *
  * Canonical client: client.ts (retry + TTL cache + WAL mode)
- * notion-client.ts is legacy — pending removal in a future cleanup.
  */
 
 export {

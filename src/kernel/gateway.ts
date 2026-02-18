@@ -2,8 +2,8 @@ import Fastify, { type FastifyRequest, type FastifyReply, type FastifyPluginAsyn
 import { execFileSync } from 'child_process';
 import { randomUUID } from 'crypto';
 import type { Server } from 'http';
+import { z } from 'zod';
 import type { Message } from './types.js';
-import type { TrustLevel } from './types.js';
 import { sanitize } from './sanitizer.js';
 import { AuditLogger } from './audit.js';
 import { EventBus } from './event-bus.js';
@@ -239,8 +239,18 @@ export class Gateway {
     });
 
     // Message submission endpoint with sanitization
-    this.server.post('/message', async (request: FastifyRequest<{ Body: { content: string; source?: TrustLevel } }>, reply: FastifyReply) => {
-      const { content, source = 'untrusted' } = request.body;
+    const MessageBodySchema = z.object({
+      content: z.string().min(1, 'content is required'),
+      source: z.enum(['system', 'operator', 'verified', 'standard', 'untrusted', 'hostile']).optional(),
+    });
+
+    this.server.post('/message', async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
+      const parsed = MessageBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        reply.code(400);
+        return { error: 'Invalid request body', details: parsed.error.format() };
+      }
+      const { content, source = 'untrusted' } = parsed.data;
 
       // Sanitize the incoming message
       const result = sanitize(content, source);
