@@ -2345,6 +2345,187 @@ export class AutonomousAgent {
       }
     });
 
+    // ==========================================================================
+    // PHASE 9-29 HANDLERS: CRM, Soul Evolution, Human Tracker, Platform Health
+    // ==========================================================================
+
+    // CRM daily stale contact scan at 2 AM
+    this.scheduler.registerHandler('crm_daily_scan', async () => {
+      try {
+        const { CRMStore } = await import('../integrations/crm/crm-store.js');
+        const crmStore = new CRMStore();
+        crmStore.init();
+        const stale = crmStore.getStaleContacts(30);
+        if (stale.length > 0) {
+          this.eventBus.emit('crm:contact_created', {
+            contactId: 'scan',
+            name: `${stale.length} stale contacts found`,
+            category: 'client',
+            timestamp: new Date().toISOString(),
+          });
+          log.info({ staleCount: stale.length }, 'CRM stale contact scan complete');
+        }
+        crmStore.close();
+      } catch (error) {
+        log.error({ error }, 'CRM daily scan failed');
+      }
+    });
+
+    // CRM weekly report on Sunday 8 PM
+    this.scheduler.registerHandler('crm_weekly_report', async () => {
+      try {
+        const { CRMStore } = await import('../integrations/crm/crm-store.js');
+        const crmStore = new CRMStore();
+        crmStore.init();
+        const stats = crmStore.getStats();
+        const stale = crmStore.getStaleContacts(30);
+
+        const lines: string[] = ['<b>CRM Weekly Report</b>', ''];
+        lines.push(`Total contacts: ${stats.totalContacts}`);
+        lines.push(`Stale (30+ days): ${stale.length}`);
+        lines.push(`Avg relationship: ${stats.avgRelationshipScore.toFixed(0)}/100`);
+        if (Object.keys(stats.byCategory).length > 0) {
+          lines.push('');
+          lines.push('<b>By Category</b>');
+          for (const [cat, count] of Object.entries(stats.byCategory)) {
+            lines.push(`${cat}: ${count}`);
+          }
+        }
+
+        if (notificationManager.isReady()) {
+          await notificationManager.notify({
+            category: 'system',
+            title: 'CRM Weekly Report',
+            body: lines.join('\n'),
+            priority: 'low',
+            telegramHtml: lines.join('\n'),
+          });
+        }
+        crmStore.close();
+        log.info({ totalContacts: stats.totalContacts, stale: stale.length }, 'CRM weekly report sent');
+      } catch (error) {
+        log.error({ error }, 'CRM weekly report failed');
+      }
+    });
+
+    // Soul weekly reflection on Sunday 10 PM
+    this.scheduler.registerHandler('soul_weekly_reflection', async () => {
+      try {
+        const { SoulEvolution } = await import('./soul-evolution.js');
+        const { AIOrchestrator } = await import('../ai/orchestrator.js');
+        const orchestrator = new AIOrchestrator(this.eventBus, {
+          costTracker: this.costTracker ?? undefined,
+        });
+        const workspaceDir = path.join(process.env.HOME || '~', '.ari', 'workspace');
+        const soul = new SoulEvolution({
+          eventBus: this.eventBus,
+          orchestrator,
+          workspaceDir,
+        });
+        await soul.initialize();
+        const reflection = await soul.weeklyReflection({
+          interactionCount: this.state.tasksProcessed,
+          feedbackPositive: 0,
+          feedbackNegative: 0,
+          topTopics: [],
+        });
+        log.info({
+          proposalCount: reflection.proposedChanges.length,
+          overallSentiment: reflection.overallSentiment,
+        }, 'Soul weekly reflection complete');
+
+        if (reflection.proposedChanges.length > 0 && notificationManager.isReady()) {
+          await notificationManager.notify({
+            category: 'system',
+            title: 'Soul Evolution',
+            body: `${reflection.proposedChanges.length} evolution proposal(s). Sentiment: ${reflection.overallSentiment}`,
+            priority: 'low',
+          });
+        }
+      } catch (error) {
+        log.error({ error }, 'Soul weekly reflection failed');
+      }
+    });
+
+    // Life review weekly on Sunday 8 PM
+    this.scheduler.registerHandler('life_review_weekly', async () => {
+      try {
+        const { HumanTracker } = await import('./human-tracker.js');
+        const tracker = new HumanTracker({ eventBus: this.eventBus });
+        const review = tracker.generateWeeklyReview();
+
+        const lines: string[] = ['<b>Human 3.0 Weekly Review</b>', ''];
+        for (const [quadrant, data] of Object.entries(review.quadrants)) {
+          const score = (data as { score: number }).score;
+          const bar = '#'.repeat(Math.round(score / 10)) + '-'.repeat(10 - Math.round(score / 10));
+          lines.push(`${quadrant}: [${bar}] ${score}/100`);
+        }
+        lines.push('');
+        lines.push(`<b>Overall: ${review.overallScore}/100</b>`);
+        if (review.weeklyGoals.length > 0) {
+          lines.push('');
+          lines.push('<b>Focus Areas</b>');
+          for (const goal of review.weeklyGoals.slice(0, 3)) {
+            lines.push(`- ${goal}`);
+          }
+        }
+
+        if (notificationManager.isReady()) {
+          await notificationManager.notify({
+            category: 'system',
+            title: 'Human 3.0 Review',
+            body: lines.join('\n'),
+            priority: 'normal',
+            telegramHtml: lines.join('\n'),
+          });
+        }
+        log.info({ overallScore: review.overallScore }, 'Life review weekly complete');
+      } catch (error) {
+        log.error({ error }, 'Life review weekly failed');
+      }
+    });
+
+    // Email triage scan every 30 min during work hours
+    this.scheduler.registerHandler('email_triage', () => {
+      // Gmail triage requires OAuth setup — for now, use the existing
+      // gmail_ingest handler which handles IMAP-based ingestion.
+      // When Gmail OAuth is configured, this will use EmailTriage.triageBatch()
+      // to classify emails by priority and category.
+      log.info('Email triage handler ready (pending Gmail OAuth configuration)');
+      return Promise.resolve();
+    });
+
+    // Platform health audit at 2 AM — convene platform health council
+    this.scheduler.registerHandler('platform_health_audit', async () => {
+      try {
+        const { OperationalCouncils } = await import('../governance/operational-councils.js');
+        const { AIOrchestrator } = await import('../ai/orchestrator.js');
+        const orchestrator = new AIOrchestrator(this.eventBus, {
+          costTracker: this.costTracker ?? undefined,
+        });
+        const councils = new OperationalCouncils({
+          eventBus: this.eventBus,
+          orchestrator,
+        });
+        const result = await councils.convene(
+          'platform-health',
+          'Nightly platform health audit: check system uptime, error rates, and resource usage',
+        );
+        log.info({ approved: result.approved, votes: result.votes.length }, 'Platform health audit complete');
+
+        if (!result.approved && notificationManager.isReady()) {
+          await notificationManager.notify({
+            category: 'system',
+            title: 'Platform Health Issues',
+            body: `Council flagged issues: ${result.summary}`,
+            priority: 'high',
+          });
+        }
+      } catch (error) {
+        log.error({ error }, 'Platform health audit failed');
+      }
+    });
+
   }
 
   /**

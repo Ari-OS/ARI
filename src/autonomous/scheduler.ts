@@ -503,6 +503,86 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     },
   },
 
+  // ── CRM & Contact Management ─────────────────────────────────────────────
+  {
+    id: 'crm-daily-scan',
+    name: 'CRM Daily Stale Contact Scan',
+    cron: '0 2 * * *', // 2:00 AM daily
+    handler: 'crm_daily_scan',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'CRM',
+      description: 'Scan for stale contacts and generate follow-up alerts',
+    },
+  },
+  {
+    id: 'crm-weekly-report',
+    name: 'CRM Weekly Report',
+    cron: '0 20 * * 0', // Sunday 8:00 PM
+    handler: 'crm_weekly_report',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'CRM',
+      description: 'Weekly CRM stats, stale contacts, and follow-up queue',
+    },
+  },
+
+  // ── Soul Evolution & Human Tracker ──────────────────────────────────────
+  {
+    id: 'soul-weekly-reflection',
+    name: 'Soul Weekly Reflection',
+    cron: '0 22 * * 0', // Sunday 10:00 PM
+    handler: 'soul_weekly_reflection',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'AUTONOMOUS',
+      description: 'Weekly self-reflection, trait evolution proposals',
+    },
+  },
+  {
+    id: 'life-review-weekly',
+    name: 'Life Review Weekly',
+    cron: '0 20 * * 0', // Sunday 8:00 PM
+    handler: 'life_review_weekly',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'AUTONOMOUS',
+      description: 'Weekly Human 3.0 quadrant review and scoring',
+    },
+  },
+
+  // ── Email Triage ────────────────────────────────────────────────────────
+  {
+    id: 'email-triage',
+    name: 'Email Triage Scan',
+    cron: '*/30 7-17 * * 1-5', // Every 30 min during work hours, weekdays
+    handler: 'email_triage',
+    enabled: false, // Disabled: pending Gmail OAuth setup
+    essential: false,
+    metadata: {
+      category: 'INTEGRATION',
+      description: 'Scan and triage inbox using GmailTriage classifier',
+    },
+  },
+
+  // ── Platform Health Audit ───────────────────────────────────────────────
+  {
+    id: 'platform-health-audit',
+    name: 'Platform Health Audit',
+    cron: '0 2 * * *', // 2:00 AM daily
+    handler: 'platform_health_audit',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'OPERATIONS',
+      description: 'Nightly platform health check via operational councils',
+    },
+  },
+
   // ── Quick-Win Integrations ─────────────────────────────────────────────────
   {
     id: 'weather-fetch',

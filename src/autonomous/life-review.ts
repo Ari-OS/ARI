@@ -123,6 +123,28 @@ export class LifeReviewGenerator {
       messages.push(current.trim());
     }
 
+    // Hard-split any oversized messages at line boundaries
+    const result: string[] = [];
+    for (const msg of messages) {
+      if (msg.length <= MAX_MSG_LEN) {
+        result.push(msg);
+      } else {
+        const lines = msg.split('\n');
+        let chunk = '';
+        for (const line of lines) {
+          if (chunk.length + line.length + 1 > MAX_MSG_LEN) {
+            if (chunk) result.push(chunk.trim());
+            chunk = line;
+          } else {
+            chunk += (chunk ? '\n' : '') + line;
+          }
+        }
+        if (chunk.trim()) result.push(chunk.trim());
+      }
+    }
+
+    return result.length > 0 ? result : messages;
+
     return messages;
   }
 
