@@ -15,6 +15,8 @@ const DEFAULT_MAX_TOKENS: Record<TaskCategory, number> = {
   planning: 4096,
   code_generation: 4096,
   security: 2048,
+  creative: 2048,
+  research: 2048,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

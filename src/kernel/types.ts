@@ -65,6 +65,11 @@ export const AgentIdSchema = z.enum([
   // Pillar 5: META — "The Balance"
   'ethics',          // ⚖️ VERA — Speaks truth, ensures fairness
   'integrator',      // 🔗 NEXUS — Connects everything, breaks ties
+
+  // Specialized task agents (Phase 9)
+  'research_agent',
+  'writing_agent',
+  'analysis_agent',
 ]);
 export type AgentId = z.infer<typeof AgentIdSchema>;
 

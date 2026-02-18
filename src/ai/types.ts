@@ -75,6 +75,8 @@ export const TaskCategorySchema = z.enum([
   'security',
   'heartbeat',
   'parse_command',
+  'creative',
+  'research',
 ]);
 export type TaskCategory = z.infer<typeof TaskCategorySchema>;
 
@@ -113,6 +115,7 @@ export const AIRequestSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 export type AIRequest = z.infer<typeof AIRequestSchema>;
+export type AIRequestInput = z.input<typeof AIRequestSchema>;
 
 /**
  * AI response with full execution metadata.

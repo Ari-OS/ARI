@@ -708,6 +708,10 @@ export interface EventMap {
   // Feedback events (Phase 3 — 👍/👎)
   'feedback:signal': { messageId: string; chatId: number; signal: 'positive' | 'negative'; context?: string; timestamp: string };
 
+  // Feedback tracker events (Phase 12 — Self-Improvement Loop Enhancement)
+  'feedback:recorded': { messageId: string; userId: string; positive: boolean; category: string; timestamp: string };
+  'feedback:analysis_generated': { period: { start: string; end: string }; totalFeedback: number; positiveRate: number; timestamp: string };
+
   // ═══════════════════════════════════════════════════════════════════════
   // X (formerly Twitter) events
   // ═══════════════════════════════════════════════════════════════════════
@@ -716,6 +720,134 @@ export interface EventMap {
   'x:daily_reset': { previousDate: string; previousSpent: number; newDate: string; timestamp: string };
   'x:request_deduplicated': { operation: string; originalCount: number; deduplicatedCount: number; savedCost: number; timestamp: string };
   'x:operation_skipped': { operation: string; reason: string; priority: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // LANE QUEUE events (Phase 9 — Agent Coordination)
+  // ═══════════════════════════════════════════════════════════════════════
+  'queue:enqueued': { id: string; lane: string; priority: number; timestamp: string };
+  'queue:completed': { id: string; lane: string; durationMs: number; timestamp: string };
+  'queue:failed': { id: string; lane: string; error: string; retries: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // AGENT SPECIALIZATION events (Phase 9 — Agent Coordination)
+  // ═══════════════════════════════════════════════════════════════════════
+  'agent:research_started': { query: string; sources: string[]; timestamp: string };
+  'agent:research_completed': { query: string; findingsCount: number; confidence: number; timestamp: string };
+  'agent:writing_started': { topic: string; format: string; timestamp: string };
+  'agent:writing_completed': { topic: string; format: string; wordCount: number; timestamp: string };
+  'agent:analysis_started': { question: string; timestamp: string };
+  'agent:analysis_completed': { question: string; dataPoints: number; confidence: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // COORDINATOR events (Phase 9 — Agent Coordination)
+  // ═══════════════════════════════════════════════════════════════════════
+  'coordinator:dispatch_started': { taskCount: number; timestamp: string };
+  'coordinator:dispatch_completed': { taskCount: number; successCount: number; failedCount: number; durationMs: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // VOICE INTERFACE events (Phase 10 — Voice Pipeline)
+  // ═══════════════════════════════════════════════════════════════════════
+  'voice:transcribed': { userId: string; transcript: string; durationMs: number; timestamp: string };
+  'voice:response_sent': { userId: string; transcript: string; responseLength: number; hadAudio: boolean; durationMs: number; timestamp: string };
+  'voice:error': { userId: string; stage: 'transcription' | 'processing' | 'tts'; error: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SOUL EVOLUTION events (Phase 11 — Autonomous Growth)
+  // ═══════════════════════════════════════════════════════════════════════
+  'soul:proposal_created': { proposalId: string; dimension: string; currentValue: string; proposedValue: string; reasoning: string; timestamp: string };
+  'soul:proposal_approved': { proposalId: string; dimension: string; approvedBy: string; timestamp: string };
+  'soul:proposal_rejected': { proposalId: string; dimension: string; reason: string; timestamp: string };
+  'soul:weekly_reflection': { period: { start: string; end: string }; proposalsCreated: number; proposalsApproved: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CONTENT QUALITY events (Phase 26 — Content Engine)
+  // ═══════════════════════════════════════════════════════════════════════
+  'content:quality_scored': { contentId: string; score: number; dimensions: Record<string, number>; timestamp: string };
+  'content:humanized': { contentId: string; originalLength: number; humanizedLength: number; patternsRemoved: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SECURITY HARDENING events (Phase 14)
+  // ═══════════════════════════════════════════════════════════════════════
+  'security:anomaly_detected': { detectorId: string; anomalyType: string; severity: number; details: Record<string, unknown>; timestamp: string };
+  'security:api_key_warning': { keyId: string; issue: string; severity: 'info' | 'warning' | 'critical'; timestamp: string };
+  'security:sanitizer_blocked': { pattern: string; category: string; input: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // DEPENDENCY MONITOR events (Phase 14)
+  // ═══════════════════════════════════════════════════════════════════════
+  'ops:dependency_check': { packageCount: number; outdatedCount: number; vulnerableCount: number; timestamp: string };
+  'ops:vulnerability_found': { packageName: string; severity: string; advisoryUrl: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SOCIAL GROWTH events (Phase 22)
+  // ═══════════════════════════════════════════════════════════════════════
+  'social:growth_report': { platform: string; followers: number; growth: number; engagement: number; timestamp: string };
+  'social:milestone_reached': { platform: string; metric: string; value: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // FATHOM events (Phase 20)
+  // ═══════════════════════════════════════════════════════════════════════
+  'fathom:meeting_processed': { meetingId: string; actionItemCount: number; duration: number; timestamp: string };
+  'fathom:action_item_created': { id: string; title: string; assignee: string; dueDate: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // HEALTH JOURNAL events (Phase 21)
+  // ═══════════════════════════════════════════════════════════════════════
+  'health:meal_logged': { mealId: string; description: string; calories: number; timestamp: string };
+  'health:nutrition_summary': { date: string; totalCalories: number; macros: Record<string, number>; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ENTITY EXTRACTION events (Phase 28)
+  // ═══════════════════════════════════════════════════════════════════════
+  'entity:extracted': { sourceId: string; entityCount: number; types: string[]; timestamp: string };
+  'entity:linked': { entityId: string; linkedTo: string; relationship: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // GOVERNANCE COUNCIL events (Phase 13)
+  // ═══════════════════════════════════════════════════════════════════════
+  'governance:council_convened': { councilId: string; memberCount: number; topic: string; timestamp: string };
+  'governance:threshold_met': { voteId: string; threshold: string; result: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PHASE 15 events (Progressive Disclosure Briefings)
+  // ═══════════════════════════════════════════════════════════════════════
+  'session:state_saved': { timestamp: string };
+  'session:state_restored': { lastActive: string; pendingItems: number };
+  'autonomy:level_changed': { category: string; previous: string; current: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PHASE 16-19 events (Apple Deep, Email, Stripe, CRM)
+  // ═══════════════════════════════════════════════════════════════════════
+  'email:triaged': { emailId: string; category: string; priority: string; timestamp: string };
+  'email:action_required': { emailId: string; subject: string; suggestedAction: string; timestamp: string };
+  'stripe:payment_received': { amount: number; currency: string; customer: string; timestamp: string };
+  'stripe:milestone_reached': { milestone: string; currentValue: number; timestamp: string };
+  'stripe:churn_detected': { customerId: string; mrr: number; timestamp: string };
+  'crm:contact_created': { contactId: string; name: string; category: string; timestamp: string };
+  'crm:interaction_logged': { contactId: string; type: string; summary: string; timestamp: string };
+  'crm:follow_up_needed': { contactId: string; name: string; daysSinceContact: number; urgency: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PHASE 27 events (Video Generation Alternatives)
+  // ═══════════════════════════════════════════════════════════════════════
+  'video:broll_generated': { id: string; prompt: string; duration: number; style: string; provider: string; timestamp: string };
+  'video:thumbnail_fallback_used': { url: string; provider: string; prompt: string; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PHASE 28 events (Knowledge Base System)
+  // ═══════════════════════════════════════════════════════════════════════
+  'knowledge:kb_ingested': { id: string; sourceType: string; title: string; tags: string[]; timestamp: string };
+  'knowledge:kb_searched': { query: string; resultCount: number; timestamp: string };
+  'knowledge:kb_accessed': { id: string; accessCount: number; timestamp: string };
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PHASE 29 events (Human 3.0 — Mind/Body/Spirit/Vocation Tracking)
+  // ═══════════════════════════════════════════════════════════════════════
+  'human:entry_logged': { id: string; quadrant: string; activity: string; quality: number; timestamp: string };
+  'human:weekly_review': { period: { start: string; end: string }; overallScore: number; timestamp: string };
+  'human:balance_alert': { leastAttended: string; score: number; recommendation: string; timestamp: string };
+  'life_review:generated': { period: { start: string; end: string }; overallScore: number; timestamp: string };
+  'life_review:delivered': { channel: string; timestamp: string };
 }
 
 /**

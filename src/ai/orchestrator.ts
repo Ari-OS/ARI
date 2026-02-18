@@ -4,6 +4,7 @@ import type { CostTracker, ThrottleLevel } from '../observability/cost-tracker.j
 import type {
   ModelTier,
   AIRequest,
+  AIRequestInput,
   AIResponse,
   AIFeatureFlags,
   OrchestratorStatus,
@@ -162,7 +163,7 @@ export class AIOrchestrator {
   // PRIMARY API — THE 15-STEP PIPELINE
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async execute(request: AIRequest): Promise<AIResponse> {
+  async execute(request: AIRequestInput): Promise<AIResponse> {
     // Auto-register providers from environment on first call
     if (this.autoRegisterProviders && !this.providersInitialized) {
       await this.providers.registerFromEnv();

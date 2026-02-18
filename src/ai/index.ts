@@ -16,6 +16,7 @@ export type {
   TaskCategory,
   AIPriority,
   AIRequest,
+  AIRequestInput,
   AIResponse,
   ValueScoreInput,
   ValueScoreResult,
