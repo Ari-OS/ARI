@@ -51,6 +51,7 @@ import { RAGQueryEngine } from './rag-query.js';
 import { NotionTaskMonitor } from '../integrations/notion/task-monitor.js';
 import { LaneQueue } from './lane-queue.js';
 import { AutonomyDial } from './autonomy-dial.js';
+import { NotificationPipeline } from './notification-pipeline.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -126,6 +127,9 @@ export class AutonomousAgent {
   private laneQueue: LaneQueue | null = null;
   private autonomyDial: AutonomyDial | null = null;
 
+  // Phase 11: Soul evolution + notification lifecycle
+  private notificationPipeline: NotificationPipeline | null = null;
+
   // Cached scan results for unified morning briefing
   private lastDigest: import('./daily-digest.js').DailyDigest | null = null;
   private lastLifeMonitorReport: import('./life-monitor.js').LifeMonitorReport | null = null;
@@ -172,6 +176,8 @@ export class AutonomousAgent {
     this.laneQueue = new LaneQueue(eventBus);
     // Phase 9: Autonomy dial (persists per-category levels to ~/.ari/autonomy.json)
     this.autonomyDial = new AutonomyDial(undefined, eventBus);
+    // Phase 11: Unified notification pipeline
+    this.notificationPipeline = new NotificationPipeline(eventBus);
 
     // Initialize initiative engine for proactive autonomy
     this.initiativeEngine = new InitiativeEngine({
@@ -558,6 +564,10 @@ export class AutonomousAgent {
 
   getAutonomyDial(): AutonomyDial | null {
     return this.autonomyDial;
+  }
+
+  getNotificationPipeline(): NotificationPipeline | null {
+    return this.notificationPipeline;
   }
 
   /**

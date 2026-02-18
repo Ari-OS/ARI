@@ -761,6 +761,11 @@ export interface EventMap {
   'soul:proposal_approved': { proposalId: string; dimension: string; approvedBy: string; timestamp: string };
   'soul:proposal_rejected': { proposalId: string; dimension: string; reason: string; timestamp: string };
   'soul:weekly_reflection': { period: { start: string; end: string }; proposalsCreated: number; proposalsApproved: number; timestamp: string };
+  'soul:change_proposed': { proposalId: string; file: string; rationale: string; diff: string; expiresAt: string };
+  'soul:change_applied': { proposalId: string; file: string; appliedAt: string; approvedBy: string };
+  'soul:change_rejected': { proposalId: string; file: string; reason: string; rejectedBy: string };
+  'soul:approve_request': { proposalId: string };
+  'soul:reject_request': { proposalId: string; reason?: string };
 
   // ═══════════════════════════════════════════════════════════════════════
   // CONTENT QUALITY events (Phase 26 — Content Engine)
