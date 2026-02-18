@@ -664,6 +664,9 @@ export interface EventMap {
   'video:stage_completed': { projectId: string; stage: string; data: Record<string, unknown>; timestamp: string };
   'video:stage_update': { stage: string; message: string; topic: string };
   'video:published': { projectId: string; youtubeVideoId: string; title: string; platform: string };
+  'video:pipeline_status_check': { checkedAt: string };
+  'content:video_script_ready': { script: string | string[]; topic: string };
+  'market:earnings_analysis_requested': { requestedAt: string };
 
   // ═══════════════════════════════════════════════════════════════════════
   // MISSING EVENTS — Phase 0 Bug 6 additions

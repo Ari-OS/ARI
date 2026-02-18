@@ -49,6 +49,8 @@ import { EmbeddingService } from '../ai/embedding-service.js';
 import { IngestionPipeline } from './ingestion-pipeline.js';
 import { RAGQueryEngine } from './rag-query.js';
 import { NotionTaskMonitor } from '../integrations/notion/task-monitor.js';
+import { LaneQueue } from './lane-queue.js';
+import { AutonomyDial } from './autonomy-dial.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -120,6 +122,10 @@ export class AutonomousAgent {
   // Notion task monitor (Phase 5)
   private notionTaskMonitor: NotionTaskMonitor | null = null;
 
+  // Phase 9: Durable lane queue + autonomy dial
+  private laneQueue: LaneQueue | null = null;
+  private autonomyDial: AutonomyDial | null = null;
+
   // Cached scan results for unified morning briefing
   private lastDigest: import('./daily-digest.js').DailyDigest | null = null;
   private lastLifeMonitorReport: import('./life-monitor.js').LifeMonitorReport | null = null;
@@ -161,6 +167,11 @@ export class AutonomousAgent {
     this.knowledgeIndex = new KnowledgeIndex(eventBus);
     this.changelogGenerator = new ChangelogGenerator(eventBus, process.cwd());
     this.agentSpawner = new AgentSpawner(eventBus, process.cwd());
+
+    // Phase 9: Durable lane queue (rehydrates from ~/.ari/queue/pending.jsonl)
+    this.laneQueue = new LaneQueue(eventBus);
+    // Phase 9: Autonomy dial (persists per-category levels to ~/.ari/autonomy.json)
+    this.autonomyDial = new AutonomyDial(undefined, eventBus);
 
     // Initialize initiative engine for proactive autonomy
     this.initiativeEngine = new InitiativeEngine({
@@ -541,6 +552,14 @@ export class AutonomousAgent {
     return this.scheduler;
   }
 
+  getLaneQueue(): LaneQueue | null {
+    return this.laneQueue;
+  }
+
+  getAutonomyDial(): AutonomyDial | null {
+    return this.autonomyDial;
+  }
+
   /**
    * Start the autonomous agent loop
    */
@@ -562,6 +581,11 @@ export class AutonomousAgent {
 
     // Start scheduler
     this.scheduler.start();
+
+    // Rehydrate lane queue from disk (Phase 9)
+    if (this.laneQueue) {
+      this.laneQueue.rehydrate();
+    }
 
     // Start initiative engine (proactive autonomy)
     void this.initiativeEngine.start();
@@ -2532,6 +2556,77 @@ export class AutonomousAgent {
         log.error({ error }, 'Platform health audit failed');
       }
     });
+
+    // Video script generation (Monday 10 AM) — Phase 7
+    this.scheduler.registerHandler("video_script_generation", async () => {
+      try {
+        if (!this.contentEngine) {
+          log.info("Content engine not available, skipping video script generation");
+          return;
+        }
+        log.info("Generating weekly video script via content pipeline");
+        this.eventBus.emit("audit:log", {
+          action: "content:video_script_generation_started",
+          agent: "VIDEO_PIPELINE",
+          trustLevel: "system" as const,
+          details: { scheduledAt: new Date().toISOString() },
+        });
+        // Content engine generates scripts via its drafter
+        const drafter = this.contentEngine.getDrafter();
+        if (drafter) {
+          const trendAnalyzer = this.contentEngine.getTrendAnalyzer();
+          if (this.intelligenceScanner) {
+            const scan = await this.intelligenceScanner.scan();
+            const briefs = trendAnalyzer.analyze(scan.topItems);
+            const videoBrief = briefs[0]; // Best topic for video
+            if (videoBrief) {
+              const script = await drafter.generateDraft(videoBrief);
+              const wordCount = Array.isArray(script.content) ? script.content.join(" ").split(" ").length : String(script.content).split(" ").length;
+              log.info({ topic: videoBrief.headline, words: wordCount }, "Video script generated");
+            }
+          }
+        }
+      } catch (error) {
+        log.error({ error }, "Video script generation failed");
+      }
+    });
+
+    // Video pipeline status check (every 4 min) — Phase 7
+    this.scheduler.registerHandler("video_pipeline_status", (): Promise<void> => {
+      try {
+        this.eventBus.emit("video:pipeline_status_check", {
+          checkedAt: new Date().toISOString(),
+        });
+        log.debug("Video pipeline status check emitted");
+      } catch (error) {
+        log.error({ error }, "Video pipeline status check failed");
+      }
+      return Promise.resolve();
+    });
+
+    // Earnings analyzer (daily 7 AM) — Phase 6
+    this.scheduler.registerHandler("earnings_analyzer", (): Promise<void> => {
+      try {
+        if (!this.marketMonitor) {
+          log.info("Market monitor not available, skipping earnings analysis");
+          return Promise.resolve();
+        }
+        log.info("Running earnings analysis for portfolio holdings");
+        this.eventBus.emit("market:earnings_analysis_requested", {
+          requestedAt: new Date().toISOString(),
+        });
+        this.eventBus.emit("audit:log", {
+          action: "market:earnings_analyzer_run",
+          agent: "MARKET_MONITOR",
+          trustLevel: "system" as const,
+          details: { scheduledAt: new Date().toISOString() },
+        });
+      } catch (error) {
+        log.error({ error }, "Earnings analysis failed");
+      }
+      return Promise.resolve();
+    });
+
 
   }
 

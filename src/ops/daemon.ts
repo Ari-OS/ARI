@@ -112,6 +112,13 @@ export async function installDaemon(options: DaemonOptions = {}): Promise<void> 
     // Readwise & Toggl
     'READWISE_TOKEN', 'TOGGL_API_TOKEN',
 
+    // Additional integrations
+    'SPOTIFY_CLIENT_ID', 'SPOTIFY_CLIENT_SECRET',
+    'CALCOM_API_KEY',
+    'PRODUCTHUNT_ACCESS_TOKEN',
+    'COMPOSIO_API_KEY',
+    'POKEMONTCG_API_KEY',
+
     // Settings
     'ARI_LOG_LEVEL', 'NODE_ENV',
   ];

@@ -686,6 +686,42 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
       description: 'Generate and deliver curated daily knowledge report via Telegram',
     },
   },
+  {
+    id: "video-script-generation",
+    name: "Video Script Generation",
+    cron: "0 10 * * 1", // Monday 10:00 AM
+    handler: "video_script_generation",
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: "CONTENT",
+      description: "Generate weekly video script for PayThePryce content pipeline",
+    },
+  },
+  {
+    id: "video-pipeline-status",
+    name: "Video Pipeline Status Check",
+    cron: "*/4 * * * *", // Every 4 minutes
+    handler: "video_pipeline_status",
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: "CONTENT",
+      description: "Check HeyGen/AssemblyAI/YouTube pipeline job status",
+    },
+  },
+  {
+    id: "earnings-analyzer",
+    name: "Earnings Analyzer",
+    cron: "0 7 * * *", // 7:00 AM daily
+    handler: "earnings_analyzer",
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: "MARKET",
+      description: "Analyze upcoming earnings reports for portfolio holdings",
+    },
+  },
 ];
 
 export class Scheduler {
