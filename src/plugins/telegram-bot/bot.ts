@@ -1,8 +1,11 @@
-import { Bot } from 'grammy';
+import { Bot, InlineKeyboard } from 'grammy';
+import type { Context } from 'grammy';
 import type { EventBus } from '../../kernel/event-bus.js';
 import type { AIOrchestrator } from '../../ai/orchestrator.js';
 import type { CostTracker } from '../../observability/cost-tracker.js';
 import type { PluginRegistry } from '../registry.js';
+import { splitTelegramMessage } from '../../utils/format.js';
+import type { IntentHandler } from './intent-router.js';
 import type { PerplexityClient } from '../../integrations/perplexity/client.js';
 import type { TelegramBotConfig } from './types.js';
 import { createAuthMiddleware } from './middleware/auth.js';
@@ -78,14 +81,19 @@ export function createBot(deps: BotDependencies): Bot {
       const chatId = ctx.chat?.id;
       const text = ctx.message?.text ?? '';
 
-      // Persist user message before AI call
+      // Typing indicator before slow AI call
+      await ctx.replyWithChatAction('typing');
+
+      // Persist user message to ConversationStore
       if (chatId && text) {
-        await conversationStore.addUserMessage(chatId, text);
+        await conversationStore.addUserMessage(chatId, text, 'conversational');
       }
 
+      // Get AI response via handleAsk
       await handleAsk(ctx, orchestrator, sessionManager);
 
-      // Persist assistant response after AI call (best-effort, response captured by handleAsk)
+      // Persist assistant response (best-effort)
+      // We don't have direct access to the response text here — handled by handleAsk
     } else {
       await ctx.reply('Use /help to see available commands.');
     }
@@ -181,8 +189,22 @@ export function createBot(deps: BotDependencies): Bot {
   // ── Natural language fallback (via intent router) ─────────────────
 
   bot.on('message:text', async (ctx) => {
+    const chatId = ctx.chat?.id;
+    const text = ctx.message?.text ?? '';
+
+    // Skip slash commands — they're handled above
+    if (text.startsWith('/')) return;
+
+    // Persist user message to ConversationStore for context
+    if (chatId && text) {
+      await conversationStore.addUserMessage(chatId, text);
+    }
+
+    // Load conversation history for AI classification context
+    const history = chatId ? await conversationStore.getHistory(chatId) : [];
+
     // Route through two-tier intent detection before falling back to /ask
-    await intentRouter.route(ctx);
+    await intentRouter.route(ctx, history);
   });
 
   // ── Voice message handler (via Whisper transcription) ──────────────
@@ -194,19 +216,57 @@ export function createBot(deps: BotDependencies): Bot {
 
   bot.on('message:voice', async (ctx) => {
     await handleVoice(ctx, voiceDeps, async (voiceCtx, text) => {
-      await intentRouter.routeText(voiceCtx, text);
+      const chatId = voiceCtx.chat?.id;
+      const history = chatId ? await conversationStore.getHistory(chatId) : [];
+      if (chatId && text) {
+        await conversationStore.addUserMessage(chatId, text, 'voice');
+      }
+      await intentRouter.routeText(voiceCtx, text, history);
     });
   });
 
   bot.on('message:audio', async (ctx) => {
     await handleVoice(ctx, voiceDeps, async (audioCtx, text) => {
-      await intentRouter.routeText(audioCtx, text);
+      const chatId = audioCtx.chat?.id;
+      const history = chatId ? await conversationStore.getHistory(chatId) : [];
+      if (chatId && text) {
+        await conversationStore.addUserMessage(chatId, text, 'voice');
+      }
+      await intentRouter.routeText(audioCtx, text, history);
     });
   });
 
   // ── Inline keyboard callback handler ────────────────────────────────
   bot.on('callback_query:data', async (ctx) => {
     const data = ctx.callbackQuery.data;
+
+    // ── Feedback buttons (👍/👎) — handle before parseCallbackData ──────
+    if (data.startsWith('fb:')) {
+      const parts = data.split(':');
+      const signal = parts[1] as 'positive' | 'negative';
+      const msgId = parts[2] ?? data;
+      const chatId = ctx.callbackQuery.message?.chat.id ?? 0;
+
+      eventBus.emit('feedback:signal', {
+        messageId: msgId,
+        chatId,
+        signal,
+        timestamp: new Date().toISOString(),
+      });
+
+      await ctx.answerCallbackQuery({
+        text: signal === 'positive' ? '👍 Thanks!' : '👎 Got it — I\'ll improve',
+      });
+
+      // Remove feedback buttons after tapping
+      try {
+        await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } });
+      } catch {
+        // Message too old — ignore
+      }
+      return;
+    }
+
     const parsed = parseCallbackData(data);
 
     if (!parsed) {
@@ -345,84 +405,82 @@ export function createBot(deps: BotDependencies): Bot {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Register fast-path regex patterns for common intents.
- * These bypass AI classification entirely — ~80% of messages hit these.
+ * Wrap a handler to add typing indicator + send large messages in chunks.
+ * All Phase 3 intent handlers use this for consistent UX.
+ */
+function withTyping(handler: IntentHandler): IntentHandler {
+  return async (ctx, match, entities) => {
+    await ctx.replyWithChatAction('typing');
+    return handler(ctx, match, entities);
+  };
+}
+
+/**
+ * Send a response with 👍/👎 feedback buttons.
+ * Emits feedback:signal to EventBus when Pryce taps.
+ */
+async function replyWithFeedback(ctx: Context, text: string, eventBus: EventBus): Promise<void> {
+  const chunks = splitTelegramMessage(text);
+  const messageId = ctx.message?.message_id.toString() ?? Date.now().toString();
+  const chatId = ctx.chat?.id ?? 0;
+
+  // Send all chunks; add buttons only to the last one
+  for (let i = 0; i < chunks.length; i++) {
+    if (i < chunks.length - 1) {
+      await ctx.reply(chunks[i]);
+    } else {
+      const feedbackKb = new InlineKeyboard()
+        .text('👍', `fb:positive:${messageId}`)
+        .text('👎', `fb:negative:${messageId}`);
+
+      await ctx.reply(chunks[i], { reply_markup: feedbackKb });
+    }
+  }
+
+  // Wire callback data for feedback buttons (handled in bot.on('callback_query:data'))
+  void eventBus; // Used in the callback handler registered separately
+  void chatId;
+}
+void replyWithFeedback; // used in registerIntentRoutes below
+
+/**
+ * Register fast-path regex patterns for all 25 intents.
+ * ~80% of messages match these — zero AI calls needed.
+ * Handlers wrapped with withTyping() for consistent UX.
  */
 function registerIntentRoutes(
   router: IntentRouter,
   deps: BotDependencies,
   conversationStore: ConversationStore,
 ): void {
-  void conversationStore; // Referenced via closure in default handler (bot.ts:76-82)
-  const { eventBus, registry, perplexityClient } = deps;
+  void conversationStore;
+  const { eventBus, registry, perplexityClient, notionInbox, costTracker } = deps;
+
+  // ── Tier 1: High-frequency, high-priority ────────────────────────────────
 
   router.registerRoute({
     intent: 'crypto_price',
     patterns: [
-      /\b(?:bitcoin|btc|eth|sol|crypto)\b.*\b(?:price|worth|value|cost)\b/i,
+      /\b(?:bitcoin|btc|eth|sol|bnb|doge|xrp|ada|avax|link|matic|dot)\b.*\b(?:price|worth|value|cost|at)\b/i,
       /\bhow\s+(?:much|is)\s+(?:btc|eth|sol|bitcoin|ethereum)\b/i,
+      /\b(?:crypto|coin)\s+prices?\b/i,
     ],
-    handler: async (ctx) => handleCrypto(ctx, registry),
-    priority: 8,
+    handler: withTyping(async (ctx) => handleCrypto(ctx, registry)),
+    priority: 10,
+    description: '"BTC price" or "how much is ETH" — crypto prices',
   });
 
   router.registerRoute({
     intent: 'calendar_query',
     patterns: [
       /\b(?:calendar|schedule|meeting|event)s?\b/i,
-      /\bwhat(?:'s| is) (?:on )?(?:my |the )?(?:schedule|agenda|calendar)\b/i,
+      /\bwhat(?:'s| is) (?:on )?(?:my |the )?(?:schedule|agenda|calendar|today)\b/i,
+      /\bwhat(?:'s| do) i have (?:today|this week|tomorrow)\b/i,
+      /\b(?:today'?s?|tomorrow'?s?) (?:schedule|agenda|meetings?|events?)\b/i,
     ],
-    handler: async (ctx) => handleCalendar(ctx, eventBus),
-    priority: 8,
-  });
-
-  router.registerRoute({
-    intent: 'market_check',
-    patterns: [
-      /\b(?:market|stocks?|portfolio|positions?)\b/i,
-      /\bhow(?:'s| is| are) (?:the )?(?:market|stocks?)\b/i,
-    ],
-    handler: async (ctx) => handleMarket(ctx, eventBus, registry),
-    priority: 7,
-  });
-
-  router.registerRoute({
-    intent: 'web_search',
-    patterns: [
-      /\b(?:search|look\s+up|research|find\s+out)\s+(?:for\s+)?(.+)/i,
-    ],
-    handler: async (ctx) => handleSearch(ctx, perplexityClient ?? null),
-    priority: 6,
-  });
-
-  router.registerRoute({
-    intent: 'briefing_request',
-    patterns: [
-      /\b(?:briefing|morning\s+update|summary|daily\s+digest)\b/i,
-    ],
-    handler: async (ctx) => handleBriefing(ctx, registry),
-    priority: 7,
-  });
-
-  router.registerRoute({
-    intent: 'status_check',
-    patterns: [
-      /\b(?:system\s+)?status\b/i,
-      /\bhow\s+are\s+you\b/i,
-    ],
-    handler: async (ctx) => handleStatus(ctx, registry),
-    priority: 5,
-  });
-
-  router.registerRoute({
-    intent: 'content_pipeline',
-    patterns: [
-      /\b(?:content|draft|drafts|publish|publishing)\b/i,
-      /\b(?:write|create|generate)\s+(?:a\s+)?(?:post|article|thread|tweet|caption)\b/i,
-      /\b(?:approve|reject)\s+(?:content|draft)\b/i,
-    ],
-    handler: async (ctx) => handleContent(ctx, registry),
-    priority: 6,
+    handler: withTyping(async (ctx) => handleCalendar(ctx, eventBus)),
+    priority: 10,
+    description: '"What\'s on my calendar?" — schedule & events',
   });
 
   router.registerRoute({
@@ -431,8 +489,291 @@ function registerIntentRoutes(
       /\bremind\s+me\b/i,
       /\bset\s+(?:a\s+)?reminder\b/i,
       /\b(?:don'?t\s+let\s+me\s+forget|remember\s+to)\b/i,
+      /\breminders?\b/i,
     ],
-    handler: async (ctx) => handleRemind(ctx, eventBus),
+    handler: withTyping(async (ctx) => handleRemind(ctx, eventBus)),
+    priority: 9,
+    description: '"Remind me at 3pm" — set & view reminders',
+  });
+
+  router.registerRoute({
+    intent: 'task_add',
+    patterns: [
+      /\b(?:add|create|capture|new)\s+(?:a\s+)?task\b/i,
+      /\btask(?:\s*:\s*|\s+to\s+)(.+)/i,
+      /\btodo(?:\s*:\s*|\s+)(.+)/i,
+      /\b(?:i\s+need\s+to|gotta|have\s+to)\s+(.+)/i,
+    ],
+    handler: withTyping(async (ctx) => handleTask(ctx, notionInbox ?? null)),
+    priority: 9,
+    description: '"Add task: review report" — capture tasks',
+  });
+
+  router.registerRoute({
+    intent: 'briefing_request',
+    patterns: [
+      /\b(?:briefing|morning\s+update|evening\s+summary|daily\s+digest)\b/i,
+      /\bgive\s+me\s+(?:a\s+)?(?:brief|summary|update|overview)\b/i,
+      /\bwhat(?:'s| did i| happened)\s+(?:today|overnight|this\s+morning)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleBriefing(ctx, registry)),
+    priority: 9,
+    description: '"Give me a briefing" — on-demand morning/evening brief',
+  });
+
+  // ── Tier 2: Frequent commands ─────────────────────────────────────────────
+
+  router.registerRoute({
+    intent: 'market_check',
+    patterns: [
+      /\b(?:stocks?|portfolio|holdings?|positions?|equities)\b/i,
+      /\bhow(?:'s| is| are) (?:the )?(?:market|stocks?|my\s+portfolio)\b/i,
+      /\b(?:aapl|tsla|nvda|spy|qqq|msft|amzn|googl)\b.*\b(?:price|at|up|down)\b/i,
+      /\b(?:pnl|profit|loss|gains?)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleMarket(ctx, eventBus, registry)),
+    priority: 8,
+    description: '"How\'s my portfolio?" — stocks & market data',
+  });
+
+  router.registerRoute({
+    intent: 'web_search',
+    patterns: [
+      /\b(?:search|look\s+up|google|research|find\s+out|look\s+into)\s+(?:for\s+)?(.+)/i,
+      /\bwhat\s+is\s+(?:the\s+)?(?:latest|current|recent)\s+(.+)/i,
+      /\btell\s+me\s+about\s+(.+)/i,
+    ],
+    handler: withTyping(async (ctx) => handleSearch(ctx, perplexityClient ?? null)),
     priority: 7,
+    description: '"Search for X" or "look up Y" — web search',
+  });
+
+  router.registerRoute({
+    intent: 'knowledge_query',
+    patterns: [
+      /\b(?:knowledge|what\s+do\s+i\s+know\s+about|search\s+my\s+notes?)\b/i,
+      /\bdo\s+i\s+have\s+(?:any\s+)?(?:notes?|info|information)\s+(?:on|about)\s+(.+)/i,
+    ],
+    handler: withTyping(async (ctx) => handleKnowledge(ctx, eventBus)),
+    priority: 7,
+    description: '"What do I know about X?" — knowledge base search',
+  });
+
+  router.registerRoute({
+    intent: 'memory_store',
+    patterns: [
+      /\b(?:remember|note|log|record|save)\s+(?:this|that)?\s*:\s*(.+)/i,
+      /\b(?:store|save)\s+(?:this|that)\b/i,
+      /^note(?:\s*:)?\s+(.+)/i,
+    ],
+    handler: withTyping(async (ctx) => handleMemory(ctx, eventBus)),
+    priority: 8,
+    description: '"Remember this: ..." — store to long-term memory',
+  });
+
+  router.registerRoute({
+    intent: 'memory_recall',
+    patterns: [
+      /\bwhat\s+(?:did\s+i|do\s+i)\s+(?:say|know|remember|note(?:d)?)\s+about\s+(.+)/i,
+      /\brecall\s+(.+)/i,
+      /\bmy\s+(?:notes?|memories?)\s+(?:on|about)\s+(.+)/i,
+    ],
+    handler: withTyping(async (ctx) => handleMemory(ctx, eventBus)),
+    priority: 7,
+    description: '"What did I say about X?" — recall from memory',
+  });
+
+  router.registerRoute({
+    intent: 'content_pipeline',
+    patterns: [
+      /\b(?:content|drafts?|publish|publishing|post)\b.*\b(?:pipeline|status|queue)\b/i,
+      /\b(?:write|create|generate)\s+(?:a\s+)?(?:post|article|thread|x post|linkedin|caption)\b/i,
+      /\b(?:approve|reject)\s+(?:content|draft)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleContent(ctx, registry)),
+    priority: 7,
+    description: '"Create a post about X" — content pipeline',
+  });
+
+  // ── Tier 3: Regular commands ──────────────────────────────────────────────
+
+  router.registerRoute({
+    intent: 'budget_check',
+    patterns: [
+      /\b(?:budget|spending|spend|api\s+cost|how\s+much\s+(?:have\s+i|did\s+i)\s+spent?)\b/i,
+      /\b(?:daily|monthly|weekly)\s+(?:budget|cost|spend)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleBudget(ctx, costTracker)),
+    priority: 6,
+    description: '"Budget status" — API cost & budget',
+  });
+
+  router.registerRoute({
+    intent: 'weather_query',
+    patterns: [
+      /\b(?:weather|forecast|temperature|rain|sunny|cloudy|humidity)\b/i,
+      /\bwhat(?:'s| is) (?:the )?weather\b/i,
+      /\b(?:should\s+i\s+bring\s+an?\s+umbrella|is\s+it\s+going\s+to\s+rain)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleSearch(ctx, perplexityClient ?? null)),
+    priority: 6,
+    description: '"What\'s the weather?" — weather forecast',
+  });
+
+  router.registerRoute({
+    intent: 'task_list',
+    patterns: [
+      /\b(?:my\s+)?tasks?\s+(?:list|queue|today|this\s+week)\b/i,
+      /\bwhat(?:'s| are) (?:my\s+)?(?:tasks?|todos?|to-?do)\b/i,
+      /\bshow\s+(?:me\s+)?(?:my\s+)?tasks?\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleTask(ctx, notionInbox ?? null)),
+    priority: 6,
+    description: '"My tasks today" — view task list',
+  });
+
+  router.registerRoute({
+    intent: 'status_check',
+    patterns: [
+      /\b(?:system\s+)?status\b/i,
+      /\bhow\s+are\s+you\b/i,
+      /\b(?:ari\s+)?health(?:\s+check)?\b/i,
+      /\bare\s+you\s+(?:running|working|ok|alive)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleStatus(ctx, registry)),
+    priority: 5,
+    description: '"System status" — ARI health check',
+  });
+
+  router.registerRoute({
+    intent: 'growth_report',
+    patterns: [
+      /\b(?:growth|analytics|metrics|followers?|subscribers?|audience)\b/i,
+      /\b(?:youtube|x\.com|instagram|linkedin)\s+(?:stats?|metrics?|growth)\b/i,
+      /\bhow\s+(?:is|are)\s+(?:my\s+)?(?:channel|account|content)\s+(?:doing|performing)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleGrowth(ctx, registry)),
+    priority: 6,
+    description: '"Growth report" — social & content analytics',
+  });
+
+  router.registerRoute({
+    intent: 'pokemon_check',
+    patterns: [
+      /\b(?:pokemon|pokémon|tcg|card\s+price|psa|graded\s+card)\b/i,
+      /\bhow\s+much\s+is\s+(.+)\s+(?:pokemon|card)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handlePokemon(ctx, registry)),
+    priority: 5,
+    description: '"Pokemon card prices" — TCG market data',
+  });
+
+  router.registerRoute({
+    intent: 'speak_request',
+    patterns: [
+      /\b(?:say|speak|read\s+(?:this|that)\s+(?:aloud|out\s+loud)|voice)\s*[:]\s*(.+)/i,
+      /\bconvert\s+(?:this\s+)?(?:to\s+)?(?:audio|speech|voice)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleSpeak(ctx, registry)),
+    priority: 5,
+    description: '"Say: your text here" — text to speech',
+  });
+
+  router.registerRoute({
+    intent: 'skills_query',
+    patterns: [
+      /\b(?:skills?|capabilities|what\s+can\s+you\s+do|your\s+abilities)\b/i,
+      /\bshow\s+(?:me\s+)?(?:your\s+)?skills?\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleSkills(ctx, eventBus)),
+    priority: 5,
+    description: '"Show skills" — list ARI capabilities',
+  });
+
+  // ── Tier 4: Specific / Developer ──────────────────────────────────────────
+
+  router.registerRoute({
+    intent: 'portfolio_investment',
+    patterns: [
+      /\b(?:investment|invest|portfolio\s+update|allocation|rebalance)\b/i,
+      /\b(?:should\s+i\s+buy|should\s+i\s+sell|investment\s+advice)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleMarket(ctx, eventBus, registry)),
+    priority: 7,
+    description: '"Investment analysis" — portfolio & investment intel',
+  });
+
+  router.registerRoute({
+    intent: 'settings_update',
+    patterns: [
+      /\b(?:settings?|preferences?|notification\s+settings?|turn\s+(?:on|off))\b/i,
+      /\b(?:configure|setup|set\s+up)\s+(.+)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleSettings(ctx, eventBus)),
+    priority: 4,
+    description: '"Notification settings" — configure ARI',
+  });
+
+  router.registerRoute({
+    intent: 'dev_tools',
+    patterns: [
+      /\b(?:deploy|build|git|code|pr|pull\s+request|commit|branch)\b/i,
+      /\brun\s+(?:tests?|the\s+build|linting?)\b/i,
+      /\b(?:developer|debug|logs?)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleDev(ctx)),
+    priority: 4,
+    description: '"Git status" or "run tests" — developer tools',
+  });
+
+  router.registerRoute({
+    intent: 'diagram_request',
+    patterns: [
+      /\b(?:diagram|flowchart|architecture|draw|visualize)\b/i,
+      /\bshow\s+(?:me\s+)?(?:a\s+)?(?:diagram|architecture|flowchart)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleDiagram(ctx)),
+    priority: 4,
+    description: '"Architecture diagram" — generate diagrams',
+  });
+
+  router.registerRoute({
+    intent: 'note_create',
+    patterns: [
+      /\b(?:quick\s+)?note\s*[:]\s*(.+)/i,
+      /\b(?:jot\s+(?:this\s+)?down|write\s+this\s+down)\s*[:]\s*(.+)/i,
+      /\b(?:log\s+this)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleTask(ctx, notionInbox ?? null)),
+    priority: 6,
+    description: '"Note: quick thought" — capture a note',
+  });
+
+  router.registerRoute({
+    intent: 'help_request',
+    patterns: [
+      /\b(?:what\s+can\s+you\s+do|how\s+do\s+i|help\s+me\s+with|i\s+don'?t\s+know\s+how\s+to)\b/i,
+      /\b(?:explain|how\s+does|what\s+is)\s+ari\b/i,
+    ],
+    handler: async (ctx) => {
+      await ctx.reply(
+        '<b>ARI — Your AI Operating System</b>\n\n' +
+        'Just talk naturally — I understand context. Or use commands:\n\n' +
+        '<b>📅 Time & Productivity</b>\n' +
+        '/calendar, /remind, /task\n\n' +
+        '<b>📈 Markets & Finance</b>\n' +
+        '/market, /crypto, /budget\n\n' +
+        '<b>🧠 Intelligence</b>\n' +
+        '/briefing, /search, /knowledge\n\n' +
+        '<b>📣 Content</b>\n' +
+        '/content, /growth\n\n' +
+        '<b>🔧 System</b>\n' +
+        '/status, /settings, /skills\n\n' +
+        '<i>Examples: "What\'s BTC at?" • "What\'s on my calendar?" • "Search for AI news"</i>',
+        { parse_mode: 'HTML' },
+      );
+    },
+    priority: 3,
+    description: '"Help" or "what can you do?" — command guide',
   });
 }

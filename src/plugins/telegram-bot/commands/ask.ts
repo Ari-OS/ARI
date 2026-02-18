@@ -1,7 +1,9 @@
 import type { Context } from 'grammy';
+import { InlineKeyboard } from 'grammy';
 import type { AIOrchestrator } from '../../../ai/orchestrator.js';
 import type { ChatSessionManager } from '../chat-session.js';
 import { formatForTelegram, splitTelegramMessage } from '../format.js';
+import { humanizeQuick } from '../../content-engine/humanizer.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // /ask — Natural language query → orchestrator (with conversation memory)
@@ -28,7 +30,7 @@ export async function handleAsk(
   const chatId = ctx.chat?.id;
 
   try {
-    await ctx.reply('Thinking...');
+    await ctx.replyWithChatAction('typing');
 
     let response: string;
 
@@ -50,11 +52,24 @@ export async function handleAsk(
       response = await orchestrator.query(query, 'core');
     }
 
-    // Convert markdown → Telegram HTML and split if needed
-    const formatted = formatForTelegram(response || 'No response generated.');
+    // Humanize: strip AI-speak before formatting
+    const humanized = humanizeQuick(response || 'No response generated.');
+    // Convert markdown → Telegram HTML and split at 4096-char limit
+    const formatted = formatForTelegram(humanized);
     const chunks = splitTelegramMessage(formatted);
-    for (const chunk of chunks) {
-      await ctx.reply(chunk, { parse_mode: 'HTML' });
+
+    // Send all chunks; attach 👍/👎 feedback buttons to the last one
+    const messageId = ctx.message?.message_id.toString() ?? Date.now().toString();
+    const feedbackKb = new InlineKeyboard()
+      .text('👍', `fb:positive:${messageId}`)
+      .text('👎', `fb:negative:${messageId}`);
+
+    for (let i = 0; i < chunks.length; i++) {
+      if (i < chunks.length - 1) {
+        await ctx.reply(chunks[i], { parse_mode: 'HTML' });
+      } else {
+        await ctx.reply(chunks[i], { parse_mode: 'HTML', reply_markup: feedbackKb });
+      }
     }
   } catch (error) {
     await ctx.reply(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);

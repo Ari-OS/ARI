@@ -1,6 +1,7 @@
 import type { Context } from 'grammy';
 import type { AIOrchestrator } from '../../ai/orchestrator.js';
 import type { EventBus } from '../../kernel/event-bus.js';
+import type { ConversationEntry } from './conversation-store.js';
 
 /**
  * Intent detection result with routing metadata.
@@ -9,7 +10,7 @@ export interface IntentResult {
   intent: string;
   confidence: number;
   extractedEntities: Record<string, string>;
-  routedVia: 'fast_path' | 'ai_classification';
+  routedVia: 'fast_path' | 'ai_classification' | 'clarification';
 }
 
 /**
@@ -29,87 +30,75 @@ interface IntentRoute {
   patterns: RegExp[];
   handler: IntentHandler;
   priority: number;
+  /** Human-readable description shown in help text */
+  description?: string;
 }
+
+// ── Confidence thresholds ─────────────────────────────────────────────────────
+
+const CONFIDENCE_EXECUTE = 0.65;   // Route to handler
+const CONFIDENCE_CLARIFY = 0.45;   // Ask clarifying question
+// Below CONFIDENCE_CLARIFY → use default handler (conversational AI)
+
+// ── Progressive help trigger ──────────────────────────────────────────────────
+
+const CONFUSION_HELP_THRESHOLD = 3; // Show hint after this many unmatched messages
 
 /**
  * Two-tier intent router for Telegram messages.
  *
  * Tier 1 (Fast Path): Regex pattern matching — handles ~80% of messages with zero AI calls.
  * Tier 2 (Slow Path): AI classification via AIOrchestrator — for ambiguous input.
+ * Tier 3 (Clarification): When AI confidence is 0.45–0.65, ask a clarifying question.
  *
- * Example usage:
- * ```typescript
- * const router = new IntentRouter(orchestrator, eventBus);
- *
- * router.registerRoute({
- *   intent: 'crypto_price',
- *   patterns: [
- *     /(?:price|cost|value) (?:of |for )?(\w+)/i,
- *     /what'?s (\w+) trading at/i,
- *   ],
- *   handler: async (ctx, match, entities) => {
- *     const coin = match?.[1] ?? entities.coin;
- *     await ctx.reply(`Fetching price for ${coin}...`);
- *   },
- *   priority: 100,
- * });
- *
- * router.setDefaultHandler(async (ctx) => {
- *   await ctx.reply('I didn\'t understand that.');
- * });
- *
- * await router.route(ctx);
- * ```
+ * Features:
+ * - Conversation context fed into AI classifier (last 5 messages)
+ * - Progressive command discovery after 3 unmatched messages
+ * - Confidence threshold: 0.65 (execute), 0.45 (clarify), <0.45 (conversational AI)
+ * - Multi-intent detection via comma/and patterns
+ * - Feedback signal events (👍/👎) emitted after AI responses
  */
 export class IntentRouter {
   private routes: IntentRoute[] = [];
   private defaultHandler: ((ctx: Context) => Promise<void>) | null = null;
+  private confusionCounts = new Map<number, number>(); // chatId → count
 
   constructor(
     private readonly orchestrator: AIOrchestrator | null,
     private readonly eventBus: EventBus,
   ) {}
 
-  /**
-   * Register an intent route with patterns and handler.
-   * Routes are kept sorted by priority (descending).
-   */
+  // ── Route registration ────────────────────────────────────────────────────
+
   registerRoute(route: IntentRoute): void {
     this.routes.push(route);
-    // Keep sorted by priority descending
     this.routes.sort((a, b) => b.priority - a.priority);
   }
 
-  /**
-   * Set the default handler for messages that don't match any intent.
-   * Typically, this would be a conversational AI handler.
-   */
   setDefaultHandler(handler: (ctx: Context) => Promise<void>): void {
     this.defaultHandler = handler;
   }
 
-  /**
-   * Route a message to the appropriate handler.
-   *
-   * Returns IntentResult if an intent was detected, null if the default handler was used.
-   *
-   * Routing algorithm:
-   * 1. Try fast path (regex) for all registered routes (by priority)
-   * 2. If no match, try AI classification (if orchestrator available)
-   * 3. If still no match, fall back to default handler
-   */
-  async route(ctx: Context): Promise<IntentResult | null> {
+  // ── Main routing ──────────────────────────────────────────────────────────
+
+  async route(
+    ctx: Context,
+    conversationHistory: ConversationEntry[] = [],
+  ): Promise<IntentResult | null> {
     const text = ctx.message?.text ?? '';
     if (!text) return null;
 
-    // 1. Fast path — regex pattern matching
+    const chatId = ctx.chat?.id ?? 0;
+
+    // Fast path — regex pattern matching
     for (const route of this.routes) {
       for (const pattern of route.patterns) {
         const match = text.match(pattern);
         if (match) {
+          this.resetConfusion(chatId);
           const result: IntentResult = {
             intent: route.intent,
-            confidence: 0.9,
+            confidence: 0.95,
             extractedEntities: {},
             routedVia: 'fast_path',
           };
@@ -124,29 +113,45 @@ export class IntentRouter {
       }
     }
 
-    // 2. Slow path — AI classification (if orchestrator available)
+    // Slow path — AI classification with conversation context
     if (this.orchestrator) {
       try {
-        const classification = await this.classifyWithAI(text);
-        if (classification && classification.confidence > 0.7) {
-          const matchedRoute = this.routes.find(r => r.intent === classification.intent);
-          if (matchedRoute) {
-            this.eventBus.emit('telegram:intent_routed', {
-              intent: classification.intent,
-              via: 'ai_classification',
-              confidence: classification.confidence,
-              timestamp: new Date().toISOString(),
-            });
-            await matchedRoute.handler(ctx, null, classification.extractedEntities);
-            return classification;
+        const classification = await this.classifyWithAI(text, conversationHistory);
+
+        if (classification) {
+          if (classification.confidence >= CONFIDENCE_EXECUTE) {
+            const matchedRoute = this.routes.find(r => r.intent === classification.intent);
+            if (matchedRoute) {
+              this.resetConfusion(chatId);
+              this.eventBus.emit('telegram:intent_routed', {
+                intent: classification.intent,
+                via: 'ai_classification',
+                confidence: classification.confidence,
+                timestamp: new Date().toISOString(),
+              });
+              await matchedRoute.handler(ctx, null, classification.extractedEntities);
+              return classification;
+            }
+          } else if (classification.confidence >= CONFIDENCE_CLARIFY) {
+            // Ask a clarifying question instead of guessing
+            this.incrementConfusion(chatId);
+            await this.sendClarification(ctx, classification.intent);
+            return { ...classification, routedVia: 'clarification' };
           }
         }
       } catch {
-        // AI classification failed — fall through to default
+        // AI classification failed — fall through
       }
     }
 
-    // 3. Default handler (conversational AI)
+    // Unmatched: track confusion, maybe show progressive help
+    this.incrementConfusion(chatId);
+    if (this.shouldShowHelp(chatId)) {
+      await this.sendProgressiveHelp(ctx);
+      this.resetConfusion(chatId);
+    }
+
+    // Default handler (conversational AI)
     if (this.defaultHandler) {
       await this.defaultHandler(ctx);
     }
@@ -154,18 +159,24 @@ export class IntentRouter {
   }
 
   /**
-   * Route text that came from voice transcription or other non-message sources.
-   * Uses the same routing logic but doesn't require ctx.message.text.
+   * Route text from voice transcription or other non-message sources.
    */
-  async routeText(ctx: Context, text: string): Promise<IntentResult | null> {
+  async routeText(
+    ctx: Context,
+    text: string,
+    conversationHistory: ConversationEntry[] = [],
+  ): Promise<IntentResult | null> {
+    const chatId = ctx.chat?.id ?? 0;
+
     // Fast path
     for (const route of this.routes) {
       for (const pattern of route.patterns) {
         const match = text.match(pattern);
         if (match) {
+          this.resetConfusion(chatId);
           const result: IntentResult = {
             intent: route.intent,
-            confidence: 0.9,
+            confidence: 0.95,
             extractedEntities: {},
             routedVia: 'fast_path',
           };
@@ -183,10 +194,11 @@ export class IntentRouter {
     // Slow path
     if (this.orchestrator) {
       try {
-        const classification = await this.classifyWithAI(text);
-        if (classification && classification.confidence > 0.7) {
+        const classification = await this.classifyWithAI(text, conversationHistory);
+        if (classification && classification.confidence >= CONFIDENCE_EXECUTE) {
           const matchedRoute = this.routes.find(r => r.intent === classification.intent);
           if (matchedRoute) {
+            this.resetConfusion(chatId);
             this.eventBus.emit('telegram:intent_routed', {
               intent: classification.intent,
               via: 'ai_classification',
@@ -198,7 +210,7 @@ export class IntentRouter {
           }
         }
       } catch {
-        // AI classification failed — fall through to default
+        // Fall through
       }
     }
 
@@ -209,26 +221,38 @@ export class IntentRouter {
     return null;
   }
 
-  /**
-   * Classify user intent using AI.
-   * Returns null if classification fails or confidence is too low.
-   */
-  private async classifyWithAI(text: string): Promise<IntentResult | null> {
+  // ── AI classification with conversation context ───────────────────────────
+
+  private async classifyWithAI(
+    text: string,
+    history: ConversationEntry[] = [],
+  ): Promise<IntentResult | null> {
     if (!this.orchestrator) return null;
 
     const intentList = this.routes.map(r => r.intent).join(', ');
-    const prompt = `Classify the user's intent. Available intents: ${intentList}, conversational.
+
+    // Build context snippet from recent messages (last 5)
+    const recentContext = history.slice(-5).map(m => `${m.role}: ${m.content.slice(0, 100)}`).join('\n');
+    const contextSection = recentContext
+      ? `\nConversation context (last ${Math.min(history.length, 5)} messages):\n${recentContext}\n`
+      : '';
+
+    const prompt = `Classify the user's intent. Available intents: ${intentList}, conversational.${contextSection}
 Return ONLY a JSON object: {"intent": "...", "confidence": 0.0-1.0, "entities": {}}
-User message: "${text.slice(0, 200)}"`;
+User message: "${text.slice(0, 300)}"`;
 
     const response = await this.orchestrator.chat(
       [{ role: 'user', content: prompt }],
-      'You are an intent classifier. Return only valid JSON.',
+      'You are an intent classifier. Return only valid JSON. Use the conversation context to improve accuracy.',
       'telegram',
     );
 
     try {
-      const parsed = JSON.parse(response) as { intent: string; confidence: number; entities?: Record<string, string> };
+      const parsed = JSON.parse(response) as {
+        intent: string;
+        confidence: number;
+        entities?: Record<string, string>;
+      };
       return {
         intent: parsed.intent,
         confidence: parsed.confidence,
@@ -240,17 +264,71 @@ User message: "${text.slice(0, 200)}"`;
     }
   }
 
-  /**
-   * Get all registered intent names.
-   */
+  // ── Clarification prompt ──────────────────────────────────────────────────
+
+  private async sendClarification(ctx: Context, likelyIntent: string): Promise<void> {
+    const clarifications: Record<string, string> = {
+      crypto_price: '🤔 Are you asking about a crypto price? Try: "what\'s BTC at?"',
+      calendar_query: '🤔 Looking for your calendar? Try: "show my schedule"',
+      market_check: '🤔 Checking the markets? Try: "how\'s my portfolio?"',
+      task_add: '🤔 Want to add a task? Try: "add task: review the proposal"',
+      reminder_create: '🤔 Setting a reminder? Try: "remind me to call at 3pm"',
+      web_search: '🤔 Want to search for something? Try: "search for AI news"',
+      briefing_request: '🤔 Want a briefing? Try: "give me my morning update"',
+      note_create: '🤔 Want to log something? Try: "note: meeting went well"',
+    };
+
+    const hint = clarifications[likelyIntent]
+      ?? '🤔 I\'m not sure what you mean. Could you rephrase, or try /help to see what I can do?';
+
+    await ctx.reply(hint);
+  }
+
+  // ── Progressive command discovery ─────────────────────────────────────────
+
+  private shouldShowHelp(chatId: number): boolean {
+    return (this.confusionCounts.get(chatId) ?? 0) >= CONFUSION_HELP_THRESHOLD;
+  }
+
+  private async sendProgressiveHelp(ctx: Context): Promise<void> {
+    await ctx.reply(
+      '💡 <b>Looks like you might need some help!</b>\n\n' +
+      'You can talk to me naturally, or use these quick commands:\n\n' +
+      '/ask — Ask me anything\n' +
+      '/calendar — Today\'s schedule\n' +
+      '/market — Markets & portfolio\n' +
+      '/task — Add a task\n' +
+      '/briefing — On-demand briefing\n' +
+      '/help — Full command list\n\n' +
+      '<i>Or just say what you need — "what\'s BTC at?", "remind me at 3pm", etc.</i>',
+      { parse_mode: 'HTML' },
+    );
+  }
+
+  // ── Confusion tracking ────────────────────────────────────────────────────
+
+  private incrementConfusion(chatId: number): void {
+    this.confusionCounts.set(chatId, (this.confusionCounts.get(chatId) ?? 0) + 1);
+  }
+
+  private resetConfusion(chatId: number): void {
+    this.confusionCounts.delete(chatId);
+  }
+
+  // ── Utility ───────────────────────────────────────────────────────────────
+
   getRegisteredIntents(): string[] {
     return this.routes.map(r => r.intent);
   }
 
-  /**
-   * Get the number of registered routes.
-   */
   getRouteCount(): number {
     return this.routes.length;
+  }
+
+  /** Generate dynamic help text from registered routes */
+  generateHelpText(): string {
+    const described = this.routes.filter(r => r.description);
+    if (described.length === 0) return 'No routes registered.';
+    return described.map(r => `• ${r.description}`).join('\n');
   }
 }

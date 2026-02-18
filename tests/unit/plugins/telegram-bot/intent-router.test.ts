@@ -106,7 +106,7 @@ describe('IntentRouter', () => {
 
       expect(result).toMatchObject({
         intent: 'greeting',
-        confidence: 0.9,
+        confidence: 0.95,
         routedVia: 'fast_path',
       });
       expect(handler).toHaveBeenCalledWith(ctx, expect.any(Array), {});
@@ -228,7 +228,7 @@ describe('IntentRouter', () => {
       const orchestrator = createMockOrchestrator(
         JSON.stringify({
           intent: 'status_check',
-          confidence: 0.5, // Below 0.7 threshold
+          confidence: 0.3, // Below clarification threshold (0.45) → uses default handler
           entities: {},
         }),
       );
@@ -272,7 +272,7 @@ describe('IntentRouter', () => {
       const orchestrator = createMockOrchestrator(
         JSON.stringify({
           intent: 'crypto_price',
-          confidence: 0.9,
+          confidence: 0.95,
           entities: { coin: 'bitcoin', exchange: 'coinbase' },
         }),
       );
@@ -349,7 +349,7 @@ describe('IntentRouter', () => {
 
       expect(result).toMatchObject({
         intent: 'greeting',
-        confidence: 0.9,
+        confidence: 0.95,
         routedVia: 'fast_path',
       });
       expect(handler).toHaveBeenCalled();
@@ -359,7 +359,7 @@ describe('IntentRouter', () => {
       const orchestrator = createMockOrchestrator(
         JSON.stringify({
           intent: 'status_check',
-          confidence: 0.9,
+          confidence: 0.95,
           entities: {},
         }),
       );
@@ -431,15 +431,16 @@ describe('IntentRouter', () => {
         priority: 10,
       });
 
-      const longText = 'a'.repeat(300);
+      const longText = 'a'.repeat(500);
       const ctx = createMockContext(longText);
       await routerWithAI.route(ctx);
 
       expect(orchestrator.chat).toHaveBeenCalled();
       const call = (orchestrator.chat as ReturnType<typeof vi.fn>).mock.calls[0];
       const prompt = call?.[0]?.[0]?.content as string;
-      // Should truncate to 200 chars
-      expect(prompt).toContain('"' + 'a'.repeat(200) + '"');
+      // Should truncate to 300 chars (new limit)
+      expect(prompt).toContain('a'.repeat(300));
+      expect(prompt).not.toContain('a'.repeat(400)); // 400+ chars should be truncated
     });
   });
 
