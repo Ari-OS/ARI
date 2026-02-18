@@ -25,6 +25,7 @@ import {
   getBlockAdjustedChain,
   shouldAvoidModel,
 } from '../autonomous/time-blocks.js';
+import type { LangfuseWrapper, LangfuseTraceHandle } from '../observability/langfuse-wrapper.js';
 
 /**
  * AIPolicyGovernor interface for dependency injection.
@@ -99,6 +100,9 @@ export class AIOrchestrator {
   private readonly costTracker: CostTracker | null;
   private readonly policyGovernor: AIPolicyGovernorLike | null;
 
+  // Langfuse observability (optional — gracefully disabled when not set)
+  private langfuse: LangfuseWrapper | null = null;
+
   // Metrics
   private totalRequests: number = 0;
   private totalErrors: number = 0;
@@ -142,6 +146,19 @@ export class AIOrchestrator {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // LANGFUSE INTEGRATION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Wire in Langfuse observability.
+   * Call once at startup: orchestrator.setLangfuse(getLangfuse())
+   * No-op when called with null — safe to skip in tests.
+   */
+  setLangfuse(wrapper: LangfuseWrapper): void {
+    this.langfuse = wrapper;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // PRIMARY API — THE 15-STEP PIPELINE
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -153,6 +170,15 @@ export class AIOrchestrator {
     }
 
     const requestId = request.requestId ?? randomUUID();
+
+    // Step 0: LANGFUSE TRACE — wraps entire pipeline
+    const trace: LangfuseTraceHandle | undefined = this.langfuse?.trace({
+      name: 'llm:execute',
+      userId: 'pryce',
+      sessionId: requestId,
+      tags: [request.category, request.agent ?? 'core'],
+      metadata: { category: request.category, agent: request.agent, priority: request.priority },
+    });
 
     // Step 1: VALIDATE
     const validated = AIRequestSchema.parse({ ...request, requestId });
@@ -240,10 +266,20 @@ export class AIOrchestrator {
     // Step 7: PROMPT ASSEMBLY
     const assembled = this.assembler.assemble(validated);
 
-    // Step 8: EMIT request start
+    // Step 8: EMIT request start + start Langfuse generation
     this.eventBus.emit('llm:request_start', {
       model: selectedModel,
       estimatedTokens: Math.ceil(validated.content.length / 4),
+    });
+    const genHandle = trace?.generation({
+      name: `${validated.category}:${selectedModel}`,
+      model: selectedModel,
+      input: assembled.messages.map(m => ({
+        role: m.role,
+        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+      })),
+      systemPrompt: assembled.system?.[0]?.type === 'text' ? assembled.system[0].text : undefined,
+      metadata: { requestId, agent: validated.agent, category: validated.category },
     });
 
     // Step 9: API CALL (via CascadeRouter or ProviderRegistry fallback)
@@ -354,7 +390,16 @@ export class AIOrchestrator {
         governanceApproved,
       };
 
-      // Step 10: EMIT llm:request_complete — THE CRITICAL FIX
+      // Step 10: END Langfuse generation + EMIT llm:request_complete — THE CRITICAL FIX
+      genHandle?.end({
+        output: content,
+        inputTokens,
+        outputTokens,
+        latencyMs: duration,
+        costUsd: cost,
+      });
+      trace?.end({ model: providerResponse.model, totalCost: cost });
+
       this.eventBus.emit('llm:request_complete', {
         timestamp: new Date().toISOString(),
         model: selectedModel,
@@ -421,6 +466,16 @@ export class AIOrchestrator {
       return response;
     } catch (error) {
       const duration = Date.now() - startTime;
+
+      // End Langfuse generation on failure
+      genHandle?.end({
+        output: '',
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: duration,
+        metadata: { error: error instanceof Error ? error.message : String(error) },
+      });
+      trace?.end({ error: error instanceof Error ? error.message : String(error) });
 
       // Emit failed request
       this.eventBus.emit('llm:request_complete', {
@@ -569,6 +624,8 @@ export class AIOrchestrator {
     if (this.costTracker) {
       await this.costTracker.shutdown();
     }
+    // Flush any pending Langfuse events
+    await this.langfuse?.flush();
   }
 
   getRegistry(): ModelRegistry {

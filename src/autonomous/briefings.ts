@@ -105,6 +105,14 @@ export interface MorningBriefingContext {
   }> | null;
 }
 
+export interface LlmCostSummary {
+  totalUsd: number;
+  requestCount: number;
+  topModel: string;
+  budgetUtilization: number; // 0-100 percent of monthly budget
+  avgLatencyMs?: number;
+}
+
 export interface EveningContext {
   suggestedTasks?: string[];
   careerMatches?: Array<{
@@ -113,6 +121,7 @@ export interface EveningContext {
     matchScore: number;
   }> | null;
   portfolio?: BriefingPortfolio | null;
+  llmCostToday?: LlmCostSummary | null;
 }
 
 // ─── Briefing Generator ─────────────────────────────────────────────────────
@@ -690,6 +699,20 @@ export class BriefingGenerator {
       lines.push('');
     }
 
+    // ── AI Cost Dashboard ──
+    if (context?.llmCostToday) {
+      const c = context.llmCostToday;
+      const utilizationBar = this.buildUtilizationBar(c.budgetUtilization);
+      const budgetIcon = c.budgetUtilization >= 85 ? '🔴' : c.budgetUtilization >= 60 ? '🟡' : '🟢';
+      lines.push('<b>🤖 AI Costs Today</b>');
+      lines.push(`▸ ${budgetIcon} $${c.totalUsd.toFixed(4)} across ${c.requestCount} requests`);
+      lines.push(`▸ Top model: ${this.esc(c.topModel)} · ${utilizationBar} ${c.budgetUtilization.toFixed(1)}% of budget`);
+      if (c.avgLatencyMs !== undefined) {
+        lines.push(`▸ Avg latency: ${c.avgLatencyMs.toFixed(0)}ms`);
+      }
+      lines.push('');
+    }
+
     // ── Closing ──
     lines.push('Build strong tonight. I\'m here if you need me.');
 
@@ -774,6 +797,12 @@ export class BriefingGenerator {
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
+  }
+
+  /** 8-char ASCII progress bar: ████░░░░ */
+  private buildUtilizationBar(percent: number): string {
+    const filled = Math.round(Math.min(percent, 100) / 12.5);
+    return '█'.repeat(filled) + '░'.repeat(8 - filled);
   }
 
   private async getRecentAuditData(): Promise<DailyAudit | null> {
