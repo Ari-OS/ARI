@@ -23,6 +23,7 @@ import { AuditLogger } from '../../src/kernel/audit.js';
 import { Guardian } from '../../src/agents/guardian.js';
 import { MemoryManager } from '../../src/agents/memory-manager.js';
 import { Executor } from '../../src/agents/executor.js';
+import { PolicyEngine } from '../../src/governance/policy-engine.js';
 import { Planner } from '../../src/agents/planner.js';
 import { Core } from '../../src/agents/core.js';
 import { Council } from '../../src/governance/council.js';
@@ -49,7 +50,7 @@ describe('Full Pipeline E2E', () => {
     audit = new AuditLogger(tmpAuditPath);
     guardian = new Guardian(audit, eventBus);
     memoryManager = new MemoryManager(audit, eventBus);
-    executor = new Executor(audit, eventBus);
+    executor = new Executor(audit, eventBus, new PolicyEngine(audit, eventBus));
     planner = new Planner(audit, eventBus);
     core = new Core(audit, eventBus, { guardian, memoryManager, executor, planner });
   });

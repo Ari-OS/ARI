@@ -1,7 +1,15 @@
 import type { AuditLogger } from '../kernel/audit.js';
 import type { EventBus } from '../kernel/event-bus.js';
 import type { AgentId, TrustLevel, ToolDefinition } from '../kernel/types.js';
-import { PolicyEngine } from '../governance/policy-engine.js';
+// L3 Agents layer — cannot import L4 Governance statically (ADR-004).
+// PolicyEngine instantiation via dynamic import; interface uses kernel types (L1 — allowed).
+import type { ToolPolicy, PermissionCheckResult } from '../kernel/types.js';
+
+export interface PolicyEngineLike {
+  getPolicy(toolId: string): ToolPolicy | undefined;
+  checkPermissions(agentId: string, trustLevel: string, policy: ToolPolicy): PermissionCheckResult;
+  registerPolicy(policy: ToolPolicy): void;
+}
 import { ToolRegistry } from '../execution/tool-registry.js';
 import type { ToolHandler } from '../execution/types.js';
 import fs from 'node:fs/promises';
@@ -72,7 +80,10 @@ export class Executor {
   private activeExecutions = new Map<string, { startTime: number; sessionId?: string }>();
 
   /** PolicyEngine for separated permission decisions (Constitutional) */
-  private readonly policyEngine: PolicyEngine;
+  private policyEngine: PolicyEngineLike | null = null;
+
+  /** Policies queued before policyEngine initializes */
+  private _pendingPolicies: Array<ToolPolicy> = [];
 
   /** ToolRegistry for separated capability catalog */
   private readonly toolRegistry: ToolRegistry;
@@ -80,22 +91,29 @@ export class Executor {
   private readonly MAX_CONCURRENT_EXECUTIONS = 10;
   private readonly DEFAULT_TIMEOUT_MS = 30000;
 
-  constructor(auditLogger: AuditLogger, eventBus: EventBus) {
+  constructor(auditLogger: AuditLogger, eventBus: EventBus, policyEngineOverride?: PolicyEngineLike) {
     this.auditLogger = auditLogger;
     this.eventBus = eventBus;
-
-    // Initialize constitutional governance components
-    this.policyEngine = new PolicyEngine(auditLogger, eventBus);
     this.toolRegistry = new ToolRegistry(auditLogger, eventBus);
 
-    // Register built-in tools
-    this.registerBuiltInTools();
+    if (policyEngineOverride) {
+      // Synchronous path — used in tests for deterministic behavior
+      this.policyEngine = policyEngineOverride;
+      this.registerBuiltInTools();
+    } else {
+      // Production path — deferred L4 import (ADR-004: L3 cannot statically import L4)
+      this.registerBuiltInTools(); // tools registered; policies queued until policyEngine loads
+      void import('../governance/policy-engine.js').then(({ PolicyEngine }) => {
+        this.policyEngine = new PolicyEngine(auditLogger, eventBus);
+        this._drainPolicyQueue();
+      });
+    }
   }
 
   /**
    * Get the PolicyEngine instance (for testing/integration).
    */
-  getPolicyEngine(): PolicyEngine {
+  getPolicyEngine(): PolicyEngineLike | null {
     return this.policyEngine;
   }
 
@@ -181,6 +199,10 @@ export class Executor {
     call: ToolCall,
     tool: ToolDefinition
   ): { allowed: boolean; reason?: string; requires_approval?: boolean } {
+    if (!this.policyEngine) {
+      // policyEngine not yet initialized — deny by default until ready
+      return { allowed: false, requires_approval: false, reason: 'PolicyEngine not yet initialized', risk_score: 0.5, violations: [] } as PermissionCheckResult;
+    }
     const policy = this.policyEngine.getPolicy(tool.id);
     if (!policy) {
       return { allowed: false, reason: `No policy found for tool ${tool.id}` };
@@ -577,6 +599,28 @@ export class Executor {
   }
 
   /**
+   * Register a policy — queues it if PolicyEngine not yet initialized.
+   */
+  private _registerPolicy(policy: ToolPolicy): void {
+    if (this.policyEngine) {
+      this.policyEngine.registerPolicy(policy);
+    } else {
+      this._pendingPolicies.push(policy);
+    }
+  }
+
+  /**
+   * Flush queued policies into PolicyEngine once it initializes.
+   */
+  private _drainPolicyQueue(): void {
+    if (!this.policyEngine) return;
+    for (const policy of this._pendingPolicies) {
+      this.policyEngine.registerPolicy(policy);
+    }
+    this._pendingPolicies = [];
+  }
+
+  /**
    * Register built-in tools in both legacy and new systems
    */
   private registerBuiltInTools(): void {
@@ -794,7 +838,7 @@ export class Executor {
         handler
       );
 
-      this.policyEngine.registerPolicy({
+      this._registerPolicy({
         tool_id: definition.id,
         permission_tier: definition.permission_tier,
         required_trust_level: definition.required_trust_level,

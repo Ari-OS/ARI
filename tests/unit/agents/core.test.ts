@@ -6,6 +6,7 @@ import { Core } from '../../../src/agents/core.js';
 import { Guardian } from '../../../src/agents/guardian.js';
 import { MemoryManager } from '../../../src/agents/memory-manager.js';
 import { Executor } from '../../../src/agents/executor.js';
+import { PolicyEngine } from '../../../src/governance/policy-engine.js';
 import { Planner } from '../../../src/agents/planner.js';
 import { AuditLogger } from '../../../src/kernel/audit.js';
 import { EventBus } from '../../../src/kernel/event-bus.js';
@@ -28,7 +29,7 @@ describe('Core', () => {
 
     guardian = new Guardian(auditLogger, eventBus);
     memoryManager = new MemoryManager(auditLogger, eventBus);
-    executor = new Executor(auditLogger, eventBus);
+    executor = new Executor(auditLogger, eventBus, new PolicyEngine(auditLogger, eventBus));
     planner = new Planner(auditLogger, eventBus);
 
     core = new Core(auditLogger, eventBus, {

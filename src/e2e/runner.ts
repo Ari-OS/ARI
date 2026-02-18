@@ -9,6 +9,17 @@ import type { E2ETestRun, E2EScenarioResult, E2ERunnerConfig, RunOptions } from 
 import { createLogger } from '../kernel/logger.js';
 
 const execAsync = promisify(exec);
+
+// Security: Only allow known Playwright project names to prevent shell injection
+const VALID_PLAYWRIGHT_CATEGORIES = new Set(['chromium', 'firefox', 'webkit', 'mobile-chrome', 'mobile-safari', 'all']);
+
+function sanitizeCategory(category: string | undefined): string {
+  if (!category) return '';
+  if (!VALID_PLAYWRIGHT_CATEGORIES.has(category)) {
+    throw new Error(`Invalid category: "${category}". Must be one of: ${[...VALID_PLAYWRIGHT_CATEGORIES].join(', ')}`);
+  }
+  return category;
+}
 const logger = createLogger('e2e-runner');
 
 export class E2ERunner {
@@ -225,7 +236,7 @@ export class E2ERunner {
   private async countScenarios(options: RunOptions): Promise<number> {
     try {
       const { stdout } = await execAsync(
-        `npx playwright test --list ${options.category ? `--project=${options.category}` : ''}`,
+        `npx playwright test --list ${options.category ? `--project=${sanitizeCategory(options.category)}` : ''}`,
         { cwd: this.projectRoot }
       );
       // Count lines that look like test names

@@ -189,8 +189,8 @@ export class GmailReceiver extends EventEmitter {
         if (this.processedIds.has(uidStr)) continue;
 
         // Parse the full message
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        const all = message.parts.find((p: any) => p.which === '');
+        interface ImapMessagePart { which: string; body: Buffer | string; size: number; }
+        const all = (message.parts as ImapMessagePart[]).find((p) => p.which === '');
         if (!all?.body) continue;
 
         const parsed = await simpleParser(all.body as Buffer);

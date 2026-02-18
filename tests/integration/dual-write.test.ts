@@ -12,6 +12,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { Executor } from '../../src/agents/executor.js';
+import { PolicyEngine } from '../../src/governance/policy-engine.js';
 import { AuditLogger } from '../../src/kernel/audit.js';
 import { EventBus } from '../../src/kernel/event-bus.js';
 import type { AgentId, TrustLevel, PermissionTier } from '../../src/kernel/types.js';
@@ -26,7 +27,9 @@ describe('Dual-Write Consistency', () => {
     testAuditPath = join(tmpdir(), `audit-${randomUUID()}.json`);
     auditLogger = new AuditLogger(testAuditPath);
     eventBus = new EventBus();
-    executor = new Executor(auditLogger, eventBus);
+    // Inject PolicyEngine synchronously for deterministic test behavior (DI pattern — tests can import any layer)
+    const policyEngine = new PolicyEngine(auditLogger, eventBus);
+    executor = new Executor(auditLogger, eventBus, policyEngine);
   });
 
   describe('Permission Check Consistency', () => {
@@ -36,7 +39,8 @@ describe('Dual-Write Consistency', () => {
       agentId: AgentId,
       trustLevel: TrustLevel
     ): { oldAllowed: boolean; newAllowed: boolean; consistent: boolean } => {
-      const policyEngine = executor.getPolicyEngine();
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const policyEngine = executor.getPolicyEngine()!;
       const tools = executor.getTools();
       const tool = tools.find((t) => t.id === toolId);
 
@@ -161,7 +165,8 @@ describe('Dual-Write Consistency', () => {
       agentId: AgentId,
       trustLevel: TrustLevel
     ): { oldRequires: boolean; newRequires: boolean; consistent: boolean } => {
-      const policyEngine = executor.getPolicyEngine();
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const policyEngine = executor.getPolicyEngine()!;
       const tools = executor.getTools();
       const tool = tools.find((t) => t.id === toolId);
 
@@ -223,7 +228,8 @@ describe('Dual-Write Consistency', () => {
     const toolIds = ['file_read', 'file_write', 'file_delete', 'system_config'];
 
     it('should have 0% divergence across all combinations', () => {
-      const policyEngine = executor.getPolicyEngine();
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const policyEngine = executor.getPolicyEngine()!;
       const tools = executor.getTools();
 
       const TRUST_SCORES: Record<TrustLevel, number> = {
@@ -288,7 +294,8 @@ describe('Dual-Write Consistency', () => {
 
   describe('Executor Integration', () => {
     it('should expose PolicyEngine for testing', () => {
-      const policyEngine = executor.getPolicyEngine();
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const policyEngine = executor.getPolicyEngine()!;
       expect(policyEngine).toBeDefined();
       expect(policyEngine.getAllPolicies().length).toBeGreaterThanOrEqual(4);
     });
@@ -300,7 +307,8 @@ describe('Dual-Write Consistency', () => {
     });
 
     it('should have both PolicyEngine and ToolRegistry initialized', () => {
-      const policyEngine = executor.getPolicyEngine();
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const policyEngine = executor.getPolicyEngine()!;
       const toolRegistry = executor.getToolRegistry();
       expect(policyEngine.getAllPolicies().length).toBeGreaterThanOrEqual(4);
       expect(toolRegistry.size).toBeGreaterThanOrEqual(4);
@@ -323,7 +331,8 @@ describe('Dual-Write Consistency', () => {
     });
 
     it('should handle hostile trust level consistently', () => {
-      const policyEngine = executor.getPolicyEngine();
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const policyEngine = executor.getPolicyEngine()!;
       const policy = policyEngine.getPolicy('file_read');
 
       expect(policy).toBeDefined();

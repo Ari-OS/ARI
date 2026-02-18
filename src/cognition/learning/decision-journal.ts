@@ -18,10 +18,52 @@ import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
-import type { EventBus } from '../../kernel/event-bus.js';
-import { createLogger } from '../../kernel/logger.js';
+// L0 Cognitive layer — no kernel imports allowed (ADR-004).
+// Define minimal local interfaces to avoid layer violations.
+interface EventEmitterLike {
+  emit(event: string, payload: unknown): void;
+  on(event: string, handler: (payload: unknown) => void): () => void;
+}
+// ─── Cognition Event Payload Types (L0-local definitions) ───────────────────
+interface BeliefUpdatedPayload { hypothesis: string; priorProbability: number; posteriorProbability: number; shift: number; }
+interface ExpectedValuePayload { decision: string; expectedValue: number; recommendation: string; }
+interface KellyPayload { recommendedFraction: number; strategy: string; edge: number; }
+interface LeveragePointPayload { system: string; level: number; effectiveness: string; }
+interface AntifragilityPayload { item: string; category: string; score: number; }
+interface DecisionTreePayload { rootId: string; expectedValue: number; optimalPath: string[]; }
+interface BiasDetectedPayload { biases: Array<{ type: string }>; reasoning: string; }
+interface EmotionalRiskPayload { riskScore: number; state: { valence: number; arousal: number; dominance: number }; emotions: string[]; }
+interface DisciplineCheckPayload { decision: string; passed: boolean; overallScore: number; violations: string[]; }
+interface FearGreedPayload { pattern: string; phase: string; severity: number; recommendation: string; }
+interface ThoughtReframedPayload { distortions: string[]; }
+interface ReflectionPayload { outcomeId: string; insights: unknown[]; principles: unknown[]; }
+interface WisdomPayload { query: string; tradition: string; principle: string; }
+interface PracticePlanPayload { skill: string; currentLevel: number; targetLevel: number; estimatedHours: number; }
+interface DichotomyPayload { situation: string; controllableCount: number; uncontrollableCount: number; focusArea: string; }
+interface VirtueCheckPayload { decision: string; overallAlignment: number; conflicts: string[]; }
 
-const logger = createLogger('decision-journal');
+
+
+// Minimal structured logger for L0 (no pino dependency)
+const logger = {
+  info: (data: unknown, msg?: string): void => {
+    if (process.env['NODE_ENV'] !== 'test') {
+      const base = typeof data === 'object' && data !== null ? data : { data };
+      console.log(JSON.stringify({ level: 'INFO', component: 'decision-journal', ...base, msg }));
+    }
+  },
+  warn: (data: unknown, msg?: string): void => {
+    if (process.env['NODE_ENV'] !== 'test') {
+      const base = typeof data === 'object' && data !== null ? data : { data };
+      console.warn(JSON.stringify({ level: 'WARN', component: 'decision-journal', ...base, msg }));
+    }
+  },
+  error: (data: unknown, msg?: string): void => {
+    const base = typeof data === 'object' && data !== null ? data : { data };
+    console.error(JSON.stringify({ level: 'ERROR', component: 'decision-journal', ...base, msg }));
+  },
+  debug: (_data: unknown, _msg?: string): void => {},
+};
 
 // =============================================================================
 // Types
@@ -67,7 +109,7 @@ export class DecisionJournal {
   private dirty = false;
   private persistTimer: NodeJS.Timeout | null = null;
   private readonly PERSIST_DEBOUNCE_MS = 5000;
-  private eventBus: EventBus | null = null;
+  private eventBus: EventEmitterLike | null = null;
   private unsubscribers: Array<() => void> = [];
 
   constructor(decisionsDir?: string) {
@@ -77,7 +119,7 @@ export class DecisionJournal {
   /**
    * Initialize — create directory, load from disk, subscribe to events.
    */
-  async initialize(eventBus: EventBus): Promise<void> {
+  async initialize(eventBus: EventEmitterLike): Promise<void> {
     this.eventBus = eventBus;
 
     mkdirSync(this.DECISIONS_DIR, { recursive: true });
@@ -122,7 +164,8 @@ export class DecisionJournal {
 
     // ── LOGOS events ──────────────────────────────────────────────────
     this.unsubscribers.push(
-      this.eventBus.on('cognition:belief_updated', (payload) => {
+      this.eventBus.on('cognition:belief_updated', (raw) => {
+        const payload = raw as BeliefUpdatedPayload;
         this.recordDecision({
           decision: `Bayesian update: "${payload.hypothesis}" `
             + `(${(payload.priorProbability * 100).toFixed(1)}% → `
@@ -136,7 +179,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:expected_value_calculated', (payload) => {
+      this.eventBus.on('cognition:expected_value_calculated', (raw) => {
+        const payload = raw as ExpectedValuePayload;
         this.recordDecision({
           decision: `EV calculated: "${payload.decision}" (EV: ${payload.expectedValue.toFixed(2)})`,
           frameworks_used: ['Expected Value Theory'],
@@ -148,7 +192,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:kelly_calculated', (payload) => {
+      this.eventBus.on('cognition:kelly_calculated', (raw) => {
+        const payload = raw as KellyPayload;
         this.recordDecision({
           decision: `Kelly sizing: ${(payload.recommendedFraction * 100).toFixed(1)}% (${payload.strategy})`,
           frameworks_used: ['Kelly Criterion'],
@@ -160,7 +205,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:leverage_point_identified', (payload) => {
+      this.eventBus.on('cognition:leverage_point_identified', (raw) => {
+        const payload = raw as LeveragePointPayload;
         this.recordDecision({
           decision: `Leverage point: "${payload.system}" Level ${payload.level} (${payload.effectiveness})`,
           frameworks_used: ['Systems Thinking (Meadows)'],
@@ -171,7 +217,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:antifragility_assessed', (payload) => {
+      this.eventBus.on('cognition:antifragility_assessed', (raw) => {
+        const payload = raw as AntifragilityPayload;
         this.recordDecision({
           decision: `Antifragility: "${payload.item}" → ${payload.category} (${payload.score.toFixed(2)})`,
           frameworks_used: ['Antifragility (Taleb)'],
@@ -182,7 +229,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:decision_tree_evaluated', (payload) => {
+      this.eventBus.on('cognition:decision_tree_evaluated', (raw) => {
+        const payload = raw as DecisionTreePayload;
         this.recordDecision({
           decision: `Decision tree: root=${payload.rootId}, EV=${payload.expectedValue.toFixed(2)}`,
           frameworks_used: ['Decision Trees'],
@@ -195,7 +243,8 @@ export class DecisionJournal {
 
     // ── ETHOS events ──────────────────────────────────────────────────
     this.unsubscribers.push(
-      this.eventBus.on('cognition:bias_detected', (payload) => {
+      this.eventBus.on('cognition:bias_detected', (raw) => {
+        const payload = raw as BiasDetectedPayload;
         this.recordDecision({
           decision: 'Bias detection scan completed',
           frameworks_used: ['Cognitive Bias Detection'],
@@ -208,7 +257,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:emotional_risk', (payload) => {
+      this.eventBus.on('cognition:emotional_risk', (raw) => {
+        const payload = raw as EmotionalRiskPayload;
         this.recordDecision({
           decision: `Emotional risk: ${(payload.riskScore * 100).toFixed(1)}%`,
           frameworks_used: ['Emotional State Assessment (VAD)'],
@@ -221,7 +271,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:discipline_check', (payload) => {
+      this.eventBus.on('cognition:discipline_check', (raw) => {
+        const payload = raw as DisciplineCheckPayload;
         this.recordDecision({
           decision: `Discipline check: "${payload.decision}" (${payload.passed ? 'PASSED' : 'FAILED'})`,
           frameworks_used: ['Discipline Framework'],
@@ -235,7 +286,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:fear_greed_detected', (payload) => {
+      this.eventBus.on('cognition:fear_greed_detected', (raw) => {
+        const payload = raw as FearGreedPayload;
         this.recordDecision({
           decision: `Fear/Greed cycle: ${payload.pattern} (${payload.phase} phase)`,
           frameworks_used: ['Fear/Greed Cycle Analysis'],
@@ -248,7 +300,8 @@ export class DecisionJournal {
 
     // ── PATHOS events ──────────────────────────────────────────────────
     this.unsubscribers.push(
-      this.eventBus.on('cognition:thought_reframed', (payload) => {
+      this.eventBus.on('cognition:thought_reframed', (raw) => {
+        const payload = raw as ThoughtReframedPayload;
         this.recordDecision({
           decision: 'CBT reframe applied',
           frameworks_used: ['Cognitive Behavioral Therapy (Beck)'],
@@ -260,7 +313,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:reflection_complete', (payload) => {
+      this.eventBus.on('cognition:reflection_complete', (raw) => {
+        const payload = raw as ReflectionPayload;
         this.recordDecision({
           decision: `Reflection on outcome: ${payload.outcomeId}`,
           frameworks_used: ['Reflection Engine (Kolb)'],
@@ -272,7 +326,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:wisdom_consulted', (payload) => {
+      this.eventBus.on('cognition:wisdom_consulted', (raw) => {
+        const payload = raw as WisdomPayload;
         this.recordDecision({
           decision: `Wisdom: "${payload.query}"`,
           frameworks_used: [`Wisdom Traditions (${payload.tradition})`],
@@ -284,7 +339,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:practice_plan_created', (payload) => {
+      this.eventBus.on('cognition:practice_plan_created', (raw) => {
+        const payload = raw as PracticePlanPayload;
         this.recordDecision({
           decision: `Practice plan: "${payload.skill}" (Level ${payload.currentLevel} → ${payload.targetLevel})`,
           frameworks_used: ['Deliberate Practice (Ericsson)'],
@@ -296,7 +352,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:dichotomy_analyzed', (payload) => {
+      this.eventBus.on('cognition:dichotomy_analyzed', (raw) => {
+        const payload = raw as DichotomyPayload;
         this.recordDecision({
           decision: `Dichotomy of control: "${payload.situation}"`,
           frameworks_used: ['Dichotomy of Control (Stoicism)'],
@@ -310,7 +367,8 @@ export class DecisionJournal {
     );
 
     this.unsubscribers.push(
-      this.eventBus.on('cognition:virtue_check', (payload) => {
+      this.eventBus.on('cognition:virtue_check', (raw) => {
+        const payload = raw as VirtueCheckPayload;
         this.recordDecision({
           decision: `Virtue alignment: "${payload.decision}" (${(payload.overallAlignment * 100).toFixed(1)}%)`,
           frameworks_used: ['Virtue Ethics (Aristotle)'],

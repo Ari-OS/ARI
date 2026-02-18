@@ -3,6 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { Executor } from '../../../src/agents/executor.js';
+import { PolicyEngine } from '../../../src/governance/policy-engine.js';
 import { AuditLogger } from '../../../src/kernel/audit.js';
 import { EventBus } from '../../../src/kernel/event-bus.js';
 import type { AgentId, TrustLevel, ToolDefinition, PermissionTier } from '../../../src/kernel/types.js';
@@ -17,7 +18,7 @@ describe('Executor', () => {
     testAuditPath = join(tmpdir(), `audit-${randomUUID()}.json`);
     auditLogger = new AuditLogger(testAuditPath);
     eventBus = new EventBus();
-    executor = new Executor(auditLogger, eventBus);
+    executor = new Executor(auditLogger, eventBus, new PolicyEngine(auditLogger, eventBus));
   });
 
   it('should have 8 built-in tools registered after construction', () => {

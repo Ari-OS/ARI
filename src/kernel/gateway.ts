@@ -334,6 +334,11 @@ export class Gateway {
       port: this.port,
       host: this.HOST,
     });
+
+    // Emit system:ready so message-router and control-plane listeners activate
+    this.eventBus.emit('system:ready', {
+      version: '2.2.1',
+    });
   }
 
   /**

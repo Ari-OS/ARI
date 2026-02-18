@@ -425,7 +425,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'opportunity-daily',
     name: 'Daily Opportunity Scan',
-    cron: '0 7 * * *', // 7:00 AM daily
+    cron: '5 7 * * *', // 7:05 AM daily
     handler: 'opportunity_daily',
     enabled: true,
     essential: false,
@@ -639,7 +639,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'content-daily-drafts',
     name: 'Content Draft Generation',
-    cron: '0 7 * * *', // 7:00 AM daily
+    cron: '10 7 * * *', // 7:10 AM daily
     handler: 'content_daily_drafts',
     enabled: true,
     essential: false,
@@ -713,7 +713,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: "earnings-analyzer",
     name: "Earnings Analyzer",
-    cron: "0 7 * * *", // 7:00 AM daily
+    cron: "15 7 * * *", // 7:15 AM daily
     handler: "earnings_analyzer",
     enabled: true,
     essential: false,

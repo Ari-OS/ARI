@@ -1,7 +1,17 @@
 import type { EventBus } from '../kernel/event-bus.js';
 import type { Message } from '../kernel/types.js';
-import type { MemoryManager } from '../agents/memory-manager.js';
-import type { LearningMachine } from '../agents/learning-machine.js';
+// L2 System layer — cannot import L3 Agents.
+// Define minimal local interfaces for dependency injection.
+interface MemoryManagerLike {
+  query(
+    params: { type?: string; partition?: string; min_confidence?: number; limit?: number; context?: string },
+    caller?: string,
+  ): Promise<Array<{ content: string; type: string; confidence: number; provenance?: { source: string }; metadata?: Record<string, unknown> }>>;
+}
+
+interface LearningMachineLike {
+  retrieve(context: string, options: { limit: number }): Promise<Array<{ pattern: string; confidence: number }>>;
+}
 import { VOTING_AGENTS } from '../kernel/types.js';
 
 /**
@@ -51,14 +61,14 @@ export interface Session {
  * - Layer 6: Runtime Context - Current session state, active tasks
  */
 export class ContextLayerManager {
-  private readonly memoryManager: MemoryManager | null;
-  private readonly learningMachine: LearningMachine | null;
+  private readonly memoryManager: MemoryManagerLike | null;
+  private readonly learningMachine: LearningMachineLike | null;
   private readonly eventBus: EventBus;
 
   constructor(
     eventBus: EventBus,
-    memoryManager?: MemoryManager,
-    learningMachine?: LearningMachine
+    memoryManager?: MemoryManagerLike,
+    learningMachine?: LearningMachineLike
   ) {
     this.eventBus = eventBus;
     this.memoryManager = memoryManager || null;
@@ -223,7 +233,7 @@ export class ContextLayerManager {
 
       // Filter to learning-related entries
       const learnings = allEntries.filter(l =>
-        l.provenance.source === 'LEARNING_MACHINE' ||
+        l.provenance?.source === 'LEARNING_MACHINE' ||
         l.content.toLowerCase().includes('error') ||
         l.content.toLowerCase().includes('fix') ||
         l.content.toLowerCase().includes('learned')

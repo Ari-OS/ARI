@@ -360,14 +360,15 @@ export class WeeklyWisdomDigest {
     const avgArousal = withEmotion.reduce((s, d) => s + d.emotional_context!.arousal, 0) / withEmotion.length;
     const avgDominance = withEmotion.reduce((s, d) => s + d.emotional_context!.dominance, 0) / withEmotion.length;
 
-    // Simple trend: compare first half vs second half valence
-    const half = Math.floor(withEmotion.length / 2);
+    // Sort ascending (oldest first) so first half = past, second half = recent
+    const sorted = [...withEmotion].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const half = Math.floor(sorted.length / 2);
     if (half < 2) {
       return { avgValence, avgArousal, avgDominance, trend: 'stable' };
     }
 
-    const firstHalf = withEmotion.slice(0, half);
-    const secondHalf = withEmotion.slice(half);
+    const firstHalf = sorted.slice(0, half);
+    const secondHalf = sorted.slice(half);
     const firstAvg = firstHalf.reduce((s, d) => s + d.emotional_context!.valence, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((s, d) => s + d.emotional_context!.valence, 0) / secondHalf.length;
 

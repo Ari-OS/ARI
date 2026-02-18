@@ -224,6 +224,9 @@ export function createBot(deps: BotDependencies): Bot {
     const chatId = ctx.chat?.id;
     const text = ctx.message?.text ?? '';
 
+    // Emit user:active so adaptive-learner and other listeners know user is online
+    eventBus.emit('user:active', { hour: new Date().getHours(), date: new Date().toISOString().split('T')[0] });
+
     // Skip slash commands — they're handled above
     if (text.startsWith('/')) return;
 

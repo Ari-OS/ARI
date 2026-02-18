@@ -15,6 +15,7 @@ import {
 } from '../../../src/execution/tools/web-navigate.js';
 import type { ExecutionContext } from '../../../src/execution/types.js';
 import { Executor } from '../../../src/agents/executor.js';
+import { PolicyEngine } from '../../../src/governance/policy-engine.js';
 import { AuditLogger } from '../../../src/kernel/audit.js';
 import { EventBus } from '../../../src/kernel/event-bus.js';
 
@@ -263,7 +264,7 @@ describe('Executor Web Tool Registration', () => {
   beforeEach(() => {
     eventBus = new EventBus();
     const auditLogger = new AuditLogger('/tmp/ari-test-audit.json');
-    executor = new Executor(auditLogger, eventBus);
+    executor = new Executor(auditLogger, eventBus, new PolicyEngine(auditLogger, eventBus));
   });
 
   it('should register web_navigate tool', () => {
