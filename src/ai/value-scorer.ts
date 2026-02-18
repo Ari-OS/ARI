@@ -250,7 +250,7 @@ export class ValueScorer {
     }
 
     if (score >= 70) {
-      candidates.push('claude-sonnet-4.5', 'claude-sonnet-4');
+      candidates.push('claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-sonnet-4');
     }
 
     if (
@@ -260,7 +260,7 @@ export class ValueScorer {
         category === 'analysis' ||
         category === 'planning')
     ) {
-      candidates.push('claude-sonnet-4.5', 'claude-sonnet-4');
+      candidates.push('claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-sonnet-4');
     }
 
     candidates.push('claude-haiku-4.5', 'claude-haiku-3');
@@ -328,6 +328,7 @@ export class ValueScorer {
       'claude-haiku-4.5',
       'claude-sonnet-4',
       'claude-sonnet-4.5',
+      'claude-sonnet-4.6',
       'claude-opus-4.5',
       'claude-opus-4.6',
     ];
@@ -354,8 +355,11 @@ export class ValueScorer {
 
   private findBestSonnet(): ModelTier {
     const available = this.registry.listModels({ availableOnly: true });
-    const sonnet5 = available.find((m) => m.id === 'claude-sonnet-4.5');
-    if (sonnet5) return 'claude-sonnet-4.5';
+    const sonnet46 = available.find((m) => m.id === 'claude-sonnet-4.6');
+    if (sonnet46) return 'claude-sonnet-4.6';
+
+    const sonnet45 = available.find((m) => m.id === 'claude-sonnet-4.5');
+    if (sonnet45) return 'claude-sonnet-4.5';
 
     const sonnet4 = available.find((m) => m.id === 'claude-sonnet-4');
     if (sonnet4) return 'claude-sonnet-4';
@@ -368,8 +372,8 @@ export class ValueScorer {
     const sonnet4 = available.find((m) => m.id === 'claude-sonnet-4');
     if (sonnet4) return 'claude-sonnet-4';
 
-    const sonnet5 = available.find((m) => m.id === 'claude-sonnet-4.5');
-    if (sonnet5) return 'claude-sonnet-4.5';
+    const sonnet45 = available.find((m) => m.id === 'claude-sonnet-4.5');
+    if (sonnet45) return 'claude-sonnet-4.5';
 
     return 'claude-haiku-4.5';
   }

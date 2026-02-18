@@ -17,10 +17,13 @@
 
 import { z } from 'zod';
 import type { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
 import { CoinGeckoClient } from '../plugins/crypto/api-client.js';
 import { PokemonTcgClient } from '../plugins/pokemon-tcg/api-client.js';
 import type { CoinGeckoPrice } from '../plugins/crypto/types.js';
 import type { PokemonCard } from '../plugins/pokemon-tcg/types.js';
+
+const log = createLogger('market-monitor');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES AND SCHEMAS
@@ -101,11 +104,12 @@ const DEFAULT_THRESHOLDS: Record<AssetClass, AssetThresholds> = {
   commodity: { daily: 2, weekly: 5 },
 };
 
-// Per-asset threshold overrides (crypto assets with different volatility profiles)
+// Per-asset threshold overrides (from v12 plan: BTC 8%, ETH 8%, SOL 10%, AAPL 3%)
 const ASSET_THRESHOLD_OVERRIDES: Record<string, AssetThresholds> = {
-  bitcoin: { daily: 7, weekly: 15 },
-  ethereum: { daily: 10, weekly: 20 },
-  solana: { daily: 10, weekly: 20 },
+  bitcoin: { daily: 8, weekly: 15 },   // BTC: 8% daily (high cap, slightly less volatile)
+  ethereum: { daily: 8, weekly: 20 },  // ETH: 8% daily
+  solana: { daily: 10, weekly: 20 },   // SOL: 10% daily (more volatile)
+  aapl: { daily: 3, weekly: 8 },       // AAPL: 3% daily (same as stock default, explicit)
 };
 
 // Flash crash thresholds — between-check drops that trigger immediate critical alerts
@@ -203,7 +207,7 @@ interface AlphaVantageTimeSeriesDaily {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
-const ALPHA_VANTAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const ALPHA_VANTAGE_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes (B8 fix — Alpha Vantage 25 req/day limit)
 
 interface CacheEntry<T> {
   data: T;
@@ -375,6 +379,11 @@ class AlphaVantageClient {
  * - Alert generation on threshold breach
  * - Historical snapshot storage for trend analysis
  */
+/** Minimal Perplexity interface to avoid direct import (keeps layer boundaries clean) */
+interface PerplexityLike {
+  search(query: string): Promise<{ answer?: string; content?: string; text?: string }>;
+}
+
 export class MarketMonitor {
   private readonly eventBus: EventBus;
   private readonly cryptoClient: CoinGeckoClient;
@@ -386,6 +395,12 @@ export class MarketMonitor {
   private readonly allTimeHighs: Map<string, number> = new Map();
   private readonly allTimeLows: Map<string, number> = new Map();
   private readonly baseline: RollingBaseline = new RollingBaseline(7);
+  private perplexity: PerplexityLike | null = null; // Phase 6: "why?" queries
+
+  /** Inject Perplexity client for anomaly "why?" queries (optional) */
+  setPerplexityClient(client: PerplexityLike): void {
+    this.perplexity = client;
+  }
 
   constructor(eventBus: EventBus, config?: Partial<MarketMonitorConfig>) {
     this.eventBus = eventBus;
@@ -474,7 +489,7 @@ export class MarketMonitor {
       alerts.push(...assetAlerts);
     }
 
-    // Emit alerts
+    // Emit alerts + Perplexity "why?" query on significant moves
     for (const alert of alerts) {
       this.eventBus.emit('market:price_alert', {
         symbol: alert.asset,
@@ -482,6 +497,33 @@ export class MarketMonitor {
         change: alert.data.changePercent,
         threshold: alert.data.threshold,
       });
+
+      // Phase 6: Query Perplexity for the reason behind significant moves
+      if (this.perplexity && (alert.severity === 'critical' || alert.severity === 'significant')) {
+        const direction = alert.data.changePercent > 0 ? 'up' : 'down';
+        const pct = Math.abs(alert.data.changePercent).toFixed(1);
+        const query = `Why is ${alert.asset.toUpperCase()} ${direction} ${pct}% today? Latest news and catalysts.`;
+
+        // Fire-and-forget — emit result as a knowledge event for briefing
+        this.perplexity.search(query).then(result => {
+          const explanation = result.answer ?? result.content ?? result.text ?? '';
+          if (explanation) {
+            this.eventBus.emit('knowledge:ingested', {
+              sourceType: 'web',
+              sourceId: `market-why-${alert.asset}-${Date.now()}`,
+              chunksCreated: 1,
+            });
+            log.info({
+              asset: alert.asset,
+              direction,
+              pct,
+              explanation: explanation.slice(0, 200),
+            }, 'Perplexity market why-query complete');
+          }
+        }).catch(() => {
+          // Non-critical — silently skip
+        });
+      }
     }
 
     return alerts;

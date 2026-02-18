@@ -22,7 +22,7 @@ export function registerChatCommand(program: Command): void {
       const eventBus = new EventBus();
       const orchestrator = new AIOrchestrator(eventBus, {
         apiKey,
-        defaultModel: 'claude-sonnet-4',
+        defaultModel: 'claude-sonnet-4.6',
       });
 
       // Conversation history

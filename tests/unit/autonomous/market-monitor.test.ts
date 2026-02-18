@@ -406,9 +406,9 @@ describe('MarketMonitor', () => {
 
       freshMonitor.addToWatchlist('bitcoin', 'crypto');
 
-      // 21% change with 7% threshold = 3x ratio = critical
+      // 24% change with 8% BTC threshold = 3x ratio = critical
       mockGetPrice.mockResolvedValueOnce({
-        bitcoin: { usd: 50000, usd_24h_change: 21 },
+        bitcoin: { usd: 50000, usd_24h_change: 24 },
       });
       mockGetMarketData.mockResolvedValueOnce([]);
 

@@ -211,9 +211,10 @@ describe('ValueScorer', () => {
     });
   });
 
-  describe('sonnet 4.5 routing', () => {
-    it('should route to sonnet 4.5 when available and score is high', () => {
+  describe('sonnet 4.6 routing', () => {
+    it('should route to sonnet 4.6 when available and score is high', () => {
       registry.setAvailability('claude-sonnet-4.5', true);
+      // sonnet-4.6 is available by default (quality 9 > sonnet-4.5 quality 8)
       const result = scorer.score(
         {
           complexity: 'complex',
@@ -226,8 +227,8 @@ describe('ValueScorer', () => {
         },
         'normal',
       );
-      // Should prefer sonnet 4.5 over sonnet 4 when both available
-      expect(result.recommendedTier).toBe('claude-sonnet-4.5');
+      // Should prefer sonnet 4.6 over sonnet 4.5 (higher quality, 1M context)
+      expect(result.recommendedTier).toBe('claude-sonnet-4.6');
     });
   });
 });

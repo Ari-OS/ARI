@@ -127,7 +127,7 @@ export function registerGatewayCommand(program: Command): void {
         if (activeProviders.length > 0) {
           aiOrchestrator = new AIOrchestrator(eventBus, {
             providerRegistry,
-            defaultModel: 'claude-sonnet-4',
+            defaultModel: 'claude-sonnet-4.6',
             costTracker,
           });
           core.setAIProvider(aiOrchestrator);

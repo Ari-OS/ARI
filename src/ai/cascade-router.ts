@@ -70,20 +70,20 @@ const DEFAULT_CHAINS: CascadeChain[] = [
     id: 'balanced',
     name: 'Balanced (Claude-only)',
     // Why: When you need Claude-quality guarantees. Haiku 4.5 matches
-    // Sonnet 4 intelligence at 33% cost. Sonnet 4.5 is SOTA coding.
+    // Sonnet 4 intelligence at 33% cost. Sonnet 4.6 has 1M context + top quality.
     steps: [
       { model: 'claude-haiku-4.5', threshold: 0.7 },
-      { model: 'claude-sonnet-4.5', threshold: 0.5 },
+      { model: 'claude-sonnet-4.6', threshold: 0.5 },
       { model: 'claude-opus-4.6', threshold: 0.0 },
     ],
   },
   {
     id: 'quality',
     name: 'Quality (minimum Sonnet)',
-    // Why: Important tasks that need frontier quality. Sonnet 4.5 handles
-    // 95% of hard tasks; Opus only for the remaining 5%.
+    // Why: Important tasks that need frontier quality. Sonnet 4.6 handles
+    // 95% of hard tasks with 1M context; Opus only for the remaining 5%.
     steps: [
-      { model: 'claude-sonnet-4.5', threshold: 0.5 },
+      { model: 'claude-sonnet-4.6', threshold: 0.5 },
       { model: 'claude-opus-4.6', threshold: 0.0 },
     ],
   },
@@ -153,11 +153,11 @@ const DEFAULT_CHAINS: CascadeChain[] = [
     id: 'long-context',
     name: 'Long Context Analysis',
     // Why: Grok 4.1 Fast has 2M context (largest available).
-    // Gemini Flash has 1M context at $0.30/M. Pro has 1M with best quality.
+    // Gemini Flash has 1M context at $0.30/M. Sonnet 4.6 has 1M with Claude quality.
     steps: [
       { model: 'grok-4.1-fast', threshold: 0.7 },
       { model: 'gemini-2.5-flash', threshold: 0.55 },
-      { model: 'gemini-2.5-pro', threshold: 0.0 },
+      { model: 'claude-sonnet-4.6', threshold: 0.0 },
     ],
   },
   // ── Security (never compromise) ──────────────────────────────────
@@ -166,9 +166,9 @@ const DEFAULT_CHAINS: CascadeChain[] = [
     name: 'Security Analysis',
     // Why: Security analysis requires careful, thorough reasoning.
     // Never route to cheap models that might miss vulnerabilities.
-    // Sonnet 4.5 has strong analytical capabilities; Opus for maximum.
+    // Sonnet 4.6 has strong analytical capabilities + 1M context; Opus for maximum.
     steps: [
-      { model: 'claude-sonnet-4.5', threshold: 0.5 },
+      { model: 'claude-sonnet-4.6', threshold: 0.5 },
       { model: 'claude-opus-4.6', threshold: 0.0 },
     ],
   },

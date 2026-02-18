@@ -63,15 +63,15 @@ describe('ModelRegistry', () => {
   });
 
   describe('listModels', () => {
-    it('should list all 20 models', () => {
+    it('should list all 21 models', () => {
       const models = registry.listModels();
-      expect(models).toHaveLength(20);
+      expect(models).toHaveLength(21);
     });
 
     it('should filter available only', () => {
       const available = registry.listModels({ availableOnly: true });
-      // Only Anthropic models (6) are available by default
-      expect(available).toHaveLength(6);
+      // Anthropic models (7) are available by default: opus-4.6, opus-4.5, sonnet-4.6, sonnet-4.5, sonnet-4, haiku-4.5, haiku-3.5
+      expect(available).toHaveLength(7);
       expect(available.every(m => m.isAvailable)).toBe(true);
     });
   });
@@ -149,7 +149,7 @@ describe('ModelRegistry', () => {
       registry.setAvailability('claude-opus-4.6', false);
       registry.setAvailability('claude-opus-4.5', false);
       const best = registry.getHighestQualityAvailable();
-      expect(best.id).toBe('claude-sonnet-4.5');
+      expect(best.id).toBe('claude-sonnet-4.6'); // quality 9, higher than sonnet-4.5 (8)
     });
   });
 });

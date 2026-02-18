@@ -48,6 +48,7 @@ import { VectorStore } from '../system/vector-store.js';
 import { EmbeddingService } from '../ai/embedding-service.js';
 import { IngestionPipeline } from './ingestion-pipeline.js';
 import { RAGQueryEngine } from './rag-query.js';
+import { NotionTaskMonitor } from '../integrations/notion/task-monitor.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -115,6 +116,9 @@ export class AutonomousAgent {
   private embeddingService: EmbeddingService | null = null;
   private ingestionPipeline: IngestionPipeline | null = null;
   private ragQueryEngine: RAGQueryEngine | null = null;
+
+  // Notion task monitor (Phase 5)
+  private notionTaskMonitor: NotionTaskMonitor | null = null;
 
   // Cached scan results for unified morning briefing
   private lastDigest: import('./daily-digest.js').DailyDigest | null = null;
@@ -385,6 +389,20 @@ export class AutonomousAgent {
       log.info({ notionReady }, 'Briefing Notion integration initialized');
     }
 
+    // Phase 5: Notion Task Monitor (bidirectional sync — polls every 5 min)
+    if (process.env.NOTION_API_KEY && process.env.NOTION_TASKS_DATABASE_ID) {
+      try {
+        this.notionTaskMonitor = new NotionTaskMonitor(this.eventBus, {
+          apiKey: process.env.NOTION_API_KEY,
+          tasksDatabaseId: process.env.NOTION_TASKS_DATABASE_ID,
+        });
+        await this.notionTaskMonitor.start();
+        log.info('Notion task monitor started (5-min bidirectional sync)');
+      } catch (error) {
+        log.warn({ error: error instanceof Error ? error.message : String(error) }, 'Notion task monitor failed to start (non-critical)');
+      }
+    }
+
     // Initialize intelligence scanner + daily digest
     const xClient = new XClient({
       enabled: !!process.env.X_BEARER_TOKEN,
@@ -448,6 +466,18 @@ export class AutonomousAgent {
       this.marketMonitor.addToWatchlist(asset, assetClass);
     }
     log.info({ watchlistSize: watchlistAssets.length }, 'Market monitor initialized with watchlist');
+
+    // Phase 6: Wire Perplexity "why?" queries into market monitor
+    if (process.env.PERPLEXITY_API_KEY) {
+      try {
+        const { PerplexityClient } = await import('../integrations/perplexity/client.js');
+        const perplexityClient = new PerplexityClient(process.env.PERPLEXITY_API_KEY);
+        this.marketMonitor.setPerplexityClient(perplexityClient);
+        log.info('Perplexity wired into market monitor for anomaly why-queries');
+      } catch (error) {
+        log.warn({ error: error instanceof Error ? error.message : String(error) }, 'Failed to wire Perplexity to market monitor');
+      }
+    }
 
     // Initialize portfolio tracker
     this.portfolioTracker = new PortfolioTracker(this.eventBus);
@@ -537,6 +567,11 @@ export class AutonomousAgent {
 
     // Stop scheduler
     this.scheduler.stop();
+
+    // Stop Notion task monitor
+    if (this.notionTaskMonitor) {
+      this.notionTaskMonitor.stop();
+    }
 
     // Stop initiative engine
     this.initiativeEngine.stop();

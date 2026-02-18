@@ -205,7 +205,7 @@ export function createAutonomousCommand(): Command {
             const client = new Anthropic({ apiKey: config.claude.apiKey });
 
             await client.messages.create({
-              model: config.claude.model ?? 'claude-sonnet-4-20250514',
+              model: config.claude.model ?? 'claude-sonnet-4-6',
               max_tokens: 10,
               messages: [{ role: 'user', content: 'test' }],
             });

@@ -327,9 +327,21 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
 
   // ── Market & Investment Intelligence ────────────────────────────────────────
   {
+    id: 'market-snapshot-30min',
+    name: 'Market Snapshot (30-min)',
+    cron: '*/30 8-22 * * *', // Every 30 min, 8am–10pm ET (Phase 6)
+    handler: 'market_background_collect',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'INVESTMENT',
+      description: 'Price snapshot every 30 min during market hours, alerts on significant moves',
+    },
+  },
+  {
     id: 'market-background-collect',
     name: 'Market Background Collection',
-    cron: '0 */4 * * *', // Every 4 hours (silent baseline data)
+    cron: '0 */4 * * *', // Every 4 hours (silent baseline data, off-hours)
     handler: 'market_background_collect',
     enabled: true,
     essential: false,
