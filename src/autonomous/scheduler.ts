@@ -202,6 +202,18 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     essential: false,
   },
   {
+    id: 'weekly-wisdom',
+    name: 'Weekly Wisdom Digest',
+    cron: '10 18 * * 0', // Sunday 6:10 PM (after weekly_review)
+    handler: 'weekly_wisdom',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'COGNITION',
+      description: 'Synthesizes week of cognitive activity into insights + recommendations',
+    },
+  },
+  {
     id: 'e2e-daily-run',
     name: 'Daily E2E Test Suite',
     cron: '0 9 * * *', // 9:00 AM daily

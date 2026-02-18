@@ -1266,6 +1266,22 @@ export class AutonomousAgent {
       log.info('Weekly review completed');
     });
 
+    // Weekly Wisdom Digest — Sunday 6:10 PM (after weekly_review)
+    this.scheduler.registerHandler('weekly_wisdom', async () => {
+      try {
+        const { WeeklyWisdomDigest } = await import('./weekly-wisdom-digest.js');
+        const { DecisionJournal } = await import('../cognition/learning/decision-journal.js');
+        const journal = new DecisionJournal();
+        const digest = new WeeklyWisdomDigest(this.eventBus, journal, {
+          selfImprovementLoop: this.selfImprovementLoop ?? undefined,
+        });
+        const result = await digest.generate();
+        log.info({ totalDecisions: result.totalDecisions, recommendations: result.recommendations.length }, 'Weekly wisdom digest generated');
+      } catch (error) {
+        log.warn({ error: error instanceof Error ? error.message : String(error) }, 'Weekly wisdom digest failed (non-critical)');
+      }
+    });
+
     // Knowledge indexing 3x daily
     this.scheduler.registerHandler('knowledge_index', async () => {
       await this.knowledgeIndex.reindexAll();
