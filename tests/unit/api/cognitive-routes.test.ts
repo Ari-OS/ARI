@@ -141,7 +141,7 @@ describe('Cognitive Routes', () => {
 
   async function registerWithCognition() {
     const deps = {
-      audit: {} as ApiDependencies['audit'],
+      audit: { log: vi.fn().mockResolvedValue(undefined) } as unknown as ApiDependencies['audit'],
       eventBus: {} as ApiDependencies['eventBus'],
       cognitionLayer: mockCognition as unknown as ApiDependencies['cognitionLayer'],
     } satisfies Partial<ApiDependencies> as ApiDependencies;
@@ -150,7 +150,7 @@ describe('Cognitive Routes', () => {
 
   async function registerWithoutCognition() {
     const deps = {
-      audit: {} as ApiDependencies['audit'],
+      audit: { log: vi.fn().mockResolvedValue(undefined) } as unknown as ApiDependencies['audit'],
       eventBus: {} as ApiDependencies['eventBus'],
     } as ApiDependencies;
     await fastify.register(cognitiveRoutes, { deps });

@@ -111,6 +111,10 @@ export const subagentRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
 
       try {
         await deps.agentSpawner.cleanup(id, { deleteBranch: true });
+        await deps.audit.log('subagent:deleted', 'API', 'operator', {
+          subagentId: id,
+          deletedAt: new Date().toISOString(),
+        });
         return { success: true, message: `Subagent ${id} cleaned up` };
       } catch (error) {
         reply.code(500);

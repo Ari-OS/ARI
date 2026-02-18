@@ -66,6 +66,9 @@ export const analyticsRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
     }
 
     await deps.billingCycleManager.startNewCycle();
+    await deps.audit.log('billing:new_cycle_started', 'API', 'operator', {
+      startedAt: new Date().toISOString(),
+    });
     return { success: true };
   });
 };

@@ -74,6 +74,12 @@ export const approvalQueueRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
         approvedBy: parsed.data.approvedBy ?? 'api',
       });
 
+      await deps.audit.log('approval:approved', 'API', 'operator', {
+        itemId: request.params.id,
+        approvedBy: parsed.data.approvedBy ?? 'api',
+        note: parsed.data.note,
+      });
+
       return { success: true, id: request.params.id };
     }
   );
@@ -95,6 +101,12 @@ export const approvalQueueRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
       await deps.approvalQueue.reject(request.params.id, {
         reason: parsed.data.reason,
         rejectedBy: parsed.data.rejectedBy ?? 'api',
+      });
+
+      await deps.audit.log('approval:rejected', 'API', 'operator', {
+        itemId: request.params.id,
+        rejectedBy: parsed.data.rejectedBy ?? 'api',
+        reason: parsed.data.reason,
       });
 
       return { success: true, id: request.params.id };

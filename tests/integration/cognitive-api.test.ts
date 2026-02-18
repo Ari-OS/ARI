@@ -4,7 +4,7 @@
  * Uses real CognitionLayer (not mocked) with Fastify inject
  * to verify end-to-end response shapes match dashboard expectations.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { cognitiveRoutes } from '../../src/api/routes/cognitive.js';
 import { initializeCognition, type CognitionLayer } from '../../src/cognition/index.js';
@@ -22,7 +22,7 @@ describe('Cognitive API Integration', () => {
 
     fastify = Fastify();
     const deps = {
-      audit: {} as ApiDependencies['audit'],
+      audit: { log: vi.fn().mockResolvedValue(undefined) } as unknown as ApiDependencies['audit'],
       eventBus,
       cognitionLayer,
     } as ApiDependencies;
@@ -214,7 +214,7 @@ describe('Cognitive API Integration', () => {
   it('should return 503 when cognition layer not available', async () => {
     const noCognitionFastify = Fastify();
     const deps = {
-      audit: {} as ApiDependencies['audit'],
+      audit: { log: vi.fn().mockResolvedValue(undefined) } as unknown as ApiDependencies['audit'],
       eventBus: new EventBus(),
     } as ApiDependencies;
     await noCognitionFastify.register(cognitiveRoutes, { deps });

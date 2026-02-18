@@ -261,6 +261,10 @@ export const cognitiveRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
         parsed.data.statement,
         parsed.data.confidence
       );
+      await deps.audit.log('cognition:prediction_added', 'API', 'operator', {
+        predictionId: id,
+        confidence: parsed.data.confidence,
+      });
       return { id };
     }
   );
@@ -295,6 +299,11 @@ export const cognitiveRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
         reply.code(404);
         return { error: `Prediction not found: ${request.params.id}` };
       }
+
+      await deps.audit.log('cognition:prediction_resolved', 'API', 'operator', {
+        predictionId: request.params.id,
+        outcome: parsed.data.outcome,
+      });
 
       return { success: true };
     }
