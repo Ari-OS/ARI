@@ -244,7 +244,7 @@ User message: "${text.slice(0, 300)}"`;
     const response = await this.orchestrator.chat(
       [{ role: 'user', content: prompt }],
       'You are an intent classifier. Return only valid JSON. Use the conversation context to improve accuracy.',
-      'telegram',
+      'core',
     );
 
     try {
