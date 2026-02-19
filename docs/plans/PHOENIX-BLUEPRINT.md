@@ -40,7 +40,7 @@ This document represents the corrected master plan after comprehensive codebase 
 **Who You Are:**
 - Pryce Hedrick, 29, school IT technician ($33,600/year)
 - Builder, trader, content creator, entrepreneur
-- Father to Declan (4 months), partner to girlfriend
+- Father to Kai (son, 3) and Portland (daughter, 1), partner to girlfriend
 - Self-taught developer with 7-layer AI OS in production
 - Pokemon TCG investor with $8K+ collection
 - Emerging AI/automation thought leader

@@ -699,7 +699,7 @@ automated backups, hourly git sync, hash-chained audit trail
 - **Age:** 29
 - **Education:** B.S. Computer Science
 - **Location:** Indiana (Eastern Time)
-- **Family:** Partner + Declan (son, 4 months as of Feb 2026)
+- **Family:** Partner + Kai (son, 3) + Portland (daughter, 1)
 - **Job:** School district IT technician ($33,600/year)
 - **Career Goal:** Transition to CS/software engineering ($70K+)
 
