@@ -37,7 +37,7 @@ export async function loadWorkspaceFile(filename: string): Promise<string> {
   }
 }
 
-// All 9 workspace files — loaded in priority order (identity first)
+// All 10 workspace files — loaded in priority order (identity first)
 const ALL_WORKSPACE_FILES = [
   'SOUL.md',
   'IDENTITY.md',
@@ -48,6 +48,7 @@ const ALL_WORKSPACE_FILES = [
   'HEARTBEAT.md',
   'MEMORY.md',
   'TOOLS.md',
+  'RECOVERY.md',
 ] as const;
 
 const TOTAL_CHAR_BUDGET = 150_000;

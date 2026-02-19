@@ -119,7 +119,7 @@ describe('workspace-loader', () => {
       expect(result).toContain('SOUL content');
       expect(result).toContain('IDENTITY content');
       expect(result).toContain('USER content');
-      expect(readFile).toHaveBeenCalledTimes(9); // 9 workspace files
+      expect(readFile).toHaveBeenCalledTimes(10); // 10 workspace files
       expect(readFile).toHaveBeenCalledWith(join(WORKSPACE_DIR, 'SOUL.md'), 'utf-8');
       expect(readFile).toHaveBeenCalledWith(join(WORKSPACE_DIR, 'IDENTITY.md'), 'utf-8');
       expect(readFile).toHaveBeenCalledWith(join(WORKSPACE_DIR, 'USER.md'), 'utf-8');
@@ -158,8 +158,8 @@ describe('workspace-loader', () => {
 
       await loadIdentityPrompt();
 
-      // All 9 workspace files should be requested in parallel
-      expect(promises.length).toBe(9);
+      // All 10 workspace files should be requested in parallel
+      expect(promises.length).toBe(10);
     });
   });
 });
