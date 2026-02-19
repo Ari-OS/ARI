@@ -3,6 +3,14 @@
     "ClaudeTalkToFigma": {
       "command": "npx",
       "args": ["-p", "claude-talk-to-figma-mcp@latest", "claude-talk-to-figma-mcp-server"]
+    },
+    "ari": {
+      "command": "npx",
+      "args": ["ari", "mcp"],
+      "cwd": "/Users/prycehedrick/Ari/ARI",
+      "env": {
+        "NODE_ENV": "development"
+      }
     }
   }
 }
