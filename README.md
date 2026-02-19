@@ -63,10 +63,10 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 
 **Autonomous Intelligence**
 - Morning briefings at 6:30 AM via Telegram
-- Evening summaries at 9:00 PM
-- Weekly reports every Sunday
-- Market monitoring and portfolio tracking
-- Intelligent task prioritization
+- Evening summaries at 9:00 PM + weekly reports
+- Market monitoring: crypto, stocks, Pokemon TCG
+- Video content pipeline: script → avatar → publish
+- SEO citation monitoring (Perplexity, ChatGPT)
 
 **Security & Governance**
 - 42 injection patterns across 14 categories
@@ -79,16 +79,16 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 <td width="50%">
 
 **Multi-Agent Orchestration**
-- Guardian (threat detection)
-- Planner (task decomposition)
-- Executor (tool invocation)
-- Memory Manager (provenance tracking)
-- Core Agent (orchestration)
+- Guardian (threat detection, 42-pattern scan)
+- Planner (DAG-based task decomposition)
+- Executor (tool invocation with DI governance)
+- Memory Manager (provenance-tracked storage)
+- Core Agent (pipeline orchestration)
 
 **Developer Experience**
 - 24 CLI commands
-- 5,600+ tests across 238 files
-- 333 TypeScript source files
+- 6,700+ tests across 301 test files
+- 420+ TypeScript source files
 - 100,000+ lines of code
 - Cognitive layer (LOGOS/ETHOS/PATHOS)
 
@@ -167,7 +167,7 @@ Every message flows through a **multi-stage security pipeline** before execution
 
 ```mermaid
 flowchart TD
-    Start([Inbound Message]) --> Sanitize[Sanitizer<br/>41 Injection Patterns]
+    Start([Inbound Message]) --> Sanitize[Sanitizer<br/>42 Injection Patterns]
     Sanitize -->|Clean| TrustCheck{Trust Level<br/>Assessment}
     Sanitize -->|Malicious| Block1[BLOCK]
 
@@ -480,10 +480,12 @@ ARI stores all personal data locally in `~/.ari/`. This directory is **gitignore
 | Document | Description |
 |----------|-------------|
 | [CLAUDE.md](CLAUDE.md) | Context for AI assistants |
+| [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines and standards |
 | [docs/](docs/README.md) | Full documentation index |
 | [docs/architecture/](docs/architecture/ARCHITECTURE.md) | System design and security model |
 | [docs/guides/](docs/guides/README.md) | Setup and operations guides |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
+| [docs/plans/](docs/plans/) | Implementation plans and phase tracking |
 
 ---
 
