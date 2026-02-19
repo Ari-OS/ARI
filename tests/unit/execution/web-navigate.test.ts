@@ -13,6 +13,13 @@ import {
   webExtractHandler,
   closeBrowser,
 } from '../../../src/execution/tools/web-navigate.js';
+
+// Mock playwright so browser launch always fails fast (no real network calls in unit tests)
+vi.mock('playwright', () => ({
+  chromium: {
+    launch: vi.fn().mockRejectedValue(new Error('Browser launch unavailable in test environment')),
+  },
+}));
 import type { ExecutionContext } from '../../../src/execution/types.js';
 import { Executor } from '../../../src/agents/executor.js';
 import { PolicyEngine } from '../../../src/governance/policy-engine.js';
@@ -375,7 +382,7 @@ describe('URL Auto-Prefix', () => {
   // These will fail on actual navigation (no browser in CI) but should
   // NOT fail on URL validation — proving the auto-prefix works
   it('should not throw on URLs without scheme', async () => {
-    // This should get past validation and fail on browser launch, not URL parsing
+    // This should get past URL validation and fail on browser launch, not URL parsing
     try {
       await webNavigateHandler({ url: 'example.com' }, ctx);
     } catch (error) {
@@ -384,7 +391,7 @@ describe('URL Auto-Prefix', () => {
       expect(msg).not.toContain('Invalid URL');
       expect(msg).not.toContain('Blocked');
     }
-  }, 60000);
+  });
 
   it('should accept https:// URLs', async () => {
     try {
@@ -394,7 +401,7 @@ describe('URL Auto-Prefix', () => {
       expect(msg).not.toContain('Invalid URL');
       expect(msg).not.toContain('Blocked');
     }
-  }, 60000);
+  });
 
   it('should accept http:// URLs', async () => {
     try {
@@ -404,7 +411,7 @@ describe('URL Auto-Prefix', () => {
       expect(msg).not.toContain('Invalid URL');
       expect(msg).not.toContain('Blocked');
     }
-  }, 60000);
+  });
 });
 
 // ── Browser Cleanup ─────────────────────────────────────────────────────
