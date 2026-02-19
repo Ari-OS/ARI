@@ -28,8 +28,8 @@ Proactive agent capabilities: scheduling, briefings, market intelligence, conten
 |------|------|---------|
 | 06:00 | Intelligence Scan | `intelligence_scan` |
 | 06:15 | Life Monitor Scan | `life_monitor_scan` |
-| 06:30 | Morning Briefing | `morning_briefing` |
-| 06:45 | Daily Digest Delivery | `daily_digest_delivery` |
+| 07:00 | Morning Briefing | `morning_briefing` |
+| 07:15 | Daily Digest Delivery | `daily_digest_delivery` |
 | 07:30 | User Daily Brief | `user_daily_brief` |
 | 09:15 (M-F) | Pre-Market Briefing | `market_premarket_briefing` |
 | 16:15 (M-F) | Post-Market Briefing | `market_postmarket_briefing` |
