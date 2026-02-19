@@ -1,3 +1,5 @@
+import path from 'node:path';
+import { homedir } from 'node:os';
 import type { EventBus } from '../../kernel/event-bus.js';
 import { createLogger } from '../../kernel/logger.js';
 import type {
@@ -12,6 +14,12 @@ import { VideoPipelineConfigSchema } from './types.js';
 import type { VideoPipelineConfig } from './types.js';
 import { ScriptGenerator } from './script-generator.js';
 import { AvatarRenderer } from './avatar-renderer.js';
+import { CaptionsGenerator } from './captions-generator.js';
+import { VideoAssembler } from './video-assembler.js';
+import { ThumbnailGenerator } from './thumbnail-generator.js';
+import { ApprovalGate } from './approval-gate.js';
+import { YouTubePublisher } from './youtube-publisher.js';
+import { PipelineOrchestrator } from './pipeline-orchestrator.js';
 
 const log = createLogger('video-pipeline');
 
@@ -35,6 +43,12 @@ export class VideoPipelinePlugin implements DomainPlugin {
   private config!: VideoPipelineConfig;
   private scriptGenerator: ScriptGenerator | null = null;
   private avatarRenderer: AvatarRenderer | null = null;
+  private captionsGenerator: CaptionsGenerator | null = null;
+  private videoAssembler: VideoAssembler | null = null;
+  private thumbnailGenerator: ThumbnailGenerator | null = null;
+  private approvalGate: ApprovalGate | null = null;
+  private youtubePublisher: YouTubePublisher | null = null;
+  private orchestrator: PipelineOrchestrator | null = null;
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
 
@@ -43,9 +57,13 @@ export class VideoPipelinePlugin implements DomainPlugin {
     this.eventBus = deps.eventBus;
     this.config = VideoPipelineConfigSchema.parse(deps.config);
 
+    const outputDir = this.config.outputDir ?? path.join(homedir(), '.ari', 'video-output');
+
+    // Build AI adapter (used by both ScriptGenerator and PipelineOrchestrator)
+    let orchAdapter: { chat: (messages: Array<{ role: string; content: string }>, systemPrompt?: string) => Promise<string> } | null = null;
     if (deps.orchestrator) {
       const orch = deps.orchestrator;
-      const orchAdapter = {
+      orchAdapter = {
         chat: (messages: Array<{ role: string; content: string }>, systemPrompt?: string) =>
           orch.chat(
             messages.map((m) => ({
@@ -59,6 +77,30 @@ export class VideoPipelinePlugin implements DomainPlugin {
     }
 
     this.avatarRenderer = new AvatarRenderer(this.config.heygenApiKey);
+    this.captionsGenerator = new CaptionsGenerator(this.config.assemblyAiApiKey);
+    this.videoAssembler = new VideoAssembler(outputDir);
+    this.thumbnailGenerator = new ThumbnailGenerator(this.config.openaiApiKey);
+    this.approvalGate = new ApprovalGate(this.eventBus);
+    this.youtubePublisher = new YouTubePublisher({
+      clientId: this.config.youtubeClientId,
+      clientSecret: this.config.youtubeClientSecret,
+      refreshToken: this.config.youtubeRefreshToken,
+    });
+
+    if (this.scriptGenerator) {
+      this.orchestrator = new PipelineOrchestrator(
+        this.eventBus,
+        this.config,
+        this.scriptGenerator,
+        this.avatarRenderer,
+        this.captionsGenerator,
+        this.videoAssembler,
+        this.thumbnailGenerator,
+        this.approvalGate,
+        this.youtubePublisher,
+        orchAdapter,
+      );
+    }
 
     this.status = 'active';
     log.info('Video pipeline plugin initialized');
@@ -131,6 +173,14 @@ export class VideoPipelinePlugin implements DomainPlugin {
 
   getAvatarRenderer(): AvatarRenderer | null {
     return this.avatarRenderer;
+  }
+
+  getOrchestrator(): PipelineOrchestrator | null {
+    return this.orchestrator;
+  }
+
+  getApprovalGate(): ApprovalGate | null {
+    return this.approvalGate;
   }
 
   getConfig(): VideoPipelineConfig {

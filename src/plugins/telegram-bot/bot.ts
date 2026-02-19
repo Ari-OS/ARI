@@ -22,6 +22,7 @@ import { handleDev } from './commands/dev.js';
 import { handleContent } from './commands/content.js';
 import { handleDiagram } from './commands/diagram.js';
 import { handleTask } from './commands/task.js';
+import { handleVideo } from './commands/video.js';
 // New Phase 5 commands
 import { handleCalendar } from './commands/calendar.js';
 import { handleRemind } from './commands/remind.js';
@@ -40,6 +41,7 @@ import { IntentRouter } from './intent-router.js';
 import { ConversationStore } from './conversation-store.js';
 import { handleVoice } from './voice-handler.js';
 import { ApprovalGate } from '../../plugins/video-pipeline/approval-gate.js';
+import type { VideoPipelinePlugin } from '../video-pipeline/index.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TELEGRAM BOT SETUP
@@ -152,6 +154,7 @@ export function createBot(deps: BotDependencies): Bot {
       '/ask — Ask anything\n' +
       '/calendar — Today\'s schedule\n' +
       '/market — Portfolio &amp; prices\n' +
+      '/video — Create a video autonomously\n' +
       '/search — Web search\n' +
       '/task — Capture a task\n' +
       '/briefing — On-demand briefing\n' +
@@ -183,7 +186,8 @@ export function createBot(deps: BotDependencies): Bot {
       '/skills — Available skills\n\n' +
       '<b>Content</b>\n' +
       '/content — Content pipeline\n' +
-      '/growth — Growth dashboard\n\n' +
+      '/growth — Growth dashboard\n' +
+      '/video — Autonomous video creation\n\n' +
       '<b>Other</b>\n' +
       '/pokemon — Pokemon TCG cards\n' +
       '/speak — Text to speech\n' +
@@ -217,6 +221,7 @@ export function createBot(deps: BotDependencies): Bot {
   bot.command('memory', (ctx) => handleMemory(ctx, eventBus));
   bot.command('settings', (ctx) => handleSettings(ctx, eventBus));
   bot.command('skills', (ctx) => handleSkills(ctx, eventBus));
+  bot.command('video', (ctx) => handleVideo(ctx, registry, eventBus));
 
   // ── Natural language fallback (via intent router) ─────────────────
 
@@ -458,6 +463,34 @@ export function createBot(deps: BotDependencies): Bot {
     } catch {
       // Message may be too old to edit — ignore
     }
+  });
+
+  // ── Video pipeline wiring ────────────────────────────────────────────────────
+
+  // Wire ApprovalGate to send approval requests to ownerUserId via Telegram
+  const videoPipelinePlugin = registry?.getPlugin<VideoPipelinePlugin>('video-pipeline');
+  const approvalGateInstance = videoPipelinePlugin?.getApprovalGate();
+  if (approvalGateInstance && config.ownerUserId) {
+    const ownerId = config.ownerUserId;
+    approvalGateInstance.setTelegramNotifier({
+      sendMessage: async (text, options) => {
+        await bot.api.sendMessage(ownerId, text, {
+          parse_mode: options?.parseMode ?? 'HTML',
+        });
+      },
+      sendPhoto: async (photoPath, caption) => {
+        const { InputFile } = await import('grammy');
+        await bot.api.sendPhoto(ownerId, new InputFile(photoPath), { caption });
+      },
+    });
+  }
+
+  // Forward video pipeline progress events to the user's chat
+  eventBus.on('video:user_progress', (payload: unknown) => {
+    const data = payload as { chatId: number; stage: string; message: string };
+    bot.api.sendMessage(data.chatId, data.message, { parse_mode: 'HTML' }).catch(() => {
+      // Non-fatal — user may have blocked bot or chat no longer exists
+    });
   });
 
   return bot;
@@ -885,6 +918,18 @@ function registerIntentRoutes(
     }),
     priority: 5,
     description: '"What do I know about X" — knowledge base search',
+  });
+
+  router.registerRoute({
+    intent: 'video_create',
+    patterns: [
+      /\b(?:create|make|generate|produce|film|shoot)\s+(?:a\s+|me\s+a\s+|an?\s+)?(?:video|short|reel|youtube|ad)\b/i,
+      /\b(?:video|youtube|short)\s+(?:about|on|for|covering)\b/i,
+      /\brecord\s+(?:a\s+)?(?:video|tutorial|walkthrough)\b/i,
+    ],
+    handler: withTyping(async (ctx) => handleVideo(ctx, registry, eventBus)),
+    priority: 8,
+    description: '"Create a video about X" — autonomous video pipeline',
   });
 
   router.registerRoute({
