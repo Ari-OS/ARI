@@ -12,9 +12,81 @@ interface OrchestratorAdapter {
   chat: (messages: Array<{ role: string; content: string }>, systemPrompt?: string) => Promise<string>;
 }
 
-// ─── Brand Voice ─────────────────────────────────────────────────────────────
+// ─── Content Type Detection ───────────────────────────────────────────────────
 
-const BRAND_SYSTEM_PROMPT = `You are a content strategist for PayThePryce, a personal finance and entrepreneurship brand.
+export type ContentType = 'pokemon' | 'ai_build' | 'live_clip' | 'general';
+
+const POKEMON_KEYWORDS = [
+  'pokemon', 'pokémon', 'tcg', 'card', 'pack', 'pull', 'booster', 'charizard', 'pikachu',
+  'holo', 'rare', 'vmax', 'vstar', ' ex ', 'gold card', 'collection', 'tcgplayer', 'paldea',
+  'crown zenith', 'scarlet violet', 'obsidian', 'temporal forces', 'prismatic', 'stellar',
+  'full art', 'alt art', 'secret rare', 'ultra rare', 'psa', 'bgs', 'graded', 'evolving skies',
+  'battle styles', 'chilling reign', 'vivid voltage', 'shining fates', 'hidden fates',
+  'gym', 'trainer', 'energy', 'trainer gallery', 'illustration rare', 'hyper rare',
+];
+
+const AI_BUILD_KEYWORDS = [
+  'ari', 'build', 'coding', 'automation', 'software', 'code', 'agent', 'gpt', 'claude',
+  'llm', 'api', 'typescript', 'nodejs', 'python', 'ai tool', 'workflow', 'script',
+  'deploy', 'daemon', 'telegram bot', 'webhook', 'database', 'vector store',
+];
+
+const LIVE_CLIP_KEYWORDS = [
+  'live', 'stream', 'clip', 'highlight', 'reaction', 'from stream', 'from live',
+  'best moment', 'pulled live', 'opened live',
+];
+
+export function detectContentType(topic: string): ContentType {
+  const lower = topic.toLowerCase();
+  if (LIVE_CLIP_KEYWORDS.some((k) => lower.includes(k))) return 'live_clip';
+  if (POKEMON_KEYWORDS.some((k) => lower.includes(k))) return 'pokemon';
+  if (AI_BUILD_KEYWORDS.some((k) => lower.includes(k))) return 'ai_build';
+  return 'general';
+}
+
+// ─── Brand Voice Prompts (per content type) ───────────────────────────────────
+
+const POKEMON_SYSTEM_PROMPT = `You are creating YouTube content for PayThePryce — Pryce Hedrick's Pokémon TCG and AI channel.
+
+Channel identity: Pokémon TCG education + entertainment + investment analysis.
+Audience: Collectors, investors, TCG players, hobbyists aged 18-35.
+
+Brand voice for Pokémon content:
+- Enthusiastic and knowledgeable — you know the meta, prices, and market trends
+- Lead with WHY a card/set/pull matters: current TCGPlayer price, demand trend, rarity odds
+- Pack opening energy: suspense → reveal → react → context ("What's it worth? Why does it matter?")
+- Always use real numbers: actual prices, percentage gains, pull rates, population counts
+- Community-first CTAs: "Drop your best pull in the comments" / "What pack should I open next?"
+- Reference style: PokeRev enthusiasm, Leonhart depth, MrBeast pacing
+- Hook formats that work: "I opened X packs and got...", "This card is up X% this month", "You NEED this card before [set] releases"
+- No filler. Every sentence is either exciting, educational, or both.`;
+
+const AI_BUILD_SYSTEM_PROMPT = `You are creating YouTube content for PayThePryce — Pryce Hedrick's AI-building and automation channel.
+
+Channel identity: Building ARI (personal AI operating system) and other AI tools in public.
+Audience: Developers, indie hackers, AI enthusiasts, makers aged 20-40.
+
+Brand voice for AI/building content:
+- Honest and raw: show what works AND what breaks
+- Show don't tell: real code, real results, real timelines
+- "Building in public" energy — no hype, no vague claims, just what actually happened
+- Contrarian takes on AI tools: what the demos hide, what the docs don't tell you
+- Real-world numbers: cost per run, tokens used, time saved, money saved or made
+- Formats that work: "I built X with AI (here's what I wish I knew)", "How [thing] actually works under the hood", "I automated my [workflow] — here's the full system"
+- CTAs: subscribe to follow the build, share with fellow builders, comment your stack`;
+
+const LIVE_CLIP_SYSTEM_PROMPT = `You are creating a live stream highlight clip for PayThePryce.
+
+Structure for live stream clips (20-30 seconds):
+- Seconds 0-3: The reaction or moment itself — drop the viewer INTO the excitement
+- Seconds 3-15: The reveal or key moment from the stream (the pull, the price check, the big move)
+- Seconds 15-25: Quick context — why this matters (card value, rarity, achievement)
+- Seconds 25-30: CTA: "Watch the full stream" or "Subscribe to catch the next one live"
+
+Voice: Raw, real, in-the-moment. Sound like you're excitedly texting a friend who missed the stream.
+No production polish — the authenticity IS the product.`;
+
+const GENERAL_SYSTEM_PROMPT = `You are a content strategist for PayThePryce, Pryce Hedrick's YouTube channel covering Pokémon TCG, AI building, and tech entrepreneurship.
 
 Brand voice:
 - Alex Hormozi-inspired: 1st grade language, no fluff, value-first
@@ -23,9 +95,43 @@ Brand voice:
 - Hook the viewer in the first 5 seconds with a bold claim or provocative question
 - Deliver actionable value immediately; do not tease or withhold
 - CTAs only at the end, never mid-content — earn the CTA by delivering value first
-- Use short sentences. Use white space. Make it scannable.
-- Speak to the reader directly ("you", "your") not abstractly
 - Real examples over theory. Numbers over vague claims.`;
+
+function getBrandPrompt(topic: string): string {
+  switch (detectContentType(topic)) {
+    case 'pokemon': return POKEMON_SYSTEM_PROMPT;
+    case 'ai_build': return AI_BUILD_SYSTEM_PROMPT;
+    case 'live_clip': return LIVE_CLIP_SYSTEM_PROMPT;
+    default: return GENERAL_SYSTEM_PROMPT;
+  }
+}
+
+// Keep named export for external use (approval-gate Telegram messages, etc.)
+export const BRAND_SYSTEM_PROMPT = GENERAL_SYSTEM_PROMPT;
+
+// ─── Auto SEO Keywords ────────────────────────────────────────────────────────
+
+function autoKeywords(topic: string, contentType: ContentType): string[] {
+  const base = ['PayThePryce', 'paytheprice'];
+  switch (contentType) {
+    case 'pokemon':
+      return [...base, 'pokemon', 'pokemon tcg', 'pokemon cards', 'pack opening',
+        'card collecting', 'pokemon investment', 'rare cards', 'pokemon 2025'];
+    case 'ai_build':
+      return [...base, 'ai automation', 'build with ai', 'coding', 'ai tools',
+        'typescript', 'automation', 'software development', 'building in public'];
+    case 'live_clip':
+      return [...base, 'live stream highlight', 'pokemon live', 'pack opening live'];
+    default: {
+      // Extract significant words from topic as fallback keywords
+      const topicWords = topic.toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 4)
+        .slice(0, 4);
+      return [...base, ...topicWords];
+    }
+  }
+}
 
 // ─── Duration Estimation ─────────────────────────────────────────────────────
 
@@ -39,9 +145,10 @@ function estimateDuration(text: string): number {
 // ─── Word targets by format ───────────────────────────────────────────────────
 
 const FORMAT_TARGETS: Record<VideoFormat, { min: number; max: number; label: string }> = {
-  long_form: { min: 1800, max: 2200, label: '12-15 minute YouTube video' },
-  short:     { min: 75,   max: 90,   label: '30-45 second YouTube Short' },
-  tutorial:  { min: 1200, max: 1600, label: '8-11 minute tutorial video' },
+  long_form:  { min: 1800, max: 2200, label: '12-15 minute YouTube video' },
+  short:      { min: 75,   max: 90,   label: '30-45 second YouTube Short' },
+  tutorial:   { min: 1200, max: 1600, label: '8-11 minute tutorial video' },
+  live_clip:  { min: 45,   max: 65,   label: '20-30 second live stream highlight clip' },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -73,7 +180,7 @@ Provide a concise research brief covering:
 Keep it tight. Bullet points preferred. No fluff.`,
         },
       ],
-      BRAND_SYSTEM_PROMPT,
+      getBrandPrompt(topic),
     );
 
     log.info({ topic }, 'Research context generated');
@@ -133,11 +240,11 @@ Requirements:
 Return ONLY JSON, no markdown, no explanation.`,
         },
       ],
-      BRAND_SYSTEM_PROMPT,
+      getBrandPrompt(topic),
     );
 
     const parsed = JSON.parse(response) as VideoScript['outline'];
-    log.info({ topic, format, sectionCount: parsed.sections.length }, 'Outline generated');
+    log.info({ topic, format, sectionCount: parsed.sections.length, contentType: detectContentType(topic) }, 'Outline generated');
     return parsed;
   }
 
@@ -146,8 +253,9 @@ Return ONLY JSON, no markdown, no explanation.`,
   async writeScript(
     outline: VideoScript['outline'],
     format: VideoFormat = 'long_form',
+    topic = '',
   ): Promise<string> {
-    log.info({ hook: outline.hook.slice(0, 60), format }, 'Writing full script');
+    log.info({ hook: outline.hook.slice(0, 60), format, contentType: detectContentType(topic) }, 'Writing full script');
 
     const targets = FORMAT_TARGETS[format];
 
@@ -165,23 +273,38 @@ Return ONLY JSON, no markdown, no explanation.`,
       `CTA: ${outline.cta}`,
     ].join('\n');
 
-    const formatInstructions = format === 'short'
-      ? `This is a YouTube SHORT. Target: ${targets.min}-${targets.max} words (30-45 seconds spoken).
+    let formatInstructions: string;
+    if (format === 'short') {
+      formatInstructions =
+        `This is a YouTube SHORT. Target: ${targets.min}-${targets.max} words (30-45 seconds spoken).
 - Pattern interrupt hook in first 3 seconds
 - 3 punchy value points or 1 quick demonstration
 - End with subscribe + loop back to hook concept
-- No long explanations — one sentence per idea`
-      : format === 'tutorial'
-      ? `This is a TUTORIAL video. Target: ${targets.min}-${targets.max} words.
+- No long explanations — one sentence per idea`;
+    } else if (format === 'live_clip') {
+      formatInstructions =
+        `This is a LIVE STREAM HIGHLIGHT CLIP. Target: ${targets.min}-${targets.max} words (20-30 seconds spoken).
+- Seconds 0-3: Drop viewer into the reaction/moment — no intro, pure energy
+- Seconds 3-15: The reveal (the pull, the price check, the big moment)
+- Seconds 15-25: Quick context (what's it worth? why is this wild?)
+- Seconds 25-30: CTA: "Watch the full stream" or "Subscribe to catch the next one live"
+- Voice: Raw, real, in-the-moment. Sound like you're texting a friend who missed this.
+- No production polish — authentic energy IS the product`;
+    } else if (format === 'tutorial') {
+      formatInstructions =
+        `This is a TUTORIAL video. Target: ${targets.min}-${targets.max} words.
 - 30-second avatar intro: state the problem + what they will learn
 - Main body: step-by-step instructions, clear and numbered
 - 30-second avatar outro: recap the 3 key steps + next video CTA
-- Add [SCREENSHARE START] and [SCREENSHARE END] markers around the demo sections`
-      : `This is a LONG-FORM YouTube video. Target: ${targets.min}-${targets.max} words.
+- Add [SCREENSHARE START] and [SCREENSHARE END] markers around the demo sections`;
+    } else {
+      formatInstructions =
+        `This is a LONG-FORM YouTube video. Target: ${targets.min}-${targets.max} words.
 - Hook: Expand into a compelling 30-45 second opening
 - Each section: Fully developed with examples, stories, or data
 - Speak directly to "you" — personal and direct
 - End with exactly one clear CTA from the outline`;
+    }
 
     const response = await this.orchestrator.chat(
       [
@@ -202,7 +325,7 @@ Universal requirements:
 - Format: Plain prose, ready to read aloud. No stage directions except [SCREENSHARE] markers for tutorials.`,
         },
       ],
-      BRAND_SYSTEM_PROMPT,
+      getBrandPrompt(topic),
     );
 
     log.info({ wordCount: response.trim().split(/\s+/).length, format }, 'Full script written');
@@ -238,7 +361,7 @@ Rules:
 Return ONLY the script text, no labels, no timestamps.`,
         },
       ],
-      BRAND_SYSTEM_PROMPT,
+      getBrandPrompt(topic),
     );
 
     log.info({ wordCount: response.trim().split(/\s+/).length }, 'Shorts script written');
@@ -288,7 +411,7 @@ Tags: 8-12 tags, mix of broad and specific. No spaces in tags, use underscores.
 Return ONLY JSON.`,
         },
       ],
-      BRAND_SYSTEM_PROMPT,
+      getBrandPrompt(script.topic),
     );
 
     const parsed = JSON.parse(response) as { title: string; description: string; tags: string[] };
@@ -321,7 +444,7 @@ Requirements:
 - Do not add any commentary or explanation — just the revised script`,
         },
       ],
-      BRAND_SYSTEM_PROMPT,
+      getBrandPrompt(script.topic),
     );
 
     const revisedScript: VideoScript = {
@@ -342,16 +465,20 @@ Requirements:
     format: VideoFormat = 'long_form',
     keywords: string[] = [],
   ): Promise<VideoScript> {
-    log.info({ topic, format }, 'Starting full script generation pipeline');
+    const contentType = detectContentType(topic);
+    log.info({ topic, format, contentType }, 'Starting full script generation pipeline');
+
+    // Auto-inject SEO keywords by content type if none provided
+    const resolvedKeywords = keywords.length > 0 ? keywords : autoKeywords(topic, contentType);
 
     const research = await this.research(topic);
-    const outline = await this.generateOutline(topic, research, format, keywords);
-    const fullScript = await this.writeScript(outline, format);
+    const outline = await this.generateOutline(topic, research, format, resolvedKeywords);
+    const fullScript = await this.writeScript(outline, format, topic);
     const estimatedDuration = estimateDuration(fullScript);
 
-    // Generate Shorts script only for long-form — extracted as a sibling asset
+    // Generate Shorts script for long-form and tutorial — extracted sibling asset
     let shortsScript: string | undefined;
-    if (format === 'long_form') {
+    if (format === 'long_form' || format === 'tutorial') {
       shortsScript = await this.writeShortsScript(topic, research);
     }
 
@@ -363,7 +490,7 @@ Requirements:
       fullScript,
       shortsScript,
       estimatedDuration,
-      targetKeywords: keywords,
+      targetKeywords: resolvedKeywords,
       status: 'draft',
       version: 1,
       createdAt: new Date().toISOString(),

@@ -10,6 +10,7 @@ export const VideoFormatSchema = z.enum([
   'long_form',    // 8-15 min YouTube video, 1920x1080
   'short',        // 30-60s vertical, 1080x1920
   'tutorial',     // Screenshare + avatar overlay, 1920x1080
+  'live_clip',    // 20-30s live stream highlight extract, vertical 1080x1920
 ]);
 export type VideoFormat = z.infer<typeof VideoFormatSchema>;
 

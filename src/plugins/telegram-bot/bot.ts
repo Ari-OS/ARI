@@ -926,10 +926,13 @@ function registerIntentRoutes(
       /\b(?:create|make|generate|produce|film|shoot)\s+(?:a\s+|me\s+a\s+|an?\s+)?(?:video|short|reel|youtube|ad)\b/i,
       /\b(?:video|youtube|short)\s+(?:about|on|for|covering)\b/i,
       /\brecord\s+(?:a\s+)?(?:video|tutorial|walkthrough)\b/i,
+      /\bmake\s+(?:a\s+)?(?:pokemon|pokémon)\s+video\b/i,
+      /\bopen\s+(?:a\s+)?(?:pack|booster|box)\s+(?:video|on camera|for youtube)\b/i,
+      /\b(?:youtube|paytheprice|paythepryce)\s+(?:video|content|short)\b/i,
     ],
     handler: withTyping(async (ctx) => handleVideo(ctx, registry, eventBus)),
     priority: 8,
-    description: '"Create a video about X" — autonomous video pipeline',
+    description: '"Create a video about X" or "make a Pokémon video" — autonomous video pipeline',
   });
 
   router.registerRoute({

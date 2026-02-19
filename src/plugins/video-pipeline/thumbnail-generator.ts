@@ -2,6 +2,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { createLogger } from '../../kernel/logger.js';
 import type { VideoScript } from './types.js';
+import { detectContentType } from './script-generator.js';
 
 const log = createLogger('video-thumbnail-generator');
 
@@ -20,24 +21,55 @@ interface OpenAIImageResponse {
 function buildThumbnailConceptPrompt(script: VideoScript): string {
   const hook = script.outline.hook;
   const topic = script.topic;
+  const contentType = detectContentType(topic);
   const firstKeyPoints = script.outline.sections
     .slice(0, 2)
     .flatMap((s) => s.keyPoints.slice(0, 2))
     .join(', ');
 
+  const niche = contentType === 'pokemon'
+    ? `Pokémon TCG content — the card(s) must be clearly visible and recognizable.
+Pokémon thumbnail rules:
+- Dominant element: the card or pack — full art visible, angled slightly for depth
+- Price/value overlay: show "$XXX" or "UP 500%" if relevant — makes people stop scrolling
+- Creator reaction face in corner: surprised, hands on head, open mouth, maximum emotion
+- High-saturation colors matching the card art (charizard = red/orange, shiny = blue/silver)
+- Bold all-caps text: "PULLED THIS!", "WORTH IT?", "HOW?!", "SOLD FOR $XXX"
+- Background: dark studio or color-matched to card art — never plain white
+- Do NOT use generic stock images — the card IS the product`
+    : contentType === 'ai_build'
+    ? `AI/coding content — show the real output, not stock photos.
+AI thumbnail rules:
+- Show the actual interface, dashboard, or code on screen (mockup or screenshot style)
+- Creator face in corner: curious, or "mind blown" expression
+- Bold text teasing the result: "Built This in 2 Hours", "AI Did This", "It Actually Works"
+- Colors: dark background + bright accent (cyan, neon green, or purple for tech feel)
+- No generic robot/AI imagery — show the REAL thing`
+    : contentType === 'live_clip'
+    ? `Live stream clip — capture the authentic reaction moment.
+Live clip thumbnail rules:
+- Creator reaction face fills 60% of frame: genuine shock, excitement, or celebration
+- Small inset of the card/moment in corner
+- Text overlay: "LIVE REACTION", "YOU WON'T BELIEVE THIS", "IT HAPPENED"
+- Raw, unpolished feel — authenticity is the brand`
+    : `Finance/entrepreneur content: avoid stock photos — be raw and real.
+Rules: creator face (confident, direct), bold metric or result in text overlay, dark or gradient background.`;
+
   return `Design a YouTube thumbnail concept for a video titled: "${topic}"
 
 Hook: ${hook}
 Key value delivered: ${firstKeyPoints}
+Channel: PayThePryce (Pokémon TCG, AI building, entrepreneurship)
 
-YouTube thumbnail rules:
-1. High contrast — works at small size (120x90px thumbnail grid)
-2. Bold text overlay — 3-6 words max, must be readable at thumbnail size
-3. Emotional/facial expression if using a person — surprised, pointing, excited
-4. Single focal point — one image element dominates
-5. Color contrast — use complementary colors (red+blue, yellow+black, etc.)
-6. The text should tease the value without giving it away
-7. For finance/entrepreneur content: avoid stock photo generic look — be raw and real
+Universal thumbnail rules:
+1. High contrast — must be readable at 120x90px (thumbnail grid size)
+2. Bold text overlay — 3-6 words max, all-caps if possible
+3. Single focal point — one dominant visual element
+4. Emotional face if using creator — surprised, excited, pointing
+5. The text should tease, not spoil
+
+Niche-specific rules:
+${niche}
 
 Return a thumbnail concept description with:
 - Main visual element (what's in the center)

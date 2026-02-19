@@ -3,6 +3,7 @@ import type { EventBus } from '../../../kernel/event-bus.js';
 import type { PluginRegistry } from '../../../plugins/registry.js';
 import type { VideoPipelinePlugin } from '../../video-pipeline/index.js';
 import type { VideoFormat } from '../../video-pipeline/types.js';
+import { detectContentType } from '../../video-pipeline/script-generator.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // /video — Autonomous video pipeline
@@ -60,18 +61,23 @@ export async function handleVideo(
 
   if (!input) {
     await ctx.reply(
-      '<b>🎬 Video Pipeline</b>\n\n' +
-      'Usage: <code>/video &lt;topic&gt;</code>\n\n' +
-      '<b>Examples:</b>\n' +
-      '• <code>/video Bitcoin investing for beginners</code>\n' +
-      '• <code>/video short Why Pryceless Solutions?</code>\n' +
-      '• <code>/video tutorial How to set up a home lab</code>\n\n' +
-      '<b>Format prefixes (optional):</b>\n' +
-      '• <code>short</code> — 30-60s vertical Shorts video\n' +
-      '• <code>tutorial</code> — screenshare + avatar overlay\n' +
-      '• (none) — 8-15 min YouTube video\n\n' +
-      '<i>ARI handles everything: script → HeyGen render → captions → thumbnail → YouTube. ' +
-      'You approve before anything is published.</i>',
+      '<b>🎬 PayThePryce Video Pipeline</b>\n\n' +
+      'ARI handles everything autonomously — script, avatar render, captions, thumbnail, and YouTube upload. You approve before anything publishes.\n\n' +
+      '<b>Usage:</b> <code>/video &lt;topic&gt;</code>\n\n' +
+      '<b>Pokémon TCG examples:</b>\n' +
+      '• <code>/video I opened a full booster box of Prismatic Evolutions</code>\n' +
+      '• <code>/video Why Charizard ex is going up this month</code>\n' +
+      '• <code>/video short This card is worth $400 — here\'s why</code>\n' +
+      '• <code>/video live reaction to my best Scarlet Violet pull</code>\n\n' +
+      '<b>AI/building examples:</b>\n' +
+      '• <code>/video I built an AI that monitors my Pokémon collection</code>\n' +
+      '• <code>/video tutorial How I automated my morning with ARI</code>\n\n' +
+      '<b>Format prefixes:</b>\n' +
+      '• (none) — 12-15 min YouTube video\n' +
+      '• <code>short</code> — 30-45s vertical Short\n' +
+      '• <code>tutorial</code> — screenshare + avatar\n' +
+      '• <code>live</code> — 20-30s live stream highlight clip\n\n' +
+      '<i>ARI auto-detects Pokémon vs AI content and applies the right brand voice.</i>',
       { parse_mode: 'HTML' },
     );
     return;
@@ -83,25 +89,36 @@ export async function handleVideo(
 
   const shortMatch = input.match(/^shorts?\s+(.+)/i);
   const tutorialMatch = input.match(/^tutorial\s+(.+)/i);
+  const liveMatch = input.match(/^live\s+(.+)/i);
 
   if (shortMatch?.[1]) {
     format = 'short';
     topic = shortMatch[1];
+  } else if (liveMatch?.[1]) {
+    format = 'live_clip';
+    topic = liveMatch[1];
   } else if (tutorialMatch?.[1]) {
     format = 'tutorial';
     topic = tutorialMatch[1];
   }
 
   const chatId = ctx.chat?.id;
-  const formatLabel = format === 'long_form' ? 'long form' : format;
+  const contentType = detectContentType(topic);
+  const formatLabel = format === 'long_form' ? 'long form' : format.replace('_', ' ');
+
+  const contentLabel =
+    contentType === 'pokemon' ? '🃏 Pokémon TCG' :
+    contentType === 'ai_build' ? '🤖 AI/Building' :
+    contentType === 'live_clip' ? '🔴 Live Clip' : '📹 General';
 
   await ctx.reply(
     `🎬 <b>Video pipeline started!</b>\n\n` +
     `📝 Topic: <b>${topic}</b>\n` +
-    `📐 Format: <b>${formatLabel}</b>\n\n` +
+    `📐 Format: <b>${formatLabel}</b>\n` +
+    `🎯 Content type: <b>${contentLabel}</b>\n\n` +
     `I'll send you updates at each stage.\n` +
     `<i>Script: ~2 min | Render: ~15-20 min | Total: ~30 min</i>\n\n` +
-    `<i>You'll receive approval requests before anything publishes.</i>`,
+    `<i>You'll be asked to approve the script before rendering begins.</i>`,
     { parse_mode: 'HTML' },
   );
 
