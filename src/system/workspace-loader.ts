@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, appendFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -95,4 +95,78 @@ export async function loadIdentityPrompt(): Promise<string> {
  */
 export function clearWorkspaceCache(): void {
   cache.clear();
+}
+
+// ─── Memory Write System ────────────────────────────────────────────────────
+
+const MEMORY_FILE = 'MEMORY.md';
+let toolCallsSinceCleanup = 0;
+const CLEANUP_INTERVAL = 10;
+
+/**
+ * Append a date-stamped fact to MEMORY.md.
+ * Format: [YYYY-MM-DD] fact
+ * Triggers auto-cleanup every 10 calls.
+ */
+export async function appendMemory(fact: string): Promise<void> {
+  const date = new Date().toISOString().slice(0, 10);
+  const entry = `- [${date}] ${fact.trim()}\n`;
+  const memPath = join(WORKSPACE_DIR, MEMORY_FILE);
+
+  await appendFile(memPath, entry, 'utf-8');
+  // Invalidate cache so next load reflects the new entry
+  cache.delete(MEMORY_FILE);
+
+  toolCallsSinceCleanup++;
+  if (toolCallsSinceCleanup >= CLEANUP_INTERVAL) {
+    toolCallsSinceCleanup = 0;
+    await deduplicateMemory();
+  }
+}
+
+/**
+ * Increment the tool-call counter. Call this on each autonomous tool invocation
+ * to trigger memory cleanup at the 10-call interval.
+ */
+export async function onToolCall(): Promise<void> {
+  toolCallsSinceCleanup++;
+  if (toolCallsSinceCleanup >= CLEANUP_INTERVAL) {
+    toolCallsSinceCleanup = 0;
+    await deduplicateMemory();
+  }
+}
+
+/**
+ * Deduplicate MEMORY.md entries — remove exact duplicates while preserving order.
+ * Leaves section headers intact.
+ */
+async function deduplicateMemory(): Promise<void> {
+  const memPath = join(WORKSPACE_DIR, MEMORY_FILE);
+  let content: string;
+  try {
+    content = await readFile(memPath, 'utf-8');
+  } catch {
+    return; // File doesn't exist yet — nothing to deduplicate
+  }
+
+  const lines = content.split('\n');
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Always keep headers (##), blank lines, and non-bullet lines
+    if (!trimmed.startsWith('- [') || !seen.has(trimmed)) {
+      deduped.push(line);
+      if (trimmed.startsWith('- [')) {
+        seen.add(trimmed);
+      }
+    }
+  }
+
+  const deduped_content = deduped.join('\n');
+  if (deduped_content !== content) {
+    await writeFile(memPath, deduped_content, 'utf-8');
+    cache.delete(MEMORY_FILE);
+  }
 }

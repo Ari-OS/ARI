@@ -55,32 +55,34 @@ function buildEventsScript(startDate: string, endDate: string): string {
     set output to ""
     set startD to date "${startDate}"
     set endD to date "${endDate}"
-    tell application "Calendar"
-      repeat with cal in calendars
-        set calName to name of cal
-        set calEvents to (every event of cal whose start date >= startD and start date <= endD)
-        repeat with evt in calEvents
-          set evtId to uid of evt
-          set evtTitle to summary of evt
-          set evtStart to start date of evt
-          set evtEnd to end date of evt
-          set evtAllDay to allday event of evt
-          set evtLoc to ""
-          try
-            set evtLoc to location of evt
-          end try
-          set evtNotes to ""
-          try
-            set evtNotes to description of evt
-          end try
-          set evtUrl to ""
-          try
-            set evtUrl to url of evt
-          end try
-          set output to output & evtId & "|" & evtTitle & "|" & (evtStart as string) & "|" & (evtEnd as string) & "|" & evtLoc & "|" & evtNotes & "|" & calName & "|" & evtAllDay & "|" & evtUrl & linefeed
+    with timeout of 30 seconds
+      tell application "Calendar"
+        repeat with cal in calendars
+          set calName to name of cal
+          set calEvents to (every event of cal whose start date >= startD and start date <= endD)
+          repeat with evt in calEvents
+            set evtId to uid of evt
+            set evtTitle to summary of evt
+            set evtStart to start date of evt
+            set evtEnd to end date of evt
+            set evtAllDay to allday event of evt
+            set evtLoc to ""
+            try
+              set evtLoc to location of evt
+            end try
+            set evtNotes to ""
+            try
+              set evtNotes to description of evt
+            end try
+            set evtUrl to ""
+            try
+              set evtUrl to url of evt
+            end try
+            set output to output & evtId & "|" & evtTitle & "|" & (evtStart as string) & "|" & (evtEnd as string) & "|" & evtLoc & "|" & evtNotes & "|" & calName & "|" & evtAllDay & "|" & evtUrl & linefeed
+          end repeat
         end repeat
-      end repeat
-    end tell
+      end tell
+    end timeout
     return output
   `;
 }
@@ -245,7 +247,7 @@ export class AppleCalendar {
     const script = buildEventsScript(startStr, endStr);
 
     const { stdout } = await execFileAsync('osascript', ['-e', script], {
-      timeout: 10_000,
+      timeout: 35_000,
     });
 
     const lines = stdout.trim().split('\n').filter(Boolean);

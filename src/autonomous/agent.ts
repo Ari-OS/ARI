@@ -90,6 +90,22 @@ interface AgentState {
   errors: number;
 }
 
+// ─── Open-Meteo Helpers ─────────────────────────────────────────────────────
+
+function openMeteoCondition(code: number, isDay: boolean): string {
+  if (code === 0) return isDay ? 'Sunny' : 'Clear';
+  if (code === 1) return isDay ? 'Mostly Sunny' : 'Mostly Clear';
+  if (code === 2) return 'Partly Cloudy';
+  if (code === 3) return 'Overcast';
+  if (code <= 48) return 'Foggy';
+  if (code <= 57) return 'Drizzle';
+  if (code <= 67) return 'Rain';
+  if (code <= 77) return 'Snow';
+  if (code <= 82) return 'Rain Showers';
+  if (code <= 86) return 'Snow Showers';
+  return 'Thunderstorm';
+}
+
 export class AutonomousAgent {
   private eventBus: EventBus;
   private queue: TaskQueue;
@@ -2306,31 +2322,100 @@ export class AutonomousAgent {
     this.scheduler.registerHandler('weather_fetch', async () => {
       const apiKey = process.env.WEATHER_API_KEY;
       const location = process.env.WEATHER_LOCATION || 'Indianapolis, IN';
-      if (!apiKey) return;
+      if (apiKey) {
+        // Primary: WeatherAPI.com
+        try {
+          const { WeatherClient } = await import('../integrations/weather/client.js');
+          const weather = new WeatherClient(apiKey);
+          const current = await weather.getCurrent(location);
+          const forecast = await weather.getForecast(location, 3);
+          this.eventBus.emit('integration:weather_fetched', {
+            location: current.location,
+            tempF: current.tempF,
+            condition: current.condition,
+            timestamp: new Date().toISOString(),
+          });
+          this.lastWeather = {
+            location: current.location,
+            tempF: current.tempF,
+            condition: current.condition,
+            feelsLikeF: current.feelsLikeF,
+            humidity: current.humidity,
+            forecast: forecast.map(f => ({
+              date: f.date,
+              maxTempF: f.maxTempF,
+              minTempF: f.minTempF,
+              condition: f.condition,
+              chanceOfRain: f.chanceOfRain,
+            })),
+          };
+        } catch (error: unknown) {
+          this.eventBus.emit('system:error', {
+            error: error instanceof Error ? error : new Error(String(error)),
+            context: 'weather_fetch',
+          });
+        }
+        return;
+      }
+
+      // Fallback: Open-Meteo (free, no API key required) — Indianapolis, IN
       try {
-        const { WeatherClient } = await import('../integrations/weather/client.js');
-        const weather = new WeatherClient(apiKey);
-        const current = await weather.getCurrent(location);
-        const forecast = await weather.getForecast(location, 3);
+        const url = 'https://api.open-meteo.com/v1/forecast' +
+          '?latitude=39.7684&longitude=-86.1581' +
+          '&current_weather=true' +
+          '&hourly=apparent_temperature,relativehumidity_2m' +
+          '&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_probability_max' +
+          '&temperature_unit=fahrenheit&wind_speed_unit=mph' +
+          '&timezone=America%2FIndiana%2FIndianapolis&forecast_days=3';
+
+        const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+        const data = await res.json() as Record<string, unknown>;
+
+        const cw = data['current_weather'] as Record<string, unknown>;
+        const tempF = cw['temperature'] as number;
+        const weatherCode = cw['weathercode'] as number;
+        const isDay = (cw['is_day'] as number) === 1;
+        const condition = openMeteoCondition(weatherCode, isDay);
+
+        // Find current hour index for apparent_temperature and humidity
+        const hourly = data['hourly'] as Record<string, unknown>;
+        const hourlyTimes = hourly['time'] as string[];
+        const nowHour = new Date().toISOString().slice(0, 13);
+        const hourIdx = hourlyTimes.findIndex(t => t.startsWith(nowHour));
+        const apparentTemps = hourly['apparent_temperature'] as number[];
+        const humidities = hourly['relativehumidity_2m'] as number[];
+        const feelsLikeF = hourIdx >= 0 ? (apparentTemps[hourIdx] ?? tempF) : tempF;
+        const humidity = hourIdx >= 0 ? (humidities[hourIdx] ?? 50) : 50;
+
+        // Build 3-day forecast
+        const daily = data['daily'] as Record<string, unknown>;
+        const dailyDates = daily['time'] as string[];
+        const maxTemps = daily['temperature_2m_max'] as number[];
+        const minTemps = daily['temperature_2m_min'] as number[];
+        const dailyCodes = daily['weathercode'] as number[];
+        const rainProbs = daily['precipitation_probability_max'] as number[];
+
+        const forecast = dailyDates.map((date, i) => ({
+          date,
+          maxTempF: Math.round(maxTemps[i] ?? 0),
+          minTempF: Math.round(minTemps[i] ?? 0),
+          condition: openMeteoCondition(dailyCodes[i] ?? 0, true),
+          chanceOfRain: rainProbs[i] ?? 0,
+        }));
+
         this.eventBus.emit('integration:weather_fetched', {
-          location: current.location,
-          tempF: current.tempF,
-          condition: current.condition,
+          location,
+          tempF: Math.round(tempF),
+          condition,
           timestamp: new Date().toISOString(),
         });
         this.lastWeather = {
-          location: current.location,
-          tempF: current.tempF,
-          condition: current.condition,
-          feelsLikeF: current.feelsLikeF,
-          humidity: current.humidity,
-          forecast: forecast.map(f => ({
-            date: f.date,
-            maxTempF: f.maxTempF,
-            minTempF: f.minTempF,
-            condition: f.condition,
-            chanceOfRain: f.chanceOfRain,
-          })),
+          location,
+          tempF: Math.round(tempF),
+          condition,
+          feelsLikeF: Math.round(feelsLikeF),
+          humidity: Math.round(humidity),
+          forecast,
         };
       } catch (error: unknown) {
         this.eventBus.emit('system:error', {

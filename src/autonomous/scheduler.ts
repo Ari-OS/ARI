@@ -136,7 +136,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'morning-briefing',
     name: 'Morning Briefing',
-    cron: '30 6 * * *', // 6:30 AM daily
+    cron: '0 7 * * *', // 7:00 AM daily
     handler: 'morning_briefing',
     enabled: true,
     essential: true, // User-facing deliverable
@@ -677,7 +677,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'daily-digest-delivery',
     name: 'Daily Digest Delivery',
-    cron: '45 6 * * *', // 6:45 AM daily (15 min after morning briefing to avoid duplicates)
+    cron: '15 7 * * *', // 7:15 AM daily (15 min after morning briefing to avoid duplicates)
     handler: 'daily_digest_delivery',
     enabled: true,
     essential: true, // Core user-facing deliverable
