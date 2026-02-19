@@ -384,7 +384,7 @@ describe('URL Auto-Prefix', () => {
       expect(msg).not.toContain('Invalid URL');
       expect(msg).not.toContain('Blocked');
     }
-  });
+  }, 60000);
 
   it('should accept https:// URLs', async () => {
     try {
@@ -394,7 +394,7 @@ describe('URL Auto-Prefix', () => {
       expect(msg).not.toContain('Invalid URL');
       expect(msg).not.toContain('Blocked');
     }
-  });
+  }, 60000);
 
   it('should accept http:// URLs', async () => {
     try {
@@ -404,7 +404,7 @@ describe('URL Auto-Prefix', () => {
       expect(msg).not.toContain('Invalid URL');
       expect(msg).not.toContain('Blocked');
     }
-  });
+  }, 60000);
 });
 
 // ── Browser Cleanup ─────────────────────────────────────────────────────

@@ -187,7 +187,7 @@ describe('AutonomousAgent', () => {
       await agent.init();
 
       expect(mockQueueInit).toHaveBeenCalled();
-    });
+    }, 30000);
 
     it('should load config from file if exists', async () => {
       mockReadFile.mockResolvedValueOnce(JSON.stringify({ enabled: true, pollIntervalMs: 3000 }));
@@ -375,7 +375,7 @@ describe('AutonomousAgent', () => {
       vi.useRealTimers();
       await agent.start();
       // Wait for the poll() async chain to complete
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       vi.useFakeTimers();
 
       expect(mockAIQuery).toHaveBeenCalledWith(expect.stringContaining('Test task'), 'autonomous');

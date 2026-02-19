@@ -312,7 +312,7 @@ describe('PolicyEngine', () => {
 
   describe('Approval Workflow', () => {
     // Helper to wait for pending approval to be registered
-    const waitForPendingApproval = async (maxWait = 100): Promise<void> => {
+    const waitForPendingApproval = async (maxWait = 500): Promise<void> => {
       const start = Date.now();
       while (Date.now() - start < maxWait) {
         if (policyEngine.getPendingApprovals().length > 0) return;

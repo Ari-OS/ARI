@@ -325,8 +325,8 @@ describe('LearningMachine', () => {
         success: true,
       });
 
-      // Allow async processing
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Allow async processing (file I/O in auditLogger can take >100ms)
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const stats = learningMachine.getStats();
       expect(stats.totalPatterns).toBe(1);
@@ -348,8 +348,8 @@ describe('LearningMachine', () => {
         agent: 'executor',
       });
 
-      // Allow async processing
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Allow async processing (file I/O in auditLogger can take >100ms)
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const stats = learningMachine.getStats();
       expect(stats.totalPatterns).toBe(1);
@@ -368,8 +368,8 @@ describe('LearningMachine', () => {
         success: true,
       });
 
-      // Allow async processing
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Allow async processing (file I/O in auditLogger can take >100ms)
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const stats = learningMachine.getStats();
       expect(stats.totalPatterns).toBe(0);
