@@ -63,6 +63,7 @@ const DEFAULT_BACKUP_DIR = path.join(ARI_DIR, 'backups');
 
 const DEFAULT_TARGETS = [
   path.join(ARI_DIR, 'workspace'), // Identity files (SOUL.md, MEMORY.md, USER.md, etc.) — highest priority
+  path.join(ARI_DIR, '.env'),      // API keys and connections — critical for recovery
   path.join(ARI_DIR, 'data'),
   path.join(ARI_DIR, 'contexts'),
   path.join(ARI_DIR, 'knowledge'),
