@@ -317,7 +317,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     name: 'Gmail Ingestion',
     cron: '0 7 * * *', // 7:00 AM daily
     handler: 'gmail_ingest',
-    enabled: false, // Disabled: pending IMAP configuration
+    enabled: true,
     essential: true, // User-facing knowledge capture
     metadata: {
       category: 'KNOWLEDGE',
