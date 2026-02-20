@@ -247,10 +247,18 @@ export class ValueScorer {
 
     if (score >= 85 && (category === 'planning' || category === 'analysis')) {
       candidates.push('claude-opus-4.6', 'claude-opus-4.5');
+      // Gemini 3.1 Pro: 1M context window excels at long-form deep research
+      if (this.registry.isAvailable('gemini-3.1-pro')) {
+        candidates.push('gemini-3.1-pro');
+      }
     }
 
     if (score >= 70) {
       candidates.push('claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-sonnet-4');
+      // Gemini Flash: cost-efficient for standard throughput tasks
+      if (this.registry.isAvailable('gemini-2.5-flash')) {
+        candidates.push('gemini-2.5-flash');
+      }
     }
 
     if (
@@ -261,6 +269,11 @@ export class ValueScorer {
         category === 'planning')
     ) {
       candidates.push('claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-sonnet-4');
+    }
+
+    // Gemini Flash-Lite: 60% cheaper than Haiku for bulk triage (RSS, email, news)
+    if (score < 50 && this.registry.isAvailable('gemini-2.5-flash-lite')) {
+      candidates.push('gemini-2.5-flash-lite');
     }
 
     candidates.push('claude-haiku-4.5', 'claude-haiku-3');

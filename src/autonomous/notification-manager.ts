@@ -841,6 +841,18 @@ export class NotificationManager {
     };
   }
 
+  /**
+   * Send a voice audio buffer to the Telegram owner.
+   * Used for morning briefing TTS audio delivery.
+   */
+  async sendVoice(audioBuffer: Buffer): Promise<boolean> {
+    if (!this.telegram?.isReady()) {
+      return false;
+    }
+    const result = await this.telegram.sendVoice(audioBuffer);
+    return result.sent;
+  }
+
   // ─── Convenience Methods ─────────────────────────────────────────────────────
 
   /**

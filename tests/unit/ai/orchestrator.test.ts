@@ -235,7 +235,7 @@ describe('AIOrchestrator', () => {
       const reg = orchestrator.getRegistry();
       expect(reg).toBeDefined();
       const models = reg.listModels();
-      expect(models.length).toBe(21);
+      expect(models.length).toBe(22);
     });
   });
 

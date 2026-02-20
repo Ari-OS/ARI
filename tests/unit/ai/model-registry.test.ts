@@ -63,9 +63,9 @@ describe('ModelRegistry', () => {
   });
 
   describe('listModels', () => {
-    it('should list all 21 models', () => {
+    it('should list all 22 models', () => {
       const models = registry.listModels();
-      expect(models).toHaveLength(21);
+      expect(models).toHaveLength(22);
     });
 
     it('should filter available only', () => {

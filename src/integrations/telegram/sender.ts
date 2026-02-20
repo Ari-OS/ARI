@@ -140,6 +140,45 @@ export class TelegramSender {
   }
 
   /**
+   * Send a voice message (audio buffer as ogg/mp3) to the owner.
+   * Used for morning briefing audio delivery via ElevenLabs TTS.
+   */
+  async sendVoice(audioBuffer: Buffer): Promise<TelegramSendResult> {
+    if (!this.isReady()) {
+      return { sent: false, reason: 'Telegram not configured' };
+    }
+
+    try {
+      const url = `${TELEGRAM_API}/bot${this.config.botToken}/sendVoice`;
+      const form = new FormData();
+      form.append('chat_id', String(this.config.ownerChatId));
+      form.append('voice', new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' }), 'briefing.mp3');
+
+      const response = await fetch(url, {
+        method: 'POST',
+        body: form,
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      const data = (await response.json()) as {
+        ok: boolean;
+        result?: { message_id: number };
+        description?: string;
+      };
+
+      if (!data.ok) {
+        return { sent: false, reason: `Telegram voice error: ${data.description ?? 'Unknown'}` };
+      }
+
+      this.sendHistory.push({ sentAt: Date.now() });
+      return { sent: true, reason: 'Voice sent', messageId: data.result?.message_id };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      return { sent: false, reason: `Telegram voice send error: ${msg}` };
+    }
+  }
+
+  /**
    * Edit an existing message (for updating notification content or removing keyboards)
    */
   async editMessage(

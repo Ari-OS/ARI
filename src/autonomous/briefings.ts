@@ -33,6 +33,7 @@ import { dailyAudit, type DailyAudit } from './daily-audit.js';
 import { ChangelogGenerator } from './changelog-generator.js';
 import { EventBus } from '../kernel/event-bus.js';
 import { splitTelegramMessage } from '../plugins/telegram-bot/format.js';
+import type { SpeechGenerator } from '../plugins/tts/speech-generator.js';
 import type { NotionConfig } from './types.js';
 import type { DailyDigest } from './daily-digest.js';
 import type { LifeMonitorReport } from './life-monitor.js';
@@ -53,6 +54,7 @@ export interface BriefingResult {
   success: boolean;
   notionPageId?: string;
   smsSent?: boolean;
+  audioSent?: boolean;
   error?: string;
 }
 
@@ -139,13 +141,21 @@ export class BriefingGenerator {
   private eventBus: EventBus | null = null;
   private notion: NotionInbox | null = null;
   private changelogGenerator: ChangelogGenerator | null = null;
+  private speechGenerator: SpeechGenerator | null = null;
   private timezone = 'America/Indiana/Indianapolis';
 
-  constructor(notificationManager: NotificationManager, eventBus?: EventBus) {
+  constructor(
+    notificationManager: NotificationManager,
+    eventBus?: EventBus,
+    speechGenerator?: SpeechGenerator,
+  ) {
     this.notificationManager = notificationManager;
     if (eventBus) {
       this.eventBus = eventBus;
       this.changelogGenerator = new ChangelogGenerator(eventBus, process.cwd());
+    }
+    if (speechGenerator) {
+      this.speechGenerator = speechGenerator;
     }
   }
 
@@ -221,6 +231,20 @@ export class BriefingGenerator {
       telegramHtml,
     });
 
+    // Generate and send voice audio if ElevenLabs is configured
+    let audioSent = false;
+    if (this.speechGenerator) {
+      try {
+        const speechResult = await this.speechGenerator.speak({
+          text: smsMessage,
+          requestedBy: 'briefings',
+        });
+        audioSent = await this.notificationManager.sendVoice(speechResult.audioBuffer);
+      } catch {
+        // Voice is optional — text briefing already delivered successfully
+      }
+    }
+
     await dailyAudit.logActivity(
       'system_event',
       'Morning Briefing',
@@ -233,6 +257,7 @@ export class BriefingGenerator {
           hasIntelligence: !!(context?.digest),
           hasLifeMonitor: !!(context?.lifeMonitorReport),
           hasCareerMatches: !!(context?.careerMatches?.length),
+          audioSent,
         },
       }
     );
@@ -246,6 +271,7 @@ export class BriefingGenerator {
       success: true,
       notionPageId,
       smsSent: smsResult.sent,
+      audioSent,
     };
   }
 
