@@ -995,7 +995,16 @@ export class Scheduler {
 
       // Calculate from last run if available, otherwise from now
       const from = task.lastRun ? new Date(task.lastRun) : now;
-      task.nextRun = parseCronExpression(task.cron, from) ?? undefined;
+      let nextRun = parseCronExpression(task.cron, from) ?? undefined;
+
+      // If the calculated nextRun is already in the past (e.g. daemon restarted
+      // after a scheduled task's window passed), recalculate from now so the
+      // task doesn't fire immediately on startup at the wrong time of day.
+      if (nextRun && nextRun <= now) {
+        nextRun = parseCronExpression(task.cron, now) ?? undefined;
+      }
+
+      task.nextRun = nextRun;
     }
   }
 
