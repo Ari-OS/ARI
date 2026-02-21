@@ -1554,9 +1554,18 @@ export class AutonomousAgent {
         // Only notify on critical alerts (flash crashes, extreme anomalies)
         for (const alert of criticalAlerts) {
           const pct = alert.data.changePercent;
+          const price = alert.data.currentPrice;
+          const priceStr = price >= 1000
+            ? `$${price.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+            : `$${price.toFixed(price < 1 ? 4 : 2)}`;
+          // Strip asset name from message body — it's already in the title
+          const bodyMsg = alert.message.replace(
+            new RegExp(`^${alert.asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').toUpperCase()}\\s+`, 'i'),
+            '',
+          );
           await notificationManager.finance(
-            `ALERT: ${alert.asset.toUpperCase()}`,
-            `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% — ${alert.message}`,
+            `${alert.asset.toUpperCase()} Market Alert`,
+            `${priceStr} · ${pct > 0 ? '+' : ''}${pct.toFixed(1)}% · ${bodyMsg}`,
             true // always urgent for critical
           );
         }

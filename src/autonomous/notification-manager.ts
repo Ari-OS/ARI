@@ -680,10 +680,21 @@ export class NotificationManager {
       sent += otherItems.length;
     }
 
-    // Send morning summary via Telegram
+    // Send morning summary via Telegram — show actual content, not just counts
     if (toProcess.length > 0 && this.telegram?.isReady()) {
-      const summary = `▫ <b>Morning Summary</b>\n${toProcess.length} items (${p1Items.length} important). Check Notion for details.`;
-      await this.telegram.send(summary, { forceDelivery: false });
+      const summaryLines = ['▫ <b>Morning Queue</b>'];
+      for (const item of p1Items.slice(0, 3)) {
+        const icon = this.getCategoryIcon(item.entry.category as NotificationCategory);
+        const snippet = item.entry.body.length > 120
+          ? `${item.entry.body.slice(0, 117)}…`
+          : item.entry.body;
+        summaryLines.push(`${icon} <b>${this.escapeHtml(item.entry.title)}</b>`);
+        summaryLines.push(`  ${this.escapeHtml(snippet)}`);
+      }
+      if (otherItems.length > 0) {
+        summaryLines.push(`<i>+ ${otherItems.length} more logged to Notion</i>`);
+      }
+      await this.telegram.send(summaryLines.join('\n'), { forceDelivery: false });
     }
 
     // Remove processed items
@@ -1020,12 +1031,19 @@ export class NotificationManager {
     const successRate = audit.tasksCompleted + audit.tasksFailed > 0
       ? Math.round((audit.tasksCompleted / (audit.tasksCompleted + audit.tasksFailed)) * 100)
       : 100;
-    lines.push(`✓ ${audit.tasksCompleted}  ✗ ${audit.tasksFailed}  ◈ $${audit.estimatedCost.toFixed(2)}  ${successRate}%`);
+    const costStr = audit.estimatedCost < 0.001
+      ? '<$0.01'
+      : `$${audit.estimatedCost.toFixed(2)}`;
+    lines.push(`✓ ${audit.tasksCompleted}  ✗ ${audit.tasksFailed}  ◈ ${costStr}  ${successRate}%`);
 
-    // Trend indicator
+    // Trend indicator — only show efficiency when there's real cost data
     const trend = audit.efficiency.trend === 'improving' ? '↑' :
                   audit.efficiency.trend === 'declining' ? '↓' : '→';
-    lines.push(`Efficiency ${trend} ${audit.efficiency.tasksPerApiDollar.toFixed(1)} tasks/$`);
+    if (audit.estimatedCost >= 0.001 && audit.efficiency.tasksPerApiDollar > 0) {
+      lines.push(`Efficiency ${trend} ${audit.efficiency.tasksPerApiDollar.toFixed(1)} tasks/$`);
+    } else if (audit.tasksCompleted > 0) {
+      lines.push(`${audit.tasksCompleted} task${audit.tasksCompleted !== 1 ? 's' : ''} completed today`);
+    }
 
     // Highlights
     if (audit.highlights.length > 0) {
