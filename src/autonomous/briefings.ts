@@ -603,12 +603,12 @@ export class BriefingGenerator {
     if (context?.weather) {
       const w = context.weather;
       lines.push(`<b>🌤 Weather — ${this.esc(w.location)}</b>`);
-      lines.push(`▸ ${w.tempF}°F (feels like ${w.feelsLikeF}°F) · ${this.esc(w.condition)}`);
+      lines.push(`<blockquote>${w.tempF}°F (feels like ${w.feelsLikeF}°F) · ${this.esc(w.condition)}`);
       if (w.forecast && w.forecast.length > 0) {
         const today = w.forecast[0];
-        lines.push(`▸ High ${today.maxTempF}°F / Low ${today.minTempF}°F${today.chanceOfRain > 20 ? ` · ${today.chanceOfRain}% rain` : ''}`);
+        lines.push(`High ${today.maxTempF}°F / Low ${today.minTempF}°F${today.chanceOfRain > 20 ? ` · ${today.chanceOfRain}% rain` : ''}`);
       }
-      lines.push('');
+      lines.push(`</blockquote>\n`);
     }
 
     // ── Today's Schedule ──
@@ -618,8 +618,9 @@ export class BriefingGenerator {
         .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
       const allDay = sorted.filter(e => e.isAllDay);
       const timed = sorted.filter(e => !e.isAllDay);
+      lines.push('<blockquote>');
       for (const evt of allDay.slice(0, 2)) {
-        lines.push(`▸ All day: ${this.esc(evt.title)}`);
+        lines.push(`<b>All day:</b> ${this.esc(evt.title)}`);
       }
       for (const evt of timed.slice(0, 5)) {
         const time = evt.startDate.toLocaleTimeString('en-US', {
@@ -628,12 +629,12 @@ export class BriefingGenerator {
           timeZone: this.timezone,
         });
         const loc = evt.location ? ` @ ${this.esc(evt.location)}` : '';
-        lines.push(`▸ ${time} — ${this.esc(evt.title)}${loc}`);
+        lines.push(`<b>${time}</b> — ${this.esc(evt.title)}${loc}`);
       }
       if (context.calendarEvents.length > 7) {
-        lines.push(`  <i>+ ${context.calendarEvents.length - 7} more events</i>`);
+        lines.push(`<i>+ ${context.calendarEvents.length - 7} more events</i>`);
       }
-      lines.push('');
+      lines.push(`</blockquote>\n`);
     }
 
     // ── Pending Reminders ──
@@ -648,67 +649,70 @@ export class BriefingGenerator {
 
       if (overdue.length > 0 || dueToday.length > 0) {
         lines.push('<b>📝 Reminders</b>');
+        lines.push('<blockquote>');
         for (const r of overdue.slice(0, 3)) {
-          lines.push(`▸ ⚠ OVERDUE: ${this.esc(r.name)}`);
+          lines.push(`🔴 <b>OVERDUE:</b> ${this.esc(r.name)}`);
         }
         for (const r of dueToday.slice(0, 3)) {
-          lines.push(`▸ Due today: ${this.esc(r.name)}`);
+          lines.push(`⏱ <b>Due today:</b> ${this.esc(r.name)}`);
         }
-        lines.push('');
+        lines.push(`</blockquote>\n`);
       }
     }
 
     // ── Intelligence Highlights ──
     if (context?.digest && context.digest.sections.length > 0) {
       lines.push('<b>📰 Today\'s Intel</b>');
+      lines.push('<blockquote>');
       const topItems = context.digest.sections
         .flatMap(s => s.items)
         .slice(0, 4);
       for (const item of topItems) {
         const headline = this.esc(item.headline.slice(0, 100));
         if (item.url) {
-          lines.push(`▸ <a href="${item.url}">${headline}</a>`);
+          lines.push(`• <a href="${item.url}">${headline}</a>`);
         } else {
-          lines.push(`▸ ${headline}`);
+          lines.push(`• ${headline}`);
         }
       }
       if (context.digest.stats.itemsIncluded > 4) {
-        lines.push(`  <i>${context.digest.stats.itemsIncluded - 4} more in full digest</i>`);
+        lines.push(`<i>+ ${context.digest.stats.itemsIncluded - 4} more in full digest</i>`);
       }
-      lines.push('');
+      lines.push(`</blockquote>\n`);
     }
 
     // ── Tech News (HN + RSS) ──
     if (context?.techNews && context.techNews.length > 0) {
       lines.push('<b>🔗 Tech Headlines</b>');
+      lines.push('<blockquote>');
       for (const item of context.techNews.slice(0, 5)) {
         const title = this.esc(item.title.slice(0, 100));
-        const score = item.score ? ` (${item.score}pts)` : '';
+        const score = item.score ? ` <i>(${item.score}pts)</i>` : '';
         if (item.url) {
-          lines.push(`▸ <a href="${item.url}">${title}</a>${score}`);
+          lines.push(`• <a href="${item.url}">${title}</a>${score}`);
         } else {
-          lines.push(`▸ ${title}${score}`);
+          lines.push(`• ${title}${score}`);
         }
       }
-      lines.push('');
+      lines.push(`</blockquote>\n`);
     }
 
     // ── ARI's Take (from digest) ──
     if (context?.digest?.ariTake && context.digest.ariTake.length > 0) {
       lines.push('<b>💡 ARI\'s Take</b>');
+      lines.push('<blockquote>');
       for (const take of context.digest.ariTake.slice(0, 2)) {
-        lines.push(`▸ ${this.esc(take.slice(0, 150))}`);
+        lines.push(`🧠 ${this.esc(take.slice(0, 150))}`);
       }
-      lines.push('');
+      lines.push(`</blockquote>\n`);
     }
 
     // ── Life Monitor Alerts ──
     if (context?.lifeMonitorReport && context.lifeMonitorReport.alerts.length > 0) {
       const report = context.lifeMonitorReport;
-      const alertIcon = report.criticalCount > 0 ? '🔴' : report.urgentCount > 0 ? '⚠' : 'ℹ';
+      const alertIcon = report.criticalCount > 0 ? '🔴' : report.urgentCount > 0 ? '🟠' : '🟡';
       lines.push(`<b>${alertIcon} Action Items</b>`);
-      lines.push(this.esc(report.summary.slice(0, 200)));
-      lines.push('');
+      lines.push(`<blockquote>${this.esc(report.summary.slice(0, 200))}</blockquote>\n`);
     }
 
     // ── Portfolio Snapshot ──
@@ -718,26 +722,28 @@ export class BriefingGenerator {
       const sign = p.dailyChangePercent >= 0 ? '+' : '';
       const arrow = p.dailyChangePercent >= 0 ? '↑' : '↓';
       lines.push(`<b>${dir} Portfolio</b>`);
-      lines.push(`▸ $${p.totalValue.toLocaleString()} ${arrow} ${sign}${p.dailyChangePercent.toFixed(1)}% today`);
+      lines.push('<blockquote>');
+      lines.push(`<b>$${p.totalValue.toLocaleString()}</b> ${arrow} ${sign}${p.dailyChangePercent.toFixed(1)}% today`);
       if (p.topGainers.length > 0) {
         const top = p.topGainers[0];
-        lines.push(`▸ Best: ${this.esc(top.asset)} ↑ +${top.changePercent.toFixed(1)}%`);
+        lines.push(`🚀 <b>Top:</b> ${this.esc(top.asset)} ↑ +${top.changePercent.toFixed(1)}%`);
       }
       if (p.topLosers.length > 0) {
         const worst = p.topLosers[0];
-        lines.push(`▸ Dip:  ${this.esc(worst.asset)} ↓ ${worst.changePercent.toFixed(1)}%`);
+        lines.push(`🩸 <b>Dip:</b> ${this.esc(worst.asset)} ↓ ${worst.changePercent.toFixed(1)}%`);
       }
-      lines.push('');
+      lines.push(`</blockquote>\n`);
     }
 
     // ── Market Alerts ──
     if (context?.marketAlerts && context.marketAlerts.length > 0) {
       lines.push('<b>🔔 Market Alerts</b>');
+      lines.push('<blockquote>');
       for (const alert of context.marketAlerts.slice(0, 3)) {
-        const icon = alert.severity === 'critical' ? '🚨' : '▸';
-        lines.push(`${icon} ${this.esc(alert.asset)}: ${this.esc(alert.change)}`);
+        const icon = alert.severity === 'critical' ? '🔴' : '🟡';
+        lines.push(`${icon} <b>${this.esc(alert.asset)}:</b> ${this.esc(alert.change)}`);
       }
-      lines.push('');
+      lines.push(`</blockquote>\n`);
     }
 
     // ── Crypto Global (BTC/ETH Dominance + Sentiment) ──
@@ -797,21 +803,23 @@ export class BriefingGenerator {
     // ── Career Matches ──
     if (context?.careerMatches && context.careerMatches.length > 0) {
       lines.push('<b>💼 Career Matches</b>');
+      lines.push('<blockquote>');
       for (const match of context.careerMatches.slice(0, 3)) {
-        const remote = match.remote ? ' (remote)' : '';
-        lines.push(`▸ ${this.esc(match.title)} at ${this.esc(match.company)} — ${match.matchScore}%${this.esc(remote)}`);
+        const remote = match.remote ? ' <i>(remote)</i>' : '';
+        lines.push(`🎯 <b>${this.esc(match.title)}</b> at ${this.esc(match.company)} — ${match.matchScore}%${remote}`);
       }
-      lines.push('');
+      lines.push(`</blockquote>\n`);
     }
 
     // ── Issues needing attention ──
     const issues = this.extractIssues(auditData);
     if (issues.length > 0) {
       lines.push('<b>⚠ Needs Attention</b>');
+      lines.push('<blockquote>');
       for (const issue of issues.slice(0, 3)) {
-        lines.push(`▸ ${this.esc(issue)}`);
+        lines.push(`• ${this.esc(issue)}`);
       }
-      lines.push('');
+      lines.push(`</blockquote>\n`);
     }
 
     // ── Governance Activity ──
@@ -823,52 +831,53 @@ export class BriefingGenerator {
 
       if (hasActivity) {
         lines.push('<b>⚖️ Governance</b>');
+        lines.push('<blockquote>');
 
         // Council vote summary
         if (totalVotes > 0) {
           const parts: string[] = [];
-          if (passed > 0) parts.push(`${passed} passed`);
-          if (failed > 0) parts.push(`${failed} failed`);
-          if (vetoed > 0) parts.push(`${vetoed} vetoed`);
-          lines.push(`▸ Council: ${totalVotes} vote${totalVotes !== 1 ? 's' : ''} (${parts.join(', ')})`);
+          if (passed > 0) parts.push(`✅ ${passed} passed`);
+          if (failed > 0) parts.push(`❌ ${failed} failed`);
+          if (vetoed > 0) parts.push(`🛑 ${vetoed} vetoed`);
+          lines.push(`<b>Council:</b> ${totalVotes} vote${totalVotes !== 1 ? 's' : ''} (${parts.join(', ')})`);
         }
 
         // Veto details
         for (const veto of gov.council.vetoes.slice(0, 2)) {
-          lines.push(`▸ Veto: ${this.esc(veto.vetoer)} blocked ${this.esc(veto.domain)} — ${this.esc(veto.reason.slice(0, 80))}`);
+          lines.push(`🛑 <b>Veto:</b> ${this.esc(veto.vetoer)} blocked ${this.esc(veto.domain)} — <i>${this.esc(veto.reason.slice(0, 80))}</i>`);
         }
 
         // Open votes needing attention
         const urgentVotes = gov.council.openVotes.filter(v => v.deadlineMs < 24 * 60 * 60 * 1000);
         if (urgentVotes.length > 0) {
-          lines.push(`▸ ⏰ ${urgentVotes.length} open vote${urgentVotes.length !== 1 ? 's' : ''} (deadline &lt; 24h)`);
+          lines.push(`⏰ <b>${urgentVotes.length} open vote${urgentVotes.length !== 1 ? 's' : ''}</b> (deadline &lt; 24h)`);
         }
 
         // Arbiter compliance
         if (gov.arbiter.evaluations > 0) {
           const rate = Math.round(gov.arbiter.complianceRate);
           if (gov.arbiter.violations > 0) {
-            lines.push(`▸ Arbiter: ${gov.arbiter.violations} violation${gov.arbiter.violations !== 1 ? 's' : ''} (${rate}% compliant)`);
+            lines.push(`<b>Arbiter:</b> ${gov.arbiter.violations} violation${gov.arbiter.violations !== 1 ? 's' : ''} (${rate}% compliant)`);
           } else {
-            lines.push(`▸ Arbiter: ${gov.arbiter.evaluations} eval${gov.arbiter.evaluations !== 1 ? 's' : ''}, ${rate}% compliant`);
+            lines.push(`<b>Arbiter:</b> ${gov.arbiter.evaluations} eval${gov.arbiter.evaluations !== 1 ? 's' : ''}, ${rate}% compliant`);
           }
         }
 
         // Quality gates
         if (gov.overseer.gatesChecked > 0) {
           if (gov.overseer.gatesFailed > 0) {
-            lines.push(`▸ 🔴 ${gov.overseer.gatesFailed} quality gate${gov.overseer.gatesFailed !== 1 ? 's' : ''} failing`);
+            lines.push(`🔴 <b>${gov.overseer.gatesFailed} quality gate${gov.overseer.gatesFailed !== 1 ? 's' : ''} failing</b>`);
           } else {
-            lines.push(`▸ Gates: ${gov.overseer.gatesPassed}/${gov.overseer.gatesChecked} passing`);
+            lines.push(`<b>Gates:</b> ${gov.overseer.gatesPassed}/${gov.overseer.gatesChecked} passing`);
           }
         }
 
         // Pipeline throughput
         if (gov.pipeline.totalEvents > 10) {
-          lines.push(`▸ Pipeline: ${gov.pipeline.totalEvents} governance events`);
+          lines.push(`<b>Pipeline:</b> ${gov.pipeline.totalEvents} governance events`);
         }
 
-        lines.push('');
+        lines.push(`</blockquote>\n`);
       }
     }
 

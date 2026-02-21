@@ -53,7 +53,7 @@ describe('/market command', () => {
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     const reply = (ctx.reply as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-    expect(reply).toContain('Crypto Prices');
+    expect(reply).toContain('Market Overview');
   });
 
   it('should show stocks placeholder', async () => {

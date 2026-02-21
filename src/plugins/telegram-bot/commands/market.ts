@@ -51,18 +51,19 @@ async function handleCryptoPrices(
   const coinIds = plugin.getConfig().defaultCoins || ['bitcoin', 'ethereum', 'solana'];
   const prices = await plugin.getClient().getPrice(coinIds);
 
-  const lines: string[] = ['<b>Crypto Prices</b>', ''];
+  const lines: string[] = ['<b>📈 Market Overview</b>', '<blockquote>'];
 
   for (const id of coinIds) {
     const data = prices[id];
     if (data) {
       const price = data.usd.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
       const change = data.usd_24h_change ?? 0;
-      const trend = change > 0 ? '📈' : change < 0 ? '📉' : '➡️';
+      const trend = change > 0 ? '🟢' : change < 0 ? '🔴' : '⚪';
       const changeStr = change > 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
       lines.push(`${trend} <b>${id.toUpperCase()}</b>: ${price} <i>(${changeStr})</i>`);
     }
   }
+  lines.push('</blockquote>');
 
   await ctx.reply(lines.join('\n'), { parse_mode: 'HTML' });
 }

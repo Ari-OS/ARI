@@ -243,19 +243,32 @@ describe('AnomalyDetector', () => {
     });
 
     it('should filter out old anomalies', () => {
-      // Build baseline and trigger anomaly
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-21T12:00:00Z'));
+
+      // Build baseline and trigger anomaly 1 (old)
       for (let i = 0; i < 50; i++) {
         detector.record('old', 10);
       }
       detector.record('old', 10000);
 
-      // Anomaly was just created, so 0 hours window (cutoff = now) includes it
-      // Using getRecentAnomalies(0) should include anomalies at the current instant
-      const anomalies = detector.getRecentAnomalies(0);
+      // Advance time by 2 hours
+      vi.advanceTimersByTime(2 * 60 * 60 * 1000);
+
+      // Build baseline and trigger anomaly 2 (new)
+      for (let i = 0; i < 50; i++) {
+        detector.record('new', 10);
+      }
+      detector.record('new', 10000);
+
+      // Using getRecentAnomalies(1) should include only the new anomaly
+      const anomalies = detector.getRecentAnomalies(1);
       expect(anomalies.length).toBe(1);
 
       // Verify the anomaly is from the expected metric
-      expect(anomalies[0].metric).toBe('old');
+      expect(anomalies[0].metric).toBe('new');
+
+      vi.useRealTimers();
     });
 
     it('should include severity in anomaly events', () => {

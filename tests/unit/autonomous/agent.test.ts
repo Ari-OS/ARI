@@ -450,7 +450,10 @@ describe('AutonomousAgent', () => {
 
       const errorsBefore = agent.getStatus().errors;
 
-      await vi.advanceTimersByTimeAsync(100);
+      // Allow event loop to process async rejection
+      await new Promise(resolve => process.nextTick(resolve));
+      await vi.advanceTimersByTimeAsync(1000);
+      await new Promise(resolve => process.nextTick(resolve));
 
       // Error count should increment when poll fails
       const errorsAfter = agent.getStatus().errors;

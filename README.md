@@ -225,51 +225,41 @@ flowchart TD
 
 ---
 
-## Message Flow
+## Message Flow & Intent Routing
 
-How a message flows through ARI's pipeline:
+How a message flows through ARI's pipeline, including the Natural Language Understanding (NLU) conversational routing:
 
 ```mermaid
 sequenceDiagram
-    participant U as User
-    participant G as Gateway<br/>(127.0.0.1:3141)
+    participant U as User (Telegram/CLI)
+    participant G as Gateway (127.0.0.1)
     participant S as Sanitizer
-    participant R as Router
-    participant Guard as Guardian
-    participant Plan as Planner
-    participant Exec as Executor
+    participant Router as IntentRouter
+    participant NLU as NLUService
+    participant Exec as Executor (Tools)
     participant A as Audit
-    participant EB as EventBus
 
-    U->>G: POST /message
-    G->>S: Sanitize input
-    S->>S: Check 42 patterns
-    alt Malicious
-        S-->>G: BLOCK
-        G-->>U: 400 Bad Request
-    else Clean
-        S->>A: Log sanitize event
-        S->>R: Route message
-        R->>Guard: Assess threat
-        Guard->>Guard: Calculate risk score
-        alt High Risk (≥ 0.8)
-            Guard-->>R: BLOCK
-            R-->>G: BLOCK
-            G-->>U: 403 Forbidden
-        else Safe
-            Guard->>A: Log assessment
-            Guard->>Plan: Decompose task
-            Plan->>Plan: Build task DAG
-            Plan->>A: Log plan
-            Plan->>Exec: Execute tasks
-            Exec->>Exec: Check permissions
-            Exec->>A: Log execution
-            Exec->>EB: Emit events
-            EB->>R: Broadcast result
-            R->>G: Response
-            G->>U: 200 OK
+    U->>G: Send natural language message
+    G->>S: Sanitize (42 patterns)
+    S-->>G: Clean
+    G->>Router: route(message, context)
+    
+    alt Fast Path (Regex)
+        Router->>Router: Match /crypto, /briefing
+        Router->>Exec: executeTool()
+    else Conversational Path
+        Router->>NLU: analyze(message)
+        NLU->>NLU: Orchestrator prompt
+        NLU-->>Router: JSON {intent, confidence, entities}
+        alt Confidence ≥ 0.65
+            Router->>Exec: executeTool(intent)
+        else Ambiguous
+            Router->>U: Ask clarifying question
         end
     end
+    
+    Exec->>A: Log execution (SHA-256)
+    Exec-->>U: Formatted Rich Response (HTML/Widgets)
 ```
 
 **Key Points:**

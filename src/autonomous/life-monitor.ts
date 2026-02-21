@@ -720,10 +720,10 @@ export class LifeMonitor {
     lines.push('');
 
     const severityIcon: Record<AlertSeverity, string> = {
-      critical: '◉',
-      urgent: '◈',
-      warning: '◇',
-      info: '·',
+      critical: '🔴',
+      urgent: '🟠',
+      warning: '🟡',
+      info: '🔵',
     };
 
     // Group by severity
@@ -731,19 +731,18 @@ export class LifeMonitor {
       const group = alerts.filter((a) => a.severity === severity);
       if (group.length === 0) continue;
 
-      lines.push(`━━━ <b>${severity.toUpperCase()}</b> ━━━`);
+      lines.push(`<b>${severity.toUpperCase()} ALERTS</b>`);
 
       for (const alert of group) {
-        lines.push(`${severityIcon[severity]} <b>${this.escapeHtml(alert.title)}</b>`);
-        lines.push(`   ${this.escapeHtml(alert.actionRequired)}`);
+        lines.push(`<blockquote>${severityIcon[severity]} <b>${this.escapeHtml(alert.title)}</b>\n${this.escapeHtml(alert.actionRequired)}</blockquote>`);
         if (alert.deadline) {
           const deadline = new Date(alert.deadline);
           const now = new Date();
           const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / 86400000);
           if (daysLeft <= 1) {
-            lines.push('   <i>Due TODAY</i>');
+            lines.push('<i>Due TODAY</i>');
           } else if (daysLeft <= 3) {
-            lines.push(`   <i>Due in ${daysLeft} days</i>`);
+            lines.push(`<i>Due in ${daysLeft} days</i>`);
           }
         }
       }
