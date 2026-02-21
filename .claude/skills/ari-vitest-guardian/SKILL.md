@@ -13,6 +13,7 @@ triggers:
 ## Purpose
 
 Ensure ARI maintains its testing requirements:
+
 - 80%+ overall code coverage
 - 100% coverage on security paths (kernel/sanitizer, agents/guardian, governance/arbiter)
 - All new features include tests
@@ -52,6 +53,7 @@ npm run test:coverage # Coverage report
 ### When Writing New Tests
 
 Follow ARI's test structure:
+
 ```typescript
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Component } from '../../src/layer/component.js';

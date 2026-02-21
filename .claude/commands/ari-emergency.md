@@ -10,10 +10,13 @@ Trigger emergency response procedures for critical ARI issues.
 ## Emergency Types
 
 ### Type 1: Security Breach
+
 ```
 /ari-emergency security
 ```
+
 Actions:
+
 1. Stop all external communications
 2. Verify audit chain integrity
 3. Scan for injection patterns
@@ -21,10 +24,13 @@ Actions:
 5. Generate incident report
 
 ### Type 2: Data Corruption
+
 ```
 /ari-emergency data
 ```
+
 Actions:
+
 1. Stop write operations
 2. Verify hash chains
 3. Identify corruption scope
@@ -32,10 +38,13 @@ Actions:
 5. Validate restored data
 
 ### Type 3: System Failure
+
 ```
 /ari-emergency system
 ```
+
 Actions:
+
 1. Capture system state
 2. Stop non-essential services
 3. Run diagnostics
@@ -43,10 +52,13 @@ Actions:
 5. Escalate if needed
 
 ### Type 4: Performance Crisis
+
 ```
 /ari-emergency performance
 ```
+
 Actions:
+
 1. Identify resource hogs
 2. Enable emergency throttling
 3. Clear non-essential caches
@@ -88,6 +100,7 @@ Actions:
 ## Rollback Procedures
 
 ### Code Rollback
+
 ```bash
 # Stop services
 npx ari daemon stop
@@ -105,6 +118,7 @@ curl http://127.0.0.1:3141/health
 ```
 
 ### Data Rollback
+
 ```bash
 # Stop services
 npx ari daemon stop
@@ -122,6 +136,7 @@ npx ari daemon start
 ## Post-Incident
 
 After every emergency:
+
 1. Create incident report
 2. Update runbooks
 3. Add to gotchas/memory

@@ -30,6 +30,7 @@ Generate comprehensive Vitest tests for ARI components following ARI's testing c
 ## Test Patterns
 
 ### Unit Test Template
+
 ```typescript
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -68,6 +69,7 @@ describe('ComponentName', () => {
 ```
 
 ### Security Test Template
+
 ```typescript
 describe('Security: InjectionPattern', () => {
   const PAYLOADS = [

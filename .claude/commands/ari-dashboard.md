@@ -64,7 +64,9 @@ Display comprehensive ARI system status and metrics.
 ## Dashboard Sections
 
 ### 1. System Status
+
 Core component health:
+
 - Gateway: API server status
 - Daemon: Background service
 - Audit: Chain integrity
@@ -72,25 +74,33 @@ Core component health:
 - Council: Governance status
 
 ### 2. Agents
+
 Agent operational status:
+
 - Current activity
 - Task queue
 - Success rates
 
 ### 3. Security
+
 Security posture:
+
 - Threat activity
 - Audit integrity
 - Trust distribution
 
 ### 4. Performance
+
 Resource utilization:
+
 - Latency metrics
 - Throughput
 - Resource usage
 
 ### 5. Recent Activity
+
 Latest events:
+
 - Task completions
 - Memory operations
 - Audit events

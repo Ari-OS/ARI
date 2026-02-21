@@ -1,6 +1,7 @@
 # ARI Plugin Security Gate
 
 ## Purpose
+
 Prevent installation of unverified or potentially malicious plugins.
 
 ## Trusted Sources (Allowlist)
@@ -22,6 +23,7 @@ VERIFIED_COMMUNITY (require manual review):
 ## Blocked Patterns
 
 Reject any plugin that:
+
 - Has no LICENSE file
 - Has no author information
 - Contains obfuscated code
@@ -67,6 +69,7 @@ exit 0
 ## ARI-Specific Requirements
 
 Plugins for ARI must also:
+
 1. Not violate ARI's 5 core invariants
 2. Not bypass the kernel security layer
 3. Not modify audit logs

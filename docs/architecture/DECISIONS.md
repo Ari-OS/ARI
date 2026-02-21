@@ -15,6 +15,7 @@ All ADRs in this document are **LOCKED** as of Phase 2 completion. These decisio
 **Context**
 
 Multi-agent systems can be architected in two primary ways:
+
 1. Microservices: Each agent runs as a separate process/container
 2. In-process: All agents run within a single Node.js process
 
@@ -25,6 +26,7 @@ ARI must balance operational simplicity, latency, and isolation requirements. Th
 All agents run within the same Node.js process. There are no microservices, no inter-process communication, and no container orchestration.
 
 Communication between agents occurs through:
+
 - EventBus (publish-subscribe pattern)
 - Direct function calls within layer boundaries
 - Shared memory state (memory-manager)
@@ -32,6 +34,7 @@ Communication between agents occurs through:
 **Consequences**
 
 Positive:
+
 - Zero network overhead between agents
 - Simplified deployment (single process, no orchestration)
 - Easier debugging (single call stack, unified logs)
@@ -39,12 +42,14 @@ Positive:
 - Lower resource usage (one Node.js runtime, not 10+)
 
 Negative:
+
 - No process-level isolation (one agent crash can affect others)
 - Cannot scale agents independently (all scale together)
 - Harder to enforce resource limits per agent
 - Shared memory state requires careful synchronization
 
 Mitigations:
+
 - EventBus provides error isolation (one handler failure doesn't break others)
 - Memory capacity limits prevent runaway memory growth
 - Executor concurrency limit prevents thread exhaustion
@@ -84,12 +89,14 @@ Traditional UNIX permissions use 3 levels (read, write, execute). Cloud IAM syst
 **Decision**
 
 Implement 4 permission tiers (effectively 3 operational + 1 admin):
+
 1. **READ_ONLY**: Read files, inspect configuration, query memory
 2. **WRITE_SAFE**: Write files (non-destructive), update memory, create contexts
 3. **WRITE_DESTRUCTIVE**: Delete files, drop memory partitions, modify audit (append)
 4. **ADMIN**: Modify configuration, change trust levels, override governance
 
 Permission checks occur in executor.ts with 3-layer validation:
+
 1. Agent allowlist (is agent authorized for this tool?)
 2. Trust level (does source meet minimum trust threshold?)
 3. Permission tier (does operation match context permission level?)
@@ -99,6 +106,7 @@ Destructive operations (tiers 3-4) ALWAYS require explicit approval, regardless 
 **Consequences**
 
 Positive:
+
 - Simple mental model (safe vs. destructive vs. admin)
 - Easy to reason about (clear escalation path)
 - Prevents permission fatigue (not 100+ permissions to configure)
@@ -106,12 +114,14 @@ Positive:
 - Aligns with user intent (most operations are safe writes)
 
 Negative:
+
 - Cannot differentiate within tiers (all deletes treated equally)
 - No path-based permissions (cannot restrict to specific directories)
 - No operation-specific controls (cannot allow delete but not modify)
 - Coarse approval workflow (all destructive ops require approval)
 
 Mitigations:
+
 - Arbiter enforces constitutional rules (finer-grained constraints)
 - Approval workflow allows human review of destructive ops
 - Audit log provides full provenance trail
@@ -152,6 +162,7 @@ Mitigations:
 ARI manages multiple contexts: life domains (health, finance, family) and business ventures (user ventures, future ventures). Each context has distinct privacy, security, and operational requirements.
 
 Context isolation prevents:
+
 - Venture data leaking into personal life contexts
 - Cross-venture data contamination
 - Unauthorized context switching
@@ -160,17 +171,20 @@ Context isolation prevents:
 **Decision**
 
 Implement strict namespace-based context isolation with 3 partitions:
+
 1. **PUBLIC**: Shared across all contexts (general knowledge, public facts)
 2. **INTERNAL**: Venture-specific or life-domain-specific (projects, tasks)
 3. **SENSITIVE**: Highly restricted (credentials, financial data, personal health)
 
 Isolation mechanisms:
+
 - Storage isolation: ~/.ari/contexts/{context_id}.json (separate files)
 - Memory isolation: Partition field on MemoryEntry, agent-based access control
 - Active context: Only one context active at a time (~/.ari/contexts/active.json)
 - Router enforcement: Context triggers prevent accidental switching
 
 Context switching requires:
+
 - Explicit user command (`ari context select {context_id}`)
 - Or explicit mention trigger (for ventures)
 - Audit log entry (system:context_switch)
@@ -178,6 +192,7 @@ Context switching requires:
 **Consequences**
 
 Positive:
+
 - Strong privacy boundaries (venture A cannot read venture B data)
 - Prevents accidental data leakage (no ambient context access)
 - Clear audit trail (all context switches logged)
@@ -185,12 +200,14 @@ Positive:
 - Partition-based memory access (granular control)
 
 Negative:
+
 - Cannot share data across contexts without explicit transfer
 - Single active context (cannot work on multiple ventures simultaneously)
 - Context switching overhead (explicit command required)
 - Manual transfer needed for cross-context operations
 
 Mitigations:
+
 - PUBLIC partition allows controlled sharing
 - Explicit transfer commands for cross-context data movement (Phase 3)
 - Context routing intelligence reduces manual switching
@@ -231,11 +248,13 @@ Mitigations:
 The council has 13 voting agents. Votes can have different thresholds (MAJORITY, SUPERMAJORITY, UNANIMOUS). Quorum determines the minimum participation required for a valid vote.
 
 Quorum prevents:
+
 - Small minorities making unilateral decisions
 - Decisions made without sufficient agent input
 - Gaming the system by timing votes when agents are unavailable
 
 Common quorum models:
+
 - Simple majority (>50% of voters)
 - 2/3 supermajority (66%+ of voters)
 - All members (100% participation)
@@ -245,6 +264,7 @@ Common quorum models:
 Require 50% quorum for all votes: At least 8 of 15 agents must participate for a vote to be valid.
 
 Quorum applies before threshold calculation:
+
 1. Check quorum: votedCount >= 7
 2. If quorum met, check threshold: approve count vs. threshold requirement
 3. If quorum not met, vote expires as FAILED
@@ -254,6 +274,7 @@ Quorum applies to all vote types (MAJORITY, SUPERMAJORITY, UNANIMOUS).
 **Consequences**
 
 Positive:
+
 - Ensures meaningful participation (simple majority)
 - Prevents minority rule (7 agents is majority of 13)
 - Consistent rule across all vote types (no special cases)
@@ -261,12 +282,14 @@ Positive:
 - Easy to understand (50% rounds to 8 of 15)
 
 Negative:
+
 - Votes can fail due to apathy (agents don't participate)
 - 7-agent participation might not be enough for critical decisions
 - No distinction between vote types (UNANIMOUS has same quorum as MAJORITY)
 - Abstentions count toward quorum but not toward threshold
 
 Mitigations:
+
 - 1-hour deadline encourages timely participation
 - EventBus notifications alert all agents to votes
 - Early conclusion logic speeds up decisive votes
@@ -312,6 +335,7 @@ Mitigations:
 Complex systems need emergency stop mechanisms. ARI agents can make autonomous decisions, but there must be a way to halt operations immediately if something goes wrong.
 
 Inspired by:
+
 - Manufacturing: Andon cord (any worker can stop the line)
 - Aviation: Dual control (pilot + copilot both have override)
 - Nuclear: Two-key launch control (dual authorization)
@@ -321,12 +345,14 @@ ARI needs a balance between autonomy and safety.
 **Decision**
 
 Grant dual stop-the-line authority to:
+
 1. **Operator** (human user): Can halt all operations via CLI command
 2. **Guardian** (threat detection agent): Can halt operations on risk >= 0.8
 
 Both have independent authority (either can stop, no coordination required).
 
 Stop-the-line mechanism:
+
 - EventBus.emit('system:halt', { reason, initiator })
 - All agents subscribe to 'system:halt' and cease operations
 - Executor stops processing tool executions
@@ -334,12 +360,14 @@ Stop-the-line mechanism:
 - Gateway continues accepting messages (but they queue)
 
 Resumption requires:
+
 - Operator command: `ari resume` (CLI)
 - Or Guardian clearance: risk score drops below threshold
 
 **Consequences**
 
 Positive:
+
 - Immediate threat response (Guardian auto-halt on high risk)
 - Human override (Operator can stop anytime, no questions)
 - No coordination required (either can act independently)
@@ -347,12 +375,14 @@ Positive:
 - Audit trail (all halts logged with reason)
 
 Negative:
+
 - Can be overly cautious (false positives halt operations)
 - No graduated response (only binary stop/go)
 - Guardian could halt too frequently (alert fatigue)
 - Operations in-progress are interrupted (not graceful)
 
 Mitigations:
+
 - Guardian threshold tuned to minimize false positives (0.8 is high)
 - Operator can override Guardian halt (human final authority)
 - Audit log shows halt frequency (tune thresholds if needed)
@@ -396,11 +426,13 @@ Mitigations:
 **Context**
 
 Votes need deadlines to ensure decisions are made in a timely manner. Deadlines prevent:
+
 - Votes hanging indefinitely
 - Decision paralysis
 - Stale proposals being voted on after context changes
 
 Common deadline approaches:
+
 - Fixed time (1 hour, 24 hours, 1 week)
 - Adaptive time (based on vote complexity or priority)
 - No deadline (wait for quorum)
@@ -410,6 +442,7 @@ Common deadline approaches:
 Set default vote deadline to 1 hour (60 minutes) from vote creation.
 
 Deadline behavior:
+
 - Timer starts on vote creation (council.createVote())
 - Agents can cast votes anytime before deadline
 - On deadline expiration: vote closes with status EXPIRED
@@ -417,6 +450,7 @@ Deadline behavior:
 - Early conclusion logic can close votes before deadline if outcome is determined
 
 Deadline is configurable per-vote:
+
 - createVote({ deadline_minutes: 60 }): Default 1 hour
 - Can be overridden: createVote({ deadline_minutes: 1440 }): 24 hours
 - Cannot be infinite (must provide a value)
@@ -424,6 +458,7 @@ Deadline is configurable per-vote:
 **Consequences**
 
 Positive:
+
 - Ensures timely decisions (no indefinite waiting)
 - Encourages participation (agents know deadline)
 - Prevents stale votes (1 hour is short enough)
@@ -431,12 +466,14 @@ Positive:
 - Early conclusion speeds up clear-cut votes
 
 Negative:
+
 - 1 hour might be too short for complex decisions
 - Agents might miss votes if unavailable during window
 - Expired votes always fail (even if trending toward approval)
 - Time zone challenges (less relevant for personal OS)
 
 Mitigations:
+
 - Configurable deadline per-vote (flexibility for complex decisions)
 - EventBus notifications alert agents when votes start
 - Audit log shows who participated (accountability)
@@ -482,6 +519,7 @@ Mitigations:
 Decisions are not always correct. Requirements change. New information emerges. ARI needs a way to reverse or modify past decisions.
 
 Common approaches:
+
 - Delete and forget (remove from history)
 - Edit in place (modify the record)
 - Append-only (new entry supersedes old)
@@ -492,12 +530,14 @@ ARI's audit system is append-only (cannot delete or modify). Governance decision
 **Decision**
 
 Implement append-only decision rollback:
+
 - Past decisions are NEVER deleted from audit log
 - Past decisions are NEVER modified in place
 - New decisions can supersede old decisions by referencing them
 - Audit trail shows full history: original decision → rollback decision → current state
 
 Rollback mechanism:
+
 1. Create new vote to reverse previous decision
 2. Vote passes (meets threshold + quorum)
 3. New decision is logged with "supersedes: {previous_vote_id}"
@@ -505,6 +545,7 @@ Rollback mechanism:
 5. Both votes remain in audit log forever
 
 Example:
+
 ```
 Vote A: "Allow agent X to execute tool Y" → PASSED
 (later...)
@@ -516,6 +557,7 @@ Vote B: "Revoke agent X authorization for tool Y" → PASSED
 **Consequences**
 
 Positive:
+
 - Full audit trail (all decisions preserved)
 - Aligns with audit-immutable principle (consistency)
 - Transparent history (can see why decisions changed)
@@ -523,12 +565,14 @@ Positive:
 - No data loss (all context preserved)
 
 Negative:
+
 - History can be long (many superseded decisions)
 - Current policy requires traversing history (find latest)
 - No "hard delete" for mistakes (everything is permanent)
 - Storage grows forever (audit log never shrinks)
 
 Mitigations:
+
 - Efficient indexing (latest decision per topic)
 - UI tools show current policy + history (Phase 3)
 - Audit log rotation (archive old entries) (Phase 4)
@@ -572,11 +616,13 @@ Mitigations:
 **Context**
 
 Modern AI systems often incorporate:
+
 - Feedback loops (learn from outcomes)
 - Reinforcement learning (optimize via reward signals)
 - Self-modification (update own code/prompts)
 
 These techniques improve performance but add complexity and risk:
+
 - Feedback loops can reinforce bad behavior
 - RL requires careful reward engineering (misaligned incentives)
 - Self-modification can violate security boundaries
@@ -586,18 +632,21 @@ ARI is in Phase 2. Core architecture is still stabilizing.
 **Decision**
 
 Defer all feedback loops and reinforcement learning to post-Phase 2:
+
 - Phase 2: No feedback loops, no RL, no self-modification
 - Phase 2b: Basic outcome tracking (success/failure metrics)
 - Phase 3: Supervised feedback (human labels outcomes)
 - Phase 4: Limited RL (scoped to specific agents, not system-wide)
 
 What IS allowed in Phase 2:
+
 - Static configuration updates (human-edited config files)
 - Manual prompt tuning (human writes better prompts)
 - Audit log analysis (retrospective review, no automatic changes)
 - Memory storage (facts/preferences, not behavioral updates)
 
 What is NOT allowed in Phase 2:
+
 - Automatic prompt updates based on outcomes
 - Weight updates to decision models
 - Self-modification of agent code
@@ -606,6 +655,7 @@ What is NOT allowed in Phase 2:
 **Consequences**
 
 Positive:
+
 - Reduced complexity (focus on core architecture)
 - Predictable behavior (no drift, no emergent behavior)
 - Security stability (agents can't modify themselves)
@@ -613,12 +663,14 @@ Positive:
 - Clear Phase 2 completion criteria (no moving target)
 
 Negative:
+
 - No performance improvement over time (agents don't learn)
 - Repeated mistakes (no automatic correction)
 - Manual tuning required (human must adjust prompts/config)
 - Competitive disadvantage (other AI systems learn from use)
 
 Mitigations:
+
 - Memory system captures outcomes (manual analysis possible)
 - Audit log provides feedback data (for future RL implementation)
 - Explicit deferral to Phase 2b/3/4 (not abandoning, just sequencing)

@@ -13,24 +13,28 @@ Maintain the health and utility of ARI's memory system by organizing, consolidat
 ## Responsibilities
 
 ### 1. Memory Organization
+
 - Categorize uncategorized memories
 - Tag memories for searchability
 - Create and maintain memory indexes
 - Build knowledge graphs
 
 ### 2. Memory Consolidation
+
 - Merge duplicate memories
 - Extract patterns from instances
 - Link related memories
 - Create summary memories
 
 ### 3. Memory Cleanup
+
 - Archive outdated memories
 - Remove contradicted information
 - Decay unused memories
 - Compact storage
 
 ### 4. Memory Quality
+
 - Validate memory accuracy
 - Update confidence scores
 - Flag suspicious entries
@@ -39,6 +43,7 @@ Maintain the health and utility of ARI's memory system by organizing, consolidat
 ## Maintenance Tasks
 
 ### Daily Maintenance
+
 ```
 1. Index new memories
 2. Update access statistics
@@ -47,6 +52,7 @@ Maintain the health and utility of ARI's memory system by organizing, consolidat
 ```
 
 ### Weekly Maintenance
+
 ```
 1. Consolidate similar memories
 2. Build/update knowledge graph
@@ -55,6 +61,7 @@ Maintain the health and utility of ARI's memory system by organizing, consolidat
 ```
 
 ### Monthly Maintenance
+
 ```
 1. Deep cleanup
 2. Pattern extraction
@@ -75,15 +82,18 @@ Maintain the health and utility of ARI's memory system by organizing, consolidat
 ## Consolidation Rules
 
 ### Merge Conditions
+
 - Same topic + similar content → Merge
 - Same pattern + different examples → Add examples
 - Contradictory content → Flag for review
 
 ### Pattern Extraction
+
 - 3+ similar instances → Extract pattern
 - Pattern + new instance → Update pattern
 
 ### Link Conditions
+
 - Same domain → Link
 - Shared tags → Link
 - Referenced together → Link

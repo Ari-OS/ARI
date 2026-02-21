@@ -38,6 +38,7 @@ await gateway.listen({ host: HOST, port: PORT });
 ## Route Patterns
 
 ### Message Ingestion
+
 ```typescript
 gateway.post('/message', {
   schema: {
@@ -54,6 +55,7 @@ gateway.post('/message', {
 ```
 
 ### Health Check
+
 ```typescript
 gateway.get('/health', async () => ({
   status: 'healthy',
@@ -63,6 +65,7 @@ gateway.get('/health', async () => ({
 ```
 
 ### Audit Verification
+
 ```typescript
 gateway.get('/audit/verify', async () => {
   const result = await audit.verifyChain();
@@ -73,6 +76,7 @@ gateway.get('/audit/verify', async () => {
 ## Security Middleware
 
 ### Request Sanitization
+
 ```typescript
 const sanitizeMiddleware = async (request) => {
   const risk = sanitizer.assessRisk(request.body);
@@ -83,6 +87,7 @@ const sanitizeMiddleware = async (request) => {
 ```
 
 ### Audit Logging
+
 ```typescript
 const auditMiddleware = async (request) => {
   await eventBus.emit('audit:log', {

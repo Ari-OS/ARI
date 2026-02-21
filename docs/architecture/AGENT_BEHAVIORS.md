@@ -26,6 +26,7 @@ Decision trees and behavior specifications for ARI's multi-agent system.
 ## Guardian Agent — Threat Detection
 
 ### Purpose
+
 First line of defense. Assesses risk of all incoming messages.
 
 ### Decision Tree
@@ -98,6 +99,7 @@ eventBus.emit('guardian:assessment_complete', {
 ## Planner Agent — Task Decomposition
 
 ### Purpose
+
 Breaks complex requests into executable task DAGs (Directed Acyclic Graphs).
 
 ### Decision Tree
@@ -180,6 +182,7 @@ Dependencies: 5 depends on [3, 4], 4 depends on [2], 2 depends on [1]
 ## Executor Agent — Tool Execution
 
 ### Purpose
+
 Executes approved tasks with proper permission checks.
 
 ### Three-Layer Authorization
@@ -272,6 +275,7 @@ const TOOL_PERMISSIONS = {
 ## Memory Manager — Knowledge Persistence
 
 ### Purpose
+
 Stores and retrieves information with full provenance tracking.
 
 ### Memory Categories
@@ -313,6 +317,7 @@ interface MemoryProvenance {
 ## Governor Agent — Constitutional Enforcement
 
 ### Purpose
+
 Enforces the 6 constitutional rules and manages the 15-member council.
 
 ### Constitutional Rules

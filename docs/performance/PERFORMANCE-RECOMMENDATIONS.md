@@ -3,6 +3,7 @@
 ## 1. Async Audit Buffering (Highest ROI)
 
 ### Current Implementation Problem
+
 **File**: `/Users/ari/ARI/src/kernel/audit.ts`
 
 ```typescript
@@ -82,11 +83,13 @@ export class AuditLogger {
 ```
 
 **Metrics**:
+
 - Before: 1.0-1.5ms per event emit
 - After: 0.2-0.3ms per event emit
 - Gain: **80% reduction in event latency**
 
 **Integration**:
+
 - In `EventBus.emit()`, call `this.auditLogger.logEvent()` without waiting
 - Already returns a Promise, so caller doesn't block
 - Ensures audit trail preserved even if flush is async
@@ -96,6 +99,7 @@ export class AuditLogger {
 ## 2. Deferred Notion Writes (Second Highest ROI)
 
 ### Current Implementation Problem
+
 **File**: `/Users/ari/ARI/src/autonomous/notification-manager.ts:398-422`
 
 ```typescript
@@ -200,11 +204,13 @@ export class NotificationManager {
 ```
 
 **Metrics**:
+
 - Before: 255-408ms (P1 work hours)
 - After: 55-110ms
 - Gain: **75% reduction in notification latency**
 
 **Key Changes**:
+
 1. Return immediately with local ID
 2. Queue entry for background batch write
 3. Flush on timer (500ms) or when batch full (50 items)
@@ -215,6 +221,7 @@ export class NotificationManager {
 ## 3. Scheduler Task Coordinator
 
 ### Current Implementation Problem
+
 **File**: `/Users/ari/ARI/src/autonomous/scheduler.ts:131-573`
 
 ```typescript
@@ -241,6 +248,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
 ```
 
 **Issue**: Three simultaneous tasks at 6am, 7am, 2pm create:
+
 - API quota conflicts
 - Memory spikes
 - Event loop contention
@@ -524,6 +532,7 @@ export class Scheduler {
 ```
 
 **Metrics**:
+
 - Before: 3 simultaneous tasks at peaks
 - After: 1-2 simultaneous tasks
 - Gain: **Eliminate API quota conflicts, reduce memory spikes by 40%**
@@ -533,6 +542,7 @@ export class Scheduler {
 ## 4. Knowledge Index Persistence
 
 ### Current Problem
+
 **File**: `/Users/ari/ARI/src/autonomous/knowledge-index.ts`
 
 Index rebuilt from scratch on startup: 300ms
@@ -597,6 +607,7 @@ export class KnowledgeIndex {
 ```
 
 **Metrics**:
+
 - Before: 300ms startup (full rebuild)
 - After: <50ms startup (load from disk)
 - Gain: **250ms reduction in startup time**
@@ -606,7 +617,9 @@ export class KnowledgeIndex {
 ## 5. Unified API Cache
 
 ### Current Problem
+
 Each client has separate cache:
+
 - CoinGeckoClient
 - PortfolioTracker
 - MarketMonitor
@@ -731,6 +744,7 @@ export class SharedApiCache {
 ### Integration Points
 
 **In MarketMonitor**:
+
 ```typescript
 async getCryptoPrices(coins: string[]): Promise<CoinGeckoPrice> {
   const key = `crypto:prices:${coins.join(',')}`;
@@ -741,6 +755,7 @@ async getCryptoPrices(coins: string[]): Promise<CoinGeckoPrice> {
 ```
 
 **In PortfolioTracker**:
+
 ```typescript
 async updatePortfolio(): Promise<void> {
   const key = `portfolio:data:${this.userId}`;
@@ -752,6 +767,7 @@ async updatePortfolio(): Promise<void> {
 ```
 
 **Metrics**:
+
 - Before: 35-45% deduplication (per-client)
 - After: 55-65% deduplication (unified)
 - Gain: **$40-60/month X API savings, +5 CoinGecko req/min headroom**
@@ -761,6 +777,7 @@ async updatePortfolio(): Promise<void> {
 ## Summary: Implementation Checklist
 
 ### HIGH PRIORITY (Implement First)
+
 - [ ] Async audit buffering (2-3h)
   - Modify `AuditLogger` in `kernel/audit.ts`
   - Add buffer + flush logic
@@ -778,6 +795,7 @@ async updatePortfolio(): Promise<void> {
   - Apply optimizations
 
 ### MEDIUM PRIORITY (Implement Next)
+
 - [ ] Knowledge index persistence (3-4h)
   - Add load/save in `KnowledgeIndex`
   - Test disk format
@@ -788,6 +806,7 @@ async updatePortfolio(): Promise<void> {
   - Monitor hit ratios
 
 ### TESTING REQUIREMENTS
+
 - [ ] Unit tests for each component
 - [ ] Integration tests (full scheduler cycle)
 - [ ] Load tests (peak times)
@@ -837,4 +856,3 @@ this.eventBus.emit('system:metric', {
 | Scheduler coord | `src/autonomous/scheduler-coordinator.ts` | N/A | Create |
 | Index persist | `src/autonomous/knowledge-index.ts` | ~50 | Modify |
 | Shared cache | `src/observability/shared-api-cache.ts` | N/A | Create |
-

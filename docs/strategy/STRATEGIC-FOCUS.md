@@ -35,6 +35,7 @@ The cognitive layer is the **prerequisite** for channels mattering.
 Anyone can wrap Baileys for WhatsApp. Anyone can use grammY for Telegram. These are solved problems with open-source libraries.
 
 **No one** has:
+
 - LOGOS: Bayesian reasoning, Kelly criterion, expected value
 - ETHOS: 10-bias detection, emotional state monitoring
 - PATHOS: CBT reframing, Stoic philosophy, wisdom integration
@@ -47,11 +48,13 @@ This is ARI's moat. **Protect it by completing it.**
 ### 3. Studying OpenClaw Is a Distraction
 
 Every hour spent on:
+
 - Reading OpenClaw source code
 - Understanding their session model
 - Planning integration architecture
 
 Is an hour NOT spent on:
+
 - Implementing Bayesian belief updating
 - Building bias detection patterns
 - Creating the Learning Loop
@@ -122,6 +125,7 @@ NEVER:
 ARI becomes strong by being **irreplaceable**, not by being **everywhere**.
 
 **Irreplaceable means**:
+
 - When you face a decision, ARI checks for biases you'd miss
 - When you consider an investment, ARI calculates Kelly fraction
 - When you're emotionally reactive, ARI applies CBT reframing
@@ -129,6 +133,7 @@ ARI becomes strong by being **irreplaceable**, not by being **everywhere**.
 - Every interaction makes ARI smarter through the Learning Loop
 
 **Everywhere means**:
+
 - Available on 13 platforms
 - This is what OpenClaw does
 - It's table stakes, not differentiation

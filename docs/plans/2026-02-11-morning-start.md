@@ -33,11 +33,13 @@
 Fully removed Pushover from the entire codebase and replaced with Telegram-primary notifications.
 
 **Files Created:**
+
 - `src/integrations/telegram/sender.ts` — Lightweight Bot API sender (fetch, no Grammy)
 - `src/integrations/telegram/index.ts` — Export barrel
 - `scripts/deploy-mac-mini.sh` — One-command Mac Mini deploy script
 
 **Files Modified:**
+
 - `src/autonomous/notification-manager.ts` — New Telegram-primary routing:
   - P0: SMS + Telegram + Notion (force delivery, bypass quiet hours)
   - P1: Telegram + Notion (queue during quiet hours for 7AM delivery)
@@ -49,6 +51,7 @@ Fully removed Pushover from the entire codebase and replaced with Telegram-prima
 - All tests updated (52 notification-manager tests pass)
 
 **Files Deleted:**
+
 - `src/autonomous/pushover-client.ts`
 - `src/channels/adapters/pushover.ts`
 - `src/integrations/pushover/` (entire directory)
@@ -57,6 +60,7 @@ Fully removed Pushover from the entire codebase and replaced with Telegram-prima
 - All Pushover test files (3 files, ~2000 lines removed)
 
 **Docs Updated:**
+
 - `docs/guides/NOTIFICATIONS.md` — Full rewrite for Telegram-primary
 - `docs/operations/AUTONOMOUS_QUICKSTART.md`
 - `docs/AUTONOMOUS_EXECUTIVE_SUMMARY.md`
@@ -107,6 +111,7 @@ L6 Interfaces  ← CLI, Dashboard, Telegram Bot, Gateway API
 **Active Plugins:** Telegram Bot, ElevenLabs TTS, CoinGecko Crypto, Pokemon TCG
 
 **Notification Flow:**
+
 ```
 Event → AlertSystem (council vote) → NotificationManager → Telegram (primary)
                                                          → SMS (P0 only)
@@ -128,17 +133,17 @@ Event → AlertSystem (council vote) → NotificationManager → Telegram (prima
 
 ### Medium Priority
 
-3. **Telegram notification end-to-end test** — The TelegramSender is wired but hasn't been tested live. Send a test message to verify the bot token works on the Mac Mini.
+1. **Telegram notification end-to-end test** — The TelegramSender is wired but hasn't been tested live. Send a test message to verify the bot token works on the Mac Mini.
 
-4. **Morning briefing system** — The scheduler has a `morning-briefing` cron (6:30 AM) in `src/autonomous/scheduler.ts` and `src/autonomous/briefings.ts`. Verify it fires correctly on the Mac Mini and delivers via Telegram.
+2. **Morning briefing system** — The scheduler has a `morning-briefing` cron (6:30 AM) in `src/autonomous/scheduler.ts` and `src/autonomous/briefings.ts`. Verify it fires correctly on the Mac Mini and delivers via Telegram.
 
-5. **Dashboard deployment** — Dashboard build exists at `dashboard/dist/`. Verify it's accessible on the Mac Mini gateway at `http://127.0.0.1:3141/`.
+3. **Dashboard deployment** — Dashboard build exists at `dashboard/dist/`. Verify it's accessible on the Mac Mini gateway at `http://127.0.0.1:3141/`.
 
 ### Low Priority
 
-6. **Implementation checklist update** — `docs/IMPLEMENTATION_CHECKLIST.md` has many unchecked items that are actually complete. Audit and check off completed items.
+1. **Implementation checklist update** — `docs/IMPLEMENTATION_CHECKLIST.md` has many unchecked items that are actually complete. Audit and check off completed items.
 
-7. **Budget profile tuning** — Three profiles exist (`conservative`, `balanced`, `aggressive`). Currently on balanced ($2.50/day). Review after a few days of operation.
+2. **Budget profile tuning** — Three profiles exist (`conservative`, `balanced`, `aggressive`). Currently on balanced ($2.50/day). Review after a few days of operation.
 
 ---
 

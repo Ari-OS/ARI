@@ -89,6 +89,12 @@ export const getProposal = (id: string): Promise<Proposal> =>
 export const getGovernanceRules = (): Promise<ConstitutionalRule[]> =>
   fetchAPI('/governance/rules');
 
+export const approveProposal = (id: string, reasoning?: string): Promise<{ success: boolean; id: string }> =>
+  postAPI(`/proposals/${id}/approve`, { reasoning });
+
+export const rejectProposal = (id: string, reasoning?: string): Promise<{ success: boolean; id: string }> =>
+  postAPI(`/proposals/${id}/reject`, { reasoning });
+
 export const getQualityGates = (): Promise<QualityGate[]> =>
   fetchAPI('/governance/gates');
 

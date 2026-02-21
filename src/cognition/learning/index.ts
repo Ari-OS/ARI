@@ -16,3 +16,4 @@ export { LearningLoop } from './learning-loop.js';
 export type { LearningLoopStatus } from './learning-loop.js';
 export { CalibrationTracker } from './calibration-tracker.js';
 export type { Prediction, CalibrationReport, CalibrationBucket } from './calibration-tracker.js';
+export { FoundryObserver } from './foundry-observer.js';

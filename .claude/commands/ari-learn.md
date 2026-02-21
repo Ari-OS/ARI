@@ -10,18 +10,21 @@ Capture learnings from the current session and integrate them into ARI's knowled
 ## What This Command Does
 
 ### 1. Session Analysis
+
 - Extract key decisions made
 - Identify patterns used
 - Note problems solved
 - Capture architectural choices
 
 ### 2. Knowledge Integration
+
 - Update relevant skills with new patterns
 - Add new examples to documentation
 - Create new skills if needed
 - Update CLAUDE.md with learnings
 
 ### 3. Memory Storage
+
 - Store in ARI's memory system
 - Tag with relevant domains
 - Set appropriate trust level

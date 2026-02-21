@@ -10,6 +10,7 @@ Deploy ARI with comprehensive pre-flight checks.
 ## Deployment Pipeline
 
 ### Phase 1: Validation
+
 ```bash
 npm run typecheck    # TypeScript compilation
 npm run lint         # Code quality
@@ -18,18 +19,21 @@ npm audit           # Security vulnerabilities
 ```
 
 ### Phase 2: Build
+
 ```bash
 npm run build        # Compile to dist/
 npm run dashboard:build  # Build dashboard
 ```
 
 ### Phase 3: Verification
+
 ```bash
 npx ari doctor       # System diagnostics
 npx ari audit verify # Audit chain integrity
 ```
 
 ### Phase 4: Deployment
+
 ```bash
 # Install daemon
 npx ari daemon install
@@ -40,6 +44,7 @@ npx ari gateway start
 ```
 
 ### Phase 5: Health Check
+
 ```bash
 curl http://127.0.0.1:3141/health
 npx ari daemon status
@@ -58,6 +63,7 @@ npx ari daemon status
 ## Rollback
 
 If deployment fails:
+
 ```bash
 npx ari daemon stop
 git checkout <previous-version>

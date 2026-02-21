@@ -25,12 +25,14 @@ await auditLogger.log('injection_detected', {
 ```
 
 **Evidence:**
+
 - All inbound messages logged (accepted or rejected)
 - Security events logged with pattern details
 - System routing decisions logged with context + confidence
 - Hash chain ensures tamper evidence (SHA-256)
 
 **CLI Access:**
+
 ```bash
 npx ari audit list        # View recent events
 npx ari audit security    # Filter security events
@@ -54,6 +56,7 @@ npx ari audit verify      # Check chain integrity
 ```
 
 **Evidence:**
+
 - Checks run on demand: `npx ari doctor`
 - Reports passed/total (e.g., "6/6 checks passing")
 - Explicit failure messages (e.g., "Audit chain broken at event 42")
@@ -88,6 +91,7 @@ async verify(): Promise<VerifyResult> {
 ```
 
 **Evidence:**
+
 - System verifies own audit log integrity
 - Tampering detected cryptographically
 - Genesis block (previousHash = "0x00...00") anchors chain
@@ -125,6 +129,7 @@ export const ContextSchema = z.object({
 ```
 
 **Evidence:**
+
 - Config validated on load (invalid config rejected)
 - Type errors caught at compile time (TypeScript)
 - Runtime validation via Zod (data from disk)
@@ -154,6 +159,7 @@ for (const check of checks) {
 ```
 
 **Evidence:**
+
 - 6 checks run in sequence
 - Binary pass/fail for each
 - Total reported (e.g., "5/6 checks passing")
@@ -182,6 +188,7 @@ test('router receives only clean messages', async () => {
 ```
 
 **Evidence:**
+
 - 187 tests passing across 18 test files
 - Tests verify security properties (injection blocked, audit chain intact)
 - Tests verify integration (system receives only sanitized messages)
@@ -211,6 +218,7 @@ Total: ~500 lines of code (excluding tests)
 ```
 
 **Evidence:**
+
 - No abstractions for abstractions' sake
 - No framework dependencies beyond Fastify, Zod
 - No ORMs, no complex state machines, no decorators
@@ -241,6 +249,7 @@ fastify.post('/message', async (request, reply) => {
 ```
 
 **Evidence:**
+
 - No dynamic code execution from user content
 - External content quarantined as UNTRUSTED trust level
 - Sanitizer blocks command-like patterns
@@ -266,6 +275,7 @@ eventBus.on('message:accepted', async (event) => {
 ```
 
 **Evidence:**
+
 - Kernel has zero imports from system layer
 - System has zero imports from gateway
 - Integration via event bus only (typed events)
@@ -320,6 +330,7 @@ eventBus.on('message:accepted', async (event) => {
 Each principle can be verified by examining code and running commands.
 
 **Shadow Integration:**
+
 ```bash
 # Check audit logging
 npx ari audit list
@@ -332,6 +343,7 @@ npx ari doctor
 ```
 
 **Radical Transparency:**
+
 ```bash
 # Verify schemas (compile-time check)
 npm run typecheck
@@ -344,6 +356,7 @@ npx ari doctor
 ```
 
 **Ruthless Simplicity:**
+
 ```bash
 # Count kernel modules
 ls src/kernel/*.ts | wc -l  # Expected: 7 (6 modules + index)

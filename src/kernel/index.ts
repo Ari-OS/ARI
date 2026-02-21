@@ -14,7 +14,8 @@ export type {
   VoteOption, VoteThreshold, Vote, ToolDefinition,
   ReasoningStep, ReasoningTrace,
 } from './types.js';
-export { sanitize, isSafe, INJECTION_PATTERNS } from './sanitizer.js';
+export { sanitize, isSafe } from './sanitizer.js';
+export { INJECTION_PATTERNS } from './sanitizer-patterns.js';
 export { AuditLogger } from './audit.js';
 export { HeartbeatMonitor, createHeartbeatMonitor } from './heartbeat.js';
 export type { HeartbeatConfig, ComponentType, HealthStatus, ComponentHeartbeat, HeartbeatReport } from './heartbeat.js';

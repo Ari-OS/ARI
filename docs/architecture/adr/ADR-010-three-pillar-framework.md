@@ -20,6 +20,7 @@ Layer 0 (Cognitive Foundation) requires **organizational structure** for diverse
 - Meta-learning (deliberate practice, spaced repetition)
 
 These frameworks span different domains but all serve ARI's mission as a **Life Operating System**. Need clear organization that:
+
 1. Makes frameworks discoverable (Council members know where to look)
 2. Prevents overlap (no duplicate implementations)
 3. Enables cross-pollination (members can draw from all domains)
@@ -42,12 +43,14 @@ The three modes of persuasion from Aristotle's *Rhetoric* (~350 BCE):
    - Convinces through shared humanity
 
 **Why This Model?**
+
 - **2000+ years of proven structure** - survived because it works
 - **Comprehensive coverage** - logic + character + emotion = complete intelligence
 - **Balanced integration** - no single mode dominates healthy reasoning
 - **Universally understood** - clear mental model for developers
 
 **Modern Application**:
+
 - **Logos** → Algorithmic reasoning, probability theory, systems thinking
 - **Ethos** → Emotional intelligence, bias detection, discipline
 - **Pathos** → Self-reflection, growth, wisdom integration
@@ -261,6 +264,7 @@ interface CouncilCognitiveProfile {
 **Examples**:
 
 **AEGIS (Guardian)** - Balanced ETHOS/LOGOS, some PATHOS:
+
 ```typescript
 {
   member: AEGIS,
@@ -288,6 +292,7 @@ interface CouncilCognitiveProfile {
 ```
 
 **MINT (Wealth)** - Heavy LOGOS, strong ETHOS, some PATHOS:
+
 ```typescript
 {
   member: MINT,
@@ -315,6 +320,7 @@ interface CouncilCognitiveProfile {
 ```
 
 **BLOOM (Growth)** - Heavy PATHOS, some LOGOS, light ETHOS:
+
 ```typescript
 {
   member: BLOOM,
@@ -363,6 +369,7 @@ MINT deciding whether to invest $10K:
    - Growth opportunity: "What will I learn from this decision regardless of outcome?"
 
 **Synthesized Decision**:
+
 - **LOGOS**: EV is positive, Kelly says allocate 16.25% (half Kelly = $1,625)
 - **ETHOS**: No major biases detected, emotional state is neutral
 - **PATHOS**: Aligned with values (long-term growth), learning opportunity clear
@@ -383,6 +390,7 @@ MINT deciding whether to invest $10K:
 **Frameworks**:
 
 #### 1. Bayesian Reasoning
+
 ```typescript
 // Prior: What we believed before
 // Evidence: New observation
@@ -400,11 +408,13 @@ Posterior: ~40% chance of success (reduced confidence)
 ```
 
 **Use Cases**:
+
 - Updating threat probability (AEGIS)
 - Adjusting task success estimates (TRUE)
 - Recalculating investment odds (MINT)
 
 #### 2. Expected Value
+
 ```typescript
 EV = Σ (Probability × Value)
 
@@ -421,11 +431,13 @@ EV = (0.20 × 100) + (0.10 × -5) + (0.70 × -10)
 ```
 
 **Use Cases**:
+
 - Comparing multiple options (TRUE)
 - Resource allocation (OPAL)
 - Risk assessment (SCOUT)
 
 #### 3. Kelly Criterion
+
 ```typescript
 f* = (p × b - q) / b
 
@@ -451,6 +463,7 @@ Quarter Kelly: Bet 10% (very conservative)
 ```
 
 **Use Cases**:
+
 - Position sizing (MINT)
 - Resource allocation (OPAL)
 - Effort allocation (BLOOM - how much time to invest in learning?)
@@ -459,25 +472,27 @@ Quarter Kelly: Bet 10% (very conservative)
 
 **12 Leverage Points** (ordered by effectiveness, least to most):
 
-12. Constants, parameters (numbers)
-11. Buffers (stocks relative to flows)
-10. Stock-and-flow structures
-9. Delays (relative to system dynamics)
-8. Balancing feedback loops
-7. Reinforcing feedback loops
-6. Information flows
-5. Rules of the system
-4. Self-organization
-3. Goals of the system
-2. Paradigms (mindset out of which goals arise)
-1. **Power to transcend paradigms** (highest leverage)
+1. Constants, parameters (numbers)
+2. Buffers (stocks relative to flows)
+3. Stock-and-flow structures
+4. Delays (relative to system dynamics)
+5. Balancing feedback loops
+6. Reinforcing feedback loops
+7. Information flows
+8. Rules of the system
+9. Self-organization
+10. Goals of the system
+11. Paradigms (mindset out of which goals arise)
+12. **Power to transcend paradigms** (highest leverage)
 
 **Application**:
+
 - Understanding how changes ripple through life systems
 - Identifying where small changes have large effects
 - Predicting emergent behavior
 
 **Use Cases**:
+
 - Strategic planning (ATLAS)
 - Understanding life balance (TEMPO)
 - Holistic integration (NEXUS)
@@ -485,6 +500,7 @@ Quarter Kelly: Bet 10% (very conservative)
 #### 5. Antifragility (Taleb)
 
 **Core Ideas**:
+
 - **Fragile**: Breaks under stress (avoid)
 - **Robust**: Resists stress (okay)
 - **Antifragile**: Gains from stress (ideal)
@@ -494,6 +510,7 @@ Quarter Kelly: Bet 10% (very conservative)
 **Barbell Strategy**: Extreme conservatism + extreme aggression, avoid middle
 
 **Application**:
+
 ```
 Fragile: One income source, specialized skills
 Robust: Multiple income sources, some diversification
@@ -501,6 +518,7 @@ Antifragile: Income sources that GROW during chaos + safe cash position
 ```
 
 **Use Cases**:
+
 - Career strategy (BLOOM)
 - Financial strategy (MINT)
 - System resilience (AEGIS)
@@ -551,6 +569,7 @@ Quadrants:
 ```
 
 **Risk to Decision Quality**:
+
 ```typescript
 function calculateEmotionalRisk(state: EmotionalState): number {
   // High arousal = high risk (whether positive or negative)
@@ -568,6 +587,7 @@ function calculateEmotionalRisk(state: EmotionalState): number {
 ```
 
 **Recommendations**:
+
 - Risk < 0.3: Proceed (calm, rational state)
 - Risk 0.3-0.6: Caution (consider waiting, seek second opinion)
 - Risk > 0.6: Delay (wait until emotional state normalizes)
@@ -577,23 +597,29 @@ function calculateEmotionalRisk(state: EmotionalState): number {
 **Detection Patterns**:
 
 **Fear Spiral**:
+
 ```
 Loss → Fear → Avoid risk → Miss opportunities → Regret → More fear
 ```
+
 - **Indicators**: Multiple consecutive "avoid" decisions after loss
 - **Intervention**: "This is fear talking. What does the EV say?"
 
 **Greed Chase**:
+
 ```
 Win → Euphoria → Take excessive risk → Big loss → Despair
 ```
+
 - **Indicators**: Position sizing increasing after wins
 - **Intervention**: "Reduce to Kelly Criterion. Wins don't change probabilities."
 
 **Revenge Trading**:
+
 ```
 Loss → Anger → "I'll make it back" → Larger bet → Bigger loss
 ```
+
 - **Indicators**: Bet size increases immediately after loss
 - **Intervention**: "Stop. Mandatory 24h cooling-off period."
 
@@ -695,6 +721,7 @@ async function reflectOnOutcome(outcome: Outcome): Promise<Insight[]> {
 ```
 
 **Output Example**:
+
 ```
 Outcome: "Launch product without beta testing → 10 bugs found in production"
 
@@ -719,6 +746,7 @@ Insights:
 | Emotional reasoning | "I feel anxious, so it's dangerous" | "Anxiety is data, not truth. What do facts say?" |
 
 **Implementation**:
+
 ```typescript
 async function reframeThought(
   thought: string,
@@ -735,17 +763,20 @@ async function reframeThought(
 **Epictetus**: "Some things are in our control, others are not."
 
 **In Control**:
+
 - Opinions, impulses, desires, aversions
 - Decisions, effort, preparation
 - Reactions to events
 
 **Not in Control**:
+
 - Other people's actions
 - Market outcomes
 - Natural events (weather, illness)
 - Past events (already happened)
 
 **Application**:
+
 ```typescript
 async function analyzeDichotomy(
   situation: string
@@ -757,6 +788,7 @@ async function analyzeDichotomy(
 ```
 
 **Example**:
+
 ```
 Situation: "I'm anxious about upcoming presentation"
 
@@ -777,6 +809,7 @@ Stop worrying about audience reaction (uncontrollable)."
 #### 4. Meta-Learning (Learning How to Learn)
 
 **Spaced Repetition**:
+
 ```
 Review intervals for optimal retention (Ebbinghaus curve):
 - 1 day after learning
@@ -788,6 +821,7 @@ Review intervals for optimal retention (Ebbinghaus curve):
 ```
 
 **Feynman Technique**:
+
 ```
 1. Study concept
 2. Teach it to a 12-year-old (forces simple explanation)
@@ -796,6 +830,7 @@ Review intervals for optimal retention (Ebbinghaus curve):
 ```
 
 **Transfer Learning**:
+
 ```
 Learn concept in Domain A
 ↓
@@ -805,6 +840,7 @@ Apply to Domain B (different context, same principle)
 ```
 
 **Example**:
+
 - Learn: "Test-driven development" in coding
 - Principle: "Define success criteria before execution"
 - Transfer: "Define health metrics before starting diet"
@@ -856,6 +892,7 @@ export * from './knowledge/index.js';
 ### Usage Pattern
 
 **Single-Pillar Query**:
+
 ```typescript
 import { calculateExpectedValue } from '../cognition/logos/expected-value.js';
 
@@ -869,6 +906,7 @@ const ev = await calculateExpectedValue({
 ```
 
 **Multi-Pillar Synthesis**:
+
 ```typescript
 import { calculateExpectedValue } from '../cognition/logos/expected-value.js';
 import { detectCognitiveBias } from '../cognition/ethos/bias-detector.js';
@@ -903,6 +941,7 @@ async function makeInformedDecision(decision: Decision): Promise<Recommendation>
 ### For Council Members
 
 **Before Layer 0**:
+
 - Members rely on basic heuristics and rules
 - Decisions are logical but not probabilistic
 - No awareness of own biases
@@ -910,6 +949,7 @@ async function makeInformedDecision(decision: Decision): Promise<Recommendation>
 - No access to wisdom traditions
 
 **After Layer 0**:
+
 - **AEGIS** detects threats using Bayesian probability + trading psychology (risk perception)
 - **SCOUT** calculates expected value + Kelly Criterion for every risk assessment
 - **MINT** uses behavioral finance to avoid loss aversion and sunk cost fallacy
@@ -923,21 +963,25 @@ async function makeInformedDecision(decision: Decision): Promise<Recommendation>
 ### For ARI as a System
 
 **Decision Quality**: Measurably better decisions
+
 - **Before**: ~70% success rate on complex decisions (estimated)
 - **After**: 85-90% success rate (target, measured via performance review)
 - **Metric**: (Successful outcomes / Total decisions) over 30-day windows
 
 **Bias Reduction**: Fewer emotional/irrational decisions
+
 - **Before**: ~30% of decisions show detectable bias (estimated)
 - **After**: <10% of decisions show bias (target)
 - **Metric**: Bias detector flags per 100 decisions
 
 **Learning Velocity**: Continuous improvement
+
 - **Before**: ARI doesn't learn from outcomes (static behavior)
 - **After**: Measurable improvement in decision quality month-over-month
 - **Metric**: Decision quality trend line (should slope upward)
 
 **Wisdom Integration**: Principled reasoning
+
 - **Before**: Decisions are reactive (respond to immediate context)
 - **After**: Decisions informed by timeless principles (Stoics, Taleb, Dalio)
 - **Metric**: % of decisions that cite wisdom traditions in reasoning
@@ -951,11 +995,13 @@ async function makeInformedDecision(decision: Decision): Promise<Recommendation>
 **Description**: Implement LOGOS + ETHOS, defer PATHOS to future.
 
 **Pros**:
+
 - 67% reduction in scope (only 2 pillars)
 - LOGOS + ETHOS cover most decision-making
 - PATHOS is "nice to have", not essential
 
 **Cons**:
+
 - **No learning loop** (PATHOS provides reflection and synthesis)
 - **No wisdom traditions** (Stoicism, Dalio, Munger missing)
 - **No meta-learning** (can't improve at improving)
@@ -970,10 +1016,12 @@ async function makeInformedDecision(decision: Decision): Promise<Recommendation>
 **Description**: LOGOS-Quant (math), LOGOS-Qual (systems thinking), ETHOS, PATHOS.
 
 **Pros**:
+
 - Clearer separation (math vs systems thinking are different)
 - More granular (can specialize further)
 
 **Cons**:
+
 - Over-engineering (math and systems thinking both fall under "reason")
 - Four pillars less elegant than three (classical rhetoric is three)
 - Harder to remember (three is cognitively manageable)
@@ -987,11 +1035,13 @@ async function makeInformedDecision(decision: Decision): Promise<Recommendation>
 **Description**: LOGOS, ETHOS, PATHOS, TECHNE (technical skill), PRAXIS (operational excellence).
 
 **Pros**:
+
 - Even more comprehensive
 - Technical skills get dedicated pillar
 - Operational excellence emphasized
 
 **Cons**:
+
 - Too many pillars (harder to navigate)
 - Technical/operational are **applications** of LOGOS (not separate domains)
 - Violates parsimony (don't multiply entities unnecessarily)
@@ -1005,11 +1055,13 @@ async function makeInformedDecision(decision: Decision): Promise<Recommendation>
 **Description**: Organize by life domain instead of cognitive pillar.
 
 **Pros**:
+
 - Maps directly to Council members' coverage areas
 - Easy to find domain-specific knowledge
 - Aligns with user's mental model (life domains)
 
 **Cons**:
+
 - **Cross-cutting frameworks get duplicated** (Bayesian reasoning needed in ALL domains)
 - Hard to share (finance frameworks can't easily apply to health)
 - Silos (finance experts can't learn from health experts)
@@ -1174,6 +1226,7 @@ export class GrowthAgent {
 **Design**: 2-3 weeks (ADRs + pillar design docs)
 
 **Implementation**:
+
 - LOGOS: 2 weeks
 - ETHOS: 2 weeks  
 - PATHOS: 2 weeks

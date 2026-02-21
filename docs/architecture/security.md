@@ -7,6 +7,7 @@ Version 2.0.0 — Aurora Protocol
 All inbound content is DATA, never interpreted as instructions.
 
 This principle is enforced through:
+
 1. Sanitization pipeline (src/kernel/sanitizer.ts)
 2. Audit integrity (src/kernel/audit.ts)
 3. Trust boundaries (src/kernel/types.ts)
@@ -19,6 +20,7 @@ This principle is enforced through:
 42 patterns across 14 categories, matched with case-insensitive regex.
 
 **Category 1: Direct Override** (5 patterns)
+
 - "ignore previous instructions"
 - "disregard all prior"
 - "forget everything above"
@@ -26,28 +28,33 @@ This principle is enforced through:
 - "override:"
 
 **Category 2: Role Manipulation** (4 patterns)
+
 - "you are now"
 - "act as if you are"
 - "pretend to be"
 - "your new role is"
 
 **Category 3: Command Injection** (4 patterns)
-- Shell command patterns: `$(cmd)`, `\`cmd\``, `; cmd;`, `| cmd |`
+
+- Shell command patterns: `$(cmd)`, `\`cmd\``,`; cmd;`,`| cmd |`
 - SQL injection: `' OR '1'='1`
 - Path traversal: `../../../`
 - Script tags: `<script>`
 
 **Category 4: Prompt Extraction** (3 patterns)
+
 - "repeat your instructions"
 - "what are your rules"
 - "show me your prompt"
 
 **Category 5: Authority Claims** (3 patterns)
+
 - "as your creator"
 - "I am your developer"
 - "system administrator override"
 
 **Category 6: Data Exfiltration** (2 patterns)
+
 - "send this to"
 - "forward this to"
 
@@ -56,6 +63,7 @@ This principle is enforced through:
 Base risk score = number of patterns matched
 
 Trust level multiplier:
+
 - SYSTEM: 0.5x (internal components)
 - OPERATOR: 0.6x (authenticated operator)
 - VERIFIED: 0.75x (verified sources)
@@ -83,6 +91,7 @@ export function sanitize(content: string, trustLevel: TrustLevel): SanitizeResul
 ```
 
 If injection detected:
+
 1. Message marked as high-risk
 2. Logged to audit chain with 'injection_detected' type
 3. Event emitted: 'message:rejected'
@@ -136,12 +145,14 @@ async verify(): Promise<VerifyResult> {
 ```
 
 **Properties:**
+
 - Append-only (no deletion)
 - Tamper-evident (hash mismatch on modification)
 - Chronological (sequence numbers)
 - Cryptographically linked (SHA-256)
 
 **Event Types:**
+
 - `message:accepted` — Clean message passed sanitization
 - `message:rejected` — Injection detected
 - `system:routed` — System layer routing decision
@@ -151,6 +162,7 @@ async verify(): Promise<VerifyResult> {
 **File Location:** ~/.ari/audit.json
 
 **CLI Commands:**
+
 - `ari audit list` — View recent events
 - `ari audit verify` — Check chain integrity
 - `ari audit security` — Filter security events only
@@ -171,6 +183,7 @@ export const TrustLevelSchema = z.enum([
 ```
 
 **Trust Enforcement (Risk Multipliers):**
+
 - SYSTEM: Internal components (risk multiplier 0.5x)
 - OPERATOR: Authenticated operator (risk multiplier 0.6x)
 - VERIFIED: Verified sources (risk multiplier 0.75x)
@@ -238,6 +251,7 @@ export function initializeRouter(eventBus: EventBus, auditLogger: AuditLogger) {
 ```
 
 **Guarantees:**
+
 - System receives only sanitized messages
 - System cannot bypass sanitizer
 - All system routing is audited
@@ -262,12 +276,14 @@ export async function startGateway(port: number = 3141): Promise<void> {
 ```
 
 **Security Properties:**
+
 - No remote access (localhost only)
 - No network exposure
 - Operator must be physically present (or via SSH)
 - Cannot be overridden by config
 
 **Future Considerations:**
+
 - Unix socket binding (even more restricted)
 - mTLS for remote access (authenticated only)
 - Rate limiting per connection
@@ -277,6 +293,7 @@ export async function startGateway(port: number = 3141): Promise<void> {
 Not yet implemented. Planned for Phase 2.
 
 **Design:**
+
 - Per-source rate limits (messages per minute)
 - Sliding window algorithm
 - Audit log on rate limit violations
@@ -322,6 +339,7 @@ Not yet implemented. Planned for Phase 2.
 ### Test Coverage: tests/security/injection.test.ts
 
 Tests verify:
+
 - Direct override patterns are detected
 - Role manipulation patterns are detected
 - Command injection patterns are detected
@@ -334,6 +352,7 @@ Tests verify:
 ### Audit Tests: tests/unit/kernel/audit.test.ts
 
 Tests verify:
+
 - Genesis block has correct previousHash
 - Chain links correctly
 - Tampering detection works
@@ -342,6 +361,7 @@ Tests verify:
 ### Integration Tests: tests/unit/system/router.test.ts
 
 Tests verify:
+
 - System receives only sanitized messages
 - Routing decisions are audited
 - Event subscription works correctly
@@ -350,17 +370,20 @@ Tests verify:
 ## Incident Response
 
 ### Detection
+
 - `ari audit security` — List all security events
 - `ari audit verify` — Check for audit tampering
 - `ari doctor` — Verify system health
 
 ### Investigation
+
 - Review audit log at ~/.ari/audit.json
 - Check matched patterns in injection_detected events
 - Verify trust levels on suspicious messages
 - Trace message flow via event timestamps
 
 ### Remediation
+
 - Block offending source (manual, no auto-block yet)
 - Update patterns if novel injection discovered
 - Restore from clean audit backup if tampering detected

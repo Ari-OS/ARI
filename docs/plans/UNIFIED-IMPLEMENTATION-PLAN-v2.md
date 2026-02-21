@@ -316,6 +316,7 @@ flowchart TB
 **Problem:** `notionInbox` is defined in `BotDependencies` (bot.ts:30-37) but never reaches the Telegram bot. The `/task` command (bot.ts:127) always receives `null`.
 
 **Root cause chain:**
+
 1. `PluginDependencies` type (register-plugins.ts) does NOT include `notionInbox`
 2. `TelegramBotPlugin.initialize()` (index.ts:36-74) receives `PluginDependencies` without it
 3. `createBot()` call (index.ts:59-65) never passes `notionInbox`
@@ -324,11 +325,14 @@ flowchart TB
 **Fix — 4 files:**
 
 **File 1: `src/plugins/register-plugins.ts`**
+
 - Add `notionInbox?: NotionInbox | null` to `PluginDependencies` interface
 - Pass it through `initializeAll()` method
 
 **File 2: `src/plugins/telegram-bot/index.ts` (lines 59-65)**
+
 - Extract `notionInbox` from `deps` and pass to `createBot()`
+
 ```typescript
 // Line 59-65: Add notionInbox to createBot call
 this.bot = createBot({
@@ -342,10 +346,12 @@ this.bot = createBot({
 ```
 
 **File 3: `src/autonomous/agent.ts` (initialization section ~lines 322-340)**
+
 - Pass `notionInbox` instance when calling `PluginRegistry.initializeAll()`
 - NotionInbox is created in BriefingGenerator.initNotion() (briefings.ts:137-144) — extract and share
 
 **File 4: `src/plugins/register-plugins.ts`**
+
 - Update `PluginDependencies` type to include `notionInbox`
 
 **Test:** After fix, send `/task` in Telegram → should create Notion task instead of "Notion not configured"
@@ -355,6 +361,7 @@ this.bot = createBot({
 **Problem:** `ChatSessionManager` (chat-session.ts:32-34) builds system prompt once in constructor. Time-of-day context (lines 118-125) becomes stale after first message.
 
 **Fix:**
+
 - Move `buildSystemPrompt()` from constructor to `getSystemPrompt()` method
 - Add 5-minute cache TTL so it refreshes but doesn't rebuild on every message
 - Keep same interface for backward compatibility
@@ -414,6 +421,7 @@ These are already injected via the daemon plist:
 | `WEATHER_LOCATION` | New config | Weather handler (default: "Indianapolis, IN") |
 
 **Fix in `src/ops/daemon.ts:84-89`:**
+
 ```typescript
 const envVarsToInject = [
   'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GOOGLE_AI_API_KEY', 'XAI_API_KEY',
@@ -428,7 +436,8 @@ const envVarsToInject = [
 
 #### 2.1 Notion (4 keys) — Task management, daily logs, inbox
 
-**Sign up:** https://www.notion.so/my-integrations
+**Sign up:** <https://www.notion.so/my-integrations>
+
 1. Click "New integration" → Name: "ARI" → Select workspace "Pryce"
 2. Copy "Internal Integration Token" → `NOTION_API_KEY=ntn_...`
 3. Create/share 3 databases:
@@ -441,17 +450,19 @@ const envVarsToInject = [
 
 #### 2.2 X/Twitter (2 keys) — Content publishing + intelligence
 
-**Sign up:** https://developer.x.com/en/portal/dashboard
+**Sign up:** <https://developer.x.com/en/portal/dashboard>
+
 1. Create project + app → Generate "Bearer Token" → `X_BEARER_TOKEN=AAAA...`
 2. Enable Read+Write in "User authentication settings"
-3. Get numeric user ID from https://tweeterid.com/ using @PayThePryce → `X_USER_ID=...`
+3. Get numeric user ID from <https://tweeterid.com/> using @PayThePryce → `X_USER_ID=...`
 
 **Rate limits:** Free tier = 10K reads/month, 1,500 tweets/month
 **Used by:** `integrations/twitter/client.ts` (fetchLikes, searchRecent, postTweet, postThread)
 
 #### 2.3 Alpha Vantage (1 key) — Stock/ETF market data
 
-**Sign up:** https://www.alphavantage.co/support/#api-key
+**Sign up:** <https://www.alphavantage.co/support/#api-key>
+
 1. Enter email → instant API key (free: 25 requests/day)
 2. `ALPHA_VANTAGE_API_KEY=...`
 
@@ -459,7 +470,8 @@ const envVarsToInject = [
 
 #### 2.4 CoinGecko (1 key) — Crypto market data
 
-**Sign up:** https://www.coingecko.com/en/api/pricing
+**Sign up:** <https://www.coingecko.com/en/api/pricing>
+
 1. Create free account → Dashboard → API Keys → `COINGECKO_API_KEY=CG-...`
 2. Free tier: 10K calls/month
 
@@ -467,7 +479,8 @@ const envVarsToInject = [
 
 #### 2.5 OpenAI (1 key) — Whisper voice + multi-model fallback
 
-**Sign up:** https://platform.openai.com/api-keys
+**Sign up:** <https://platform.openai.com/api-keys>
+
 1. Create API key → `OPENAI_API_KEY=sk-...`
 2. Add $5 credit (Whisper = $0.006/min)
 
@@ -476,7 +489,8 @@ const envVarsToInject = [
 
 #### 2.6 GitHub (1 key) — Repo monitoring
 
-**Sign up:** https://github.com/settings/tokens
+**Sign up:** <https://github.com/settings/tokens>
+
 1. Generate classic token → scopes: `repo`, `read:org` → `GITHUB_TOKEN=ghp_...`
 
 **Used by:** `integrations/github/client.ts`
@@ -484,7 +498,8 @@ const envVarsToInject = [
 
 #### 2.7 Weather (1 key + 1 config) — Morning briefing weather
 
-**Sign up:** https://openweathermap.org/api
+**Sign up:** <https://openweathermap.org/api>
+
 1. Create account → API Keys tab → `WEATHER_API_KEY=...`
 2. Set location: `WEATHER_LOCATION=Indianapolis, IN`
 3. Free tier: 1,000 calls/day
@@ -494,7 +509,8 @@ const envVarsToInject = [
 
 #### 2.8 Perplexity (1 key) — AI-powered web search
 
-**Sign up:** https://www.perplexity.ai/settings/api
+**Sign up:** <https://www.perplexity.ai/settings/api>
+
 1. Create API key → `PERPLEXITY_API_KEY=pplx-...`
 2. Free tier: Limited
 
@@ -504,7 +520,8 @@ const envVarsToInject = [
 
 #### 2.9 ElevenLabs (1 key) — Text-to-speech
 
-**Sign up:** https://elevenlabs.io
+**Sign up:** <https://elevenlabs.io>
+
 1. Profile → API Key → `ELEVENLABS_API_KEY=sk_...`
 2. Free tier: 10,000 chars/month
 
@@ -513,7 +530,8 @@ const envVarsToInject = [
 
 #### 2.10 Google AI (1 key) — Gemini fallback models
 
-**Sign up:** https://aistudio.google.com/apikey
+**Sign up:** <https://aistudio.google.com/apikey>
+
 1. Create API key → `GOOGLE_AI_API_KEY=AIza...`
 2. Free tier: 15 RPM Gemini 2.0 Flash
 
@@ -521,7 +539,8 @@ const envVarsToInject = [
 
 #### 2.11 xAI / Grok (1 key) — Grok fallback models
 
-**Sign up:** https://console.x.ai
+**Sign up:** <https://console.x.ai>
+
 1. API Keys → Generate → `XAI_API_KEY=xai-...`
 
 **Already in daemon plist:** Yes
@@ -843,6 +862,7 @@ export function clearCache(): void {
 ```
 
 **Integration points:**
+
 - `chat-session.ts` — Replace inline `loadWorkspaceFile` with shared import
 - `agent.ts:51-71` — Replace `AUTONOMOUS_SYSTEM_PROMPT` with `await loadIdentityPrompt()` + task-specific suffix
 - `channels/message-bridge.ts` — Use `loadIdentityPrompt()` if hardcoded prompt exists there
@@ -1014,6 +1034,7 @@ The `MorningBriefingContext` type (lines 66-105) already includes fields for `ca
 What's missing: the agent needs to populate these fields when calling `morningBriefing()`.
 
 **Modify `agent.ts` morning_briefing handler (line 843-856):**
+
 ```typescript
 // Add cached data to morning briefing context
 const context: MorningBriefingContext = {
@@ -1032,6 +1053,7 @@ const context: MorningBriefingContext = {
 ```
 
 **Add new cached properties to agent.ts class:**
+
 ```typescript
 private lastCalendarEvents: unknown[] = [];
 private lastPendingReminders: unknown[] = [];
@@ -1056,6 +1078,7 @@ private lastTechNews: unknown[] = [];
 **New file:** `src/plugins/telegram-bot/intent-router.ts`
 
 Two-tier intent detection:
+
 1. **Fast path** (no AI call) — Regex pattern matching for common intents (~80% of messages)
 2. **Slow path** (AI classification) — AIOrchestrator-based for ambiguous input
 
@@ -1170,6 +1193,7 @@ Each command also registers keywords with the intent router for natural language
 **New file:** `src/plugins/telegram-bot/skill-bridge.ts`
 
 Connects SkillRegistry (src/skills/registry.ts) to Telegram:
+
 1. `SkillRegistry.findBestMatch(input)` — confidence-based matching (registry.ts:207-210)
 2. If match.confidence > 0.7 → execute skill via SkillExecutor
 3. Format output for Telegram HTML
@@ -1250,6 +1274,7 @@ Apply growth marketing patterns to ARI's existing content engine. Build for PayT
 **New file:** `src/plugins/content-engine/repurposer.ts`
 
 Transforms content between platform formats:
+
 - X thread → LinkedIn post (combine tweets, professional framing)
 - X thread → Blog outline (expand into sections)
 - Blog → X thread (break into tweet-sized chunks)
@@ -1272,6 +1297,7 @@ const BUYING_INTENT_KEYWORDS = [
 ```
 
 Pipeline:
+
 1. `XClient.searchRecent()` with buying intent queries
 2. Score each match: keyword relevance × account authority × recency
 3. Auto-draft personalized reply (stored in DraftQueue for approval)
@@ -1286,6 +1312,7 @@ Pipeline:
 **New file:** `src/plugins/content-engine/analytics.ts`
 
 Track published content performance:
+
 - Fetch tweet metrics (impressions, likes, retweets, replies) via XClient
 - Calculate engagement rate per post
 - Identify top performers for repurposing
@@ -1301,6 +1328,7 @@ Add `scheduled` state to lifecycle:
 `pending → sent_for_review → approved → scheduled → published`
 
 Best-time-to-post logic:
+
 - Weekday mornings (8-9 AM ET): Professional/career content
 - Weekday evenings (6-8 PM ET): Tech/AI content
 - Weekends: Pokemon TCG, personal brand content
@@ -1310,6 +1338,7 @@ Best-time-to-post logic:
 **New file:** `src/plugins/content-engine/feedback-loop.ts`
 
 After content published:
+
 1. Fetch metrics 24h and 7d later (via scheduled tasks)
 2. Score performance against category average
 3. Identify patterns: what hooks work, what topics perform, what times are best
@@ -1321,6 +1350,7 @@ After content published:
 **New file:** `src/plugins/content-engine/engagement-bot.ts`
 
 Automated X engagement (ALL actions require Pryce's approval via Telegram):
+
 - Like relevant posts in niche (AI, TypeScript, SaaS)
 - Quote-tweet with value-added commentary (AI-drafted, human-approved)
 - Reply to threads with insights (AI-drafted, human-approved)
@@ -1362,6 +1392,7 @@ src/autonomous/scheduler.ts               — Add growth scheduled tasks
 Best option: `arinspunk/claude-talk-to-figma-mcp` — 55+ write tools, native Claude Code support, free Figma tier.
 
 **Step 1:** Add to project `.mcp.json`:
+
 ```json
 {
   "mcpServers": {
@@ -1398,6 +1429,7 @@ Best option: `arinspunk/claude-talk-to-figma-mcp` — 55+ write tools, native Cl
 **New file:** `src/integrations/gmail/client.ts`
 
 Architecture:
+
 - Use `imapflow` npm package for IMAP connection
 - Gmail App Password for auth (simpler than OAuth2)
 - Poll every 15 minutes for new emails
@@ -1406,6 +1438,7 @@ Architecture:
 - Notify via Telegram for Important emails
 
 **Environment variables:**
+
 ```
 GMAIL_EMAIL=pryce@...
 GMAIL_APP_PASSWORD=...
@@ -1432,16 +1465,18 @@ These integrations are already built but not connected:
 **Problem:** `PerplexityClient` exists at `src/integrations/perplexity/client.ts` but is never instantiated. No handler, no agent connection, no Telegram command.
 
 **Fix:**
+
 1. Add `PERPLEXITY_API_KEY` to daemon env vars
 2. Instantiate in agent.ts init section:
+
 ```typescript
 if (process.env.PERPLEXITY_API_KEY) {
   const { PerplexityClient } = await import('../integrations/perplexity/client.js');
   this.perplexityClient = new PerplexityClient(process.env.PERPLEXITY_API_KEY);
 }
 ```
-3. Pass through to Telegram bot via PluginDependencies
-4. Use in `/search` command and intent router's `web_search` intent
+1. Pass through to Telegram bot via PluginDependencies
+2. Use in `/search` command and intent router's `web_search` intent
 
 ### Files to Create
 
@@ -1524,6 +1559,7 @@ curl http://127.0.0.1:3141/health
 ### Rollback Plan
 
 If deployment fails:
+
 ```bash
 # Revert to previous version
 cd /Users/ari/ARI

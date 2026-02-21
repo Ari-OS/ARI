@@ -29,17 +29,20 @@ ARI began in October 2025 as an exploration into personal AI augmentation — co
 The early development (versions 0.x through 10.x) happened over three months of intensive iteration:
 
 **October 2025: Concept Phase**
+
 - Initial vision: AI assistant that manages life domains (career, finance, health, learning)
 - First agent designs: simple prompt-based specialists
 - Prototype: single-agent system with context switching
 
 **November 2025: Architecture Phase**
+
 - Multi-agent coordination patterns explored
 - 13-agent architecture crystallized
 - Governance concepts introduced (voting, oversight)
 - Memory system with provenance tracking designed
 
 **December 2025 - January 2026: Iteration Phase**
+
 - Versions 1-10 rapidly iterated on agent designs
 - Tool permission system developed
 - Context routing patterns refined
@@ -50,12 +53,14 @@ The early development (versions 0.x through 10.x) happened over three months of 
 By mid-January 2026, the system had matured into the **Rose Protocol** — a complete multi-agent specification:
 
 **v11.0.0 (Jan 15, 2026)** — Full multi-agent architecture with:
+
 - 13 specialized agents (Core, Guardian, Planner, Executor, Memory Manager, 5 Council members, Arbiter, Overseer, Router)
 - Context-aware routing for life domains
 - Tool registry with permission tiers
 - Governance voting rules
 
 **v11.1.0 (Jan 20, 2026)** — Security hardening pass:
+
 - Trust level definitions (SYSTEM, OPERATOR, VERIFIED, STANDARD, UNTRUSTED, HOSTILE)
 - Injection attack pattern catalog (early version)
 - Memory partition isolation concepts
@@ -217,6 +222,7 @@ The jump from v12.0.0 (specification) to v2.0.0 (implementation) requires explan
 - The "2" indicates: major rewrite, breaking API changes, new architecture
 
 The implementation exceeded the specification:
+
 - **187 tests** vs 70 specified
 - **Full TypeScript implementation** vs markdown prompts
 - **Working REST API** vs conceptual endpoints
@@ -271,6 +277,7 @@ Agent A → emit('agent:request', payload) → EventBus → Agent B subscribes
 ```
 
 This pattern ensures:
+
 - Testability (mock the EventBus)
 - Traceability (all events logged)
 - Decoupling (agents can be replaced independently)

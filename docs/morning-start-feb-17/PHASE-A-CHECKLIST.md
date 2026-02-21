@@ -17,6 +17,7 @@
 ## Still Needed
 
 ### Verify End-to-End Delivery
+
 - [ ] Confirm NotificationManager routes to Telegram (not old SMS path)
 - [ ] Confirm TELEGRAM_BOT_TOKEN set in `~/.ari/.env`
 - [ ] Confirm TELEGRAM_OWNER_USER_ID set in `~/.ari/.env`
@@ -25,12 +26,14 @@
 - [ ] Test: verify message appears in Telegram
 
 ### Optional Enhancements
+
 - [x] Change briefing time from 7:00 AM to 6:30 AM (per plan preference)
 - [ ] Add Intelligence Scanner content to morning briefing
 - [ ] Add Life Monitor alerts to morning briefing
 - [ ] Add weather/calendar integration (future)
 
 ### Deploy to Mac Mini
+
 - [ ] SSH to Mac Mini: `ssh -o ConnectTimeout=10 -i ~/.ssh/id_ed25519 ari@100.81.73.34`
 - [ ] Pull latest code
 - [ ] Build: `npm run build`
@@ -41,6 +44,7 @@
 - [ ] Wait for next scheduled briefing to verify
 
 ### Verification
+
 - [ ] `npm run build` passes
 - [ ] `npm run typecheck` passes
 - [ ] `npm run lint` passes

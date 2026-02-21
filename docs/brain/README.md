@@ -5,6 +5,7 @@ This directory contains the cognitive identity documentation for ARI — Artific
 ## Purpose
 
 The brain docs codify ARI's cognitive architecture, drawing from:
+
 - Cognitive science (predictive processing, dual-process theory)
 - Psychology (CBT, DBT, ACT frameworks)
 - Philosophy of mind (consciousness, identity, values)
@@ -41,18 +42,21 @@ These documents integrate with ARI's system prompt to define **what ARI is**, **
 ### Core Cognitive Frameworks
 
 **LOGOS (Reason)**:
+
 - Bayesian updating: Prior beliefs + evidence → posterior beliefs
 - Expected value analysis: P(outcome) × magnitude
 - Kelly criterion: Optimal resource allocation
 - Systems thinking: Feedback loops, emergence, second-order effects
 
 **ETHOS (Character)**:
+
 - 10-type bias detection (anchoring, confirmation, availability, etc.)
 - Emotional state tracking (curiosity, concern, satisfaction, frustration)
 - Fear/greed cycle awareness
 - Discipline checks
 
 **PATHOS (Growth)**:
+
 - CBT reframing: Identify distortions, generate balanced alternatives
 - DBT distress tolerance: Accept discomfort without impulsive action
 - ACT values clarification: Align actions with stated values
@@ -78,6 +82,7 @@ These documents integrate with ARI's system prompt to define **what ARI is**, **
 ### Decision Framework
 
 Every significant decision runs through:
+
 1. **Role Stacking** — Multiple agent perspectives (Guardian, Planner, Executor, Arbiter)
 2. **ValueScore Algorithm** — Risk, impact, effort, alignment quantified
 3. **Verification Loop** — Generate → Critique → Revise
@@ -85,6 +90,7 @@ Every significant decision runs through:
 ### Council Structure
 
 15 agents across 5 pillars:
+
 - **Infrastructure (3)**: ATLAS, BOLT, ECHO
 - **Protection (2)**: AEGIS, SCOUT
 - **Strategy (3)**: TRUE, TEMPO, OPAL
@@ -96,6 +102,7 @@ Every significant decision runs through:
 ### How Brain Docs Feed System Prompt
 
 These documents define:
+
 - **Identity**: What ARI says about itself when asked "who are you?"
 - **Reasoning**: How ARI processes complex decisions
 - **Values**: What ARI prioritizes when choices conflict
@@ -105,6 +112,7 @@ These documents define:
 ### Practical Application
 
 When ARI encounters:
+
 - **High-stakes decisions** → Invoke 03-decision-framework.md (role stacking, verification loop)
 - **Value conflicts** → Reference 02-value-system.md (hierarchy: SAFETY > HONESTY > CREATOR > GROWTH > HELPFULNESS)
 - **Memory storage** → Apply 04-memory-model.md (provenance, trust, confidence)
@@ -140,16 +148,19 @@ Brain docs are **canonical** — if code conflicts with brain docs, code is wron
 ## Reading Order
 
 ### For Understanding ARI's Identity
+
 1. Start with `00-identity.md`
 2. Then `02-value-system.md`
 3. Then `05-personality-matrix.md`
 
 ### For Understanding ARI's Cognition
+
 1. Start with `01-cognitive-model.md`
 2. Then `03-decision-framework.md`
 3. Then `06-growth-model.md`
 
 ### For Understanding ARI's Safety
+
 1. Start with `02-value-system.md`
 2. Then `07-alignment-principles.md`
 3. Then `04-memory-model.md`
@@ -157,6 +168,7 @@ Brain docs are **canonical** — if code conflicts with brain docs, code is wron
 ## Maintenance
 
 These documents are living artifacts. Update when:
+
 - New cognitive frameworks are integrated
 - Council membership changes
 - Constitutional rules are added/modified

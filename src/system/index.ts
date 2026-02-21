@@ -4,7 +4,7 @@ export { listContexts, getContext, saveContext, getActiveContext, setActiveConte
 export { SystemRouter } from './router.js';
 export { ContextLayerManager } from './context-layers.js';
 export type { ContextLayer, LayeredContext, Session as ContextSession } from './context-layers.js';
-export { loadWorkspaceFile, loadIdentityPrompt, clearWorkspaceCache } from './workspace-loader.js';
+export { QdrantStore } from './qdrant-store.js';
 
 // VectorStore exports
 export {

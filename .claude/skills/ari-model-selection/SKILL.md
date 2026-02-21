@@ -14,6 +14,7 @@ triggers:
 # ARI Model Selection — Adaptive Intelligence
 
 ARI autonomously selects the optimal model for each task based on:
+
 - **Task complexity** — Does this require deep reasoning or pattern matching?
 - **Token cost** — What's the budget impact?
 - **Quality requirements** — Is this production-critical or exploratory?

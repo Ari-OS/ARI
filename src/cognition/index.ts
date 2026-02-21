@@ -91,6 +91,7 @@ import { LearningLoop } from './learning/learning-loop.js';
 import type { LearningLoopStatus } from './learning/learning-loop.js';
 import { SourceManager } from './knowledge/source-manager.js';
 import { getAllProfiles } from './knowledge/specializations.js';
+import { FoundryObserver } from './learning/foundry-observer.js';
 
 // =============================================================================
 // COGNITIVE METRICS — Event-driven tracking (replaces hardcoded TODOs)
@@ -220,6 +221,7 @@ export class CognitionLayer {
   private metrics: CognitiveMetricsTracker = new CognitiveMetricsTracker();
   private learningLoop: LearningLoop | null = null;
   private sourceManager: SourceManager | null = null;
+  private foundryObserver: FoundryObserver | null = null;
 
   // Pillar APIs (will be populated on init)
   public logos: typeof import('./logos/index.js') | null = null;
@@ -269,6 +271,8 @@ export class CognitionLayer {
       // Initialize knowledge and learning subsystems
       this.sourceManager = new SourceManager();
       this.learningLoop = new LearningLoop();
+      this.foundryObserver = new FoundryObserver(this.eventBus);
+      await this.foundryObserver.initialize();
 
       this.initialized = true;
       this.initializationTime = new Date();
@@ -552,6 +556,11 @@ export class CognitionLayer {
 
     this.initialized = false;
     this.initializationTime = null;
+    
+    if (this.foundryObserver) {
+      this.foundryObserver.shutdown();
+      this.foundryObserver = null;
+    }
   }
 }
 

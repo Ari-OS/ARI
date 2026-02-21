@@ -35,16 +35,19 @@ PATHOS (πάθος) - Greek for "experience", "suffering", "emotion" - represent
 ### Why Growth Frameworks for AI?
 
 ARI exists to **enhance human life** (Pryce's). Life involves:
+
 - Setbacks (failures, losses, rejections)
 - Challenges (health, relationships, growth)
 - Uncertainty (what to do, how to improve)
 
 **Without PATHOS**:
+
 - Failures are just logged (no learning)
 - Challenges are just problems (no reframing)
 - No integration of wisdom (Stoics, Dalio, Munger ignored)
 
 **With PATHOS**:
+
 - "Project failed → Reflect → Extract 3 insights → Store as principles → Don't repeat mistake"
 - "Health challenge → CBT reframe → 'This is hard, AND I can do it' → Action plan"
 - "Ethical dilemma → Consult Stoics → 'What would Marcus Aurelius do?' → Principled decision"
@@ -79,6 +82,7 @@ ARI exists to **enhance human life** (Pryce's). Life involves:
 > Our thoughts create our emotions. Distorted thinking → negative emotions → poor actions. By challenging and reframing thoughts, we change emotions and actions.
 
 **The CBT Model**:
+
 ```
 Situation → Thought → Emotion → Behavior
 
@@ -108,12 +112,14 @@ Behavior: Start working on first step
 **Definition**: Seeing things in black-and-white categories (perfect or failure, no middle).
 
 **Example**:
+
 ```
 Distorted: "I ate one cookie. My diet is ruined. Might as well eat the whole box."
 Reality: "I ate one cookie (100 calories). That's 5% of my daily budget. The diet is 95% intact."
 ```
 
 **Reframe**:
+
 ```typescript
 function reframeAllOrNothing(thought: string): string {
   // Detect absolute thinking
@@ -136,12 +142,14 @@ function reframeAllOrNothing(thought: string): string {
 **Definition**: Seeing single negative event as pattern ("This always happens").
 
 **Example**:
+
 ```
 Distorted: "I failed this interview. I always mess up interviews."
 Reality: "I failed this interview. I've succeeded in 3 of 5 interviews (60% success rate)."
 ```
 
 **Reframe**:
+
 ```typescript
 function reframeOvergeneralization(thought: string, historicalData: any[]): string {
   // Detect overgeneralization phrases
@@ -162,6 +170,7 @@ function reframeOvergeneralization(thought: string, historicalData: any[]): stri
 **Definition**: Focusing only on negative details, filtering out positive.
 
 **Example**:
+
 ```
 Situation: Presentation went well (90% positive feedback, 1 critical comment)
 Distorted: "Someone said my slides were unclear. The presentation was a failure."
@@ -177,12 +186,14 @@ Reality: "9 of 10 people praised it. One person had a valid critique about slide
 **Definition**: Expecting the worst-case scenario without evidence.
 
 **Example**:
+
 ```
 Distorted: "If I don't get this job, my career is over. I'll be unemployed forever."
 Reality: "If I don't get this job, I'll apply to others. Worst case: Takes 3-6 months to find something."
 ```
 
 **Reframe**:
+
 ```typescript
 function reframeCatastrophizing(thought: string): {
   reframed: string;
@@ -288,6 +299,7 @@ export async function reframeThought(
 **Modern Translation**:
 
 **In Your Control**:
+
 - Your decisions
 - Your effort and preparation
 - Your reactions to events
@@ -295,6 +307,7 @@ export async function reframeThought(
 - How you interpret situations
 
 **NOT in Your Control**:
+
 - Other people's actions
 - Outcomes (market returns, job offers, health outcomes)
 - Past events (already happened)
@@ -465,6 +478,7 @@ function isControllable(factor: string): boolean {
    - Discipline
 
 **Application in Decisions**:
+
 ```typescript
 export interface VirtueCheck {
   decision: string;
@@ -511,6 +525,7 @@ export async function checkVirtueAlignment(
 ```
 
 **Example**:
+
 ```
 Decision: "Layoff 10 employees to cut costs"
 
@@ -547,6 +562,7 @@ Recommendation: "Before layoffs, explore: reduce expenses, defer bonuses, volunt
 ### Deliberate Practice vs Naive Practice
 
 **Naive Practice** (doesn't improve):
+
 ```
 Goal: "Get better at public speaking" (vague)
 Method: Give presentations occasionally
@@ -556,6 +572,7 @@ Result: Plateau after initial improvement
 ```
 
 **Deliberate Practice** (expert level):
+
 ```
 Goal: "Eliminate filler words (um, uh) - currently 15/min, target 3/min"
 Method: Practice 30-min daily, record and review
@@ -707,30 +724,35 @@ export async function createPracticePlan(params: {
 **Curated Principles** from timeless sources:
 
 **Ray Dalio** (Principles):
+
 - "Pain + Reflection = Progress"
 - "Radical truth and radical transparency"
 - "Believability-weighted decision making"
 - "Life is a series of choices between alternatives that have pros and cons"
 
 **Charlie Munger** (Mental Models):
+
 - "Inversion - always invert" (solve from end backwards)
 - "Second-order thinking" (and then what?)
 - "Circle of competence" (know what you know and don't know)
 - "Lollapalooza effect" (multiple biases compound)
 
 **Miyamoto Musashi** (Book of Five Rings):
+
 - "Think lightly of yourself and deeply of the world"
 - "Do nothing which is of no use"
 - "Perceive those things which cannot be seen"
 - "The Way is in training"
 
 **Naval Ravikant** (Almanack):
+
 - "Specific knowledge cannot be taught (but can be learned)"
 - "Leverage: Code, media, labor, capital"
 - "Play long-term games with long-term people"
 - "Read what you love until you love to read"
 
 **Donella Meadows** (Thinking in Systems):
+
 - "Leverage points - places to intervene in a system"
 - "Today, an intervention to slow population growth will take years to manifest"
 - "We can't impose our will on a system. We can listen to what the system tells us"
@@ -825,6 +847,7 @@ export async function consultWisdom(params: {
 **David Kolb** (1984):
 
 **Four Stages of Learning**:
+
 ```
 1. Concrete Experience
    (Do something)
@@ -842,6 +865,7 @@ export async function consultWisdom(params: {
 ```
 
 **ARI Application**:
+
 ```
 1. Execute decision (Experience)
 2. Reflect on outcome (Observation)
@@ -941,36 +965,36 @@ export async function reflectOnOutcome(params: {
 
 1. **Beck Institute - CBT Resources**
    - Official CBT materials from Aaron Beck's institute
-   - https://beckinstitute.org
+   - <https://beckinstitute.org>
 
 2. **Linehan Institute - DBT Resources**
    - Official DBT materials from Marsha Linehan
-   - https://behavioraltech.org
+   - <https://behavioraltech.org>
 
 3. **Association for Contextual Behavioral Science - ACT**
    - Official ACT resources
-   - https://contextualscience.org
+   - <https://contextualscience.org>
 
 ### Stoic Texts (Public Domain)
 
-4. **Marcus Aurelius - Meditations**
-5. **Seneca - Letters from a Stoic**
-6. **Epictetus - Enchiridion**
-7. **Modern Stoicism** - https://modernstoicism.com
+1. **Marcus Aurelius - Meditations**
+2. **Seneca - Letters from a Stoic**
+3. **Epictetus - Enchiridion**
+4. **Modern Stoicism** - <https://modernstoicism.com>
 
 ### Meta-Learning (VERIFIED)
 
-8. **Ericsson - Peak**
-9. **Learning science journals**
-10. **Spaced repetition research**
-11. **Cognitive load theory papers**
+1. **Ericsson - Peak**
+2. **Learning science journals**
+3. **Spaced repetition research**
+4. **Cognitive load theory papers**
 
 ### Wisdom Traditions (STANDARD)
 
-12. **Ray Dalio - Principles** (official excerpts)
-13. **Charlie Munger - Mental models** (Berkshire letters)
-14. **Naval Ravikant - Almanack** (official)
-15. **Farnam Street** (Shane Parrish curates)
+1. **Ray Dalio - Principles** (official excerpts)
+2. **Charlie Munger - Mental models** (Berkshire letters)
+3. **Naval Ravikant - Almanack** (official)
+4. **Farnam Street** (Shane Parrish curates)
 
 **Total PATHOS Sources**: ~27 sources
 

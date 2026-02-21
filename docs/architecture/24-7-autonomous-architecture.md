@@ -19,17 +19,20 @@ Three-component architecture:
 ### Expected Outcomes
 
 **Efficiency:**
+
 - 70% of tasks use Haiku (10-60x cheaper than Opus)
 - Daily cost: $0.50-1.50 (vs $10+ without routing)
 - 95%+ days under $2.50 budget
 
 **Productivity:**
+
 - 10-20 autonomous tasks per day
 - Morning brief ready by 7:30 AM
 - Tests, docs, code quality improving continuously
 - Time saved: ~2-3 hours/day of manual work
 
 **Control:**
+
 - Real-time budget visibility
 - Approval gates for risky work
 - Emergency throttling and kill switches
@@ -310,30 +313,35 @@ Savings: 80% ($28.80/month)
 ### Week 1: Foundation (Feb 3-9)
 
 **Monday-Tuesday: Core Infrastructure**
+
 - TokenBudgetTracker (tracking, throttling)
 - ModelRouter (task profiling, selection)
 - Integration with ClaudeClient
 - Dashboard budget panel
 
 **Wednesday-Thursday: Autonomous Integration**
+
 - Update AutonomousAgent with budget awareness
 - Enhance Scheduler with model hints
 - Adaptive throttling logic
 - Testing and validation
 
 **Friday: Initiative Engine Enhancement**
+
 - Enhanced scoring system
 - Safety gate integration
 - Execution decision matrix
 - Cost tracking per initiative
 
 **Saturday-Sunday: Deliverables**
+
 - Daily brief generator
 - Approval queue system
 - Evening summary
 - Testing
 
 **Validation Checkpoint:**
+
 - [ ] All components tested
 - [ ] Budget tracking functional
 - [ ] Model routing working
@@ -344,18 +352,21 @@ Savings: 80% ($28.80/month)
 ### Week 2: Deployment & Tuning (Feb 10-16)
 
 **Monday: Mac Mini Deployment**
+
 - Sync latest code to Mac Mini
 - Deploy budget configuration
 - Enable autonomous mode
 - Initial monitoring
 
 **Tuesday-Friday: Observation Period**
+
 - Monitor 4 days of autonomous operation
 - Track actual vs estimated costs
 - Analyze task completion rates
 - Identify issues
 
 **Daily Metrics to Track:**
+
 ```
 Day 1 (Tuesday):
 ├─ Total cost: $XXX
@@ -369,12 +380,14 @@ Day 2-4: Same metrics
 ```
 
 **Saturday-Sunday: Tuning**
+
 - Adjust model selection rules based on data
 - Tune budget thresholds
 - Refine scheduling timing
 - Optimize task prioritization
 
 **Validation Checkpoint:**
+
 - [ ] 4 consecutive days operational
 - [ ] Morning briefs delivered on time
 - [ ] Budget under $2.50/day average
@@ -388,6 +401,7 @@ Day 2-4: Same metrics
 ### Three-Tier Config System
 
 **Tier 1: Budget Limits (Strict)**
+
 ```json
 // ~/.ari/budget-config.json
 {
@@ -400,6 +414,7 @@ Day 2-4: Same metrics
 ```
 
 **Tier 2: Model Routing (Tunable)**
+
 ```json
 // ~/.ari/model-routing-rules.json
 {
@@ -422,6 +437,7 @@ Day 2-4: Same metrics
 ```
 
 **Tier 3: Schedule Timing (Adjustable)**
+
 ```json
 // ~/.ari/schedule-overrides.json
 {
@@ -438,6 +454,7 @@ Day 2-4: Same metrics
 ### Alert Levels
 
 **CRITICAL (Immediate SMS + Telegram Notification):**
+
 - Budget exceeded by >20%
 - Daemon crashed
 - Security event detected
@@ -445,6 +462,7 @@ Day 2-4: Same metrics
 - Error rate >10 per hour
 
 **WARNING (Dashboard + Optional Notification):**
+
 - Budget 80% used before 8 PM
 - Approval queue >5 items
 - Mac Mini out of sync >24 hours
@@ -452,6 +470,7 @@ Day 2-4: Same metrics
 - Model routing failure
 
 **INFO (Dashboard Only):**
+
 - Daily brief ready
 - Evening summary ready
 - Autonomous work completed
@@ -570,6 +589,7 @@ Budget Overruns:
 **Scenario:** Bug in budget tracker allows unlimited spending
 
 **Mitigations:**
+
 1. Hard caps in Anthropic API (set account limits)
 2. Multiple throttle checkpoints (80%, 95%, 100%)
 3. Real-time cost monitoring with alerts
@@ -577,6 +597,7 @@ Budget Overruns:
 5. Emergency kill switch accessible via Telegram
 
 **Recovery:**
+
 - Daemon auto-pauses at budget limit
 - Manual restart required after review
 - Root cause analysis before resuming
@@ -586,6 +607,7 @@ Budget Overruns:
 **Scenario:** ARI generates poor tests or breaks code
 
 **Mitigations:**
+
 1. All code changes in isolated worktrees
 2. Test requirements before merge
 3. Lint/type checking enforced
@@ -593,6 +615,7 @@ Budget Overruns:
 5. Easy rollback (delete worktree)
 
 **Recovery:**
+
 - Identify bad work in audit log
 - Rollback changes
 - Tune initiative scoring
@@ -603,12 +626,14 @@ Budget Overruns:
 **Scenario:** Power outage or network issues at parents' house
 
 **Mitigations:**
+
 1. Auto-restart via launchd KeepAlive
 2. Tailscale auto-reconnect
 3. Local state persists (no data loss)
 4. MacBook Pro can run in backup mode
 
 **Recovery:**
+
 - System auto-recovers when power/network returns
 - State resumes from last checkpoint
 - No user intervention needed
@@ -618,12 +643,14 @@ Budget Overruns:
 **Scenario:** Too many alerts cause fatigue
 
 **Mitigations:**
+
 1. Critical-only Telegram + SMS notifications
 2. Batched morning/evening summaries
 3. Dashboard for non-urgent info
 4. Configurable alert thresholds
 
 **Recovery:**
+
 - Disable notification categories
 - Adjust alert thresholds
 - Increase batch windows
@@ -633,12 +660,14 @@ Budget Overruns:
 **Scenario:** Too many items queue up, overwhelming user
 
 **Mitigations:**
+
 1. Limit to 5 pending items max
 2. Auto-expire low-priority items after 7 days
 3. Clear prioritization (urgent first)
 4. Quick approve/reject UI
 
 **Recovery:**
+
 - Bulk reject low-priority items
 - Increase autonomous threshold
 - Reduce initiative discovery frequency
@@ -718,12 +747,14 @@ RESULT:
 ### Enhanced Capabilities
 
 **Month 2: Proactive Intelligence**
+
 - Pattern detection in user behavior
 - Predictive initiative discovery
 - Context-aware task timing
 - Multi-day planning
 
 **Month 3: Self-Optimization**
+
 - Automated A/B testing of strategies
 - Self-tuning model selection
 - Dynamic budget reallocation
@@ -732,16 +763,19 @@ RESULT:
 ### Advanced Features
 
 **Smart Caching:**
+
 - Cache common prompts
 - Reuse context across similar tasks
 - Token savings: 20-30%
 
 **Batch Processing:**
+
 - Group similar tasks together
 - Shared context window
 - Token savings: 15-25%
 
 **Predictive Budgeting:**
+
 - Learn weekly/monthly patterns
 - Anticipate high-usage days
 - Reallocate budget proactively

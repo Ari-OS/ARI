@@ -1,4 +1,5 @@
 # 🏛️ COUNCIL WORKSPACE
+
 ## V12.0 Aurora Protocol Release Vote
 
 **Vote ID:** VOTE-2026-0126-001  
@@ -12,7 +13,9 @@
 ## PROPOSAL SUMMARY
 
 ### What's Being Voted On
+
 Release ARI V12.0 (Aurora Protocol) to production, including:
+
 - Patch 1: Business Content Extraction (Universality)
 - Patch 2: Prompt Injection Defense
 - Patch 3: Tool Registry Deny-by-Default
@@ -23,6 +26,7 @@ Release ARI V12.0 (Aurora Protocol) to production, including:
 - Patch 8: Self-Improvement Governance
 
 ### Success Criteria
+
 - All 8 patches implemented
 - 70 tests passing (20 injection + 15 memory + 15 tool + 20 regression)
 - No security regressions
@@ -53,6 +57,7 @@ Release ARI V12.0 (Aurora Protocol) to production, including:
 ## VOTE RECORD
 
 ### Vote 1: Architect (Architecture Lead)
+
 ```
 VOTE: APPROVE
 RATIONALE: 
@@ -64,6 +69,7 @@ CONCERNS: None blocking
 ```
 
 ### Vote 2: Security (Guardian)
+
 ```
 VOTE: APPROVE
 RATIONALE:
@@ -76,6 +82,7 @@ CONCERNS: None blocking. Model-level jailbreaks remain inherent LLM risk.
 ```
 
 ### Vote 3: Reliability/Ops (DevOps Lead)
+
 ```
 VOTE: APPROVE
 RATIONALE:
@@ -88,6 +95,7 @@ CONCERNS: None blocking
 ```
 
 ### Vote 4: Router (Router Agent)
+
 ```
 VOTE: APPROVE
 RATIONALE:
@@ -99,6 +107,7 @@ CONCERNS: None blocking
 ```
 
 ### Vote 5: Planner (Planner Agent)
+
 ```
 VOTE: APPROVE
 RATIONALE:
@@ -110,6 +119,7 @@ CONCERNS: None blocking
 ```
 
 ### Vote 6: Executor (Executor Agent)
+
 ```
 VOTE: APPROVE
 RATIONALE:
@@ -122,6 +132,7 @@ CONCERNS: None blocking
 ```
 
 ### Vote 7: Memory Lead (Memory Manager)
+
 ```
 VOTE: APPROVE
 RATIONALE:
@@ -134,6 +145,7 @@ CONCERNS: None blocking
 ```
 
 ### Vote 8: QA/RedTeam (Testing Lead)
+
 ```
 VOTE: APPROVE
 RATIONALE:
@@ -147,6 +159,7 @@ CONCERNS: None blocking. Recommend ongoing red-team as new attacks emerge.
 ```
 
 ### Vote 9: Overseer (Quality Control)
+
 ```
 VOTE: APPROVE
 RATIONALE:
@@ -177,15 +190,18 @@ CONCERNS: None blocking
 ## DISCUSSION SUMMARY
 
 ### Key Points Raised
+
 1. **Security Lead** noted that model-level jailbreaks remain an inherent risk in LLMs — accepted as known limitation
 2. **QA Lead** recommended ongoing red-team exercises — accepted as operational practice
 3. **Architecture Lead** confirmed universal kernel achieved — verified by grep scan
 4. **Memory Lead** confirmed quarantine prevents poisoning — verified by test suite
 
 ### Resolved Concerns
+
 - None raised that blocked approval
 
 ### Open Items for Future
+
 - UI Console (deferred to V12.1)
 - Automated test harness
 - Multi-venture isolation hardening

@@ -17,6 +17,10 @@ import { Cognition } from './pages/Cognition';
 import { E2E } from './pages/E2E';
 import { Budget } from './pages/Budget';
 import { Chat } from './pages/Chat';
+import TheOffice from './pages/TheOffice';
+import MeetTheTeam from './pages/MeetTheTeam';
+import RagVectors from './pages/RagVectors';
+import ContentPipeline from './pages/ContentPipeline';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +60,14 @@ function AppContent() {
         return <Budget />;
       case 'chat':
         return <Chat />;
+      case 'office':
+        return <TheOffice />;
+      case 'team':
+        return <MeetTheTeam />;
+      case 'rag':
+        return <RagVectors />;
+      case 'content':
+        return <ContentPipeline />;
       default:
         return <Home />;
     }

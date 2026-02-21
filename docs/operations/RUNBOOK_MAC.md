@@ -99,6 +99,7 @@ npx ari onboard init
 ```
 
 This creates:
+
 - `~/.ari/config.json` — Runtime configuration
 - `~/.ari/audit.json` — Genesis block for audit chain
 - `~/.ari/logs/` — Log directory
@@ -111,6 +112,7 @@ npx ari doctor
 ```
 
 Expected output:
+
 ```
 ✓ Node.js version: 20.x.x
 ✓ ARI directory exists: ~/.ari
@@ -127,22 +129,26 @@ Expected output:
 ### Install Service
 
 **Development (standard)**:
+
 ```bash
 npx ari daemon install
 ```
 
 **Production (Mac Mini M4 optimized)**:
+
 ```bash
 npx ari daemon install --production
 ```
 
 The `--production` flag enables:
+
 - Increased file descriptor limits (4096 soft, 8192 hard)
 - Increased process limits (2048)
 - Node.js heap size optimization (4GB max)
 - 30-second graceful shutdown timeout
 
 This creates a launchd plist at:
+
 ```
 ~/Library/LaunchAgents/com.ari.gateway.plist
 ```
@@ -154,6 +160,7 @@ npx ari daemon start
 ```
 
 Or use launchctl directly:
+
 ```bash
 launchctl load ~/Library/LaunchAgents/com.ari.daemon.plist
 ```
@@ -165,6 +172,7 @@ npx ari daemon status
 ```
 
 Or:
+
 ```bash
 launchctl list | grep ari
 ```
@@ -176,6 +184,7 @@ npx ari daemon stop
 ```
 
 Or:
+
 ```bash
 launchctl unload ~/Library/LaunchAgents/com.ari.daemon.plist
 ```
@@ -235,6 +244,7 @@ curl http://127.0.0.1:3141/health
 ```
 
 Expected:
+
 ```json
 {"status":"healthy","uptime":123}
 ```
@@ -246,6 +256,7 @@ curl http://127.0.0.1:3141/api/audit/verify
 ```
 
 Expected:
+
 ```json
 {"valid":true,"eventCount":42,"lastHash":"abc123..."}
 ```
@@ -277,16 +288,19 @@ kill -9 <PID>
 ### Daemon Not Starting
 
 **Check logs**:
+
 ```bash
 tail -f ~/.ari/logs/daemon.log
 ```
 
 **Check launchd status**:
+
 ```bash
 launchctl list | grep ari
 ```
 
 **Common issues**:
+
 - Permission denied: Check file permissions on ~/.ari
 - Node not found: Ensure Node.js is in PATH
 - Build outdated: Run `npm run build`
@@ -296,8 +310,10 @@ launchctl list | grep ari
 **Symptom**: `npx ari audit verify` fails
 
 **Recovery**:
+
 1. Check `~/.ari/audit.json` for corruption
 2. If corrupt, restore from backup or reinitialize:
+
    ```bash
    npx ari onboard init --force
    ```

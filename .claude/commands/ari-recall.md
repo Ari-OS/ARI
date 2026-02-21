@@ -19,12 +19,14 @@ Retrieve stored memories from ARI's memory system.
 ## Examples
 
 ### Exact Retrieval
+
 ```
 /ari-recall auth_pattern
 → "Use JWT with 24h expiry for API auth"
 ```
 
 ### Search
+
 ```
 /ari-recall search caching
 → Found 3 memories:
@@ -34,6 +36,7 @@ Retrieve stored memories from ARI's memory system.
 ```
 
 ### Domain Listing
+
 ```
 /ari-recall domain patterns
 → Patterns (12 items):
@@ -44,6 +47,7 @@ Retrieve stored memories from ARI's memory system.
 ```
 
 ### Recent Memories
+
 ```
 /ari-recall recent 5
 → Last 5 memories:
@@ -55,6 +59,7 @@ Retrieve stored memories from ARI's memory system.
 ## Output Format
 
 ### Single Memory
+
 ```markdown
 ## Memory: [key]
 
@@ -73,6 +78,7 @@ Retrieve stored memories from ARI's memory system.
 ```
 
 ### Search Results
+
 ```markdown
 ## Search Results: "[query]"
 

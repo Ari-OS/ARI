@@ -102,24 +102,29 @@ The gap between "AI that exists" and "AI that a small business can actually depl
 ARI's competitive advantage is NOT the AI model (that's a commodity). The moat is:
 
 ### 1. Constitutional Governance (Unique in market)
+
 No other AI system lets users define and vote on the principles that govern their AI's behavior. This is philosophically differentiated and narratively compelling.
 
 **Marketing angle**: "Your AI should have a constitution. Here's ours."
 
 ### 2. Tamper-Evident Audit Trail (Enterprise-grade)
+
 SHA-256 hash-chained, append-only logging means every action is verifiable. This is the same technology backing cryptocurrency integrity — applied to AI decision-making.
 
 **Marketing angle**: "What if AI decisions were as auditable as blockchain transactions?"
 
 ### 3. Local-First Security (Privacy as a feature)
+
 In an era of data breaches, running on `127.0.0.1` is a feature. Data never leaves your machine. No cloud dependency for core operations.
 
 **Marketing angle**: "Your data stays on your machine. Period."
 
 ### 4. Plugin Architecture (Platform potential)
+
 Already built with manifest validation, dependency resolution, lifecycle management, and health checks. 7 capability types. MCP server exposes plugin tools. Ready for a marketplace.
 
 ### 5. Three-Pillar Cognition (Brand differentiator)
+
 LOGOS/ETHOS/PATHOS is memorable, meaningful, and marketable. It's not just branding — it's architecturally real.
 
 ---
@@ -186,17 +191,17 @@ Year 3: + Partner Program + International
 
 ### Phase 2: Growth (Months 7-18)
 
-7. **Launch ARI Cloud** — Full managed hosting
-8. **Open the plugin marketplace** for community-built plugins
-9. **Add team features** — Shared ARI instances, RBAC
-10. **Partner program** — IT consultants resell ARI deployments
-11. **First enterprise pilot** — Target compliance-heavy company
+1. **Launch ARI Cloud** — Full managed hosting
+2. **Open the plugin marketplace** for community-built plugins
+3. **Add team features** — Shared ARI instances, RBAC
+4. **Partner program** — IT consultants resell ARI deployments
+5. **First enterprise pilot** — Target compliance-heavy company
 
 ### Phase 3: Scale (Months 19-36)
 
-12. **Enterprise tier** — HIPAA/SOC 2 compliance dashboards
-13. **API marketplace** — Third-party developers build and sell agents
-14. **Raise funding** (optional) — With $2M+ ARR, strong leverage
+1. **Enterprise tier** — HIPAA/SOC 2 compliance dashboards
+2. **API marketplace** — Third-party developers build and sell agents
+3. **Raise funding** (optional) — With $2M+ ARR, strong leverage
 
 ---
 

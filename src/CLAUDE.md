@@ -13,6 +13,7 @@ This is the main source directory for ARI. Quick navigation:
 | 6. CLI | `cli/` | User interface commands (24 commands) |
 
 Additional directories:
+
 - `ai/` — AIOrchestrator, model registry (20 models), value scorer, batch processor
 - `autonomous/` — Proactive agent, scheduler (35 tasks), briefings, market monitor
 - `execution/` — Tool registry, tool executor, model router

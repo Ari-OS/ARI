@@ -45,6 +45,7 @@ npm install
 ```
 
 This will install all required dependencies including:
+
 - TypeScript compiler
 - Fastify (gateway)
 - Zod (schema validation)
@@ -66,6 +67,7 @@ npx ari onboard init
 ```
 
 This creates:
+
 - `~/.ari/` directory
 - `~/.ari/config.json` (default configuration)
 - `~/.ari/audit.json` (with genesis block)
@@ -79,6 +81,7 @@ npx ari doctor
 ```
 
 This runs 6 health checks:
+
 1. Config file exists and is valid
 2. Audit log exists
 3. Audit chain integrity
@@ -87,6 +90,7 @@ This runs 6 health checks:
 6. Gateway connectivity (if running)
 
 Expected output:
+
 ```
 ✓ Config file exists
 ✓ Audit log exists
@@ -105,6 +109,7 @@ npx ari gateway start
 ```
 
 Expected output:
+
 ```
 Gateway started on 127.0.0.1:3141
 ```
@@ -124,11 +129,13 @@ npx ari gateway status
 ```
 
 Expected output (if running):
+
 ```
 Gateway is running on 127.0.0.1:3141
 ```
 
 Expected output (if stopped):
+
 ```
 Gateway is not running
 ```
@@ -150,6 +157,7 @@ npx ari audit security
 ```
 
 This shows only events related to:
+
 - Injection detection
 - Threat assessments
 - Permission denials
@@ -162,11 +170,13 @@ npx ari audit verify
 ```
 
 Expected output:
+
 ```
 ✓ Audit chain valid (120 events verified)
 ```
 
 If chain is corrupted:
+
 ```
 ✗ Audit chain corrupted at event 45
 ```
@@ -182,9 +192,11 @@ npx ari daemon install
 ```
 
 This creates and loads:
+
 - `~/Library/LaunchAgents/com.ari.gateway.plist`
 
 The daemon will:
+
 - Start automatically at login
 - Restart on crashes
 - Log to `~/.ari/logs/daemon.log`
@@ -196,12 +208,14 @@ npx ari daemon status
 ```
 
 Expected output (if running):
+
 ```
 Daemon is running (PID: 12345)
 Gateway on 127.0.0.1:3141
 ```
 
 Expected output (if stopped):
+
 ```
 Daemon is not running
 ```

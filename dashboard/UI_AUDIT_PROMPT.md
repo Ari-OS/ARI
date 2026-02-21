@@ -9,12 +9,14 @@ You are performing a comprehensive UI/UX audit of the ARI Dashboard - a system m
 ## Current State
 
 **Tech Stack:**
+
 - React 19 + TypeScript 5.7
 - Tailwind CSS v4 (default config, no customization)
 - TanStack React Query for data fetching
 - Vite build system
 
 **File Structure:**
+
 ```
 dashboard/src/
 ├── App.tsx                    # Root with QueryClient, Layout, ErrorBoundary
@@ -42,6 +44,7 @@ dashboard/src/
 ```
 
 **Current Design:**
+
 - Dark theme only (gray-950 to gray-700 palette)
 - Minimal/utilitarian aesthetic
 - Unicode icons (◉, ⚖, ⬢, ⚙, ⬡, ⊞, ○, ✓, ✗)
@@ -54,6 +57,7 @@ dashboard/src/
 ## Audit Scope
 
 ### 1. Visual Design Audit
+
 - Color palette effectiveness and contrast ratios (WCAG compliance)
 - Typography hierarchy and readability
 - Spacing consistency and visual rhythm
@@ -63,6 +67,7 @@ dashboard/src/
 - Brand identity - does it feel like a cohesive product?
 
 ### 2. Component Design Audit
+
 - Card designs - are they visually distinct enough?
 - Button styles - primary/secondary/destructive variants needed?
 - Badge/tag system - too many color variations?
@@ -72,6 +77,7 @@ dashboard/src/
 - Empty/loading/error states - are they helpful and consistent?
 
 ### 3. Layout & Navigation Audit
+
 - Sidebar design - is the navigation intuitive?
 - Page layouts - optimal use of space?
 - Responsive design - mobile/tablet considerations?
@@ -80,6 +86,7 @@ dashboard/src/
 - Scrolling behavior - any infinite scroll needs?
 
 ### 4. UX & Interaction Audit
+
 - Hover states and feedback
 - Click targets and touch-friendliness
 - Keyboard navigation and focus states
@@ -90,6 +97,7 @@ dashboard/src/
 - Expandable/collapsible sections
 
 ### 5. Information Architecture Audit
+
 - Page hierarchy - are pages in the right order?
 - Data presentation - tables vs cards vs lists?
 - Detail levels - summary vs expanded views?
@@ -98,6 +106,7 @@ dashboard/src/
 - Pagination vs infinite scroll
 
 ### 6. Accessibility Audit
+
 - Color contrast ratios
 - Screen reader compatibility
 - Keyboard-only navigation
@@ -106,6 +115,7 @@ dashboard/src/
 - Reduced motion preferences
 
 ### 7. Performance Audit
+
 - Component code-splitting opportunities
 - Image/asset optimization
 - CSS bundle size (Tailwind purging)
@@ -115,14 +125,18 @@ dashboard/src/
 ## Deliverables Requested
 
 ### Part 1: Audit Report
+
 For each area above, provide:
+
 - Current state assessment (1-5 rating)
 - Specific issues identified
 - Impact on user experience
 - Priority (P0-P3)
 
 ### Part 2: Design System Proposal
+
 Propose a cohesive design system including:
+
 - Color palette (with specific hex/Tailwind values)
 - Typography scale
 - Spacing scale
@@ -131,14 +145,18 @@ Propose a cohesive design system including:
 - Animation/transition standards
 
 ### Part 3: Implementation Plan
+
 For each recommended change:
+
 - Files to modify
 - Specific code changes needed
 - Dependencies to add (if any)
 - Testing approach
 
 ### Part 4: Mockup Descriptions
+
 Describe the ideal state for:
+
 - Sidebar redesign
 - Home/dashboard page
 - A representative detail page
@@ -158,6 +176,7 @@ Describe the ideal state for:
 ## Context: ARI System
 
 ARI is an "Artificial Reasoning Intelligence" system - a Life Operating System. The dashboard monitors:
+
 - **Agents**: 5 specialized AI agents (Guardian, Planner, Executor, Memory Manager, Core)
 - **Audit**: SHA-256 hash-chained immutable audit log
 - **Governance**: Constitutional rules, quality gates, voting proposals
@@ -165,6 +184,7 @@ ARI is an "Artificial Reasoning Intelligence" system - a Life Operating System. 
 - **Tools**: Registered tools with permission tiers
 
 The users are developers/operators monitoring AI agent behavior. They need:
+
 - Quick system health assessment
 - Deep-dive debugging capability
 - Security/audit verification

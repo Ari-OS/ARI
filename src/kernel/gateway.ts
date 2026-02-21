@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 import type { Server } from 'http';
 import { z } from 'zod';
 import type { Message } from './types.js';
-import { sanitize } from './sanitizer.js';
+import { sanitize, emitSanitizerMetrics } from './sanitizer.js';
 import { AuditLogger } from './audit.js';
 import { EventBus } from './event-bus.js';
 
@@ -339,6 +339,9 @@ export class Gateway {
     this.eventBus.emit('system:ready', {
       version: '2.2.1',
     });
+
+    // Check if the sanitizer is using the JS fallback
+    emitSanitizerMetrics(this.eventBus);
   }
 
   /**

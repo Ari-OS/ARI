@@ -87,6 +87,7 @@ Manage ARI's constitutional governance system with the 15-member Council, 6 Arbi
 ## Usage
 
 ### Request Council Vote
+
 ```typescript
 eventBus.emit('governance:proposal', {
   type: 'feature_approval',
@@ -96,6 +97,7 @@ eventBus.emit('governance:proposal', {
 ```
 
 ### Check Constitutional Compliance
+
 ```typescript
 const isValid = arbiter.validateConstitutional({
   action: 'execute_tool',
@@ -105,6 +107,7 @@ const isValid = arbiter.validateConstitutional({
 ```
 
 ### Verify Quality Gates
+
 ```typescript
 const gatesPass = await overseer.checkAllGates();
 // { test_coverage: true, audit_integrity: true, ... }

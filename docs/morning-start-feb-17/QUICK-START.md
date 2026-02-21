@@ -11,11 +11,13 @@
 ## Step 1: Verify Current State
 
 Morning briefing is ALREADY wired:
+
 - `src/autonomous/agent.ts:230` — BriefingGenerator instantiated
 - `src/autonomous/scheduler.ts:139` — Scheduled at 6:30 AM (`30 6 * * *`)
 - Handler registered at `agent.ts:751`
 
 What needs verification:
+
 1. Does NotificationManager route to Telegram (not old SMS)?
 2. Is the ANTHROPIC_API_KEY set in `~/.ari/.env`?
 3. Does the daemon start and stay running?
@@ -55,6 +57,7 @@ npx ari daemon status
 ## If Briefing Time Needs Changing
 
 Morning briefing is already set to 6:30 AM in `src/autonomous/scheduler.ts` line 139:
+
 ```typescript
 cron: '30 6 * * *', // 6:30 AM daily
 ```

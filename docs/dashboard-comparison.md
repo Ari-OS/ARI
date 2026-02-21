@@ -63,6 +63,7 @@
 ### Health Page: Current vs Proposed
 
 #### CURRENT
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ System Health                           Uptime: 2h 15m      │
@@ -89,6 +90,7 @@
 ```
 
 **Problems:**
+
 - No visual trends
 - Can't see if memory is increasing
 - No alert for issues
@@ -97,6 +99,7 @@
 ---
 
 #### PROPOSED (with Phase 1-7 complete)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ ⚠️ ALERT: Task "Morning Briefing" failed (2m ago) [View]   │ ← NEW
@@ -144,6 +147,7 @@
 ```
 
 **Improvements:**
+
 - ✅ Alert banner for critical issues
 - ✅ Health score with trend
 - ✅ Time-series charts (memory, events)
@@ -158,6 +162,7 @@
 ### Autonomy Page: Current vs Proposed
 
 #### CURRENT
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Autonomous Operations        Scheduler: ● Running          │
@@ -187,6 +192,7 @@
 ```
 
 **Problems:**
+
 - No task success rate
 - Can't see task execution history
 - Can't view subagent full details
@@ -195,6 +201,7 @@
 ---
 
 #### PROPOSED
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Autonomous Operations  🔔1   [Search tasks...] ⌘F  Updated 2s│ ← NEW
@@ -234,6 +241,7 @@
 ```
 
 **Improvements:**
+
 - ✅ Task success rate chart
 - ✅ Execution history for each task
 - ✅ Subagent detail view with timeline
@@ -246,6 +254,7 @@
 ## Quick Wins (Can implement today)
 
 ### 1. Data Refresh Indicator (1 hour)
+
 ```tsx
 // Add to every page header
 <div className="text-xs text-gray-500 flex items-center gap-2">
@@ -257,6 +266,7 @@
 ```
 
 ### 2. Click-to-Copy IDs (30 minutes)
+
 ```tsx
 // Make all IDs clickable to copy
 <button 
@@ -269,6 +279,7 @@
 ```
 
 ### 3. Relative Time Formatting (1 hour)
+
 ```tsx
 // Show "2m ago" instead of "10:15:32"
 function formatTimeAgo(timestamp: string): string {
@@ -283,6 +294,7 @@ function formatTimeAgo(timestamp: string): string {
 ```
 
 ### 4. Status Dot Animation (30 minutes)
+
 ```css
 /* Add pulsing animation for "running" status */
 @keyframes pulse {
@@ -300,12 +312,14 @@ function formatTimeAgo(timestamp: string): string {
 ## The Gap Summary
 
 **Current State**: ⭐⭐⭐☆☆ (3/5 stars)
+
 - Functional monitoring dashboard
 - Real-time status indicators
 - Basic interactivity
 - Clean, consistent design
 
 **Missing for World-Class**: ⭐⭐☆☆☆ (Missing 2 stars)
+
 - 🔴 **No time-series visualization** (biggest gap)
 - 🔴 **No drill-down detail views** (second biggest gap)
 - 🔴 **No alert/notification system** (critical for monitoring)
@@ -314,6 +328,7 @@ function formatTimeAgo(timestamp: string): string {
 - 🟡 **No export** (can't share reports)
 
 **To reach 5/5 stars**, implement:
+
 1. **Phase 1** (Time-series charts) → 3.5/5 stars
 2. **Phase 7** (Alerts) → 4/5 stars
 3. **Phase 5** (Drill-down) → 4.5/5 stars
@@ -324,21 +339,25 @@ function formatTimeAgo(timestamp: string): string {
 ## Inspiration Gallery
 
 ### Best Time-Series Charts
+
 - **Datadog**: Clean line charts with multiple metrics overlaid
 - **Grafana**: Highly customizable, zoom/pan, time range selector
 - **Vercel Analytics**: Simple sparklines for quick trends
 
 ### Best Detail Views
+
 - **GitHub Actions**: Full workflow logs, step-by-step timeline
 - **Railway**: Service logs with real-time streaming
 - **Sentry**: Error detail pages with stack traces, breadcrumbs
 
 ### Best Alert Systems
+
 - **PagerDuty**: Severity-based alerting, acknowledgment workflow
 - **Datadog Monitors**: Alert history, mute/snooze controls
 - **Linear**: Non-intrusive toast notifications
 
 ### Best Search UX
+
 - **Linear**: Command palette (⌘K) with keyboard navigation
 - **GitHub**: Global search with autocomplete, filters
 - **Algolia**: Instant search with highlights
@@ -354,6 +373,7 @@ function formatTimeAgo(timestamp: string): string {
 **What's the priority?** Implement **Phase 1 (Time-Series Charts)** first. It's the single highest-impact change that transforms the dashboard from "status monitor" to "observability platform".
 
 **Recommended next steps:**
+
 1. Add `recharts` library
 2. Create memory + event rate charts
 3. Add task success rate chart

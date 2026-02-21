@@ -56,6 +56,7 @@ interface MemoryEntry {
 ## Memory Operations
 
 ### Store
+
 ```typescript
 async function store(
   key: string,
@@ -89,6 +90,7 @@ async function store(
 ```
 
 ### Retrieve
+
 ```typescript
 async function retrieve(
   key: string,
@@ -123,6 +125,7 @@ async function retrieve(
 ```
 
 ### Search
+
 ```typescript
 async function search(query: SearchQuery): Promise<MemoryEntry[]> {
   const results = await searchIndex({

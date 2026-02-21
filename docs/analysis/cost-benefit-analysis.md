@@ -13,6 +13,7 @@
 ### Scenario A: Conservative Budget ($1.50/day = $45/month)
 
 **Daily Token Allocation:**
+
 ```
 Total Budget: 500,000 tokens/day
 
@@ -44,6 +45,7 @@ REMAINING USER RESERVE: 355k tokens/day
 ```
 
 **What You Get:**
+
 - ✅ Morning brief (daily)
 - ✅ Evening summary (daily)
 - ✅ 1 test added per day
@@ -60,6 +62,7 @@ REMAINING USER RESERVE: 355k tokens/day
 ### Scenario B: Balanced Budget ($2.50/day = $75/month) ⭐ RECOMMENDED
 
 **Daily Token Allocation:**
+
 ```
 Total Budget: 800,000 tokens/day
 
@@ -96,6 +99,7 @@ REMAINING USER RESERVE: 518k tokens/day (plenty of headroom)
 ```
 
 **What You Get:**
+
 - ✅ Full morning brief (daily)
 - ✅ Comprehensive evening summary (daily)
 - ✅ 2-3 tests added per day
@@ -114,6 +118,7 @@ REMAINING USER RESERVE: 518k tokens/day (plenty of headroom)
 ### Scenario C: Aggressive Budget ($5/day = $150/month)
 
 **Daily Token Allocation:**
+
 ```
 Total Budget: 1,500,000 tokens/day
 
@@ -141,6 +146,7 @@ TOTAL AUTONOMOUS: 600k tokens/day (over budget intentionally)
 ```
 
 **What You Get:**
+
 - ✅ Everything from Balanced
 - ✅ Higher quality briefs (Opus)
 - ✅ More aggressive initiative execution
@@ -157,6 +163,7 @@ TOTAL AUTONOMOUS: 600k tokens/day (over budget intentionally)
 ### Manual vs Autonomous Work Comparison
 
 **Daily Test Writing:**
+
 ```
 Manual Approach:
 ├─ Identify files needing tests: 15 min
@@ -176,6 +183,7 @@ Time Saved: 95 minutes/day
 ```
 
 **Documentation Updates:**
+
 ```
 Manual:
 ├─ Notice docs are stale: 10 min
@@ -193,6 +201,7 @@ Time Saved: 12 minutes/day
 ```
 
 **Morning Planning:**
+
 ```
 Manual:
 ├─ Review what happened yesterday: 10 min
@@ -209,6 +218,7 @@ Time Saved: 32 minutes/day
 ```
 
 **Total Daily Time Savings:**
+
 ```
 Test writing: 95 min
 Documentation: 12 min
@@ -223,6 +233,7 @@ Yearly: ~1,044 hours saved (26 work-weeks!)
 ```
 
 **Value Calculation (Conservative):**
+
 ```
 If your time is worth $50/hour:
 ├─ Daily value: 2.9 hours × $50 = $145/day
@@ -333,6 +344,7 @@ Savings: $22/month (37% reduction)
 ```
 
 **Execution Rules:**
+
 - **AUTO**: Execute immediately, log result
 - **APPROVAL**: Queue for user review, notify
 - **NOTIFY**: Present as opportunity, don't execute
@@ -344,6 +356,7 @@ Savings: $22/month (37% reduction)
 ### Week 1 Projected Usage (Based on Configuration)
 
 **Monday (Day 1):**
+
 ```
 Hour-by-Hour Breakdown:
 
@@ -378,6 +391,7 @@ User Reserve Remaining: 316,400 tokens (~$0.99)
 ```
 
 **Tuesday-Friday (Days 2-5):**
+
 ```
 Similar pattern to Monday
 Estimated: 150k-200k autonomous tokens/day
@@ -385,6 +399,7 @@ Average cost: $0.45-0.65/day
 ```
 
 **Weekend (Days 6-7):**
+
 ```
 Reduced activity (fewer initiatives)
 Estimated: 100k-150k autonomous tokens/day
@@ -394,6 +409,7 @@ Special: Sunday weekly review (Sonnet): +35k tokens (+$0.11)
 ```
 
 **Week 1 Projected Total:**
+
 ```
 Weekday autonomous: 5 × $0.55 = $2.75
 Weekend autonomous: 2 × $0.38 = $0.76
@@ -407,6 +423,7 @@ COMBINED: ~$10.51 total spend (well under budget if you use ~$1/day)
 ### Scenario B: Balanced Budget ($2.50/day = $75/month) ⭐ RECOMMENDED
 
 **Monthly Breakdown:**
+
 ```
 Autonomous Operations: ~$24/month
 ├─ Scheduled tasks: $15/month
@@ -428,6 +445,7 @@ MARGIN: $21/month safety buffer (28%)
 ### Scenario C: Aggressive Budget ($5/day = $150/month)
 
 **Monthly Breakdown:**
+
 ```
 Autonomous Operations: ~$60/month
 ├─ Scheduled tasks: $25/month (higher frequency)
@@ -523,6 +541,7 @@ Tasks Completed:
 ### Top 5 Most Expensive Operations
 
 **1. Initiative Execution (Sonnet/Opus)**
+
 ```
 Frequency: 2-5x per day
 Cost per execution: $0.08-0.40
@@ -536,6 +555,7 @@ Optimization opportunity:
 ```
 
 **2. Daily Briefs (Sonnet)**
+
 ```
 Frequency: 2x per day (morning + evening)
 Cost per brief: $0.075
@@ -549,6 +569,7 @@ Optimization opportunity:
 ```
 
 **3. Test Generation (Sonnet)**
+
 ```
 Frequency: 2-3x per day
 Cost per test suite: $0.12
@@ -562,6 +583,7 @@ Optimization opportunity:
 ```
 
 **4. Cognitive Reviews (Sonnet)**
+
 ```
 Frequency: 1x per day
 Cost per review: $0.105
@@ -575,6 +597,7 @@ Optimization opportunity:
 ```
 
 **5. Knowledge Indexing (Haiku)**
+
 ```
 Frequency: 3x per day
 Cost per index: $0.0035
@@ -687,6 +710,7 @@ Next Day:
 ### Haiku Quality Examples
 
 **Good Haiku Tasks:**
+
 ```
 ✅ Changelog from git log:
    - Fast, accurate
@@ -707,6 +731,7 @@ Next Day:
 ```
 
 **Poor Haiku Tasks:**
+
 ```
 ❌ Complex test generation:
    - Misses edge cases
@@ -724,6 +749,7 @@ Next Day:
 ### Sonnet Quality Examples
 
 **Good Sonnet Tasks:**
+
 ```
 ✅ Test generation:
    - Good coverage
@@ -746,6 +772,7 @@ Next Day:
 ### Opus Quality Examples
 
 **Good Opus Tasks:**
+
 ```
 ✅ Architecture design:
    - Deep analysis
@@ -860,7 +887,8 @@ Note: Diminishing returns vs Balanced
 
 ## Decision Framework: Which Budget is Right?
 
-### Choose Conservative ($45/month) If:
+### Choose Conservative ($45/month) If
+
 - ✓ You want to minimize costs
 - ✓ You're okay with limited autonomous work
 - ✓ You'll still do most tasks manually
@@ -868,6 +896,7 @@ Note: Diminishing returns vs Balanced
 - ✓ Budget is tight
 
 ### Choose Balanced ($75/month) If: ⭐
+
 - ✓ You want maximum ROI
 - ✓ You value time savings highly
 - ✓ You want active autonomous capabilities
@@ -875,7 +904,8 @@ Note: Diminishing returns vs Balanced
 - ✓ You want continuous improvement
 - ✓ **This is the recommended starting point**
 
-### Choose Aggressive ($150/month) If:
+### Choose Aggressive ($150/month) If
+
 - ✓ Cost is not a concern
 - ✓ You want absolute maximum capability
 - ✓ You value quality > cost
@@ -934,6 +964,7 @@ Net: Difficult to quantify (no autonomous capabilities)
 ## Long-Term Cost Trends
 
 ### Month 1 (Learning)
+
 ```
 Expected: $75-90
 Reason: Higher usage during optimization
@@ -943,6 +974,7 @@ Reason: Higher usage during optimization
 ```
 
 ### Month 2 (Optimized)
+
 ```
 Expected: $60-75
 Reason: Learned patterns reduce waste
@@ -953,6 +985,7 @@ Reason: Learned patterns reduce waste
 ```
 
 ### Month 3+ (Steady State)
+
 ```
 Expected: $50-65
 Reason: Maximum efficiency achieved
@@ -966,6 +999,7 @@ while maintaining same output quality
 ```
 
 **Cost Improvement Curve:**
+
 ```
 Month 1: $75 (baseline)
 Month 2: $67 (11% reduction)
@@ -980,6 +1014,7 @@ Month 6: $50 (33% reduction)
 ### Time Value Calculation
 
 **If your time is worth $50/hour:**
+
 ```
 ARI saves: 2.5 hours/day
 Daily value: $125
@@ -993,6 +1028,7 @@ Net value: $3,675/month
 ```
 
 **If your time is worth $100/hour:**
+
 ```
 Daily value: $250
 Monthly value: $7,500
@@ -1002,6 +1038,7 @@ Net value: $7,425/month
 ```
 
 **If your time is worth $25/hour:**
+
 ```
 Daily value: $62.50
 Monthly value: $1,875
@@ -1019,6 +1056,7 @@ Net value: $1,800/month
 ### Accounting for Failures
 
 **Optimistic (90% success rate):**
+
 ```
 Tasks attempted: 400/month
 Tasks successful: 360/month
@@ -1030,6 +1068,7 @@ Net ROI: 45x
 ```
 
 **Realistic (80% success rate):**
+
 ```
 Tasks attempted: 400/month
 Tasks successful: 320/month
@@ -1042,6 +1081,7 @@ Net ROI: 35x (still excellent)
 ```
 
 **Pessimistic (70% success rate):**
+
 ```
 Tasks attempted: 400/month
 Tasks successful: 280/month
@@ -1062,6 +1102,7 @@ Net ROI: 26x (still very good)
 ### ARI vs Other AI Coding Tools
 
 **GitHub Copilot:**
+
 - Cost: $10-20/month
 - Capabilities: Code completion only
 - Autonomous: No
@@ -1070,6 +1111,7 @@ Net ROI: 26x (still very good)
 - Value: Coding speed increase only
 
 **Cursor AI:**
+
 - Cost: $20-40/month
 - Capabilities: Code generation, chat
 - Autonomous: No
@@ -1078,6 +1120,7 @@ Net ROI: 26x (still very good)
 - Value: Better than Copilot, still manual
 
 **ARI Autonomous:**
+
 - Cost: $75/month (balanced)
 - Capabilities: Full system (generation, execution, learning)
 - Autonomous: Yes (main differentiator)
@@ -1094,18 +1137,21 @@ Net ROI: 26x (still very good)
 ### Immediate (Week 1)
 
 **1. Start with Balanced Budget ($75/month)**
+
 - Provides full capabilities
 - Safe margin for learning
 - Can scale down if needed
 - Best ROI
 
 **2. Enable Core Autonomous Features**
+
 - Morning briefs (essential)
 - Test generation (high value)
 - TODO resolution (quick wins)
 - Code quality scanning (continuous improvement)
 
 **3. Set Conservative Throttling**
+
 - 80% warning threshold
 - 90% reduction threshold
 - 95% pause threshold
@@ -1114,18 +1160,21 @@ Net ROI: 26x (still very good)
 ### Month 1 (Learning Period)
 
 **1. Collect Data Aggressively**
+
 - Track every API call
 - Measure actual vs estimated costs
 - Identify expensive operations
 - Find optimization opportunities
 
 **2. Tune Model Selection**
+
 - Review Haiku task failures
 - Check Opus task necessity
 - Adjust routing rules weekly
 - Document learnings
 
 **3. Validate Value**
+
 - Track time saved
 - Measure task completion
 - User satisfaction with briefs
@@ -1134,18 +1183,21 @@ Net ROI: 26x (still very good)
 ### Month 2+ (Optimization)
 
 **1. Implement Learnings**
+
 - Apply cost optimizations
 - Refine model routing
 - Adjust schedule timing
 - Improve initiative scoring
 
 **2. Scale Appropriately**
+
 - Increase budget if value justifies
 - Decrease if underutilized
 - Add new autonomous capabilities
 - Disable low-value tasks
 
 **3. Automate Optimization**
+
 - Self-tuning model selection
 - Dynamic budget reallocation
 - Predictive task scheduling
@@ -1169,6 +1221,7 @@ Net ROI: 26x (still very good)
 ```
 
 **Enable these autonomous features first:**
+
 1. Morning brief (7:30 AM)
 2. Evening summary (9:00 PM)
 3. Initiative discovery (6:00 AM)
@@ -1176,18 +1229,21 @@ Net ROI: 26x (still very good)
 5. Test generation (when needed)
 
 **Monitor for 1 week:**
+
 - Actual costs
 - Task quality
 - User satisfaction
 - Time savings
 
 **Then optimize:**
+
 - Tune model routing
 - Adjust thresholds
 - Refine schedule
 - Scale up/down as needed
 
 **Expected outcome after 1 month:**
+
 - $50-65/month actual cost
 - 60+ autonomous tasks completed
 - 2+ hours/day saved

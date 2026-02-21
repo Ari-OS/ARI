@@ -59,6 +59,7 @@ if (calculateRisk(baseRisk, trustLevel) >= 0.8) {
 ## Trust Assignment
 
 ### SYSTEM Trust
+
 ```typescript
 // Internal kernel operations
 const kernelMessage = {
@@ -69,6 +70,7 @@ const kernelMessage = {
 ```
 
 ### OPERATOR Trust
+
 ```typescript
 // CLI commands from authenticated user
 const cliMessage = {
@@ -79,6 +81,7 @@ const cliMessage = {
 ```
 
 ### STANDARD Trust (Default)
+
 ```typescript
 // External input - default trust
 const externalMessage = {
@@ -89,6 +92,7 @@ const externalMessage = {
 ```
 
 ### UNTRUSTED Trust
+
 ```typescript
 // External API response
 const apiResponse = {
@@ -101,6 +105,7 @@ const apiResponse = {
 ## Permission Gates
 
 ### Three-Layer Permission Check
+
 ```typescript
 async function checkPermission(
   agent: string,
@@ -132,6 +137,7 @@ async function checkPermission(
 ## Trust Escalation
 
 Trust can only be:
+
 - **Elevated** by explicit OPERATOR action
 - **Demoted** automatically on suspicious behavior
 

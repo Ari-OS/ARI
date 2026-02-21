@@ -511,6 +511,23 @@ function discoverImprovementInitiatives(_projectPath: string): Initiative[] {
     status: 'DISCOVERED',
   });
 
+  // GitHub Research Agent Initiative
+  initiatives.push({
+    id: `github-research-${Date.now()}`,
+    category: 'IMPROVEMENTS',
+    kind: 'GITHUB_RESEARCH',
+    title: 'Research trending GitHub repositories for patterns',
+    description: 'Autonomously pull and analyze external GitHub repositories (e.g. OpenHands, Claude Code) to extract architecture patterns and submit proposals to Council.',
+    rationale: 'Extracting best practices from trending projects keeps ARI evolving.',
+    effort: 'HIGH',
+    impact: 'HIGH',
+    priority: 0.85,
+    forUser: false,
+    autonomous: true,
+    createdAt: new Date(),
+    status: 'DISCOVERED',
+  });
+
   return initiatives;
 }
 
@@ -891,6 +908,14 @@ export class InitiativeEngine {
       ];
     }
 
+    if (initiative.category === 'IMPROVEMENTS' && initiative.kind === 'GITHUB_RESEARCH') {
+      return [
+        { id: 'fetch-repos', description: 'Fetch latest code or documentation from target repositories.', risk: 'LOW' },
+        { id: 'extract-patterns', description: 'Analyze architecture, tools, and context isolation strategies.', risk: 'LOW' },
+        { id: 'propose-upgrades', description: 'Submit a proposal to the Council with extracted upgrades for ARI.', risk: 'MEDIUM' },
+      ];
+    }
+
     return [
       { id: 'review', description: 'Review and execute with appropriate safety gates', risk: 'MEDIUM' },
     ];
@@ -1047,10 +1072,44 @@ export class InitiativeEngine {
     };
   }
 
-  private executeImprovement(
+  private async executeImprovement(
     initiative: Initiative,
     plan: InitiativeExecutionPlan
   ): Promise<InitiativeExecutionOutcome> {
+    if (initiative.kind === 'GITHUB_RESEARCH' && this.agentSpawner) {
+      const worktreeTask = `You are executing an ARI Initiative to research external GitHub repositories.
+Target repos to consider: All-Hands-AI/OpenHands, anthropics/claude-code.
+Goal: Extract best practices (new MCP tools, context isolation, etc) and write a proposal in 'proposals/'.
+Make sure to output actions using strict JSON blocks as required by AutoDeveloper.`;
+      const spawned = await this.agentSpawner.spawnInWorktree(
+        worktreeTask,
+        `research-${initiative.id}`,
+        { baseBranch: 'main' }
+      );
+      return {
+        status: 'IN_PROGRESS',
+        summary: `Spawned GitHub research agent ${spawned.id}`,
+        details: { subagentId: spawned.id, safetyGates: plan.safetyGates },
+      };
+    }
+
+    if (initiative.kind === 'SKILL_CRYSTALLIZATION' && this.agentSpawner) {
+      const worktreeTask = `You are executing an ARI Initiative to crystallize learnings into a new permanent skill.
+Target files: ~/.ari/LEARNINGS.md and ~/.ari/ERRORS.md.
+Goal: Extract recurring errors or behaviors and write a new skill in '.claude/skills/ari-crystallized-skill.md'. 
+Format MUST follow the standard ARI skill format. Output actions using strict JSON blocks as required by AutoDeveloper.`;
+      const spawned = await this.agentSpawner.spawnInWorktree(
+        worktreeTask,
+        `crystallize-${initiative.id}`,
+        { baseBranch: 'main' }
+      );
+      return {
+        status: 'IN_PROGRESS',
+        summary: `Spawned Skill Crystallization agent ${spawned.id}`,
+        details: { subagentId: spawned.id, safetyGates: plan.safetyGates },
+      };
+    }
+
     // Improvements are intentionally conservative: log + require review.
     return Promise.resolve({
       status: 'QUEUED',

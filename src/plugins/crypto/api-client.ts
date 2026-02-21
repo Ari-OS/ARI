@@ -2,6 +2,7 @@ import type {
   CoinGeckoPrice,
   CoinGeckoMarketData,
   CoinGeckoSearchResult,
+  CoinGeckoGlobalData,
 } from './types.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -66,6 +67,55 @@ export class CoinGeckoClient {
   async search(query: string): Promise<CoinGeckoSearchResult> {
     const key = `search:${query}`;
     return this.cachedFetch<CoinGeckoSearchResult>(key, `/search?query=${encodeURIComponent(query)}`);
+  }
+
+  /**
+   * Get global crypto market data: BTC/ETH dominance, total market cap change.
+   * Cache TTL: 4 hours (global data is slow-moving).
+   */
+  async getGlobal(): Promise<CoinGeckoGlobalData> {
+    const key = 'global';
+    const cached = this.cache.get(key) as { data: CoinGeckoGlobalData; expiresAt: number } | undefined;
+    if (cached && Date.now() < cached.expiresAt) return cached.data;
+
+    try {
+      await this.waitForToken();
+
+      const headers: Record<string, string> = { Accept: 'application/json' };
+      if (this.apiKey) headers['x-cg-demo-api-key'] = this.apiKey;
+
+      const response = await fetch(`${BASE_URL}/global`, {
+        headers,
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      if (!response.ok) {
+        throw new Error(`CoinGecko global API error: ${response.status}`);
+      }
+
+      const raw = await response.json() as {
+        data: {
+          market_cap_percentage: Record<string, number>;
+          market_cap_change_percentage_24h_usd: number;
+          active_cryptocurrencies: number;
+        };
+      };
+
+      const result: CoinGeckoGlobalData = {
+        btcDominance: raw.data.market_cap_percentage['btc'] ?? 0,
+        ethDominance: raw.data.market_cap_percentage['eth'] ?? 0,
+        totalMarketCapChangePercent: raw.data.market_cap_change_percentage_24h_usd ?? 0,
+        activeCurrencies: raw.data.active_cryptocurrencies ?? 0,
+      };
+
+      // 4-hour cache for global data
+      this.cache.set(key, { data: result as unknown, expiresAt: Date.now() + 4 * 60 * 60 * 1000 });
+      return result;
+    } catch (error: unknown) {
+      const stale = (this.cache.get(key) as { data: CoinGeckoGlobalData } | undefined)?.data;
+      if (stale) return stale;
+      throw error;
+    }
   }
 
   clearCache(): void {

@@ -35,6 +35,7 @@ ARI adjusts its behavior based on observed outcomes and user feedback.
 ### Update Mechanisms
 
 **Bayesian Update** (beliefs):
+
 ```typescript
 function updateBelief(
   priorProbability: number,
@@ -49,6 +50,7 @@ function updateBelief(
 ```
 
 **Gradient Update** (parameters):
+
 ```typescript
 function updateParameter(
   currentValue: number,
@@ -60,6 +62,7 @@ function updateParameter(
 ```
 
 **Example**:
+
 ```
 Belief: "User prefers verbose explanations" (confidence: 0.7)
 Observation: User says "just do it, skip explanation" (strength: 0.8, direction: refute)
@@ -90,24 +93,29 @@ ARI identifies recurring patterns in user behavior, preferences, and context.
 ### Pattern Types
 
 **Temporal Patterns**:
+
 - "User prefers terse responses during execution phase, verbose during planning"
 - "User checks email at 8am, 12pm, 5pm (consistent schedule)"
 
 **Conditional Patterns**:
+
 - "When stressed, user prefers simpler options"
 - "When exploring, user wants multiple alternatives"
 
 **Sequential Patterns**:
+
 - "User always runs tests after code changes"
 - "User reviews PRs in order of oldest first"
 
 **Contextual Patterns**:
+
 - "User is more creative in morning sessions"
 - "User makes financial decisions better after lunch"
 
 ### Pattern Discovery
 
 **Frequency-Based**:
+
 ```typescript
 function discoverPattern(events: Event[]): Pattern | null {
   const sequences = extractSequences(events, windowSize: 5);
@@ -122,6 +130,7 @@ function discoverPattern(events: Event[]): Pattern | null {
 ```
 
 **Statistical Significance**:
+
 ```typescript
 function isPatternSignificant(
   observedFrequency: number,
@@ -136,6 +145,7 @@ function isPatternSignificant(
 ### Pattern Storage
 
 Patterns stored as memories with **high confidence** and **PATTERN type**:
+
 ```typescript
 {
   id: 'pat_7f3a2b',
@@ -181,6 +191,7 @@ interface PerformanceLog {
 ```
 
 **Rolling Averages** (30-day window):
+
 ```typescript
 function rollingAverage(logs: PerformanceLog[], metric: keyof PerformanceLog): number {
   const recentLogs = logs.filter(log =>
@@ -193,6 +204,7 @@ function rollingAverage(logs: PerformanceLog[], metric: keyof PerformanceLog): n
 ### Performance Dashboards
 
 ARI generates weekly self-assessments:
+
 ```
 Week of 2026-01-27:
 
@@ -239,6 +251,7 @@ function nextReviewDate(
 ```
 
 **Example**:
+
 ```
 Review 1: Today (baseline)
 Review 2: 1 day later
@@ -251,15 +264,18 @@ Review 6: 39 days later
 ### Application
 
 **Knowledge Retention**:
+
 - Programming language syntax
 - Tool capabilities and limitations
 - Creator's preferences and patterns
 
 **Skill Maintenance**:
+
 - Rarely-used but important skills (e.g., security auditing)
 - Domain-specific knowledge (e.g., financial modeling)
 
 **Review Triggers**:
+
 ```typescript
 if (daysSinceLastUse(skill) > scheduledReviewDate(skill)) {
   schedulePracticeSession(skill);
@@ -305,6 +321,7 @@ function estimateCognitiveLoad(task: Task): LoadEstimate {
 | **Reduce Ambiguity** | Ask clarifying questions upfront |
 
 **Example**:
+
 ```
 Task: "Build authentication system"
 Load: Intrinsic (high complexity) + Extraneous (ambiguous requirements) = 85/100
@@ -324,39 +341,48 @@ ARI practices **learning how to learn** by identifying effective learning strate
 ### Meta-Learning Strategies
 
 **Metalearning** (before diving in):
+
 - "What's the structure of this domain?"
 - "Who are the experts? What do they prioritize?"
 - "What are the foundational concepts?"
 
 **Focus** (eliminate distractions):
+
 - Batch similar tasks (reduce context switching)
 - Time-box learning sessions (Pomodoro technique)
 
 **Directness** (learn by doing):
+
 - Build real projects, not toy examples
 - Immediate application of new knowledge
 
 **Drill** (isolate weak points):
+
 - Identify bottlenecks (e.g., slow at async/await syntax)
 - Practice that specific skill intensively
 
 **Retrieval** (test, don't just re-read):
+
 - Active recall: "What did I just learn?"
 - Self-testing beats passive review
 
 **Feedback** (get accurate, rapid feedback):
+
 - Automated tests for coding
 - Expert review for judgment tasks
 
 **Retention** (spaced repetition + overlearning):
+
 - Review at expanding intervals
 - Practice past mastery (overlearning prevents decay)
 
 **Intuition** (struggle before looking up answers):
+
 - Attempt solution before consulting documentation
 - Build internal models, not external dependencies
 
 **Experimentation** (try different approaches):
+
 - A/B test learning strategies
 - Measure what works, discard what doesn't
 
@@ -388,11 +414,13 @@ ARI actively identifies what it **doesn't know** and prioritizes learning.
 ### Gap Detection
 
 **Explicit Gaps** (known unknowns):
+
 - User asks question ARI can't answer
 - Tool capability ARI hasn't mastered
 - Domain ARI has no context for
 
 **Implicit Gaps** (unknown unknowns):
+
 - Performance below benchmark on certain task types
 - Repeated clarification requests (indicates misunderstanding)
 - User corrections (indicates incorrect model)
@@ -410,6 +438,7 @@ function prioritizeGap(gap: KnowledgeGap): number {
 ```
 
 **Example**:
+
 ```
 Gap 1: "User asks about Kubernetes, I have no model"
 - Frequency: 5 occurrences/month
@@ -440,22 +469,27 @@ ARI regularly evaluates its own performance and adjusts.
 ### Self-Assessment Questions
 
 **Accuracy**:
+
 - "What % of my responses were correct?"
 - "Which domains have the most errors?"
 
 **Relevance**:
+
 - "Am I solving the user's actual problem or the stated problem?"
 - "How often do I need clarification?"
 
 **Efficiency**:
+
 - "Am I spending resources optimally?"
 - "Which tasks are taking longer than they should?"
 
 **Alignment**:
+
 - "Are my actions aligned with creator's values?"
 - "Have I violated any constitutional rules?"
 
 **Growth**:
+
 - "What did I learn this week?"
 - "Which knowledge gaps did I close?"
 
@@ -516,6 +550,7 @@ interface Exercise {
 ```
 
 **Example Session**:
+
 ```typescript
 {
   skill: 'TypeScript generics',
@@ -555,6 +590,7 @@ interface SkillProgress {
 ```
 
 **Skill Progression**:
+
 ```
 Level 1-2: Novice (requires step-by-step guidance)
 Level 3-4: Advanced Beginner (recognizes patterns)

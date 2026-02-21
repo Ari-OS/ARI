@@ -17,16 +17,18 @@ Track official Anthropic releases to keep ARI current with the latest capabiliti
 ## Verified Sources (ONLY these are trusted)
 
 ### Official Anthropic Sources
+
 | Source | URL | Trust Level |
 |--------|-----|-------------|
-| Anthropic News | https://www.anthropic.com/news | SYSTEM |
-| API Release Notes | https://docs.anthropic.com/en/release-notes | SYSTEM |
-| Claude Code Releases | https://github.com/anthropics/claude-code/releases | SYSTEM |
-| Anthropic SDK | https://github.com/anthropics/anthropic-sdk-python | SYSTEM |
-| Claude Blog | https://claude.com/blog | SYSTEM |
-| Anthropic Research | https://www.anthropic.com/research | SYSTEM |
+| Anthropic News | <https://www.anthropic.com/news> | SYSTEM |
+| API Release Notes | <https://docs.anthropic.com/en/release-notes> | SYSTEM |
+| Claude Code Releases | <https://github.com/anthropics/claude-code/releases> | SYSTEM |
+| Anthropic SDK | <https://github.com/anthropics/anthropic-sdk-python> | SYSTEM |
+| Claude Blog | <https://claude.com/blog> | SYSTEM |
+| Anthropic Research | <https://www.anthropic.com/research> | SYSTEM |
 
 ### Official Plugin Sources
+
 | Source | Trust Level | Verification |
 |--------|-------------|--------------|
 | claude-plugins-official | VERIFIED | Anthropic-managed |
@@ -36,12 +38,14 @@ Track official Anthropic releases to keep ARI current with the latest capabiliti
 ## Security Protocol
 
 ### What This Skill WILL Do
+
 - Fetch release notes from official sources
 - Summarize new features relevant to ARI
 - Identify security patches that apply
 - Recommend verified plugin updates
 
 ### What This Skill WILL NOT Do
+
 - Install anything automatically
 - Download from unverified sources
 - Execute code from external sources
@@ -101,6 +105,7 @@ Track official Anthropic releases to keep ARI current with the latest capabiliti
 ## Integration with ARI Governance
 
 All recommendations flow through:
+
 1. **Guardian Agent** - Threat assessment
 2. **Arbiter** - Constitutional compliance
 3. **Council** - Approval for significant changes
@@ -108,6 +113,7 @@ All recommendations flow through:
 ## Trust Verification
 
 Before any action:
+
 ```typescript
 // Verify source is in trusted list
 const TRUSTED_SOURCES = [

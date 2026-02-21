@@ -187,6 +187,7 @@ ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "
 ### TypeScript build fails with NODE_ENV=production
 
 Always use `NODE_ENV=development` on Mac Mini:
+
 ```bash
 # Wrong:
 npm run build
@@ -198,6 +199,7 @@ NODE_ENV=development npm run build
 ### npm install fails with husky error
 
 Always use `--ignore-scripts`:
+
 ```bash
 # Wrong:
 npm install

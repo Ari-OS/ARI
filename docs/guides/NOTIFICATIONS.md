@@ -52,11 +52,13 @@ export TELEGRAM_OWNER_USER_ID="123456789"            # Your numeric user ID
 ```
 
 **Get your user ID:**
+
 1. Message @userinfobot on Telegram
 2. It replies with your numeric ID
 3. Set as `TELEGRAM_OWNER_USER_ID`
 
 **Create a bot:**
+
 1. Message @BotFather on Telegram
 2. Send `/newbot` and follow prompts
 3. Copy the bot token
@@ -74,6 +76,7 @@ export CARRIER_GATEWAY="vtext.com"                # See carrier list below
 ```
 
 **Create Gmail App Password:**
+
 1. Go to [Google Account Security](https://myaccount.google.com/security)
 2. Enable 2-Factor Authentication
 3. Go to App Passwords
@@ -106,6 +109,7 @@ export NOTION_INBOX_DB_ID="your-database-id"
 ```
 
 **Notion Setup:**
+
 1. Create a database called "ARI Inbox"
 2. Add properties: Title (title), Priority (select), Category (select), Status (select)
 3. Share with your integration
@@ -131,26 +135,31 @@ http://127.0.0.1:3141
 ### When Each Priority Is Used
 
 **P0 - Critical:**
+
 - Security violations detected
 - Audit chain tampering
 - System health failures
 
 **P1 - High:**
+
 - E2E test failures (2+ consecutive)
 - Budget critical (90%+ used)
 - Important reminders
 
 **P2 - Normal:**
+
 - Morning briefing ready
 - Evening summary ready
 - Task completions
 
 **P3 - Low:**
+
 - Knowledge index updates
 - Learning insights
 - Non-urgent system info
 
 **P4 - Silent:**
+
 - Debug information
 - Telemetry events
 - Internal logging
@@ -209,7 +218,7 @@ npx ari notify test --priority P1 --message "Test notification"
 
 ### Via Dashboard
 
-1. Open dashboard at http://127.0.0.1:3141
+1. Open dashboard at <http://127.0.0.1:3141>
 2. Click the notification bell icon
 3. Click "Test Notification"
 
@@ -227,6 +236,7 @@ curl -X POST http://127.0.0.1:3141/api/alerts/test
 2. **Check owner user ID** - Must be numeric, from @userinfobot
 3. **Message the bot first** - You must /start the bot before it can message you
 4. **Test connection:**
+
    ```bash
    npx ari doctor --check telegram
    ```
@@ -237,6 +247,7 @@ curl -X POST http://127.0.0.1:3141/api/alerts/test
 2. **Verify Gmail app password** - Not your regular password
 3. **Check spam folder** - SMS from email may be filtered
 4. **Test SMTP connection:**
+
    ```bash
    npx ari doctor --check smtp
    ```
@@ -247,6 +258,7 @@ curl -X POST http://127.0.0.1:3141/api/alerts/test
 2. **Check database sharing** - Integration must have access
 3. **Verify database ID** - From URL, not page title
 4. **Test connection:**
+
    ```bash
    npx ari doctor --check notion
    ```
@@ -264,6 +276,7 @@ curl -X POST http://127.0.0.1:3141/api/alerts/test
 2. **Check quiet hours** - May be held until morning
 3. **Check throttle** - May have hit hourly limit
 4. **Check logs:**
+
    ```bash
    tail -f ~/.ari/logs/notifications.log
    ```

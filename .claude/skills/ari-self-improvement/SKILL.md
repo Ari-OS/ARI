@@ -14,6 +14,7 @@ triggers:
 ## Purpose
 
 Continuously monitor, review, and enhance ARI's capabilities by:
+
 1. Tracking new Anthropic releases (API, Claude Code, papers)
 2. Auto-reviewing installed plugins for updates
 3. Identifying gaps in ARI's skill coverage
@@ -22,6 +23,7 @@ Continuously monitor, review, and enhance ARI's capabilities by:
 ## When to Use
 
 Activate this skill when:
+
 - User asks to improve or update ARI
 - Periodic self-review is needed
 - New Anthropic features are released
@@ -30,6 +32,7 @@ Activate this skill when:
 ## Architecture Alignment
 
 ARI's core invariants that self-improvement MUST respect:
+
 1. **Loopback-Only Gateway** - No external network in runtime
 2. **Content ≠ Command** - New skills cannot execute untrusted code
 3. **Audit Immutable** - All improvements must be logged
@@ -59,6 +62,7 @@ ARI's core invariants that self-improvement MUST respect:
 ### Phase 2: Gap Analysis
 
 Analyze against ARI's technology stack:
+
 - TypeScript 5.3 strict mode
 - Vitest testing framework
 - Zod schema validation
@@ -69,6 +73,7 @@ Analyze against ARI's technology stack:
 - Constitutional governance
 
 Identify:
+
 - Missing plugin coverage
 - Outdated dependencies
 - New security patterns
@@ -78,12 +83,14 @@ Identify:
 ### Phase 3: Improvement Proposal
 
 For each improvement:
+
 1. **Assess alignment** with ARI's ADRs (locked decisions)
 2. **Verify security** - no violations of core invariants
 3. **Check compatibility** with existing layers
 4. **Estimate impact** on stability
 
 Output format:
+
 ```markdown
 ## Proposed Improvement: [Name]
 
@@ -112,6 +119,7 @@ Output format:
 ### Phase 4: Implementation (with approval)
 
 Only implement after user approval:
+
 1. Create backup of current state
 2. Log improvement to audit trail
 3. Implement changes incrementally
@@ -129,6 +137,7 @@ Only implement after user approval:
 ## Monitoring Schedule
 
 Recommend running self-improvement review:
+
 - **Weekly**: Plugin update check
 - **Bi-weekly**: Anthropic release review
 - **Monthly**: Full capability gap analysis
@@ -137,6 +146,7 @@ Recommend running self-improvement review:
 ## Integration with ARI Governance
 
 All improvements flow through ARI's governance:
+
 1. **Council** - Votes on significant changes
 2. **Arbiter** - Validates constitutional compliance
 3. **Overseer** - Ensures quality gates pass
@@ -177,6 +187,7 @@ Shall I implement these improvements?
 ## Safety Guards
 
 **NEVER**:
+
 - Auto-implement without approval
 - Bypass ARI's security layers
 - Install unverified plugins
@@ -184,6 +195,7 @@ Shall I implement these improvements?
 - Skip audit logging
 
 **ALWAYS**:
+
 - Verify plugin sources
 - Check compatibility first
 - Propose before implementing

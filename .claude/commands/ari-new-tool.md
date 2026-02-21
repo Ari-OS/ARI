@@ -16,6 +16,7 @@ Create a new tool following ARI's permission and audit patterns.
 ## What This Creates
 
 ### 1. Tool Implementation
+
 `src/tools/<tool-name>.ts`
 
 ```typescript
@@ -85,9 +86,11 @@ export class NewTool implements Tool<NewToolParams, NewToolResult> {
 ```
 
 ### 2. Tool Tests
+
 `tests/unit/tools/<tool-name>.test.ts`
 
 ### 3. Registration
+
 Added to tool registry in `src/tools/registry.ts`
 
 ## Permission Tiers

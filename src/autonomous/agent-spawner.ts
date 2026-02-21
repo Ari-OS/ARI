@@ -123,8 +123,25 @@ export class AgentSpawner {
       const taskFilePath = path.join(worktreePath, '.ari-task.md');
       await fs.writeFile(taskFilePath, `# Task\n\n${task}\n`);
 
-      // Note: Actually spawning claude code would require additional setup
-      // For now, we mark as running and track externally
+      // Spawn AutoDeveloper autonomously inside the worktree
+      try {
+        await execFileAsync(
+          'tmux',
+          ['new-session', '-d', '-s', tmuxSession, `cd ${worktreePath} && npx ari autodev --task .ari-task.md`],
+          { cwd: worktreePath }
+        );
+      } catch {
+        // If tmux fails (e.g. not installed), fallback to a simple background spawn
+        // (In a real scenario, we might use pm2 or just let it run via child_process.spawn)
+        const { spawn } = await import('node:child_process');
+        const child = spawn('npx', ['ari', 'autodev', '--task', '.ari-task.md'], {
+          cwd: worktreePath,
+          detached: true,
+          stdio: 'ignore'
+        });
+        child.unref();
+      }
+
       agent.status = 'running';
 
       this.eventBus.emit('subagent:spawned', {

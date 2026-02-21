@@ -12,28 +12,36 @@ Preserve important context, decisions, and state across Claude Code sessions so 
 ## Memory Types
 
 ### 1. Session Context
+
 Current working state:
+
 - Active tasks
 - Recent decisions
 - Current focus area
 - Pending items
 
 ### 2. Project Memory
+
 Long-term project knowledge:
+
 - Architecture decisions (ADRs)
 - Coding conventions
 - Known issues
 - Team preferences
 
 ### 3. Pattern Library
+
 Reusable solutions:
+
 - Code patterns
 - Testing patterns
 - Debugging approaches
 - Optimization techniques
 
 ### 4. Interaction History
+
 User-specific context:
+
 - Preferred workflows
 - Communication style
 - Common requests
@@ -42,14 +50,18 @@ User-specific context:
 ## Memory Persistence
 
 ### Automatic Persistence
+
 Via hooks and MCP:
+
 ```
 Session end → Extract key learnings → Store via ari_memory_store
 Session start → Retrieve relevant context → Load into working memory
 ```
 
 ### Manual Persistence
+
 Via commands:
+
 - `/ari-learn` - Capture session learnings
 - `/ari-remember [key] [value]` - Store specific item
 - `/ari-recall [key]` - Retrieve specific item
@@ -77,21 +89,27 @@ interface SessionMemory {
 ## Retrieval Strategies
 
 ### 1. Explicit Retrieval
+
 User requests specific memory:
+
 ```
 User: "What was the decision about caching?"
 → Search: domain=decisions, query=caching
 ```
 
 ### 2. Contextual Retrieval
+
 Automatic based on current work:
+
 ```
 Working on: src/kernel/audit.ts
 → Auto-load: patterns related to audit, recent audit decisions
 ```
 
 ### 3. Similarity Search
+
 Find related memories:
+
 ```
 Current task: "Implement rate limiting"
 → Find: patterns for throttling, previous rate limit implementations
@@ -100,22 +118,26 @@ Current task: "Implement rate limiting"
 ## Memory Lifecycle
 
 ### Creation
+
 1. Extract from session
 2. Validate relevance
 3. Assign category and tags
 4. Store with provenance
 
 ### Access
+
 1. Retrieve on demand
 2. Update access count
 3. Refresh confidence based on usage
 
 ### Decay
+
 1. Rarely accessed items lose confidence
 2. Contradicted items are flagged
 3. Outdated items are archived
 
 ### Consolidation
+
 1. Related items are linked
 2. Duplicates are merged
 3. Patterns are extracted from instances

@@ -17,6 +17,7 @@ Detect and block injection attacks using ARI's 27-pattern detection system acros
 ## Pattern Categories
 
 ### 1. SQL Injection (4 patterns)
+
 ```typescript
 const SQL_PATTERNS = [
   /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER)\b)/gi,
@@ -27,6 +28,7 @@ const SQL_PATTERNS = [
 ```
 
 ### 2. Command Injection (4 patterns)
+
 ```typescript
 const COMMAND_PATTERNS = [
   /(;|\||`|\$\()/g,
@@ -37,6 +39,7 @@ const COMMAND_PATTERNS = [
 ```
 
 ### 3. Path Traversal (3 patterns)
+
 ```typescript
 const PATH_PATTERNS = [
   /(\.\.\/|\.\.\\)/g,
@@ -46,6 +49,7 @@ const PATH_PATTERNS = [
 ```
 
 ### 4. XSS Injection (4 patterns)
+
 ```typescript
 const XSS_PATTERNS = [
   /(<script|<\/script|javascript:)/gi,
@@ -56,6 +60,7 @@ const XSS_PATTERNS = [
 ```
 
 ### 5. Prompt Injection (3 patterns)
+
 ```typescript
 const PROMPT_PATTERNS = [
   /(ignore previous|disregard|forget)/gi,
@@ -65,6 +70,7 @@ const PROMPT_PATTERNS = [
 ```
 
 ### 6. Data Exfiltration (3 patterns)
+
 ```typescript
 const EXFIL_PATTERNS = [
   /(api[_-]?key|secret|password|token)/gi,

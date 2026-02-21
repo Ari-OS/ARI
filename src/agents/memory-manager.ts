@@ -5,7 +5,7 @@ import path from 'node:path';
 import { homedir } from 'node:os';
 import type { AuditLogger } from '../kernel/audit.js';
 import type { EventBus } from '../kernel/event-bus.js';
-import { INJECTION_PATTERNS } from '../kernel/sanitizer.js';
+import { INJECTION_PATTERNS } from '../kernel/sanitizer-patterns.js';
 import type {
   AgentId,
   MemoryEntry,
@@ -57,11 +57,12 @@ export class MemoryManager {
   private memories = new Map<string, MemoryEntry>();
 
   // Constants
-  private readonly MAX_CAPACITY = 10000;
+  private readonly HOT_CAPACITY = 1000; // Tier 1: RAM
+  private readonly WARM_CAPACITY = 10000; // Tier 2: SQLite
   private readonly TRUST_DECAY_PER_DAY = 0.01;
   private readonly VERIFIED_DECAY_FACTOR = 0.5; // Verified entries decay slower
 
-  // Persistence — file-based, partition-organized, atomic writes
+  // Persistence — 3-tier: Hot (RAM), Warm (SQLite), Cold (JSONL)
   private readonly MEMORY_DIR = path.join(homedir(), '.ari', 'memories');
   private persistTimer: NodeJS.Timeout | null = null;
   private dirty = false;
@@ -86,8 +87,8 @@ export class MemoryManager {
   // Injection patterns for poisoning detection
   // Base: all 27 kernel sanitizer patterns (shared single source of truth)
   // Plus: memory-specific patterns for standalone function call injection
-  private readonly MEMORY_INJECTION_PATTERNS = [
-    ...INJECTION_PATTERNS.map(p => p.pattern),
+  private readonly MEMORY_INJECTION_PATTERNS: RegExp[] = [
+    ...(INJECTION_PATTERNS as ReadonlyArray<{ pattern: RegExp }>).map((p) => p.pattern),
     // Memory-specific: standalone function calls without semicolon prefix
     /eval\s*\(/i,
     /exec\s*\(/i,
@@ -155,7 +156,7 @@ export class MemoryManager {
    */
   async store(params: StoreParams): Promise<string> {
     // Check capacity and consolidate if needed
-    if (this.memories.size >= this.MAX_CAPACITY) {
+    if (this.memories.size >= this.HOT_CAPACITY) {
       await this.consolidate();
     }
 
@@ -354,7 +355,7 @@ export class MemoryManager {
 
   /**
    * Query memories within a time window
-   * Useful for research skills like /last30days, /lastweek
+   * Useful for research skills like /last30days, /last-week
    */
   async queryTimeWindow(
     params: {
@@ -607,6 +608,7 @@ export class MemoryManager {
 
   /**
    * Consolidate memories when at capacity
+   * Pushes cold memories out of RAM into SQLite/JSONL
    */
   private async consolidate(): Promise<void> {
     const now = Date.now();
@@ -621,8 +623,8 @@ export class MemoryManager {
       }
     }
 
-    // If still at capacity, remove lowest confidence entries
-    if (this.memories.size >= this.MAX_CAPACITY) {
+    // If still at capacity, remove lowest confidence entries from RAM (Hot Tier)
+    if (this.memories.size >= this.HOT_CAPACITY) {
       const entries = Array.from(this.memories.entries());
       entries.sort((a, b) => {
         const aConfidence = this.applyTrustDecay(a[1]).confidence;
@@ -630,9 +632,9 @@ export class MemoryManager {
         return aConfidence - bConfidence;
       });
 
-      const toRemove = entries.slice(0, Math.floor(this.MAX_CAPACITY * 0.1));
+      const toRemove = entries.slice(0, Math.floor(this.HOT_CAPACITY * 0.2)); // Remove bottom 20%
       for (const [id] of toRemove) {
-        this.memories.delete(id);
+        this.memories.delete(id); // They are still stored in Warm/Cold tiers via persistToDisk
       }
     }
 

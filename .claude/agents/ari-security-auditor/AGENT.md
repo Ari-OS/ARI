@@ -13,21 +13,25 @@ Perform deep security analysis of ARI code changes, focusing on ARI's unique sec
 ## Specializations
 
 ### 1. Injection Defense Review
+
 - Verify sanitizer patterns
 - Check for bypass vulnerabilities
 - Validate risk scoring
 
 ### 2. Trust System Review
+
 - Check trust level assignments
 - Verify permission checks
 - Validate three-layer authorization
 
 ### 3. Audit Trail Review
+
 - Verify all operations logged
 - Check hash chain integrity
 - Validate provenance tracking
 
 ### 4. Constitutional Compliance
+
 - Loopback-only gateway
 - Content ≠ Command principle
 - Audit immutability

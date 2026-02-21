@@ -1,4 +1,5 @@
 # 📁 CONTEXTS DIRECTORY
+
 ## Dynamic Context Loading System
 
 **Version:** 12.0.0  
@@ -54,24 +55,31 @@ CONTEXTS/
 ## LOADING RULES
 
 ### Rule 1: Default is Kernel Only
+
 If no context is explicitly needed, ARI operates with kernel (CORE.md) only.
 
 ### Rule 2: Ventures Require Explicit Mention
+
 Venture contexts load ONLY when operator explicitly mentions the venture by name.
+
 - ✅ "Let's work on your venture" → Load venture context
 - ✅ "I need to follow up with a web dev client" → Load venture context
 - ❌ "What's the weather?" → No venture context
 
 ### Rule 3: Life Domains Load by Topic
+
 Life domain contexts load based on topic detection.
+
 - "Help me budget" → Load finance context
 - "I need to study" → Load learning context
 - "Schedule my week" → Load admin context
 
 ### Rule 4: Minimal Loading
+
 Load only what's needed for the current task. Don't preload everything.
 
 ### Rule 5: Isolation
+
 Venture contexts don't leak into life domains. Personal data stays personal.
 
 ---

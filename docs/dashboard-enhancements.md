@@ -8,10 +8,12 @@
 ## Phase 1: Critical Data Visualization (High Impact, 2-3 days)
 
 ### 1.1 Time-Series Charts
+
 **Problem**: No historical trends, only current state.  
 **Solution**: Add chart library (recharts or chart.js) for time-series visualization.
 
 **Components to Add:**
+
 ```tsx
 // dashboard/src/components/charts/TimeSeriesChart.tsx
 - Memory usage over time (line chart)
@@ -21,6 +23,7 @@
 ```
 
 **New API Endpoints Needed:**
+
 ```typescript
 // Backend: src/api/routes.ts
 GET /api/metrics/timeseries?metric=memory&range=24h
@@ -30,6 +33,7 @@ GET /api/audit/stats?groupBy=agent&range=24h
 ```
 
 **Implementation:**
+
 1. Add `recharts` dependency to dashboard
 2. Create reusable `TimeSeriesChart` component
 3. Add `/api/metrics/timeseries` endpoint (store metrics in memory or Redis)
@@ -41,10 +45,12 @@ GET /api/audit/stats?groupBy=agent&range=24h
 ---
 
 ### 1.2 Health Score Calculation
+
 **Problem**: No quantified health metric.  
 **Solution**: Calculate 0-100% health score based on component statuses.
 
 **Algorithm:**
+
 ```typescript
 function calculateHealthScore(health: DetailedHealth): number {
   const components = [
@@ -67,6 +73,7 @@ function calculateHealthScore(health: DetailedHealth): number {
 ```
 
 **Display:**
+
 - Large circular progress indicator on Health page header
 - Color-coded: 90-100% (green), 70-89% (yellow), <70% (red)
 - Trend indicator (↑↓) compared to 1h ago
@@ -76,10 +83,12 @@ function calculateHealthScore(health: DetailedHealth): number {
 ---
 
 ### 1.3 Task Execution History
+
 **Problem**: Can't see what happened when a task ran.  
 **Solution**: Store task execution logs and display them.
 
 **Data Model:**
+
 ```typescript
 interface TaskExecution {
   id: string;
@@ -96,10 +105,12 @@ interface TaskExecution {
 ```
 
 **Storage:**
+
 - Append to `~/.ari/task-executions.json` (or SQLite for better querying)
 - Keep last 100 executions per task
 
 **UI Enhancement:**
+
 ```tsx
 // In Autonomy page, clicking a task shows execution history
 <TaskDetailModal task={task}>
@@ -120,10 +131,12 @@ interface TaskExecution {
 ## Phase 2: Advanced Filtering & Search (High Impact, 2 days)
 
 ### 2.1 Global Search
+
 **Problem**: No way to find specific data across pages.  
 **Solution**: Add command palette (⌘K) for quick navigation and search.
 
 **Implementation:**
+
 1. Add `cmdk` (command palette library) to dashboard
 2. Create `<CommandPalette>` component with keyboard shortcut (⌘K / Ctrl+K)
 3. Index searchable data:
@@ -134,6 +147,7 @@ interface TaskExecution {
    - Audit events (search by action or agent)
 
 **Example:**
+
 ```tsx
 <CommandPalette>
   <SearchInput placeholder="Search or jump to..." />
@@ -158,16 +172,19 @@ interface TaskExecution {
 ---
 
 ### 2.2 Advanced Filters
+
 **Problem**: Can't filter large datasets (100+ audit events).  
 **Solution**: Add filter controls on Audit and other data-heavy pages.
 
 **Filters for Audit Page:**
+
 - **Agent filter**: Dropdown (All, GUARDIAN, PLANNER, EXECUTOR, etc.)
 - **Action filter**: Dropdown (All, task_completed, threat_detected, etc.)
 - **Time range**: Dropdown (Last hour, Last 24h, Last 7d, Custom)
 - **Search**: Text input (searches action, agent, details)
 
 **Filters for Autonomy Page:**
+
 - **Task status**: All, Enabled, Disabled
 - **Task handler**: All, briefings, health_check, etc.
 - **Subagent status**: All, Running, Completed, Failed
@@ -179,10 +196,12 @@ interface TaskExecution {
 ## Phase 3: Real-Time Updates (Medium Impact, 1 day)
 
 ### 3.1 Migrate to WebSocket
+
 **Problem**: Polling every 5-10s is inefficient and not truly real-time.  
 **Solution**: Use existing WebSocket connection for instant updates.
 
 **Backend Changes:**
+
 ```typescript
 // src/api/ws.ts - already exists, enhance it
 eventBus.on('audit:logged', (event) => {
@@ -205,6 +224,7 @@ eventBus.on('scheduler:task_triggered', (event) => {
 ```
 
 **Frontend Changes:**
+
 ```tsx
 // dashboard/src/hooks/useWebSocket.ts
 export function useWebSocket() {
@@ -236,15 +256,18 @@ export function useWebSocket() {
 ## Phase 4: Export & Reporting (Medium Impact, 1 day)
 
 ### 4.1 Export Functionality
+
 **Problem**: Can't download data for offline analysis.  
 **Solution**: Add export buttons on each page.
 
 **Formats:**
+
 - **CSV**: Audit log, scheduler tasks, subagent list
 - **JSON**: Full data export for programmatic access
 - **PDF**: System health report (visual summary)
 
 **Implementation:**
+
 ```tsx
 // dashboard/src/components/ExportButton.tsx
 <ExportButton 
@@ -267,12 +290,14 @@ export function useWebSocket() {
 ## Phase 5: Drill-Down Detail Views (High Impact, 2 days)
 
 ### 5.1 Subagent Detail Page
+
 **Problem**: Can only see summary info, not full execution details.  
 **Solution**: Create detail page/modal for each subagent.
 
 **Route:** `/autonomy/subagent/:id`
 
 **Components:**
+
 ```tsx
 <SubagentDetailPage agent={agent}>
   {/* Header */}
@@ -312,10 +337,12 @@ export function useWebSocket() {
 ---
 
 ### 5.2 Component Health Deep-Dive
+
 **Problem**: Component cards show status, but not **why** status is degraded.  
 **Solution**: Click component card → detail modal.
 
 **Example (Gateway Deep-Dive):**
+
 ```tsx
 <GatewayDetailModal>
   <Metrics>
@@ -349,10 +376,12 @@ export function useWebSocket() {
 ## Phase 6: Dashboard Customization (Low-Medium Impact, 2-3 days)
 
 ### 6.1 Widget-Based Layout
+
 **Problem**: Fixed layout, everyone sees the same thing.  
 **Solution**: Modular widget system with drag-and-drop.
 
 **Implementation:**
+
 1. Add `react-grid-layout` for drag-and-drop widgets
 2. Create widget library:
    - `<SystemHealthWidget />`
@@ -372,10 +401,12 @@ export function useWebSocket() {
 ---
 
 ### 6.2 Theme & Display Settings
+
 **Problem**: No dark/light theme toggle, no customization.  
 **Solution**: Add settings panel.
 
 **Settings:**
+
 - Theme: Dark (default), Light
 - Auto-refresh interval: 5s, 10s, 30s, Off
 - Default date range for charts: 1h, 24h, 7d
@@ -389,15 +420,18 @@ export function useWebSocket() {
 ## Phase 7: Alerts & Notifications (High Impact, 2 days)
 
 ### 7.1 Alert System
+
 **Problem**: No visual indication of critical issues.  
 **Solution**: Add alert banner and notification center.
 
 **Alert Types:**
+
 1. **Critical**: Hash chain invalid, gateway down, agent crash
 2. **Warning**: Memory >80%, task failed, degraded component
 3. **Info**: Task completed, agent spawned
 
 **UI:**
+
 ```tsx
 <AlertBanner>
   <Alert severity="critical">
@@ -421,6 +455,7 @@ export function useWebSocket() {
 ```
 
 **Backend:**
+
 ```typescript
 // Store alerts in ~/.ari/alerts.json or Redis
 interface Alert {
@@ -443,6 +478,7 @@ POST /api/alerts/:id/acknowledge
 ## Phase 8: Performance & UX Polish (Medium Impact, 1-2 days)
 
 ### 8.1 Data Refresh Indicators
+
 **Problem**: Don't know when data was last updated.  
 **Solution**: Add "Last updated" timestamp and refresh button.
 
@@ -456,10 +492,12 @@ POST /api/alerts/:id/acknowledge
 ---
 
 ### 8.2 Keyboard Shortcuts
+
 **Problem**: Mouse-only navigation.  
 **Solution**: Add keyboard shortcuts.
 
 **Shortcuts:**
+
 - `⌘K` / `Ctrl+K`: Open command palette
 - `G H`: Go to Health page
 - `G A`: Go to Autonomy page
@@ -471,10 +509,12 @@ POST /api/alerts/:id/acknowledge
 ---
 
 ### 8.3 Mobile Responsiveness
+
 **Problem**: Likely breaks on mobile.  
 **Solution**: Add mobile breakpoints and touch optimization.
 
 **Changes:**
+
 - Stack cards vertically on mobile
 - Hide less important columns in tables
 - Add swipe gestures for navigation
@@ -488,10 +528,12 @@ POST /api/alerts/:id/acknowledge
 ## Phase 9: Advanced Analytics (Low-Medium Impact, 2-3 days)
 
 ### 9.1 Comparative Metrics
+
 **Problem**: Can't compare "now" vs "before".  
 **Solution**: Add comparison mode.
 
 **Examples:**
+
 - Memory usage: 85MB (↑ 15% vs 1h ago)
 - Event rate: 120/min (↓ 10% vs yesterday)
 - Task success rate: 98% (→ no change vs last week)
@@ -499,10 +541,12 @@ POST /api/alerts/:id/acknowledge
 ---
 
 ### 9.2 Audit Event Analytics
+
 **Problem**: Just a list of events, no insights.  
 **Solution**: Add analytics dashboard.
 
 **Charts:**
+
 - Event types pie chart (task_completed, threat_detected, etc.)
 - Events by agent (bar chart)
 - Event rate over time (line chart)
@@ -529,6 +573,7 @@ POST /api/alerts/:id/acknowledge
 ## Recommended Next Steps (This Week)
 
 ### Day 1-2: Add Time-Series Charts
+
 1. Install `recharts`: `npm install recharts`
 2. Create `/api/metrics/timeseries` endpoint with in-memory storage
 3. Add `<MemoryChart>` to Health page
@@ -536,17 +581,20 @@ POST /api/alerts/:id/acknowledge
 5. Add `<TaskSuccessRateChart>` to Autonomy page
 
 ### Day 3: Add Health Score
+
 1. Implement `calculateHealthScore()` function
 2. Add circular progress indicator to Health header
 3. Add trend indicator (compare to 1h ago)
 
 ### Day 4: Add Task Execution History
+
 1. Create `TaskExecution` data model
 2. Store executions in `~/.ari/task-executions.json`
 3. Add `/api/scheduler/tasks/:id/history` endpoint
 4. Create `<TaskDetailModal>` with execution history
 
 ### Day 5: Add Alert System
+
 1. Create `Alert` data model
 2. Add `/api/alerts` endpoints
 3. Create `<AlertBanner>` component

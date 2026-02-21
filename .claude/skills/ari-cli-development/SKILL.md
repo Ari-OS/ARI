@@ -110,6 +110,7 @@ audit
 ## Output Formatting
 
 ### Success Messages
+
 ```typescript
 import chalk from 'chalk';
 
@@ -120,6 +121,7 @@ console.log(chalk.red('✗'), 'Error message');
 ```
 
 ### Progress Indicators
+
 ```typescript
 import ora from 'ora';
 
@@ -131,6 +133,7 @@ spinner.fail('Failed');
 ```
 
 ### Tables
+
 ```typescript
 console.table([
   { agent: 'guardian', status: 'active', tasks: 12 },

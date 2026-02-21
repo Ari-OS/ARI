@@ -10,28 +10,34 @@ Run a comprehensive security audit on ARI's codebase.
 ## What This Command Does
 
 ### 1. Static Analysis
+
 - Run ESLint security rules
 - Check for hardcoded secrets
 - Scan for vulnerable patterns
 
 ### 2. Dependency Audit
+
 ```bash
 npm audit
 ```
 
 ### 3. Injection Pattern Validation
+
 - Verify all 27 injection patterns are tested
 - Check sanitizer coverage is 100%
 
 ### 4. Trust Level Verification
+
 - Validate trust multipliers
 - Check permission boundaries
 
 ### 5. Audit Trail Integrity
+
 - Verify hash chain from genesis
 - Check for tampering
 
 ### 6. Constitutional Compliance
+
 - Validate all 5 Arbiter rules
 - Check layer boundaries
 

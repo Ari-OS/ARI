@@ -106,6 +106,7 @@ Every number in this plan has been validated against the actual codebase. Prior 
 Two TypeScript errors block `npm run typecheck`. Nothing can proceed until fixed.
 
 **0.0 CRITICAL: Fix MEMORY.md poisoned data** (G12 — DO FIRST)
+
 - **File:** `~/.ari/workspace/MEMORY.md` line 18
 - **Bug:** Says "Son Declan is 4 months old as of Feb 2026" — THIS IS COMPLETELY WRONG
 - **Fix:** Pryce's children are **Kai (son, 3)** and **Portland (daughter, 1)**. No "Declan" exists.
@@ -113,11 +114,13 @@ Two TypeScript errors block `npm run typecheck`. Nothing can proceed until fixed
 - **Also fix:** Version shows v2.1.0 but package.json is v2.2.1; subscription detail may be wrong
 
 **0.1 Add video:* events to EventMap**
+
 - **File:** `src/kernel/event-bus.ts` (after ~line 657)
 - **Add:** `'video:approval_requested'` and `'video:approval_response'` event types
 - **Why:** `approval-gate.ts` lines 53/105/182 emit these events but they're not in the typed EventMap
 
 **0.2 Fix Buffer type in youtube-publisher.ts**
+
 - **File:** `src/plugins/video-pipeline/youtube-publisher.ts` line 210
 - **Change:** `Uint8Array[]` → `Buffer[]`
 - **Why:** `Buffer` is pushed but array is typed `Uint8Array[]`
@@ -161,11 +164,13 @@ Two TypeScript errors block `npm run typecheck`. Nothing can proceed until fixed
 ### Phase 2: Lane Queue + Session Serialization
 
 **2.1 Create `src/autonomous/lane-queue.ts`** (~150 lines)
+
 - Per-session serialization — tasks within a session key execute serially, different session keys execute in parallel
 - Lane configuration: user (concurrency 1, priority 0), scheduled (1, 1), initiative (2, 2), background (3, 3)
 - Durable execution: tasks persist to `~/.ari/queue/pending.jsonl`, survive daemon restarts
 
 **2.2 Cron Service Isolation** (OpenClaw pattern)
+
 - Each cron task runs in isolated agent execution context with own lane
 - Run logging captures duration, success/failure, error details
 
@@ -186,15 +191,18 @@ Two TypeScript errors block `npm run typecheck`. Nothing can proceed until fixed
 **3.4 Named failure modes** for each agent
 
 **3.5 Fix L0→L1 Layer Violations** (6 files)
+
 - Define `CognitionEventEmitter` interface in `src/cognition/types.ts`
 - All cognition modules use this interface instead of importing EventBus directly
 - EventBus passed in at construction time via dependency inversion
 
 **3.6 Fix L3→L4 Layer Violation** (1 file)
+
 - Define `PermissionChecker` interface in `src/agents/types.ts`
 - Executor accepts this interface instead of importing PolicyEngine directly
 
 **Commits:**
+
 - `feat(security): add external content wrapping, homoglyphs, token caps, named failure modes`
 - `fix(architecture): resolve L0→L1 and L3→L4 layer violations via dependency inversion`
 
@@ -203,6 +211,7 @@ Two TypeScript errors block `npm run typecheck`. Nothing can proceed until fixed
 ### Phase 4: Memory Infrastructure
 
 **4.1 OpenClaw 4-File Memory Architecture**
+
 - MEMORY.md (long-term), daily notes (YYYY-MM-DD.md), active-tasks.md, lessons.md
 - Session Start Ritual: Read MEMORY.md → check active-tasks → read today's notes → read yesterday's notes
 - Maintenance crons: daily consolidation (10 PM), lessons extraction (10 PM), hygiene review (10:30 PM), cleanup (Sunday 11 PM)
@@ -368,31 +377,37 @@ ssh ari@100.81.73.34 'source ~/.zshrc; source ~/.zprofile; cd /Users/ari/ARI && 
 ## EXECUTION ORDER (Build Sessions)
 
 ### Tonight: Tier A (Foundation)
+
 1. Phase 0 — Fix build errors + MEMORY.md
 2. Phase 1 — Commit all 16 unstaged files
 3. Phase 1.5 — Fix all workspace files
 4. Save crash insurance
 
 ### Session 1 (9-midnight): Tier B
+
 1. Phase 2 — Lane queue
 2. Phase 3 — Security + layer violations
 3. Phase 4 — Memory infrastructure
 
 ### Session 2 (9-midnight): Tier B + C
+
 1. Phase 4 (cont.) — Hybrid search + memory flush
 2. Phase 5 — Video pipeline
 3. Phase 6 — SEO engine + GEO
 
 ### Session 3 (9-midnight): Tier D
+
 1. Phase 7 — SOUL evolution
 2. Phase 8 — Life intelligence (all 10 modules)
 
 ### Session 4 (9-midnight): Tier D + E
+
 1. Phase 9 — Agent coordination
 2. Phase 10 — Operations + cron fixes
 3. Phase 11 — Housekeeping + tests
 
 ### Session 5 (9-midnight): Deploy
+
 1. Phase 12.5 — Wire integrations
 2. Phase 13 — Browser automation
 3. Phase 12 — Mac Mini deployment

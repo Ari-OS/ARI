@@ -28,6 +28,7 @@ Before deploying autonomous mode to your Mac Mini, ensure:
 ```
 
 The script will:
+
 1. ✓ Verify connection to Mac Mini
 2. ✓ Stash any local changes
 3. ✓ Pull latest code from GitHub
@@ -48,11 +49,13 @@ The script will:
 ### Tonight (After Deployment)
 
 **9:00 PM - Deployment complete**
+
 - Daemon restarted with new budget tracking
 - Autonomous mode enabled
 - Waiting for first scheduled task
 
 **10:00 PM - First observations**
+
 - Check dashboard: Budget panel should show $0.00 used
 - Audit log: Should show deployment events
 - Everything quiet (as expected)
@@ -60,6 +63,7 @@ The script will:
 ### Tomorrow Morning
 
 **6:00 AM - Initiative Scan (First Autonomous Work)**
+
 ```
 What happens:
 ├─ Initiative engine scans codebase
@@ -75,6 +79,7 @@ You'll see in audit log:
 ```
 
 **6:30 AM - Auto-Execution Begins**
+
 ```
 What happens:
 ├─ Identifies low-risk, high-value tasks
@@ -92,6 +97,7 @@ You'll see:
 ```
 
 **6:30 AM - Morning Briefing Generation**
+
 ```
 What happens:
 ├─ Analyzes overnight autonomous work
@@ -103,6 +109,7 @@ Cost: ~$0.06
 ```
 
 **7:30 AM - Your Daily Brief is Ready**
+
 ```
 Location: ~/.ari/briefs/brief-YYYY-MM-DD.md
 
@@ -135,6 +142,7 @@ ssh -i ~/.ssh/id_ed25519 -L 3141:localhost:3141 <USER>@<MAC_MINI_IP> -N
 ```
 
 **Panels you'll see:**
+
 - Token Budget (real-time usage)
 - Autonomous Work (active initiatives)
 - Approval Queue (items needing review)
@@ -151,6 +159,7 @@ ssh -i ~/.ssh/id_ed25519 -L 3141:localhost:3141 <USER>@<MAC_MINI_IP> -N
 ```
 
 Shows:
+
 - System uptime
 - Daemon status
 - Gateway health
@@ -166,6 +175,7 @@ Shows:
 ```
 
 Shows:
+
 - Current usage
 - Cost breakdown by model
 - Top task types
@@ -188,6 +198,7 @@ ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "tail -f ~/Library/Logs/ari-gatewa
 ### Morning (7:30-8:00 AM)
 
 **1. Read Daily Brief**
+
 ```bash
 # On Mac Mini (via SSH)
 ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "cat ~/.ari/briefs/brief-$(date +%Y-%m-%d).md"
@@ -197,11 +208,13 @@ ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "cat ~/.ari/briefs/brief-$(date +%
 ```
 
 **2. Review Overnight Work**
+
 - Check what ARI completed autonomously
 - Review any worktrees created
 - Merge if satisfied, discard if not
 
 **3. Check Budget Status**
+
 ```bash
 ./scripts/check-budget-status.sh
 ```
@@ -211,12 +224,14 @@ ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "cat ~/.ari/briefs/brief-$(date +%
 ### During Day (Work Hours)
 
 **ARI runs autonomously:**
+
 - Health checks every 15 minutes
 - Opportunistic work (tests, TODOs, docs)
 - Budget monitoring
 - Only alerts on critical issues
 
 **You work normally:**
+
 - ARI stays out of your way
 - Progress happening in background
 - Check dashboard if curious
@@ -226,16 +241,19 @@ ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "cat ~/.ari/briefs/brief-$(date +%
 ### Evening (9:00-9:30 PM)
 
 **1. Read Evening Summary**
+
 ```bash
 ssh -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP> "cat ~/.ari/summaries/summary-$(date +%Y-%m-%d).md"
 ```
 
 **2. Review Approval Queue**
+
 - Check items needing decision
 - Quick approve/reject
 - Dashboard or CLI
 
 **3. Check Budget**
+
 - See total usage for day
 - Review cost breakdown
 - Plan for tomorrow if needed
@@ -308,11 +326,13 @@ ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari doctor"
 ### Issue: Budget Exceeded Early in Day
 
 **Symptoms:**
+
 - Budget 95%+ used before 5 PM
 - Autonomous work paused
 - Alert received
 
 **Diagnosis:**
+
 ```bash
 # Check what consumed budget
 ./scripts/check-budget-status.sh
@@ -322,6 +342,7 @@ ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/token-usage.json | jq '.byTaskType | to_ent
 ```
 
 **Solutions:**
+
 1. **Temporary:** Increase daily budget in config
 2. **Permanent:** Identify expensive task and optimize:
    - Switch to cheaper model if possible
@@ -332,10 +353,12 @@ ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/token-usage.json | jq '.byTaskType | to_ent
 ### Issue: Morning Brief Not Generated
 
 **Symptoms:**
+
 - 8:00 AM, no brief file exists
 - No notification received
 
 **Diagnosis:**
+
 ```bash
 # Check if scheduled task ran
 ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 50 | grep 'user_daily_brief'"
@@ -348,6 +371,7 @@ ssh <USER>@<MAC_MINI_IP> "tail -50 ~/Library/Logs/ari-gateway.log | grep -i 'bri
 ```
 
 **Solutions:**
+
 1. **Task disabled:** Enable in scheduler
 2. **Budget exhausted:** Check budget status
 3. **Daemon stopped:** Restart daemon
@@ -356,10 +380,12 @@ ssh <USER>@<MAC_MINI_IP> "tail -50 ~/Library/Logs/ari-gateway.log | grep -i 'bri
 ### Issue: Too Many Approval Queue Items
 
 **Symptoms:**
+
 - 10+ items in approval queue
 - Overwhelming to review
 
 **Diagnosis:**
+
 ```bash
 # Check queue
 ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/approval-queue.json | jq '.pending | length'"
@@ -369,7 +395,9 @@ ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/approval-queue.json | jq '.pending[] | {tit
 ```
 
 **Solutions:**
+
 1. **Bulk reject low-priority:**
+
    ```bash
    ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari approve bulk-reject --priority LOW"
    ```
@@ -386,11 +414,13 @@ ssh <USER>@<MAC_MINI_IP> "cat ~/.ari/approval-queue.json | jq '.pending[] | {tit
 ### Issue: Mac Mini Out of Sync
 
 **Symptoms:**
+
 - Mac Mini code is behind GitHub
 - Missing latest features
 - Different behavior than local
 
 **Diagnosis:**
+
 ```bash
 # Check sync status
 ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && git fetch origin && git status"
@@ -403,6 +433,7 @@ echo "Remote: $REMOTE"
 ```
 
 **Solution:**
+
 ```bash
 # Re-run deployment (pulls latest)
 ./scripts/deploy-autonomous.sh balanced
@@ -411,11 +442,13 @@ echo "Remote: $REMOTE"
 ### Issue: High Error Rate
 
 **Symptoms:**
+
 - Multiple errors in logs
 - Tasks failing frequently
 - Low success rate
 
 **Diagnosis:**
+
 ```bash
 # Count recent errors
 ssh <USER>@<MAC_MINI_IP> "tail -500 ~/Library/Logs/ari-gateway.log | grep -i error | wc -l"
@@ -428,6 +461,7 @@ ssh <USER>@<MAC_MINI_IP> "source ~/.zshrc && cd ~/ARI && npx ari audit list -n 5
 ```
 
 **Solutions:**
+
 1. **Identify pattern:** What's failing?
 2. **Fix root cause:** Update code, config, or routing rules
 3. **Deploy fix:** Re-run deployment script
@@ -592,24 +626,28 @@ ping -c 3 <MAC_MINI_IP>
 ### Expected Metrics After 1 Week
 
 **Cost Performance:**
+
 - [ ] Average daily cost: $0.50-1.50
 - [ ] Peak daily cost: < $2.50
 - [ ] 7-day total: < $17.50
 - [ ] Model distribution: ~70% Haiku, ~25% Sonnet, ~5% Opus
 
 **Task Performance:**
+
 - [ ] Autonomous tasks completed: 70-140 (10-20 per day)
 - [ ] Morning briefs delivered: 7/7 (100%)
 - [ ] Evening summaries: 7/7 (100%)
 - [ ] Initiative success rate: > 80%
 
 **Quality Performance:**
+
 - [ ] Tests added: 10-20
 - [ ] TODOs resolved: 15-25
 - [ ] Documentation updates: 2-5
 - [ ] Code quality: measurably improved
 
 **System Performance:**
+
 - [ ] Daemon uptime: > 99%
 - [ ] Gateway health: 100%
 - [ ] Budget adherence: 95%+ days under limit
@@ -729,6 +767,7 @@ Print this and track actual results:
 ### Reduce Costs by 20-30%
 
 **1. Batch Similar Tasks**
+
 ```
 Instead of: 3 separate test generations (3 API calls)
 Do: One batch with 3 test suites (1 API call with shared context)
@@ -736,6 +775,7 @@ Savings: ~60% on multi-task operations
 ```
 
 **2. Cache Common Contexts**
+
 ```
 Reuse: Project structure, coding patterns, common imports
 How: Store in knowledge index, include in prompts
@@ -743,6 +783,7 @@ Savings: ~15% on token usage
 ```
 
 **3. Tune Model Selection**
+
 ```
 After 1 week: Review Haiku task failures
 If <5%: Good, keep using Haiku
@@ -750,6 +791,7 @@ If >10%: Some tasks need Sonnet, adjust routing
 ```
 
 **4. Reduce Schedule Frequency**
+
 ```
 Knowledge indexing: 3x/day → 2x/day
 Health checks: Every 15min → Every 30min
@@ -757,6 +799,7 @@ Savings: ~10% on scheduled tasks
 ```
 
 **5. Optimize Prompts**
+
 ```
 Use: Clear, concise instructions
 Avoid: Redundant context, verbose explanations
@@ -778,17 +821,20 @@ Savings: ~10-15% per task
 ## Support
 
 **Documentation:**
+
 - Architecture: `docs/architecture/24-7-autonomous-architecture.md`
 - Cost analysis: `docs/analysis/cost-benefit-analysis.md`
 - Implementation plan: `docs/plans/2026-02-03-24-7-autonomous-ari-with-cost-management.md`
 
 **Scripts:**
+
 - Deploy: `./scripts/deploy-autonomous.sh <profile>`
 - Monitor: `./scripts/monitor-mac-mini.sh`
 - Budget check: `./scripts/check-budget-status.sh`
 - Sync only: `./scripts/sync-mac-mini.sh`
 
 **Questions?**
+
 - Check audit log for detailed operation history
 - Review dashboard for real-time status
 - Examine config files for current settings

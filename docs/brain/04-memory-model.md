@@ -100,6 +100,7 @@ Memories are segregated into **three partitions** for privacy and security.
 **Definition**: Information that can be freely shared or referenced.
 
 **Examples**:
+
 - General knowledge (programming languages, frameworks)
 - Public facts (historical events, scientific principles)
 - User's explicitly shared preferences
@@ -113,6 +114,7 @@ Memories are segregated into **three partitions** for privacy and security.
 **Definition**: Operational data needed for ARI to function but not shareable externally.
 
 **Examples**:
+
 - User's task history
 - Communication patterns
 - Inferred preferences
@@ -127,6 +129,7 @@ Memories are segregated into **three partitions** for privacy and security.
 **Definition**: Private information requiring maximum protection.
 
 **Examples**:
+
 - Passwords, API keys (encrypted)
 - Financial data
 - Personal health information
@@ -195,6 +198,7 @@ const decayProfiles: Record<MemoryType, DecayProfile> = {
 ```
 
 **Decay Formula**:
+
 ```typescript
 function decayConfidence(
   initialConfidence: number,
@@ -208,6 +212,7 @@ function decayConfidence(
 ```
 
 **Example**:
+
 ```
 Memory: "User prefers dark mode"
 Type: PREFERENCE
@@ -223,6 +228,7 @@ After 270 days: 0.95 × 0.125 = 0.119 → Floor = 0.2
 ### Confidence Boosting
 
 Confidence can be **re-boosted** through:
+
 1. **Re-confirmation**: User re-states preference → Reset to initial confidence
 2. **Verification**: External evidence supports memory → Increase by 0.1 (max 1.0)
 3. **Consistent Pattern**: Repeated observations align with memory → Increase by 0.05/occurrence
@@ -261,6 +267,7 @@ interface QuarantinedMemory extends Memory {
 ```
 
 **Example**:
+
 ```json
 {
   "id": "mem_7f3a2b",
@@ -293,6 +300,7 @@ Memories are indexed for **fast semantic search** using vector embeddings.
 ### Search Modes
 
 **Semantic Search** (default):
+
 ```typescript
 const results = await memory.search({
   query: "What are user's preferences for code style?",
@@ -304,6 +312,7 @@ const results = await memory.search({
 ```
 
 **Exact Match**:
+
 ```typescript
 const results = await memory.search({
   query: "API key for OpenAI",
@@ -313,6 +322,7 @@ const results = await memory.search({
 ```
 
 **Temporal Search**:
+
 ```typescript
 const results = await memory.search({
   query: "Recent decisions about architecture",
@@ -324,6 +334,7 @@ const results = await memory.search({
 ### Search Ranking
 
 Results ranked by:
+
 ```
 Score = (Semantic Similarity × Confidence × Trust Multiplier) / Age
 
@@ -352,6 +363,7 @@ ARI **forgets** memories under specific conditions.
 ### Forgetting Process
 
 **Archive** (soft delete):
+
 ```
 1. Move memory to `~/.ari/memory/archive/`
 2. Remove from active index
@@ -360,6 +372,7 @@ ARI **forgets** memories under specific conditions.
 ```
 
 **Purge** (hard delete):
+
 ```
 1. Encrypt memory with random key
 2. Delete encryption key
@@ -370,6 +383,7 @@ ARI **forgets** memories under specific conditions.
 ### Right to Be Forgotten
 
 If user requests deletion of specific data:
+
 ```
 1. Identify all memories containing that data
 2. Purge immediately (no archival)
@@ -382,6 +396,7 @@ If user requests deletion of specific data:
 ### Update Types
 
 **REPLACE** (full overwrite):
+
 ```typescript
 await memory.update(memoryId, {
   operation: 'REPLACE',
@@ -391,6 +406,7 @@ await memory.update(memoryId, {
 ```
 
 **MERGE** (combine multiple memories):
+
 ```typescript
 await memory.merge([memoryId1, memoryId2], {
   strategy: 'union', // or 'intersection', 'prioritize'
@@ -399,6 +415,7 @@ await memory.merge([memoryId1, memoryId2], {
 ```
 
 **TAG** (add metadata):
+
 ```typescript
 await memory.tag(memoryId, {
   tags: ['preference', 'ui', 'dark-mode'],
@@ -407,6 +424,7 @@ await memory.tag(memoryId, {
 ```
 
 **RECLASSIFY** (change partition/trust level):
+
 ```typescript
 await memory.reclassify(memoryId, {
   newPartition: 'SENSITIVE',
@@ -421,22 +439,26 @@ When new memory conflicts with existing memory, use **conflict resolution**:
 ### Resolution Strategies
 
 **Trust-Based** (default):
+
 ```
 Higher trust source wins.
 OPERATOR > STANDARD > UNTRUSTED
 ```
 
 **Recency-Based**:
+
 ```
 More recent memory wins (assumes preferences change).
 ```
 
 **Confidence-Based**:
+
 ```
 Higher confidence wins (regardless of recency).
 ```
 
 **Human-in-the-Loop**:
+
 ```
 Surface conflict to user, ask for resolution.
 ```

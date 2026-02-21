@@ -23,20 +23,24 @@ Layer 0 (Cognitive Foundation) provides **universal cognitive frameworks** (LOGO
 From [`council-members.ts`](../../src/governance/council-members.ts), ARI has **15 members across 5 pillars**:
 
 **Pillar 1: Infrastructure** (3 members):
+
 - ATLAS (Navigator) - Routing, context, intent
 - BOLT (Executor) - Execution, tools, delivery
 - ECHO (Archivist) - Memory, recall, knowledge
 
 **Pillar 2: Protection** (2 members):
+
 - AEGIS (Guardian) - Threats, injection, safety
 - SCOUT (Risk Scout) - Financial/health/legal risk
 
 **Pillar 3: Strategy** (3 members):
+
 - TRUE (Strategist) - Goals, planning, projects
 - TEMPO (Timekeeper) - Calendar, deadlines, rhythm
 - OPAL (Resource Guardian) - Budget, energy, attention
 
 **Pillar 4: Life Domains** (5 members):
+
 - PULSE (Health Guardian) - Physical/mental health
 - EMBER (Connection Keeper) - Relationships, social
 - PRISM (Creative Spark) - Art, ideas, innovation
@@ -44,6 +48,7 @@ From [`council-members.ts`](../../src/governance/council-members.ts), ARI has **
 - BLOOM (Growth Guide) - Learning, skills, development
 
 **Pillar 5: Meta** (2 members):
+
 - VERA (Truth Speaker) - Ethics, fairness, values
 - NEXUS (Integrator) - Synthesis, conflicts, holistic view
 
@@ -54,12 +59,14 @@ From [`council-members.ts`](../../src/governance/council-members.ts), ARI has **
 **Thesis**: Each Council member should become a **recognized expert** in specific cognitive frameworks that align with their role.
 
 **Example**:
+
 - **AEGIS** (Guardian) should be **the expert** on risk psychology (Douglas, Tharp, Taleb)
 - **MINT** (Wealth) should be **the expert** on behavioral finance and Kelly Criterion
 - **PULSE** (Health) should be **the expert** on CBT/DBT and wellness psychology
 - **BLOOM** (Growth) should be **the expert** on meta-learning and deliberate practice
 
 **Benefit**: When another member needs expertise, they know who to consult:
+
 - "MINT, what does Kelly say about this position size?"
 - "PULSE, how would CBT reframe this health challenge?"
 - "VERA, what would the Stoics say about this ethical dilemma?"
@@ -81,6 +88,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 ### Specialization Assignment Strategy
 
 **Criteria**:
+
 1. **Align with coverage** - Specializations match existing `coverage` domains
 2. **Complement voting style** - Cautious members get risk frameworks, progressive get growth
 3. **Balanced distribution** - Not all members in same pillar (diversity)
@@ -96,6 +104,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### ATLAS (Navigator) - Systems Thinking Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: ATLAS,
@@ -146,6 +155,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 ```
 
 **Use Case**: When TRUE (Strategist) is planning a complex project, consults ATLAS for systems analysis:
+
 - "How will changing my morning routine affect my evening productivity?" (feedback loops)
 - "Where's the highest leverage point to improve my health system?" (leverage points)
 
@@ -154,6 +164,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### BOLT (Executor) - Optimization Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: BOLT,
@@ -204,6 +215,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 ```
 
 **Use Case**: When OPAL (Resources) needs to optimize time allocation, consults BOLT:
+
 - "I have 20 hours this week. What's the Pareto-optimal allocation across 5 projects?"
 - "Which tasks have highest ROI per hour invested?"
 
@@ -212,6 +224,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### ECHO (Archivist) - Memory Science Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: ECHO,
@@ -262,6 +275,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 ```
 
 **Use Case**: When BLOOM is designing learning plans, consults ECHO:
+
 - "What's the optimal review schedule for retaining this skill?"
 - "How should I organize my notes for maximum recall?"
 
@@ -272,6 +286,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### AEGIS (Guardian) - Risk Psychology Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: AEGIS,
@@ -336,6 +351,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### SCOUT (Risk Scout) - Quantitative Risk Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: SCOUT,
@@ -394,6 +410,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 ```
 
 **Partnership with AEGIS**:
+
 - AEGIS: "This threat feels dangerous" (psychological assessment)
 - SCOUT: "Probability is 15%, expected cost is $500" (quantitative assessment)
 - Together: Balanced risk evaluation (emotion + math)
@@ -405,6 +422,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### TRUE (Strategist) - Game Theory Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: TRUE,
@@ -460,6 +478,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### TEMPO (Timekeeper) - Temporal Reasoning Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: TEMPO,
@@ -515,6 +534,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### OPAL (Resource Guardian) - Allocation Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: OPAL,
@@ -572,6 +592,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### PULSE (Health Guardian) - Therapeutic Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: PULSE,
@@ -628,6 +649,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 ```
 
 **Use Case**: When Operator struggles with health goal, PULSE applies CBT:
+
 - Distortion: "I ate badly today, I've ruined my whole diet"
 - Reframe: "One meal doesn't define the diet. What's the trend over 7 days?"
 
@@ -636,6 +658,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### MINT (Wealth Guardian) - Behavioral Finance Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: MINT,
@@ -692,6 +715,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 ```
 
 **Use Case**: Investment decision:
+
 - LOGOS: "EV is +$3.75K, Kelly says allocate 32.5%"
 - ETHOS: "You're showing loss aversion from last week's loss. Compensate by using half-Kelly (16.25%)"
 - Decision: Invest 16.25% (accounts for both math and psychology)
@@ -701,6 +725,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### BLOOM (Growth Guide) - Meta-Learning Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: BLOOM,
@@ -755,6 +780,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 ```
 
 **Use Case**: Learning new skill (e.g., public speaking):
+
 - Consults BLOOM: "What's the deliberate practice plan?"
 - BLOOM designs: "10 hours over 4 weeks, focused on weakest area (handling Q&A), immediate feedback after each session, gradual difficulty increase"
 
@@ -763,6 +789,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### VERA (Truth Speaker) - Philosophical Ethics Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: VERA,
@@ -817,6 +844,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 ```
 
 **Use Case**: Ethical dilemma:
+
 - Question: "Should I work with this client who operates in legal gray area?"
 - VERA consults Stoicism: "Does this align with virtues? (Wisdom: probably not. Justice: gray area. Courage: irrelevant. Temperance: restraint recommended)"
 - VERA's recommendation: "Decline. Fails wisdom and justice tests. Not worth reputational risk."
@@ -826,6 +854,7 @@ Assign each Council member a **cognitive specialization profile** defining:
 #### NEXUS (Integrator) - Synthesis Expert
 
 **Cognitive Profile**:
+
 ```typescript
 {
   member: NEXUS,
@@ -889,25 +918,30 @@ Assign each Council member a **cognitive specialization profile** defining:
 **Step 1: Multi-Member Analysis**
 
 **SCOUT (Risk)** - Quantitative:
+
 - Expected value: +$8.2K
 - Kelly Criterion: Allocate 28% of capital ($14K)
 - Probability of success: 62%
 
 **AEGIS (Guardian)** - Psychological:
+
 - Bias check: Showing recency bias (recent win influencing judgment)
 - Emotional state: Slightly euphoric (arousal = 0.65)
 - Recommendation: Use half-Kelly to compensate for emotion ($7K)
 
 **MINT (Wealth)** - Synthesis:
+
 - Consults SCOUT's math: "EV positive, Kelly says $14K"
 - Consults AEGIS's psychology: "I'm slightly emotional, reduce to $7K"
 - Applies behavioral finance: "Loss aversion would make me too cautious, but euphoria makes me too aggressive. Middle ground: $10K (20% of capital)"
 
 **VERA (Ethics)**:
+
 - Stoic analysis: "Is this aligned with values? Is this in my control?"
 - Recommendation: "Success/failure are not in control (market decides). What's in control: research quality, position size, exit plan. Have those?"
 
 **NEXUS (Integrator)** - Final Synthesis:
+
 - Combines all perspectives
 - "Math says $14K, psychology says $7K, ethics says ensure preparation"
 - Synthesis: "Invest $10K (middle ground) with clear exit plan and stop-loss"
@@ -921,11 +955,13 @@ Assign each Council member a **cognitive specialization profile** defining:
 ### 1. Depth Over Breadth
 
 **Without Specializations**:
+
 - All 15 members learn all frameworks (shallow knowledge)
 - Each member knows 10% about 100 frameworks = diluted expertise
 - No one is a true expert
 
 **With Specializations**:
+
 - Each member learns 5-6 frameworks deeply (100% knowledge)
 - Members consult each other for specialized knowledge
 - Collective intelligence: Team knows 100% about 90+ frameworks
@@ -933,11 +969,13 @@ Assign each Council member a **cognitive specialization profile** defining:
 ### 2. Efficient Learning
 
 **Without Specializations**:
+
 - All members fetch from same sources (redundant)
 - Knowledge base grows slowly (everyone learns same things)
 - 15 members × 80 sources = 1,200 member-source pairs (unmanageable)
 
 **With Specializations**:
+
 - Each member monitors 5-10 sources (75-150 member-source pairs)
 - Knowledge base grows faster (members learn different things)
 - Members share learnings (cross-pollination)
@@ -945,10 +983,12 @@ Assign each Council member a **cognitive specialization profile** defining:
 ### 3. Clear Consultation Paths
 
 **Without Specializations**:
+
 - "I need help with risk analysis. Who should I ask?" (unclear)
 - All members might give different advice (inconsistent)
 
 **With Specializations**:
+
 - "Risk analysis? Ask SCOUT (quantitative) or AEGIS (psychological)"
 - Clear experts for each domain
 - Consistent advice (members defer to specialists)
@@ -1023,6 +1063,7 @@ export interface CouncilMember {
 ```
 
 **Loading Pattern**:
+
 ```typescript
 // When Council initializes
 import { getSpecialization } from '../cognition/knowledge/specializations.js';
@@ -1072,6 +1113,7 @@ export class Council {
    - Notify member and Operator
 
 **Example**:
+
 ```
 AEGIS Quarterly Review (2026-04-01):
 
@@ -1126,11 +1168,13 @@ Updated: specializations.ts (2026-04-01)
 ## Remaining Members (Quick Profiles)
 
 ### EMBER (Relationships) - Emotional Intelligence Expert
+
 - **Weights**: ETHOS 0.60, PATHOS 0.30, LOGOS 0.10
 - **Frameworks**: Emotional intelligence (Goleman), attachment theory, communication psychology, nonviolent communication
 - **Expertise**: Relationship dynamics, conflict resolution, empathy, connection maintenance
 
 ### PRISM (Creative) - Creativity Expert
+
 - **Weights**: PATHOS 0.60, LOGOS 0.30, ETHOS 0.10
 - **Frameworks**: Divergent thinking, lateral thinking (De Bono), creativity research, flow state (Csikszentmihalyi)
 - **Expertise**: Idea generation, creative problem-solving, innovation frameworks

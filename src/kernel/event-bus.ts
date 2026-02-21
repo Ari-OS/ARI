@@ -16,6 +16,7 @@ export interface EventMap {
   'message:response': { content: string; source: string; timestamp: Date };
   'audit:logged': AuditEvent;
   'security:detected': SecurityEvent;
+  'security:degraded': { reason: string; timestamp: Date };
   'gateway:started': { port: number; host: string };
   'gateway:stopped': { reason: string };
   'system:ready': { version: string };
@@ -39,8 +40,8 @@ export interface EventMap {
   // ── Governance events ──────────────────────────────────────────────────
   'vote:started': { voteId: string; topic: string; threshold: string; deadline: string };
   'vote:cast': { voteId: string; agent: AgentId; option: string };
-  'vote:completed': { voteId: string; status: string; result: Record<string, unknown> };
-  'vote:vetoed': { voteId: string; vetoer: AgentId; domain: string; reason: string };
+  'vote:completed': { voteId: string; status: string; result?: Record<string, unknown> };
+  'vote:vetoed': { voteId: string; vetoer: AgentId; domain: string; tier?: string; reason: string };
   'vote:matrix_update': { voteId: string; matrix: Record<string, unknown> };
   'arbiter:ruling': { ruleId: string; type: string; decision: string };
   'overseer:gate': { gateId: string; passed: boolean; reason: string };
@@ -518,6 +519,9 @@ export interface EventMap {
   'telegram:memory_recalled': { userId?: number; query: string; resultCount: number };
   'telegram:settings_changed': { userId?: number; setting: string; value: string };
   'telegram:skills_listed': { userId?: number };
+  'telegram:video_approved': { projectId: string; timestamp: string };
+  'telegram:request_approval': { projectId: string; category: string; timestamp: string };
+  'telegram:council_vote': { voteId: string; agent: string; option: string };
 
   // ═══════════════════════════════════════════════════════════════════════
   // KNOWLEDGE MANAGEMENT events (Cognitive Layer)
@@ -745,7 +749,7 @@ export interface EventMap {
   // ═══════════════════════════════════════════════════════════════════════
   // COORDINATOR events (Phase 9 — Agent Coordination)
   // ═══════════════════════════════════════════════════════════════════════
-  'coordinator:dispatch_started': { taskCount: number; timestamp: string };
+  'coordinator:dispatch_started': { taskCount: number; timestamp: string; swarmSize?: number };
   'coordinator:dispatch_completed': { taskCount: number; successCount: number; failedCount: number; durationMs: number; timestamp: string };
 
   // ═══════════════════════════════════════════════════════════════════════

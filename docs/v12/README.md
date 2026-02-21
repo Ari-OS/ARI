@@ -60,6 +60,7 @@ ls -la
 
 2. **Upload Knowledge Base**
    Upload these files to the project knowledge:
+
    ```
    SYSTEM/CORE.md          (Primary system prompt)
    SYSTEM/ROUTER.md        (Request routing)
@@ -74,6 +75,7 @@ ls -la
    ```
 
 3. **Add Context Packs (as needed)**
+
    ```
    CONTEXTS/ventures/_TEMPLATE.md  (If working on that venture)
    CONTEXTS/life/career.md                   (For career discussions)
@@ -83,6 +85,7 @@ ls -la
 
 4. **Verify Activation**
    Start a conversation. You should see:
+
    ```
    🖤 ARI v12.0 SECURE ACTIVE
    
@@ -302,6 +305,7 @@ All 70 tests must pass for release certification.
 ### Modifying Core Behavior
 
 Requires full governance process:
+
 1. Submit proposal
 2. Council review (unanimous for core changes)
 3. Arbiter sign-off

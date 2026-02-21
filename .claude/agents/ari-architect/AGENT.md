@@ -37,6 +37,7 @@ Validate and enforce ARI's architectural constraints, layer boundaries, and desi
 ## Validation Rules
 
 ### Layer Dependencies
+
 ```
 6. Interfaces → 5, 1
 5. Execution  → 4, 1
@@ -47,6 +48,7 @@ Validate and enforce ARI's architectural constraints, layer boundaries, and desi
 ```
 
 ### Required Patterns
+
 - All agents must use EventBus
 - All tools must audit operations
 - All external input through sanitizer

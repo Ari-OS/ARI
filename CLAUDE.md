@@ -113,6 +113,7 @@ L6 Interfaces  ← CLI, Dashboard (L0-L5)
 ## Compaction Survival
 
 ALWAYS preserve when context is compacted:
+
 - Security invariants (all 5) + auto-block threshold
 - Layer dependency rule (lower cannot import higher)
 - Current task context and active file paths

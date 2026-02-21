@@ -436,7 +436,7 @@ export class AuditLogger {
     await fs.writeFile(
       this.auditPath,
       JSON.stringify(this.events, null, 2),
-      'utf-8'
+      { encoding: 'utf-8', mode: 0o600 }
     );
   }
 
@@ -450,7 +450,7 @@ export class AuditLogger {
     await fs.writeFile(
       this.checkpointPath,
       JSON.stringify(this.checkpoints, null, 2),
-      'utf-8'
+      { encoding: 'utf-8', mode: 0o600 }
     );
   }
 

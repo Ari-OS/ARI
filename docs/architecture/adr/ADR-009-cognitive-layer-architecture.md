@@ -22,6 +22,7 @@ ARI Life OS currently operates as a sophisticated six-layer multi-agent system w
 ### Current State
 
 **What ARI Has**:
+
 - Strict security boundaries (loopback-only, Content ≠ Command, audit chain)
 - 15 specialized Council members with voting authority
 - Knowledge infrastructure: [`knowledge-sources.ts`](../../src/autonomous/knowledge-sources.ts) (10 technical sources), [`knowledge-fetcher.ts`](../../src/autonomous/knowledge-fetcher.ts) (safe fetching), [`knowledge-index.ts`](../../src/autonomous/knowledge-index.ts) (TF-IDF search)
@@ -29,6 +30,7 @@ ARI Life OS currently operates as a sophisticated six-layer multi-agent system w
 - Constitutional enforcement (Arbiter, Overseer)
 
 **What ARI Lacks**:
+
 - **Cognitive frameworks** for decision-making (no Bayesian reasoning, no expected value, no bias detection)
 - **Psychological depth** (decisions are logical but not emotionally intelligent)
 - **Learning mechanisms** (can fetch knowledge but not synthesize it into wisdom)
@@ -48,22 +50,26 @@ This layer sits **beneath the Kernel** and is accessible to **all higher layers*
 ### Why Layer 0 (Not Another Location)?
 
 **Option A: New Layer 0 (Below Kernel)** ✅ CHOSEN
+
 - **Deepest integration**: All layers can access
 - **Foundational**: Informs everything above
 - **Self-contained**: No dependencies on higher layers
 - **Always available**: Cannot be bypassed
 
 **Option B: Extend Kernel** ❌ REJECTED
+
 - Bloats security layer with non-security concerns
 - Mixes cognitive frameworks with sanitization/audit
 - Violates single responsibility principle
 
 **Option C: Enhance Governance Only** ❌ REJECTED
+
 - Only Council benefits, not Guardian/Planner/Executor
 - Too narrow - cognitive frameworks should be universal
 - Governance is about enforcement, not reasoning foundations
 
 **Option D: Distributed Across Layers** ❌ REJECTED
+
 - Inconsistent - each layer implements differently
 - Hard to maintain - cognitive updates require touching all layers
 - Duplicated logic - same frameworks reimplemented multiple times
@@ -112,6 +118,7 @@ Add **Layer 0 (Cognitive Foundation)** beneath the existing Kernel layer, creati
 **Location**: `src/cognition/`
 
 **Directory Layout**:
+
 ```
 src/cognition/
 ├── index.ts              # Main exports, public API
@@ -156,6 +163,7 @@ src/cognition/
 ### Integration with Existing Architecture
 
 **Kernel Layer Remains Unchanged**:
+
 - Layer 0 does NOT modify security boundaries
 - Gateway still binds to 127.0.0.1 only
 - Sanitizer still scans all input
@@ -163,11 +171,13 @@ src/cognition/
 - EventBus remains the communication hub
 
 **Layer 0 Sits Below Kernel**:
+
 - Kernel can import from Layer 0 (cognitive frameworks enhance security decisions)
 - Layer 0 CANNOT import from Kernel (self-contained, no dependencies)
 - Layer 0 communicates via EventBus events (follows existing pattern)
 
 **Dependency Flow**:
+
 ```
 Layer 6 (Interfaces)
   ↓ imports
@@ -188,6 +198,7 @@ Layer 0 (Cognitive)  ← NEW
 
 **EventBus Communication**:
 Layer 0 emits new event types (extends [`event-bus.ts`](../../src/kernel/event-bus.ts) EventMap):
+
 - `cognition:query` - When cognitive API called
 - `cognition:belief_updated` - Bayesian belief updated
 - `cognition:bias_detected` - Cognitive bias found
@@ -203,6 +214,7 @@ Layer 0 emits new event types (extends [`event-bus.ts`](../../src/kernel/event-b
 **Extends Existing**: `~/.ari/`
 
 **New Directories**:
+
 ```
 ~/.ari/cognition/
 ├── beliefs.json          # Bayesian beliefs database
@@ -231,6 +243,7 @@ Layer 0 emits new event types (extends [`event-bus.ts`](../../src/kernel/event-b
 Every decision ARI makes should be informed by deep frameworks:
 
 **Without Layer 0** (Current):
+
 ```typescript
 // SCOUT assessing financial risk (simplified)
 async assessRisk(investment: Investment): Promise<Risk> {
@@ -240,6 +253,7 @@ async assessRisk(investment: Investment): Promise<Risk> {
 ```
 
 **With Layer 0** (Enhanced):
+
 ```typescript
 // SCOUT assessing financial risk with cognitive frameworks
 async assessRisk(investment: Investment): Promise<Risk> {
@@ -289,6 +303,7 @@ async assessRisk(investment: Investment): Promise<Risk> {
 ```
 
 **Improvement**:
+
 - Decisions backed by probability theory (Bayesian, EV, Kelly)
 - Bias-aware (detects confirmation bias, loss aversion)
 - Emotionally intelligent (checks if fear/greed is distorting judgment)
@@ -362,6 +377,7 @@ ARI currently **fetches** knowledge but doesn't **learn** from it. Layer 0 adds 
 Classical rhetoric's three pillars (Logos, Ethos, Pathos) map perfectly to cognitive domains:
 
 **LOGOS (Reason)** - Appeal to logic:
+
 - Bayesian reasoning (belief updating based on evidence)
 - Expected value (probabilistic decision-making)
 - Kelly Criterion (optimal resource allocation)
@@ -370,6 +386,7 @@ Classical rhetoric's three pillars (Logos, Ethos, Pathos) map perfectly to cogni
 - **Sources**: arXiv (probability, decision theory), Taleb, Nate Silver, Meadows, LessWrong
 
 **ETHOS (Character)** - Appeal to ethics/credibility:
+
 - Trading psychology (discipline, emotional regulation)
 - Bias detection (confirmation, sunk-cost, recency, loss aversion)
 - Fear/greed cycles (preventing emotional decisions)
@@ -377,6 +394,7 @@ Classical rhetoric's three pillars (Logos, Ethos, Pathos) map perfectly to cogni
 - **Sources**: Mark Douglas, Van Tharp, Kahneman, behavioral economics
 
 **PATHOS (Growth)** - Appeal to emotion/values:
+
 - Therapeutic frameworks (CBT/DBT/ACT for reframing)
 - Stoic philosophy (dichotomy of control, virtue ethics)
 - Deliberate practice (skill acquisition, mastery)
@@ -385,6 +403,7 @@ Classical rhetoric's three pillars (Logos, Ethos, Pathos) map perfectly to cogni
 - **Sources**: Beck Institute, Linehan, Marcus Aurelius, Seneca, learning science
 
 **Why These Three?**
+
 - **Complete coverage**: Logic + character + growth = holistic intelligence
 - **Balanced**: No single pillar dominates (all three inform decisions)
 - **Timeless**: Based on 2000+ years of rhetoric and philosophy
@@ -395,46 +414,55 @@ Classical rhetoric's three pillars (Logos, Ethos, Pathos) map perfectly to cogni
 Layer 0 **respects all locked ADRs**:
 
 **ADR-001 (In-Process Agents)** ✅
+
 - Layer 0 runs in same Node.js process
 - No microservices, no network overhead
 - Direct function calls for cognitive APIs
 
 **ADR-002 (3-Level Permissions)** ✅
+
 - Cognitive APIs don't bypass permission checks
 - Layer 0 is informational (provides analysis, not execution)
 - Executor still gates all destructive operations
 
 **ADR-003 (Context Isolation)** ✅
+
 - Layer 0 respects partition boundaries
 - Cognitive queries scoped to active context
 - SENSITIVE knowledge stays isolated
 
 **ADR-004 (Six-Layer Architecture)** ⚠️ EXTENDED (Now Seven Layers)
+
 - Adds Layer 0 below Kernel
 - Maintains unidirectional dependencies (no cycles)
 - Preserves layer boundaries (no cross-layer calls except via EventBus)
 
 **ADR-005 (Stop-the-Line Authority)** ✅
+
 - Operator + Guardian retain halt authority
 - Layer 0 cannot halt system (only provide recommendations)
 - Guardian can use ETHOS frameworks to enhance threat detection
 
 **ADR-006 (1-Hour Deadline)** ✅
+
 - Council votes unchanged
 - Layer 0 may inform votes but doesn't change voting mechanics
 
 **ADR-007 (Append-Only Rollback)** ✅
+
 - Cognitive beliefs follow append-only pattern
 - Belief updates create new entries, never delete old
 - Full history preserved
 
 **ADR-008 (RL Deferred)** ✅ CRITICAL
+
 - Layer 0 does NOT implement autonomous self-modification
 - Learning loop requires human approval for framework changes
 - Knowledge ingestion requires source approval
 - Supervised learning only (no reinforcement learning)
 
 **Security Invariants** ✅ ALL MAINTAINED:
+
 1. **Loopback-Only**: Layer 0 doesn't bind to network (no gateway access)
 2. **Content ≠ Command**: Knowledge sources are DATA, never executable instructions
 3. **Audit Immutable**: All cognitive operations logged (append-only)
@@ -582,18 +610,21 @@ export class Guardian {
 ### Mitigations
 
 **Complexity**:
+
 - Excellent documentation (this ADR, pillar designs, API specs)
 - Clear examples for every API
 - Comprehensive tests (80%+ coverage)
 - Phase-by-phase rollout (can stop at any phase)
 
 **Performance**:
+
 - Response time budgets (<100ms per API call)
 - Caching strategy (30min TTL for frequent queries)
 - Pre-computation for common scenarios
 - Incremental knowledge indexing (not full reindex)
 
 **Security (CRITICAL)**:
+
 - **Whitelist-only**: Sources must be added to [`knowledge-sources.ts`](../../src/autonomous/knowledge-sources.ts) (cannot fetch arbitrary URLs)
 - **Trust levels**: VERIFIED (official/academic) vs STANDARD (reputable) vs UNTRUSTED (requires human review)
 - **Sanitization**: All content passes through Kernel [`sanitizer.ts`](../../src/kernel/sanitizer.ts) + additional cognitive sanitizer
@@ -604,12 +635,14 @@ export class Guardian {
 - **Audit trail**: All knowledge fetches logged in hash-chained audit
 
 **Maintenance**:
+
 - Automated source availability checks (daily)
 - Source health metrics (fetch success rate, content quality)
 - Deprecation process (remove low-quality sources)
 - Quarterly knowledge review (prune outdated, add new)
 
 **Implementation Effort**:
+
 - Incremental rollout (LOGOS prototype first, prove value before full build)
 - Can defer phases (e.g., skip PATHOS if LOGOS/ETHOS are sufficient)
 - Reuse existing infrastructure (knowledge-fetcher, knowledge-index, scheduler)
@@ -624,11 +657,13 @@ export class Guardian {
 **Description**: Add cognitive frameworks directly to Council, Arbiter, Overseer instead of creating new layer.
 
 **Pros**:
+
 - No new layer (simpler architecture)
 - Cognitive frameworks tightly coupled with decision-making
 - Fewer files (everything in `src/governance/`)
 
 **Cons**:
+
 - Only Governance benefits (Kernel, Agents, System don't get cognitive frameworks)
 - Bloats Governance with non-governance concerns (Layer 4 isn't about reasoning foundations)
 - Guardian/Planner/Executor can't use cognitive APIs (layer boundary violation)
@@ -643,10 +678,12 @@ export class Guardian {
 **Description**: Add cognitive layer between Kernel and System, same level as existing layers.
 
 **Pros**:
+
 - Maintains "six-layer" mental model (just shifts numbering)
 - Cognitive framework peers with other capabilities
 
 **Cons**:
+
 - **Not foundational** (sits above Kernel, so Kernel can't use it)
 - Arbitrary positioning (why between Kernel and System specifically?)
 - Doesn't emphasize **foundational** nature
@@ -661,11 +698,13 @@ export class Guardian {
 **Description**: Run Layer 0 as external microservice, expose HTTP API, other layers call via network.
 
 **Pros**:
+
 - Process isolation (cognitive crash doesn't affect main system)
 - Can scale independently
 - Language-agnostic (could implement in Python for ML libraries)
 
 **Cons**:
+
 - **Violates loopback-only** (requires network binding, even if localhost)
 - Network overhead (latency for every cognitive query)
 - Complexity (service orchestration, health monitoring, restart logic)
@@ -681,11 +720,13 @@ export class Guardian {
 **Description**: Layer 0 is optional, loaded as plugins if user wants cognitive features.
 
 **Pros**:
+
 - Optional (users can run ARI without cognitive layer)
 - Modular (can load only LOGOS, not ETHOS/PATHOS)
 - Smaller core (cognitive features not in base install)
 
 **Cons**:
+
 - **Cognitive frameworks should be foundational**, not optional
 - Plugin loading adds complexity (dynamic imports, version management)
 - Inconsistent behavior (some ARI instances have cognition, others don't)
@@ -700,11 +741,13 @@ export class Guardian {
 **Description**: Add Bayesian reasoning to Guardian, add Kelly to MINT, add CBT to PULSE, etc. No unified layer.
 
 **Pros**:
+
 - Incremental (can stop at any point)
 - No major architecture change
 - Agents own their cognitive enhancements
 
 **Cons**:
+
 - **Duplicated logic** (Bayesian code reimplemented in Guardian, SCOUT, MINT, etc.)
 - **Inconsistent** (each agent implements differently)
 - **Hard to maintain** (updating Bayesian logic requires touching multiple files)
@@ -770,6 +813,7 @@ Available to Council Members
 
 **Audit Trail**:
 All cognitive operations emit audit events:
+
 ```typescript
 eventBus.emit('cognition:query', {
   api: 'calculateExpectedValue',
@@ -780,6 +824,7 @@ eventBus.emit('cognition:query', {
 ```
 
 **Content = Data Principle Still Holds**:
+
 - Knowledge sources are **data** (facts, frameworks, principles)
 - Knowledge is **never executed** as code
 - Cognitive APIs **analyze**, they don't **command**
@@ -798,6 +843,7 @@ eventBus.emit('cognition:query', {
 | Knowledge queries | <500ms | Disk I/O, semantic search |
 
 **Optimization Strategies**:
+
 - **Caching**: Frequent queries cached (30min TTL)
 - **Pre-computation**: Common scenarios (e.g., Kelly Criterion for standard risk levels) pre-calculated
 - **Lazy loading**: Wisdom index loaded on first use, not startup
@@ -806,6 +852,7 @@ eventBus.emit('cognition:query', {
 ### Memory Footprint
 
 **Estimates**:
+
 - Cognitive code: ~500KB compiled TypeScript
 - Belief database: ~1MB (1000 beliefs × 1KB each)
 - Wisdom index: ~5MB (curated principles)
@@ -815,6 +862,7 @@ eventBus.emit('cognition:query', {
 **Total**: ~17MB additional memory (acceptable - Node.js apps typically use 50-200MB)
 
 **Disk**:
+
 - `~/.ari/cognition/`: ~100MB (sources + cache)
 - Grows ~1MB/week with learning
 - Rotation after 1 year (archive old content)
@@ -832,22 +880,26 @@ eventBus.emit('cognition:query', {
 ### Test Categories
 
 **Unit Tests** (`tests/unit/cognition/`):
+
 - Test each cognitive function in isolation
 - Test with edge cases (zero probability, conflicting evidence, extreme values)
 - Test error handling (invalid inputs, missing data)
 
 **Integration Tests** (`tests/integration/cognition/`):
+
 - Test Council members using cognitive APIs
 - Test learning loop end-to-end
 - Test knowledge pipeline (fetch → validate → index → query)
 
 **Security Tests** (`tests/security/cognition/`):
+
 - Attempt knowledge poisoning (inject malicious content)
 - Attempt prompt injection via sources
 - Test sanitization effectiveness
 - Verify trust boundaries
 
 **Performance Tests** (`tests/performance/cognition/`):
+
 - Measure API response times
 - Test under load (1000 concurrent queries)
 - Memory leak detection
@@ -881,7 +933,7 @@ eventBus.emit('cognition:query', {
 
 If Layer 0 proves problematic:
 
-1. **Phase 1 Prototype Failure**: 
+1. **Phase 1 Prototype Failure**:
    - Abandon Layer 0, no code merged
    - Document learnings in ADR-009-REJECTED
    - Fallback: Enhance individual agents with simpler frameworks
@@ -909,6 +961,7 @@ If Layer 0 proves problematic:
 ## Timeline
 
 ### Design Phase (6 weeks)
+
 - Week 1-2: ADRs (6 documents)
 - Week 2-3: Pillar designs (3 documents)
 - Week 3-4: Knowledge source research (80+ sources)
@@ -917,6 +970,7 @@ If Layer 0 proves problematic:
 - Week 5-6: Implementation roadmap + testing strategy + QA
 
 ### Implementation Phase (16 weeks)
+
 - Week 1-2: Foundation (scaffolding, types, tests)
 - Week 3-4: LOGOS prototype (Bayesian + EV)
 - Week 5-6: ETHOS implementation (bias, emotion, discipline)
@@ -938,7 +992,7 @@ If Layer 0 proves problematic:
 
 1. **Council Vote**: SUPERMAJORITY (9 of 15) - major architectural change
 2. **Arbiter Review**: Verify no constitutional violations
-3. **Overseer Gates**: 
+3. **Overseer Gates**:
    - Documentation complete ✓
    - Security review passed ✓
    - Performance analysis done ✓
@@ -951,6 +1005,7 @@ If Layer 0 proves problematic:
 **Threshold**: SUPERMAJORITY (>=66%, minimum 9 of 15)
 
 **Expected Vote Breakdown**:
+
 - **Strongly Support** (6): BLOOM, MINT, AEGIS, SCOUT, VERA, NEXUS (directly benefit)
 - **Support** (5): ATLAS, TRUE, OPAL, PULSE, PRISM (general benefit)
 - **Neutral/Cautious** (3): BOLT, ECHO, TEMPO (implementation overhead concerns)
@@ -963,6 +1018,7 @@ If Layer 0 proves problematic:
 ## Success Criteria
 
 ### After Design Phase (6 weeks)
+
 - ✅ 6 ADRs published and reviewed
 - ✅ 3 Pillar design docs complete (300+ pages total)
 - ✅ 80+ knowledge sources researched and documented
@@ -973,6 +1029,7 @@ If Layer 0 proves problematic:
 - ✅ Council vote passes (SUPERMAJORITY)
 
 ### After Implementation Phase (22 weeks total)
+
 - ✅ Layer 0 fully functional
 - ✅ All 15 Council members using cognitive APIs
 - ✅ Learning loop running automatically
@@ -1001,15 +1058,18 @@ If Layer 0 proves problematic:
 **Scenario**: SCOUT assessing probability that a new investment will succeed.
 
 **Prior Belief**:
+
 - Hypothesis: "Investment will return >20%"
 - Prior probability: 0.30 (30% based on historical data)
 
 **New Evidence**:
+
 - Observation: "Founder has 3 successful exits"
 - Likelihood: P(3 exits | success) = 0.80
 - Marginal: P(3 exits) = 0.40
 
 **Bayesian Update**:
+
 ```
 P(success | 3 exits) = P(3 exits | success) × P(success) / P(3 exits)
                      = 0.80 × 0.30 / 0.40
@@ -1023,12 +1083,14 @@ P(success | 3 exits) = P(3 exits | success) × P(success) / P(3 exits)
 **Scenario**: MINT deciding how much capital to allocate to opportunity.
 
 **Inputs**:
+
 - Win probability: 0.55 (55%)
 - Win payoff: 2.0 (2:1, can double money)
 - Loss probability: 0.45 (45%)
 - Loss payoff: 1.0 (1:1, can lose all allocated)
 
 **Kelly Calculation**:
+
 ```
 f = (p × b - q) / b
   = (0.55 × 2.0 - 0.45) / 2.0
@@ -1045,6 +1107,7 @@ f = (p × b - q) / b
 **Reasoning Trace**: "I've already invested $10K. If I invest another $5K, I can average down my cost basis and recover losses when it rebounds."
 
 **Bias Detected**: SUNK_COST_FALLACY (severity: 0.85)
+
 - **Evidence**: "I've already invested" (past investment influencing future decision)
 - **Mitigation**: "Past costs are irrelevant. Evaluate the $5K decision independently. Would you make this investment if you had no prior exposure?"
 
@@ -1055,10 +1118,12 @@ f = (p × b - q) / b
 **Scenario**: BLOOM analyzing why a learning goal failed.
 
 **Outcome**:
+
 - Goal: "Learn advanced TypeScript in 2 weeks"
 - Result: FAILED (only completed 30% of material)
 
 **Reflection API Call**:
+
 ```typescript
 const insights = await cognition.reflectOnOutcome({
   action: 'Learn advanced TypeScript',
@@ -1070,12 +1135,14 @@ const insights = await cognition.reflectOnOutcome({
 ```
 
 **Insights Extracted**:
+
 1. **Pattern**: "Overambitious timeline" (trying to learn too much too fast)
 2. **Mistake**: "Didn't account for existing commitments" (calendar was already full)
 3. **Success**: "30 hours is still valuable" (partial failure, not total)
 4. **Principle**: "Break learning into smaller milestones" (deliberate practice insight)
 
 **Actionable**:
+
 - Next time: 6-week timeline instead of 2 weeks
 - Technique: Spaced repetition (15min daily vs 2h binge)
 - Checkpoint: Weekly review to adjust

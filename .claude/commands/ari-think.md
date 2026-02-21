@@ -18,27 +18,32 @@ Engage deep reasoning mode to solve complex problems in ARI.
 ## Thinking Framework
 
 ### 1. Problem Definition
+
 - What exactly is the problem?
 - What are the constraints?
 - What does success look like?
 
 ### 2. Context Gathering
+
 - Relevant code and architecture
 - Past decisions and their rationale
 - ARI's invariants and ADRs
 
 ### 3. Option Generation
+
 - Generate multiple solutions
 - Consider unconventional approaches
 - Think from different perspectives
 
 ### 4. Trade-off Analysis
+
 | Option | Pros | Cons | Risk |
 |--------|------|------|------|
 | A | ... | ... | ... |
 | B | ... | ... | ... |
 
 ### 5. Recommendation
+
 - Recommended approach
 - Implementation steps
 - Validation criteria

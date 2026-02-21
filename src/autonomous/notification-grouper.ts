@@ -292,6 +292,7 @@ export class NotificationGrouper {
       value: 'Value',
       adaptive: 'Adaptive',
       governance: 'Governance',
+      council_approval: 'Council Approval',
     };
 
     const label = categoryLabels[category] ?? category;

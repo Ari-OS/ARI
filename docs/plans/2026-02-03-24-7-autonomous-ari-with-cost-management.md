@@ -9,6 +9,7 @@
 **Tech Stack:** TypeScript 5.3, Node.js 20+, Anthropic Claude API (3 models), Existing ARI architecture (EventBus, Scheduler, InitiativeEngine)
 
 **Target Metrics:**
+
 - Daily autonomous cost: $0.50-1.50
 - Haiku usage: 70% of API calls
 - Autonomous tasks: 10-20 per day
@@ -22,6 +23,7 @@
 ### Task 1: Token Budget Tracker - Core Implementation
 
 **Files:**
+
 - Create: `src/observability/token-budget-tracker.ts`
 - Create: `tests/unit/observability/token-budget-tracker.test.ts`
 - Modify: `src/observability/index.ts` (add export)
@@ -467,6 +469,7 @@ git commit -m "feat(observability): add TokenBudgetTracker with daily limits and
 ### Task 2: Model Router - Intelligent Task Profiling
 
 **Files:**
+
 - Create: `src/execution/model-router.ts`
 - Create: `tests/unit/execution/model-router.test.ts`
 - Modify: `src/execution/index.ts` (add export)
@@ -896,6 +899,7 @@ git commit -m "feat(execution): add ModelRouter for intelligent model selection 
 ### Task 3: Integrate Budget Tracker with ClaudeClient
 
 **Files:**
+
 - Modify: `src/autonomous/claude-client.ts`
 - Modify: `tests/unit/autonomous/claude-client.test.ts`
 
@@ -1083,6 +1087,7 @@ git commit -m "feat(autonomous): integrate TokenBudgetTracker and ModelRouter wi
 ### Task 4: Update Autonomous Agent with Budget Awareness
 
 **Files:**
+
 - Modify: `src/autonomous/agent.ts`
 - Create: `src/autonomous/config/budget-config.json`
 
@@ -1177,6 +1182,7 @@ git commit -m "feat(autonomous): integrate budget awareness into autonomous agen
 ### Task 5: Enhance Scheduler with Model Hints
 
 **Files:**
+
 - Modify: `src/autonomous/scheduler.ts`
 
 **Step 1: Add SmartScheduledTask interface**
@@ -1291,6 +1297,7 @@ git commit -m "feat(scheduler): add smart scheduling with model hints and budget
 ### Task 6: Add Enhanced Scoring to Initiative Engine
 
 **Files:**
+
 - Modify: `src/autonomous/initiative-engine.ts`
 - Create: `src/autonomous/initiative-scorer.ts`
 - Create: `tests/unit/autonomous/initiative-scorer.test.ts`
@@ -1306,6 +1313,7 @@ git commit -m "feat(scheduler): add smart scheduling with model hints and budget
 ### Task 7: Daily Brief Generator
 
 **Files:**
+
 - Create: `src/autonomous/deliverables/daily-brief.ts`
 - Create: `tests/unit/autonomous/deliverables/daily-brief.test.ts`
 
@@ -1658,6 +1666,7 @@ git commit -m "feat(deliverables): add DailyBriefGenerator for morning sync"
 ### Task 8: Approval Queue System
 
 **Files:**
+
 - Create: `src/autonomous/approval-queue.ts`
 - Create: `tests/unit/autonomous/approval-queue.test.ts`
 
@@ -1887,6 +1896,7 @@ git commit -m "feat(autonomous): add ApprovalQueue for user decision gates"
 ### Task 9: Dashboard Budget Panel
 
 **Files:**
+
 - Create: `dashboard/src/components/BudgetPanel.tsx`
 - Modify: `dashboard/src/pages/Home.tsx`
 
@@ -2048,6 +2058,7 @@ git commit -m "feat(dashboard): add real-time token budget panel"
 ### Task 10: Mac Mini Sync & Update
 
 **Files:**
+
 - Create: `scripts/sync-mac-mini.sh`
 - Update: `docs/operations/RUNBOOK_MAC_MINI.md`
 
@@ -2505,26 +2516,31 @@ git commit -m "docs: add 24/7 autonomous operations guide"
 ## Success Criteria
 
 **Phase 1 Complete:**
+
 - [ ] TokenBudgetTracker tracking all API calls
 - [ ] ModelRouter selecting appropriate models
 - [ ] All tests passing
 
 **Phase 2 Complete:**
+
 - [ ] Autonomous agent using budget tracker
 - [ ] Scheduler running with adaptive throttling
 - [ ] Budget dashboard showing real-time usage
 
 **Phase 3 Complete:**
+
 - [ ] Initiative engine executing with safety gates
 - [ ] Worktree isolation for code changes
 - [ ] Approval queue functional
 
 **Phase 4 Complete:**
+
 - [ ] Morning brief delivered by 7:30 AM
 - [ ] Evening summary with approval queue
 - [ ] Dashboard showing all autonomous work
 
 **Phase 5 Complete:**
+
 - [ ] Mac Mini fully synced and operational
 - [ ] 24/7 autonomous operations running
 - [ ] Budget staying under $2/day

@@ -41,6 +41,7 @@ import type { DailyDigest } from './daily-digest.js';
 import type { LifeMonitorReport } from './life-monitor.js';
 import type { GovernanceSnapshot } from './governance-reporter.js';
 import type { IntelligenceItem } from './intelligence-scanner.js';
+import type { CoinGeckoGlobalData } from '../plugins/crypto/types.js';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -108,6 +109,27 @@ export interface MorningBriefingContext {
     score?: number;
     source: string;
   }> | null;
+  /** GitHub notifications (unread) */
+  githubNotifications?: Array<{
+    id: string;
+    reason: string;
+    subject: { title: string; type: string };
+    repository: string;
+  }> | null;
+  /** Upcoming earnings reports (next 5 trading days) */
+  upcomingEarnings?: Array<{
+    symbol: string;
+    name: string;
+    daysUntil: number;
+    estimate: number | null;
+  }> | null;
+  /** AI-generated Perplexity morning brief */
+  perplexityBriefing?: {
+    answer: string;
+    citations: string[];
+  } | null;
+  /** CoinGecko global market data (BTC/ETH dominance, sentiment) */
+  cryptoGlobal?: CoinGeckoGlobalData | null;
 }
 
 export interface LlmCostSummary {
@@ -714,6 +736,60 @@ export class BriefingGenerator {
       for (const alert of context.marketAlerts.slice(0, 3)) {
         const icon = alert.severity === 'critical' ? '🚨' : '▸';
         lines.push(`${icon} ${this.esc(alert.asset)}: ${this.esc(alert.change)}`);
+      }
+      lines.push('');
+    }
+
+    // ── Crypto Global (BTC/ETH Dominance + Sentiment) ──
+    if (context?.cryptoGlobal) {
+      const g = context.cryptoGlobal;
+      const changeSign = g.totalMarketCapChangePercent >= 0 ? '+' : '';
+      const sentimentIcon = g.totalMarketCapChangePercent >= 2 ? '🟢'
+        : g.totalMarketCapChangePercent <= -2 ? '🔴' : '🟡';
+      lines.push('<b>🌐 Crypto Sentiment</b>');
+      const row = [
+        `BTC ${g.btcDominance.toFixed(1)}%`,
+        `ETH ${g.ethDominance.toFixed(1)}%`,
+        `Mkt ${changeSign}${g.totalMarketCapChangePercent.toFixed(1)}% ${sentimentIcon}`,
+      ];
+      lines.push(`<code>${row.join('  ·  ')}</code>`);
+      lines.push('');
+    }
+
+    // ── Perplexity AI Morning Brief ──
+    if (context?.perplexityBriefing?.answer) {
+      lines.push('<b>🤖 AI Morning Brief</b>');
+      lines.push(this.esc(context.perplexityBriefing.answer.slice(0, 400)));
+      if (context.perplexityBriefing.citations.length > 0) {
+        lines.push(`  <i>via ${this.esc(context.perplexityBriefing.citations[0].slice(0, 60))}</i>`);
+      }
+      lines.push('');
+    }
+
+    // ── GitHub Notifications ──
+    if (context?.githubNotifications && context.githubNotifications.length > 0) {
+      lines.push('<b>🔔 GitHub</b>');
+      const grouped = new Map<string, number>();
+      for (const n of context.githubNotifications) {
+        grouped.set(n.repository, (grouped.get(n.repository) ?? 0) + 1);
+      }
+      const sorted = [...grouped.entries()].sort((a, b) => b[1] - a[1]);
+      for (const [repo, count] of sorted.slice(0, 4)) {
+        lines.push(`▸ ${this.esc(repo)}: ${count} notification${count !== 1 ? 's' : ''}`);
+      }
+      if (context.githubNotifications.length > 5) {
+        lines.push(`  <i>${context.githubNotifications.length} total unread</i>`);
+      }
+      lines.push('');
+    }
+
+    // ── Upcoming Earnings ──
+    if (context?.upcomingEarnings && context.upcomingEarnings.length > 0) {
+      lines.push('<b>📅 Earnings Watch</b>');
+      for (const e of context.upcomingEarnings.slice(0, 4)) {
+        const when = e.daysUntil === 0 ? 'Today' : e.daysUntil === 1 ? 'Tomorrow' : `in ${e.daysUntil}d`;
+        const est = e.estimate !== null ? ` — est. $${e.estimate.toFixed(2)} EPS` : '';
+        lines.push(`▸ ${this.esc(e.symbol)} (${this.esc(e.name)}) ${when}${est}`);
       }
       lines.push('');
     }

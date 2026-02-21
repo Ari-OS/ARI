@@ -58,6 +58,7 @@ const CATEGORY_DEFAULTS: Record<NotificationCategory, CategoryDefaults> = {
   value:       { urgency: 0.1, impact: 0.2, timeSensitivity: 0.1, decayProfile: 'persistent' },
   adaptive:    { urgency: 0.1, impact: 0.2, timeSensitivity: 0.1, decayProfile: 'persistent' },
   governance:  { urgency: 0.6, impact: 0.7, timeSensitivity: 0.5, decayProfile: 'short' },
+  council_approval: { urgency: 0.8, impact: 0.8, timeSensitivity: 0.9, decayProfile: 'short' },
 };
 
 // ─── Scoring Weights ──────────────────────────────────────────────────────────

@@ -77,3 +77,10 @@ export interface CoinGeckoSearchResult {
     market_cap_rank: number | null;
   }>;
 }
+
+export interface CoinGeckoGlobalData {
+  btcDominance: number;
+  ethDominance: number;
+  totalMarketCapChangePercent: number;
+  activeCurrencies: number;
+}

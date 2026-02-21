@@ -49,17 +49,20 @@ const logger = {
   info: (data: unknown, msg?: string): void => {
     if (process.env['NODE_ENV'] !== 'test') {
       const base = typeof data === 'object' && data !== null ? data : { data };
+      // eslint-disable-next-line no-console
       console.log(JSON.stringify({ level: 'INFO', component: 'decision-journal', ...base, msg }));
     }
   },
   warn: (data: unknown, msg?: string): void => {
     if (process.env['NODE_ENV'] !== 'test') {
       const base = typeof data === 'object' && data !== null ? data : { data };
+      // eslint-disable-next-line no-console
       console.warn(JSON.stringify({ level: 'WARN', component: 'decision-journal', ...base, msg }));
     }
   },
   error: (data: unknown, msg?: string): void => {
     const base = typeof data === 'object' && data !== null ? data : { data };
+    // eslint-disable-next-line no-console
     console.error(JSON.stringify({ level: 'ERROR', component: 'decision-journal', ...base, msg }));
   },
   debug: (_data: unknown, _msg?: string): void => {},

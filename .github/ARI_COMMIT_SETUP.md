@@ -30,6 +30,7 @@ Add to `.claude/settings.local.json`:
 ## Verification
 
 After setup, test with:
+
 ```bash
 git log --format='%an <%ae> | %cn <%ce>' -1
 ```

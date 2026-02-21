@@ -51,6 +51,7 @@ Enforce ARI's strict six-layer architecture (ADR-004) and prevent dependency vio
 ## Violation Detection
 
 ### Check Command
+
 ```bash
 # Find potential violations
 grep -r "from '\.\./governance" src/agents/
@@ -59,6 +60,7 @@ grep -r "from '\.\./system" src/kernel/
 ```
 
 ### Valid Imports
+
 ```typescript
 // ✅ CORRECT: System importing from Kernel
 import { EventBus } from '../kernel/event-bus.js';
@@ -71,6 +73,7 @@ import { Guardian } from '../agents/guardian.js';
 ```
 
 ### Invalid Imports (VIOLATIONS)
+
 ```typescript
 // ❌ WRONG: Kernel importing from System
 import { Router } from '../system/router.js';
@@ -85,6 +88,7 @@ import { Executor } from '../agents/executor.js';
 ## Why This Matters
 
 Layer violations can:
+
 1. Create circular dependencies
 2. Bypass security boundaries
 3. Break audit trail integrity
@@ -116,6 +120,7 @@ Instead of direct imports, use EventBus:
 ## Integration with CI
 
 Add ESLint rule to enforce:
+
 ```json
 {
   "rules": {

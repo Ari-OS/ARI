@@ -13,6 +13,7 @@ triggers:
 ## Purpose
 
 ARI uses Zod for all config and data structure validation (ADR-006). This skill ensures:
+
 - All new types have corresponding Zod schemas
 - Runtime validation matches TypeScript types
 - Config changes update schemas first
@@ -98,6 +99,7 @@ const EnvSchema = z.object({
 ## Schema Patterns for ARI
 
 ### Event Payloads
+
 ```typescript
 const EventPayloadSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('message'), data: MessageSchema }),
@@ -106,6 +108,7 @@ const EventPayloadSchema = z.discriminatedUnion('type', [
 ```
 
 ### Config Validation
+
 ```typescript
 const ConfigSchema = z.object({
   gateway: z.object({

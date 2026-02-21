@@ -251,7 +251,7 @@ const DEFAULT_MODELS: ModelDefinition[] = [
     maxContextTokens: 1_000_000,
     maxOutputTokens: 65_536,
     supportsCaching: true,
-    isAvailable: false,
+    isAvailable: true,
     capabilities: ['text', 'code', 'reasoning', 'vision', 'tools'],
   },
   {
@@ -267,7 +267,7 @@ const DEFAULT_MODELS: ModelDefinition[] = [
     maxContextTokens: 1_000_000,
     maxOutputTokens: 64_000,
     supportsCaching: true,
-    isAvailable: false,
+    isAvailable: true,
     capabilities: ['text', 'code', 'reasoning', 'vision', 'tools'],
   },
   {
@@ -283,7 +283,7 @@ const DEFAULT_MODELS: ModelDefinition[] = [
     maxContextTokens: 1_000_000,
     maxOutputTokens: 65_536,
     supportsCaching: true,
-    isAvailable: false,
+    isAvailable: true,
     capabilities: ['text', 'code', 'reasoning', 'vision', 'tools'],
   },
   {
@@ -299,7 +299,7 @@ const DEFAULT_MODELS: ModelDefinition[] = [
     maxContextTokens: 1_000_000,
     maxOutputTokens: 65_536,
     supportsCaching: true,
-    isAvailable: false,
+    isAvailable: true,
     capabilities: ['text', 'code'],
   },
   // ── xAI ──────────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@ ARI is in active production use on a Mac Mini (24/7 daemon) with Telegram as the
 ## Phase Status (as of February 2026)
 
 ### Complete ✅
+
 | Phase | Description | Key Deliverable |
 |-------|-------------|-----------------|
 | 0 | Foundation | 7-layer architecture, security invariants, EventBus |
@@ -42,18 +43,21 @@ ARI is in active production use on a Mac Mini (24/7 daemon) with Telegram as the
 ## Near-Term (Q1 2026)
 
 ### Stability & Reliability
+
 - [ ] Morning briefing consistent delivery (6:30 AM daily via Telegram)
 - [ ] Daemon auto-restart on crash with Telegram alert
 - [ ] 99.5%+ uptime target on Mac Mini
 - [ ] All 29 phases end-to-end verified (not just committed)
 
 ### Intelligence Improvements
+
 - [ ] Market alerts firing correctly on threshold breach
 - [ ] Pokemon TCG price monitoring active (TCGPlayer integration)
 - [ ] Career tracker scanning 5-10 job opportunities/week
 - [ ] RAG query returning relevant results from ingested documents
 
 ### Pryceless Solutions Integration
+
 - [ ] CRM tracking first client leads
 - [ ] Invoice generation from Telegram command
 - [ ] Time tracking integration (Toggl)
@@ -64,18 +68,21 @@ ARI is in active production use on a Mac Mini (24/7 daemon) with Telegram as the
 ## Medium-Term (Q2 2026)
 
 ### AI Capabilities
+
 - [ ] Claude claude-opus-4.6 for council decisions (quality chain)
 - [ ] Batch processing pipeline for non-urgent operations
 - [ ] Embedding deduplication for VectorStore efficiency
 - [ ] Streaming responses in Telegram (typing indicator)
 
 ### Integrations
+
 - [ ] Google Calendar bidirectional sync (read + write)
 - [ ] Spotify "focus mode" automation (playlist by task type)
 - [ ] Readwise integration (highlight synthesis)
 - [ ] Stripe webhook for payment notifications
 
 ### Content & Growth
+
 - [ ] PayThePryce content calendar automation
 - [ ] YouTube Shorts pipeline fully operational
 - [ ] LinkedIn post scheduler with AI-generated content
@@ -86,18 +93,21 @@ ARI is in active production use on a Mac Mini (24/7 daemon) with Telegram as the
 ## Long-Term (Q3-Q4 2026)
 
 ### AI Job Search
+
 - [ ] Automated application tracking and follow-up
 - [ ] Interview preparation with role-specific context
 - [ ] Salary negotiation briefings
 - [ ] Target: AI role at $75K+
 
 ### Platform Evolution
+
 - [ ] iOS companion app (read-only dashboard)
 - [ ] Web dashboard (React, loopback-only API)
 - [ ] Voice-first interaction (ElevenLabs + Whisper)
 - [ ] Multi-device sync (MacBook Air + Mac Mini + iPhone)
 
 ### Business Growth
+
 - [ ] Pryceless Solutions: 5+ clients
 - [ ] PayThePryce: 1,000+ followers
 - [ ] MRR target: $1,000+/month
@@ -119,6 +129,7 @@ These will not change regardless of feature additions:
 ## What ARI Is NOT
 
 ARI will not become:
+
 - A multi-user SaaS product
 - A general-purpose chatbot platform
 - An autonomous trading bot with real money at risk

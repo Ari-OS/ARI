@@ -35,6 +35,7 @@ Real-time monitoring, alerting, and metrics for ARI operations.
 ## Dashboard Integration
 
 Metrics are emitted via EventBus for dashboard consumption:
+
 ```typescript
 eventBus.emit('metrics:recorded', {
   name: 'request_latency',

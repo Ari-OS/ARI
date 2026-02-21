@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Autonomous Intelligence (Phases 6-29)
+
 - **Market Intelligence** — Real-time BTC/ETH/SOL/Pokemon TCG price alerts with portfolio tracking and Perplexity "why?" enrichment
 - **Video Pipeline** — HeyGen avatar generation → AssemblyAI transcription → FFmpeg assembly → YouTube publishing with captions and thumbnails
 - **Langfuse Observability** — Cost tracking, prompt versioning, latency monitoring, budget alerts
@@ -38,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BriefingGenerator** — Rich morning/evening/weekly briefings via Telegram with market data, calendar, tasks
 
 #### Test Coverage (9 new test files — 301 total)
+
 - `tests/unit/autonomous/food-journal.test.ts` — Nutrition tracking and USDA API integration
 - `tests/unit/autonomous/youtube-tracker.test.ts` — YouTube analytics and channel monitoring
 - `tests/unit/autonomous/shorts-pipeline.test.ts` — Short-form video content pipeline
@@ -49,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tests/unit/cognition/learning/decision-journal.test.ts` — Bayesian decision tracking
 
 #### Architecture Compliance
+
 - **Executor DI pattern** (`src/agents/executor.ts`) — Dependency injection with optional `policyEngineOverride` constructor param; policy queue (`_pendingPolicies[]`) for async production init; satisfies L3→L4 layer boundary (ADR-004)
 - **Decision Journal typed interfaces** (`src/cognition/learning/decision-journal.ts`) — 16 strongly-typed payload interfaces replacing `any`; L0 layer compliance (no kernel imports)
 - **Shell injection sanitizer** (`src/e2e/runner.ts`) — VALID_PLAYWRIGHT_CATEGORIES allowlist replaces dynamic string injection
@@ -58,11 +61,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Telegram user:active event** (`src/plugins/telegram-bot/bot.ts`) — Emits `user:active` on each message
 
 #### Infrastructure
+
 - **Pre-commit hook PATH fix** (`.husky/pre-commit`) — `PATH="/opt/homebrew/opt/node@22/bin:$PATH"` for Mac Mini Node.js resolution
 - **Daemon launchd** — `com.ari.daemon.plist` for 24/7 autonomous operation on Mac Mini
 - **Mac Mini deployment** — 21-commit autonomous implementation on dedicated always-on machine (Tailscale IP: 100.81.73.34)
 
 ### Changed
+
 - Test count increased from **5,460 → 6,716** (1,256 new tests across 83 new test files)
 - Test files increased from **218 → 301**
 - TypeScript source files increased from **333 → 420+**
@@ -72,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PolicyEngine now injectable via constructor for deterministic test execution
 
 ### Fixed
+
 - **executor.ts race condition** — `registerBuiltInTools()` called `registerPolicy()` before async import resolved → fixed with policy queue
 - **health-monitor flaky test** — Timing race after `stop()` could allow one in-flight tick → assertion relaxed to `≤1`
 - **weekly-wisdom-digest trend** — `getDecisionsInRange` returns descending order; `calcEmotionalTrend` now sorts ascending before trend split
@@ -87,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Foundation Services (Phase 2)
+
 - **VectorStore** (`src/system/vector-store.ts`) — SQLite-backed 1536-dim OpenAI embeddings with cosine similarity
 - **EmbeddingService** (`src/ai/embedding-service.ts`) — OpenAI text-embedding-3-small with batch processing
 - **TopicManager** (`src/integrations/telegram/topic-manager.ts`) — Telegram forum topic management with thread routing
@@ -94,10 +101,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BackupManager** (`src/autonomous/backup-manager.ts`) — Automated backup with rotation and encryption
 
 #### Knowledge System (Phase 3)
+
 - **IngestionPipeline** (`src/autonomous/ingestion-pipeline.ts`) — Document processing with chunking and deduplication
 - **RAGQueryEngine** (`src/autonomous/rag-query.ts`) — Retrieval-augmented generation with prompt injection protection
 
 #### Market Intelligence (Phase 4)
+
 - **MarketMonitor** (`src/autonomous/market-monitor.ts`) — Multi-asset price tracking with alert thresholds
 - **PortfolioTracker** (`src/autonomous/portfolio-tracker.ts`) — Portfolio management with P&L calculation
 - **InvestmentAnalyzer** (`src/autonomous/investment-analyzer.ts`) — Investment analysis with risk assessment
@@ -105,18 +114,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CareerTracker** (`src/autonomous/career-tracker.ts`) — Job market monitoring with preference matching
 
 #### Operations (Phase 5)
+
 - **GitSync** (`src/ops/git-sync.ts`) — Automated repository sync with conflict detection
 - **TemporalMemory** (`src/agents/temporal-memory.ts`) — Time-based memory with daily/weekly synthesis
 
 #### Documentation
+
 - **Mac Mini Setup Guide** (`docs/guides/MAC_MINI_SETUP.md`) — Complete deployment guide for 24/7 operation
 
 ### Changed
+
 - Test count increased from 3988 to 4654 (666 new tests for 14 modules)
 - Injection patterns increased to 39 across 14 categories
 - README updated with accurate test counts and architecture
 
 ### Fixed
+
 - Resolved merge conflicts in concurrent implementations
 - Fixed type declaration conflict in better-sqlite3
 
@@ -127,6 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > *Primary notification channel established.*
 
 ### Added
+
 - Telegram-primary notification system replacing Pushover
 - TelegramSender (`src/integrations/telegram/sender.ts`) — lightweight Bot API sender
 - Multi-signal request classifier (`src/ai/request-classifier.ts`)
@@ -137,11 +151,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ARI Intelligence Guide (`docs/ARI-INTELLIGENCE-GUIDE.md`)
 
 ### Changed
+
 - Notification routing: P0→SMS+Telegram+Notion, P1→Telegram+Notion, P2→Telegram(silent)+Notion
 - Test count increased from 3194 to 3988
 - xAI models updated to correct API model IDs, added grok-4-fast and grok-3-mini
 
 ### Removed
+
 - Pushover integration (`src/autonomous/pushover-client.ts`, `src/channels/adapters/pushover.ts`, `src/integrations/pushover/`)
 - Legacy daemon script (`scripts/ari-daemon.ts`)
 - Legacy notify script (`scripts/notify.sh`)
@@ -155,6 +171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Cognitive Layer 0 (LOGOS/ETHOS/PATHOS)
+
 - **LOGOS (Reason)** — Bayesian reasoning, Expected Value, Kelly Criterion, Decision Trees, Systems Thinking, Antifragility
 - **ETHOS (Character)** — Cognitive bias detection, Emotional state (VAD model), Fear/Greed cycle, Discipline checks
 - **PATHOS (Growth)** — CBT reframing, Stoic philosophy, Wisdom traditions, Meta-learning, Practice planning
@@ -163,6 +180,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Visualization** — Insight formatter for Claude Code, Dashboard Cognition page
 
 #### CLI Commands
+
 - `ari cognitive status` — Cognitive health overview
 - `ari cognitive analyze` — Bias and distortion detection
 - `ari cognitive decide` — Full decision pipeline
@@ -172,11 +190,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ari cognitive profile` — Council member profiles
 
 #### EventBus Events
+
 - 18 cognitive events (belief_updated, bias_detected, thought_reframed, etc.)
 - 7 knowledge events (source_fetched, validated, gap_identified, etc.)
 - 7 learning events (performance_review, gap_analysis, self_assessment, etc.)
 
 #### Dashboard
+
 - Cognition page with three-pillar health visualization
 - Real-time cognitive activity feed
 - Learning loop progress tracker
@@ -184,11 +204,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Framework usage charts
 
 #### Documentation
+
 - 9 new CLAUDE.md files for all source modules
 - Updated architecture to seven-layer (includes Layer 0)
 - 72 total documentation files
 
 ### Changed
+
 - Test count increased from 2597 to 3194 (597 new cognitive tests)
 - Architecture updated from six-layer to seven-layer
 - CLI commands increased from 8 to 11
@@ -203,6 +225,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Constitutional Framework
+
 - **ARI Constitution v1.0** — Comprehensive governance document
   - Preamble, 14 Articles, 2 Appendices
   - Separation of Powers (Legislative, Judicial, Executive)
@@ -214,6 +237,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enforced by Arbiter
 
 #### Governance Separation
+
 - **PolicyEngine** (`src/governance/policy-engine.ts`)
   - Central permission authority (Governance Layer 4)
   - 3-layer permission checks
@@ -229,6 +253,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Sandbox and timeout enforcement
 
 #### Council Renamed
+
 - **The Council** — 15-member governance body
   - Latin: "council, plan, deliberation"
   - Backwards-compatible export (`Council` still works)
@@ -263,6 +288,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Multi-Agent System
+
 - **Core Agent** — Central coordination and decision making with 5-step message pipeline
 - **Guardian Agent** — Real-time threat detection with 8 injection patterns and behavioral anomaly detection
 - **Planner Agent** — Task decomposition with dependency DAG and circular dependency detection
@@ -270,12 +296,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Memory Manager** — Provenance-tracked memory with 6 types and 3 partitions
 
 #### Constitutional Governance
+
 - **Council** — 15-member voting body with 3 quorum thresholds (majority, supermajority, unanimous)
 - **Arbiter** — Constitutional enforcement with 5 hard rules
 - **Overseer** — Quality gate enforcement with 5 release gates
 - **Stop-the-Line** — Immediate halt capability for security violations
 
 #### Web Dashboard
+
 - Real-time monitoring interface (Vite 6 + React 19)
 - Agent status and health visualization
 - Audit log viewer with hash chain verification
@@ -283,12 +311,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Memory partition browser
 
 #### REST API
+
 - 15 endpoints for system interaction
 - WebSocket real-time events
 - Health monitoring endpoints
 - Audit query endpoints
 
 #### CLI Commands
+
 - `ari onboard init` — Initialize ARI system
 - `ari doctor` — Run health checks
 - `ari gateway start|status` — Gateway management
@@ -298,12 +328,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ari daemon install|uninstall|status` — macOS daemon
 
 #### macOS Operations
+
 - launchd daemon integration for always-on operation
 - Auto-start on login
 - Log rotation and management
 - Health monitoring with auto-recovery
 
 #### Testing
+
 - 187 tests across 18 test files
 - Unit tests for all agents, governance, and kernel components
 - Integration tests for full message pipeline
@@ -334,11 +366,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Gateway
+
 - Loopback-only Fastify server (127.0.0.1 hardcoded)
 - Port configurable, host immutable
 - No remote access by design
 
 #### Sanitizer
+
 - 27 injection patterns across 10 categories:
   - Direct Override (5 patterns)
   - Role Manipulation (4 patterns)
@@ -348,16 +382,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Data Exfiltration (2 patterns)
 
 #### Audit
+
 - SHA-256 hash-chained tamper-evident logging
 - Genesis block anchors chain (`previousHash = "0x00...00"`)
 - Verification command: `npx ari audit verify`
 
 #### EventBus
+
 - Typed pub/sub event system
 - Error isolation per subscriber
 - Inter-layer communication backbone
 
 #### Configuration
+
 - Zod-validated configuration
 - Config stored at `~/.ari/`
 - Type-safe schema validation

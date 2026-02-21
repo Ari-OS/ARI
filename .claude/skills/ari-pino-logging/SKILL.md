@@ -47,6 +47,7 @@ export const logger = pino({
 ## Structured Logging Patterns
 
 ### Request Logging
+
 ```typescript
 logger.info({
   event: 'request_received',
@@ -58,6 +59,7 @@ logger.info({
 ```
 
 ### Security Events
+
 ```typescript
 logger.warn({
   event: 'injection_detected',
@@ -68,6 +70,7 @@ logger.warn({
 ```
 
 ### Agent Operations
+
 ```typescript
 logger.info({
   event: 'agent_task',
@@ -78,6 +81,7 @@ logger.info({
 ```
 
 ### Error Logging
+
 ```typescript
 logger.error({
   event: 'operation_failed',

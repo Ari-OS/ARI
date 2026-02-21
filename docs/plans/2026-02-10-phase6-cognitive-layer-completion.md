@@ -27,6 +27,7 @@ Phases 0-3 of the cognitive roadmap are complete: LOGOS (6 frameworks), ETHOS (4
 The existing `src/autonomous/knowledge-sources.ts` has 11 sources with a flat schema. We need a cognitive-tagged source registry that maps sources to pillars, frameworks, and council members.
 
 **Files:**
+
 - Create: `src/cognition/knowledge/source-manager.ts`
 - Create: `src/cognition/knowledge/cognitive-sources.ts`
 - Test: `tests/unit/cognition/knowledge/source-manager.test.ts`
@@ -110,6 +111,7 @@ Expected: FAIL (module not found)
 Create `src/cognition/knowledge/cognitive-sources.ts` — a typed array of `KnowledgeSource` objects from `../types.js`. Include sources across all three pillars covering: Bayesian reasoning (LessWrong Sequences, Nate Silver), Expected Value (decision analysis papers), Kelly Criterion (Poundstone), Systems Thinking (Meadows), Antifragility (Taleb), Bias Detection (Kahneman), Emotional Intelligence (Goleman), CBT (Beck Institute), Stoicism (Daily Stoic, Massimo Pigliucci), Wisdom (Naval, Munger, Dalio), Deliberate Practice (Ericsson), and cross-cutting sources (Farnam Street, 80000 Hours).
 
 Each source should have:
+
 - `id`, `name`, `url`, `category` (OFFICIAL/RESEARCH/DOCUMENTATION/BOOK)
 - `trustLevel` ('VERIFIED' or 'STANDARD')
 - `pillar` ('LOGOS' | 'ETHOS' | 'PATHOS' | 'CROSS_CUTTING')
@@ -195,6 +197,7 @@ git commit -m "feat(cognition): add cognitive knowledge source manager with 35+ 
 5-stage validation pipeline: Whitelist → Sanitize → Bias Check → Fact Check → Human Review. Uses the existing `ValidationResult` and `ValidationStage` types from `src/cognition/types.ts`.
 
 **Files:**
+
 - Create: `src/cognition/knowledge/content-validator.ts`
 - Test: `tests/unit/cognition/knowledge/content-validator.test.ts`
 
@@ -355,6 +358,7 @@ Expected: FAIL (module not found)
 **Step 3: Implement content-validator.ts**
 
 Create `src/cognition/knowledge/content-validator.ts`:
+
 - Constructor takes EventBus and SourceManager
 - Stage 1 (Whitelist): Check `sourceId` exists in SourceManager
 - Stage 2 (Sanitize): Check for injection patterns (reuse patterns from `kernel/sanitizer.ts` — import the detection logic or replicate key patterns for cognitive content)
@@ -383,6 +387,7 @@ git commit -m "feat(cognition): add 5-stage content validation pipeline"
 Wire the knowledge module into the rest of the system.
 
 **Files:**
+
 - Create: `src/cognition/knowledge/index.ts`
 - Modify: `src/cognition/index.ts` — export knowledge module
 - Modify: `src/kernel/event-bus.ts` — add knowledge events if missing
@@ -390,6 +395,7 @@ Wire the knowledge module into the rest of the system.
 **Step 1: Create barrel export**
 
 Create `src/cognition/knowledge/index.ts`:
+
 ```typescript
 export { SourceManager } from './source-manager.js';
 export { ContentValidator } from './content-validator.js';
@@ -399,6 +405,7 @@ export { COGNITIVE_KNOWLEDGE_SOURCES } from './cognitive-sources.js';
 **Step 2: Check and add EventBus events**
 
 Check if `knowledge:source_fetched` and `knowledge:validated` events exist in `src/kernel/event-bus.ts`. If not, add them to the EventMap interface:
+
 ```typescript
 'knowledge:source_fetched': { sourceId: string; contentLength: number; timestamp: string };
 'knowledge:validated': { sourceId: string; contentId: string; passed: boolean; stage: string; stageNumber: number };
@@ -407,6 +414,7 @@ Check if `knowledge:source_fetched` and `knowledge:validated` events exist in `s
 **Step 3: Update cognition/index.ts**
 
 Add re-export:
+
 ```typescript
 export * from './knowledge/index.js';
 ```
@@ -432,6 +440,7 @@ git commit -m "feat(cognition): wire knowledge module into event system"
 Define the 15 cognitive profiles that map each council member to their cognitive frameworks, knowledge sources, and learning plans.
 
 **Files:**
+
 - Create: `src/cognition/knowledge/specializations.ts`
 - Test: `tests/unit/cognition/knowledge/specializations.test.ts`
 
@@ -547,6 +556,7 @@ Expected: PASS
 **Step 5: Update knowledge barrel export**
 
 Add to `src/cognition/knowledge/index.ts`:
+
 ```typescript
 export { getProfile, getAllProfiles, getProfilesByPillar } from './specializations.js';
 ```
@@ -567,6 +577,7 @@ git commit -m "feat(cognition): add 15 council cognitive specialization profiles
 Analyzes the Decision Journal to produce a daily performance review: success rates, framework usage, bias patterns, emotional risk, and a grade.
 
 **Files:**
+
 - Create: `src/cognition/learning/performance-review.ts`
 - Test: `tests/unit/cognition/learning/performance-review.test.ts`
 
@@ -668,6 +679,7 @@ Expected: FAIL
 **Step 3: Implement performance-review.ts**
 
 Create `src/cognition/learning/performance-review.ts`:
+
 - `PerformanceReviewer` class
 - `generateReview(entries: JournalEntry[], options: { hours: number }): PerformanceReview`
 - Counts decisions by outcome → success rate
@@ -698,6 +710,7 @@ git commit -m "feat(cognition): add daily performance review engine"
 Identifies knowledge gaps by analyzing which areas have high failure rates, low framework usage, or recurring biases.
 
 **Files:**
+
 - Create: `src/cognition/learning/gap-analysis.ts`
 - Test: `tests/unit/cognition/learning/gap-analysis.test.ts`
 
@@ -777,6 +790,7 @@ Expected: FAIL
 **Step 3: Implement gap-analysis.ts**
 
 Create `src/cognition/learning/gap-analysis.ts`:
+
 - `GapAnalyzer` class
 - `analyzeGaps(reviews: PerformanceReview[]): GapAnalysisResult`
 - Gap detection rules:
@@ -809,6 +823,7 @@ git commit -m "feat(cognition): add weekly gap analysis engine"
 Comprehensive monthly self-assessment comparing current vs previous period across all metrics.
 
 **Files:**
+
 - Create: `src/cognition/learning/self-assessment.ts`
 - Test: `tests/unit/cognition/learning/self-assessment.test.ts`
 
@@ -932,6 +947,7 @@ Expected: FAIL
 **Step 3: Implement self-assessment.ts**
 
 Create `src/cognition/learning/self-assessment.ts`:
+
 - `SelfAssessor` class
 - `assess(params)` takes current + previous period reviews and gap analyses
 - Computes:
@@ -966,6 +982,7 @@ git commit -m "feat(cognition): add monthly self-assessment engine"
 Ties the three learning components together with a scheduler-friendly interface.
 
 **Files:**
+
 - Create: `src/cognition/learning/learning-loop.ts`
 - Create: `src/cognition/learning/index.ts`
 - Test: `tests/unit/cognition/learning/learning-loop.test.ts`
@@ -1039,6 +1056,7 @@ Expected: FAIL
 **Step 3: Implement learning-loop.ts**
 
 Create `src/cognition/learning/learning-loop.ts`:
+
 - `LearningLoop` class
 - Constructor: `(eventBus: EventBus, journal?: DecisionJournal)`
 - `runDailyReview()`: Get last 24h from DecisionJournal → PerformanceReviewer → emit `learning:review_complete` → persist to `~/.ari/learning/reviews/`
@@ -1050,6 +1068,7 @@ Create `src/cognition/learning/learning-loop.ts`:
 **Step 4: Create barrel export**
 
 Create `src/cognition/learning/index.ts`:
+
 ```typescript
 export { DecisionJournal, getDecisionJournal, createDecisionJournal } from './decision-journal.js';
 export { PerformanceReviewer } from './performance-review.js';
@@ -1077,12 +1096,14 @@ git commit -m "feat(cognition): add learning loop orchestrator"
 Wire learning events into EventBus and integrate with the CognitionLayer facade.
 
 **Files:**
+
 - Modify: `src/kernel/event-bus.ts` — add learning events
 - Modify: `src/cognition/index.ts` — integrate LearningLoop into CognitionLayer
 
 **Step 1: Add learning events to EventBus**
 
 Add to EventMap in `src/kernel/event-bus.ts`:
+
 ```typescript
 'learning:review_complete': { grade: string; successRate: number; decisionsCount: number; timestamp: string };
 'learning:gap_identified': { gapCount: number; topGapSeverity: string; timestamp: string };
@@ -1093,6 +1114,7 @@ Add to EventMap in `src/kernel/event-bus.ts`:
 **Step 2: Update CognitionLayer**
 
 In `src/cognition/index.ts`, add:
+
 - Import LearningLoop
 - In `initialize()`: create LearningLoop and connect to EventBus
 - Add `getLearningStatus()` method
@@ -1117,6 +1139,7 @@ git commit -m "feat(cognition): wire learning loop into CognitionLayer facade an
 **Task 10: Integration Tests**
 
 **Files:**
+
 - Create: `tests/integration/cognitive-learning-loop.test.ts`
 - Create: `tests/unit/cognition/knowledge/index.test.ts` (barrel export sanity check)
 
@@ -1279,18 +1302,23 @@ tests/integration/cognitive-learning-loop.test.ts
 ## Key Design Decisions
 
 ### 1. Types Already Exist — Just Implement
+
 All Zod schemas (`KnowledgeSource`, `CognitiveProfile`, `PerformanceReview`, `GapAnalysisResult`, `SelfAssessment`) are defined in `src/cognition/types.ts`. Implementations must return objects matching these schemas.
 
 ### 2. ~35 Sources (Not 87)
+
 The roadmap says 87 sources. We start with ~35 high-quality sources that cover all frameworks across all three pillars. Sources can be expanded later without code changes.
 
 ### 3. Learning Loop Uses Decision Journal
+
 The existing `DecisionJournal` (already subscribing to all cognitive events) is the data source for all learning loop computations. No new data collection needed.
 
 ### 4. File-Based Persistence
+
 Learning loop results persist to `~/.ari/learning/` as JSON files organized by date (matching Decision Journal's approach in `~/.ari/decisions/`). No database needed.
 
 ### 5. Dashboard Integration Deferred
+
 API endpoints for cognitive routes are already stubbed in `src/api/routes/cognitive.ts`. Dashboard React components are Phase 7 work.
 
 ---
@@ -1298,6 +1326,7 @@ API endpoints for cognitive routes are already stubbed in `src/api/routes/cognit
 ## Verification Checklist
 
 After each batch:
+
 ```bash
 npm run typecheck    # Zero errors
 npm test             # All tests pass
@@ -1305,6 +1334,7 @@ npm run lint         # Zero lint errors on new files
 ```
 
 Final:
+
 ```bash
 npm run build                                  # Clean build
 npm test -- tests/unit/cognition/              # All cognition tests pass

@@ -16,6 +16,7 @@ Scaffold a new agent following ARI's architecture patterns.
 ## What This Creates
 
 ### 1. Agent Implementation
+
 `src/agents/<agent-name>.ts`
 
 ```typescript
@@ -68,6 +69,7 @@ export class NewAgent implements Agent {
 ```
 
 ### 2. Agent Tests
+
 `tests/unit/agents/<agent-name>.test.ts`
 
 ```typescript
@@ -101,9 +103,11 @@ describe('NewAgent', () => {
 ```
 
 ### 3. Type Definitions
+
 Added to `src/kernel/types.ts`
 
 ### 4. Registration
+
 Added to agent registry
 
 ## Agent Checklist

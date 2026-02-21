@@ -28,6 +28,7 @@
 ARI (Artificial Reasoning Intelligence) is a personal AI operating system designed to run autonomously on a Mac Mini. It operates 24/7, handling scheduled tasks, responding to messages, managing knowledge, and progressively learning — all while staying within a strict monthly budget.
 
 ARI is not a chatbot. It's an **autonomous agent system** with:
+
 - 5 specialized agents (Core, Guardian, Planner, Executor, Memory Manager)
 - Constitutional governance (Council, Arbiter, Overseer)
 - Multi-provider AI routing across 4 LLM providers
@@ -51,6 +52,7 @@ L0 Cognitive     ← LOGOS/ETHOS/PATHOS, Learning Loop (self-contained)
 ```
 
 **Key files for each layer:**
+
 | Layer | Directory | Key Files |
 |-------|-----------|-----------|
 | L6 | `src/cli/`, `src/dashboard/` | CLI interface, Next.js dashboard |
@@ -62,6 +64,7 @@ L0 Cognitive     ← LOGOS/ETHOS/PATHOS, Learning Loop (self-contained)
 | L0 | `src/cognitive/` | Self-assessment, gap analysis, performance review |
 
 **The EventBus** is the single coupling point. Example flow:
+
 ```
 User message → Gateway (L1) → Sanitizer (L1) → Audit (L1)
   → Core agent (L3) → Guardian assessment (L3)
@@ -76,6 +79,7 @@ User message → Gateway (L1) → Sanitizer (L1) → Audit (L1)
 ### Before: Single-Provider, Claude-Only
 
 **What existed:**
+
 - Only Anthropic as LLM provider
 - `BudgetTracker.getRecommendedModel()` returned hardcoded Claude model names:
   - Conservative mode: `claude-3-haiku` → `claude-3.5-haiku` → `claude-haiku-4.5`
@@ -86,6 +90,7 @@ User message → Gateway (L1) → Sanitizer (L1) → Audit (L1)
 - No cascade routing — single model selected per request
 
 **Problems with this approach:**
+
 1. Stuck on one provider — if Anthropic is down, everything stops
 2. Overpaying for simple tasks — using $3/M Sonnet when $0.20/M Grok would do
 3. No leveraging Google's free tier (1,500 requests/day on Gemini Flash)
@@ -106,6 +111,7 @@ User message → Gateway (L1) → Sanitizer (L1) → Audit (L1)
 | **Anthropic Provider** | `src/ai/providers/anthropic-provider.ts` | Existing, upgraded (Opus 4.6, Opus 4.5, Sonnet 4.5, Sonnet 4, Haiku 4.5, Haiku 3) |
 
 **How auto-discovery works:**
+
 ```
 Gateway startup → ModelRegistry (20 models, non-Anthropic off by default)
   → ProviderRegistry.registerFromEnv()
@@ -164,6 +170,7 @@ All models are defined in `src/ai/model-registry.ts` with accurate February 2026
 | `grok-3-mini` | 5 | 9 | $0.30 | $0.50 | 131K | Reasoning |
 
 **Key pricing insight:** The cheapest models across all providers:
+
 1. `gemini-2.5-flash-lite` — $0.10/M input (FREE on Google tier)
 2. `gpt-4.1-nano` — $0.10/M input
 3. `grok-4.1-fast` — $0.20/M input (with reasoning mode!)
@@ -386,6 +393,7 @@ threat_assessment       → security      → claude-sonnet-4.5
 ```
 
 **Override rules:**
+
 - `securitySensitive: true` → always `security` chain (regardless of category)
 - `complexity: 'critical'` → always `quality` chain (minimum Sonnet)
 - `complexity: 'complex'` with no matching category → `balanced` chain
@@ -411,6 +419,7 @@ At each cascade step, ARI scores the response using heuristics (no trained model
 **Range:** 0.0 to 1.0
 
 **How it works in practice:**
+
 - "Here is a detailed answer with step 1, step 2, step 3" → score ~0.85 (high confidence, structured)
 - "I am not sure. Unclear." → score ~0.20 (uncertainty + short)
 - Valid JSON response → score ~0.65 (structural completeness)
@@ -459,6 +468,7 @@ ARI runs 17 scheduled tasks, divided into **essential** (always run) and **non-e
 | `initiative-midday-check` | 2:00 PM | Mid-day progress + urgent work check |
 
 **How budget affects scheduling:**
+
 - Budget `normal` → All 17 tasks run
 - Budget `warning` → All tasks run (with logging)
 - Budget `reduce` → Only 5 essential tasks run
@@ -487,6 +497,7 @@ ARI has two budget tracking systems that serve different purposes.
 | `pause` | >95% | All non-URGENT tasks blocked |
 
 **Budget defaults:**
+
 - Daily: $10 / 800K tokens
 - Weekly: $50
 - Monthly: $200

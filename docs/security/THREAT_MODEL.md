@@ -287,6 +287,7 @@ Mechanical thresholds that trigger specific governance actions. These are determ
 **Formula**: `Risk Score = Base Severity x Trust Multiplier`
 
 Where:
+
 - **Base Severity** is determined by the permission tier of the operation
 - **Trust Multiplier** is determined by the trust level of the request source
 
@@ -307,6 +308,7 @@ Where:
 | hostile | 2.0x | Known attack vectors |
 
 **Examples**:
+
 - Operator reads memory: `0.1 x 0.6 = 0.06` (allowed)
 - Untrusted writes data: `0.3 x 1.5 = 0.45` (allowed, logged)
 - Untrusted destructive op: `0.6 x 1.5 = 0.90` (BLOCKED, >= 0.8)

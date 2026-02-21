@@ -239,6 +239,7 @@ ssh <USER>@<MAC_MINI_IP> "tail -50 ~/Library/Logs/ari-gateway.log"
 ### When to Use Each Model
 
 **Haiku (Fast & Cheap):**
+
 - File scanning
 - Pattern matching
 - Health checks
@@ -248,6 +249,7 @@ ssh <USER>@<MAC_MINI_IP> "tail -50 ~/Library/Logs/ari-gateway.log"
 - Knowledge queries
 
 **Sonnet (Balanced):**
+
 - Test generation
 - Documentation
 - Briefs and summaries
@@ -257,6 +259,7 @@ ssh <USER>@<MAC_MINI_IP> "tail -50 ~/Library/Logs/ari-gateway.log"
 - Most day-to-day work
 
 **Opus (Maximum Intelligence):**
+
 - Architecture decisions
 - Security reviews
 - Complex refactoring

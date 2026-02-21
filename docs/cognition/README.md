@@ -33,16 +33,16 @@ Layer 0 (Cognitive Foundation) is a **new architectural layer** beneath the Kern
 
 ### Pillar Designs
 
-7. **[LOGOS Pillar](01-LOGOS-reason-pillar.md)** (35+ pages) - Bayesian, EV, Kelly, systems thinking, Taleb
-8. **[ETHOS Pillar](02-ETHOS-character-pillar.md)** (30+ pages) - Trading psych, biases, emotion, discipline
-9. **[PATHOS Pillar](03-PATHOS-growth-pillar.md)** (35+ pages) - CBT/DBT/ACT, Stoicism, meta-learning, wisdom
+1. **[LOGOS Pillar](01-LOGOS-reason-pillar.md)** (35+ pages) - Bayesian, EV, Kelly, systems thinking, Taleb
+2. **[ETHOS Pillar](02-ETHOS-character-pillar.md)** (30+ pages) - Trading psych, biases, emotion, discipline
+3. **[PATHOS Pillar](03-PATHOS-growth-pillar.md)** (35+ pages) - CBT/DBT/ACT, Stoicism, meta-learning, wisdom
 
 ### Supporting Documentation
 
-10. **[Council Cognitive Profiles](04-council-cognitive-profiles.md)** - All 15 members' specializations
-11. **[Implementation Roadmap](06-implementation-roadmap.md)** - 7 phases, 16 weeks
-12. **[Testing Strategy](07-testing-strategy.md)** - 265+ tests, coverage targets
-13. **[Knowledge Sources Catalog](08-knowledge-sources-catalog.md)** - 87 curated sources
+1. **[Council Cognitive Profiles](04-council-cognitive-profiles.md)** - All 15 members' specializations
+2. **[Implementation Roadmap](06-implementation-roadmap.md)** - 7 phases, 16 weeks
+3. **[Testing Strategy](07-testing-strategy.md)** - 265+ tests, coverage targets
+4. **[Knowledge Sources Catalog](08-knowledge-sources-catalog.md)** - 87 curated sources
 
 ---
 
@@ -51,16 +51,19 @@ Layer 0 (Cognitive Foundation) is a **new architectural layer** beneath the Kern
 ### Three Pillars
 
 **LOGOS** (λόγος) - Reason:
+
 - Algorithmic decision-making under uncertainty
 - Frameworks: Bayesian, Expected Value, Kelly Criterion
 - Primary users: SCOUT, MINT, ATLAS, TRUE
 
 **ETHOS** (ἦθος) - Character:
+
 - Emotional intelligence and bias mitigation
 - Frameworks: Trading psychology, bias detection, discipline
 - Primary users: AEGIS, MINT, EMBER, SCOUT
 
 **PATHOS** (πάθος) - Growth:
+
 - Self-reflection, learning, and wisdom
 - Frameworks: CBT/DBT/ACT, Stoicism, deliberate practice
 - Primary users: BLOOM, PULSE, VERA, PRISM

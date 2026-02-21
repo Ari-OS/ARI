@@ -10,6 +10,7 @@
 ## Overview
 
 Each Council member has a **cognitive specialization profile** defining:
+
 - **Pillar Weights**: How much they draw from LOGOS/ETHOS/PATHOS (sums to 1.0)
 - **Primary Frameworks**: 3-6 specific frameworks they master
 - **Knowledge Sources**: 5-10 curated sources they monitor
@@ -289,6 +290,7 @@ Each Council member has a **cognitive specialization profile** defining:
 **Specialization**: Kelly Criterion, behavioral finance biases, loss aversion mitigation
 
 **Primary Use Cases**:
+
 - Investment decisions (Kelly-sized bets)
 - Detecting sunk cost fallacy ("Already invested $10K...")
 - Mental accounting errors ("This is house money")
@@ -303,6 +305,7 @@ Each Council member has a **cognitive specialization profile** defining:
 **Specialization**: CBT/DBT/ACT, wellness psychology, habit formation
 
 **Primary Use Cases**:
+
 - Health goal reframing ("I failed my diet" → "One meal ≠ diet failure")
 - Distress tolerance (DBT when health challenges are hard)
 - Values alignment (ACT - is this health behavior aligned with values?)
@@ -316,6 +319,7 @@ Each Council member has a **cognitive specialization profile** defining:
 **Specialization**: Deliberate practice, spaced repetition, growth mindset
 
 **Primary Use Cases**:
+
 - Designing learning plans (skill acquisition)
 - Optimizing practice schedules (deliberate practice)
 - Spaced repetition for retention
@@ -329,6 +333,7 @@ Each Council member has a **cognitive specialization profile** defining:
 **Specialization**: Marcus Aurelius, Seneca, Epictetus, virtue ethics
 
 **Primary Use Cases**:
+
 - Ethical dilemmas (virtue check)
 - Dichotomy of control (what's in my control?)
 - Stoic guidance for challenges
@@ -376,6 +381,7 @@ Every framework is covered by at least 1 specialist:
 
 **Primary**: MINT (Wealth Guardian)
 **Consultations**:
+
 1. SCOUT: "What's the expected value and Kelly fraction?"
 2. AEGIS: "Am I showing any emotional bias (greed/fear)?"
 3. VERA: "Is this aligned with long-term values (Stoic check)?"
@@ -388,6 +394,7 @@ Every framework is covered by at least 1 specialist:
 
 **Primary**: PULSE (Health Guardian)
 **Consultations**:
+
 1. BLOOM: "What's the optimal habit formation strategy?"
 2. VERA: "Stoic reframing for accepting difficulty?"
 3. ECHO: "How to remember to do this daily (spaced reminder)?"

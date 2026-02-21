@@ -581,7 +581,7 @@ ari agents restart <id>       # Restart degraded agent
 
 ## 10. Documentation Enhancements
 
-### Files to create/update:
+### Files to create/update
 
 - `[docs/GOVERNANCE.md](docs/GOVERNANCE.md)` - Council, voting, transparency
 - `[docs/HEALTH-COACH.md](docs/HEALTH-COACH.md)` - Health tracking system guide

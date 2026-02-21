@@ -7,11 +7,13 @@ Complete setup guide for configuring ARI on your Mac Mini.
 ## Prerequisites
 
 ### Hardware
+
 - Mac Mini (Apple Silicon or Intel)
 - Stable internet connection
 - Tailscale VPN configured
 
 ### Software
+
 - macOS 12.0 (Monterey) or later
 - Node.js 20.0.0+ (`brew install node@20`)
 - Git (`brew install git`)
@@ -22,6 +24,7 @@ Complete setup guide for configuring ARI on your Mac Mini.
 ## Phase 1: Initial Setup (15 minutes)
 
 ### 1.1 SSH Access
+
 ```bash
 # From your MacBook Air
 ssh -o ConnectTimeout=10 <USER>@<MAC_MINI_IP>
@@ -31,6 +34,7 @@ ssh-copy-id -i ~/.ssh/id_ed25519 <USER>@<MAC_MINI_IP>
 ```
 
 ### 1.2 Clone Repository
+
 ```bash
 cd /Users/ari
 git clone https://github.com/Ari-OS/ARI.git
@@ -38,6 +42,7 @@ cd ARI
 ```
 
 ### 1.3 Install Dependencies
+
 ```bash
 npm install
 npm run build
@@ -45,6 +50,7 @@ npm test  # Expect 4654 passing
 ```
 
 ### 1.4 Verify Installation
+
 ```bash
 npm run typecheck  # Should pass
 npm run lint       # Should pass
@@ -56,11 +62,13 @@ npx ari doctor     # Health checks
 ## Phase 2: Environment Configuration (10 minutes)
 
 ### 2.1 Create ARI Directory
+
 ```bash
 mkdir -p ~/.ari/data ~/.ari/backups ~/.ari/workspace
 ```
 
 ### 2.2 Create Environment File
+
 ```bash
 cat > ~/.ari/.env << 'EOF'
 # Required API Keys
@@ -92,6 +100,7 @@ chmod 600 ~/.ari/.env
 ```
 
 ### 2.3 Verify Environment
+
 ```bash
 source ~/.ari/.env
 echo "Anthropic: ${ANTHROPIC_API_KEY:0:10}..."
@@ -103,6 +112,7 @@ echo "Telegram: ${TELEGRAM_BOT_TOKEN:0:10}..."
 ## Phase 3: Workspace Configuration (5 minutes)
 
 ### 3.1 User Profile
+
 ```bash
 cat > ~/.ari/workspace/USER.md << 'EOF'
 # User Profile: Pryce Hedrick
@@ -143,6 +153,7 @@ EOF
 ```
 
 ### 3.2 ARI Identity
+
 ```bash
 cat > ~/.ari/workspace/SOUL.md << 'EOF'
 # ARI — Artificial Reasoning Intelligence
@@ -174,6 +185,7 @@ EOF
 ```
 
 ### 3.3 Supporting Files
+
 ```bash
 cat > ~/.ari/workspace/HEARTBEAT.md << 'EOF'
 # ARI Evolution Rhythm
@@ -240,6 +252,7 @@ EOF
 ## Phase 4: Daemon Installation (5 minutes)
 
 ### 4.1 Install Daemon
+
 ```bash
 npx ari daemon install
 ```
@@ -248,11 +261,13 @@ This creates a launchd plist at:
 `~/Library/LaunchAgents/com.ari.daemon.plist`
 
 ### 4.2 Start Daemon
+
 ```bash
 npx ari daemon start
 ```
 
 ### 4.3 Verify Status
+
 ```bash
 npx ari daemon status
 # Should show: running, 17+ scheduled tasks
@@ -262,6 +277,7 @@ tail -f ~/.ari/logs/daemon.log
 ```
 
 ### 4.4 Auto-Start on Boot
+
 The daemon automatically starts on login via launchd.
 
 ---
@@ -269,11 +285,13 @@ The daemon automatically starts on login via launchd.
 ## Phase 5: Gateway Verification (2 minutes)
 
 ### 5.1 Start Gateway
+
 ```bash
 npx ari gateway start
 ```
 
 ### 5.2 Verify Binding
+
 ```bash
 # Should bind to 127.0.0.1:3141 ONLY
 curl http://127.0.0.1:3141/health
@@ -285,6 +303,7 @@ curl http://0.0.0.0:3141/health
 ```
 
 ### 5.3 Check Status
+
 ```bash
 npx ari gateway status
 ```
@@ -294,6 +313,7 @@ npx ari gateway status
 ## Phase 6: Telegram Bot Setup (10 minutes)
 
 ### 6.1 Create Bot (if not done)
+
 1. Message @BotFather on Telegram
 2. Send `/newbot`
 3. Name: `ARI` (or your preference)
@@ -301,16 +321,19 @@ npx ari gateway status
 5. Copy the token to `TELEGRAM_BOT_TOKEN`
 
 ### 6.2 Get Your User ID
+
 1. Message @userinfobot on Telegram
 2. Copy your user ID to `TELEGRAM_OWNER_USER_ID`
 
 ### 6.3 Create Forum Group (optional)
+
 1. Create a new group on Telegram
 2. Enable "Topics" in group settings
 3. Add your bot as admin
 4. Copy group ID to `TELEGRAM_GROUP_CHAT_ID`
 
 ### 6.4 Test Connection
+
 ```bash
 # Send a test message to yourself
 npx ari chat
@@ -322,12 +345,14 @@ npx ari chat
 ## Phase 7: Vector Store & Knowledge System (5 minutes)
 
 ### 7.1 Initialize Vector Store
+
 ```bash
 # The vector store auto-initializes on first use
 npx ari knowledge stats
 ```
 
 ### 7.2 Verify Embeddings
+
 ```bash
 # Check OpenAI API key is working
 curl https://api.openai.com/v1/embeddings \
@@ -341,11 +366,13 @@ curl https://api.openai.com/v1/embeddings \
 ## Phase 8: Scheduled Tasks Verification (2 minutes)
 
 ### 8.1 List All Tasks
+
 ```bash
 npx ari daemon status
 ```
 
 ### 8.2 Expected Tasks
+
 | Task | Schedule (ET) | Description |
 |------|---------------|-------------|
 | morning-briefing | 6:30 AM daily | Daily briefing |
@@ -364,6 +391,7 @@ npx ari daemon status
 ## Phase 9: Final Verification (5 minutes)
 
 ### 9.1 Full System Check
+
 ```bash
 # Run all checks
 npm run build && npm test && npm run typecheck && npm run lint
@@ -373,15 +401,18 @@ npx ari doctor
 ```
 
 ### 9.2 Test Telegram
+
 Send "Hello ARI" to your bot. You should receive a response within 30 seconds.
 
 ### 9.3 Verify Audit Chain
+
 ```bash
 curl http://127.0.0.1:3141/api/audit/verify
 # Expected: {"valid":true,"entries":...}
 ```
 
 ### 9.4 Check Health
+
 ```bash
 curl http://127.0.0.1:3141/health
 # Expected: {"status":"healthy",...}
@@ -392,6 +423,7 @@ curl http://127.0.0.1:3141/health
 ## Troubleshooting
 
 ### Daemon Won't Start
+
 ```bash
 # Check logs
 tail -100 ~/.ari/logs/daemon.log
@@ -402,6 +434,7 @@ launchctl load ~/Library/LaunchAgents/com.ari.daemon.plist
 ```
 
 ### Telegram Not Responding
+
 ```bash
 # Verify token
 echo $TELEGRAM_BOT_TOKEN
@@ -411,6 +444,7 @@ curl "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe"
 ```
 
 ### Gateway Won't Bind
+
 ```bash
 # Check if port is in use
 lsof -i :3141
@@ -420,6 +454,7 @@ kill -9 $(lsof -t -i :3141)
 ```
 
 ### Build Errors
+
 ```bash
 # Clean rebuild
 rm -rf dist node_modules
@@ -432,6 +467,7 @@ npm run build
 ## Monitoring
 
 ### Real-Time Logs
+
 ```bash
 # Daemon logs
 tail -f ~/.ari/logs/daemon.log
@@ -441,6 +477,7 @@ tail -f ~/.ari/audit.json | jq .
 ```
 
 ### Health Dashboard
+
 ```bash
 # System health
 curl http://127.0.0.1:3141/health | jq .
@@ -450,6 +487,7 @@ curl http://127.0.0.1:3141/api/agents | jq .
 ```
 
 ### Budget Tracking
+
 ```bash
 npx ari budget show
 ```
@@ -459,16 +497,19 @@ npx ari budget show
 ## Daily Operations
 
 ### Morning Routine
+
 1. Check Telegram for morning briefing (6:30 AM)
 2. Review any overnight alerts
 3. Acknowledge action items
 
 ### Evening Build Session
+
 1. Check daemon status: `npx ari daemon status`
 2. Review AI Council report (10 PM)
 3. Plan next day's tasks
 
 ### Weekly
+
 1. Review memory synthesis (Sunday)
 2. Check backup status
 3. Review cost tracking

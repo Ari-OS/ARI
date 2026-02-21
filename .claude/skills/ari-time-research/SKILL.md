@@ -14,6 +14,7 @@ triggers:
 # Time-Windowed Research Skill
 
 Query ARI's memory and knowledge base over specific time periods. Useful for:
+
 - Reviewing recent decisions and their rationale
 - Finding patterns in learned behaviors
 - Preparing briefings and reports
@@ -36,27 +37,32 @@ Query ARI's memory and knowledge base over specific time periods. Useful for:
 ```
 /lastweek patterns
 ```
+
 Returns patterns learned in the last 7 days.
 
 ```
 /last30days decisions
 ```
+
 Returns decisions made in the last 30 days with reasoning.
 
 ```
 what did we learn since Monday?
 ```
+
 Natural language time query.
 
 ### Domain Filters
 
 You can filter by domain:
+
 - `patterns` - Learned patterns and conventions
 - `decisions` - Decisions and their rationale
 - `fixes` - Bug fixes and solutions
 - `docs` - Documentation changes
 
 Example:
+
 ```
 /lastweek decisions domain:architecture
 ```
@@ -64,6 +70,7 @@ Example:
 ### Confidence Threshold
 
 Filter by confidence level (0-1):
+
 ```
 /last30days patterns minConfidence:0.7
 ```
@@ -118,6 +125,7 @@ const results = await ari_memory_time_search({
 ## Integration with Briefings
 
 Results from time research can feed into:
+
 - Morning briefings (week context)
 - Evening summaries (day context)
 - Weekly reviews (full week context)

@@ -12,6 +12,7 @@
 This roadmap breaks Layer 0 implementation into **7 phases** that can be completed incrementally. Each phase delivers value independently (can stop at any point).
 
 **Phase Strategy**:
+
 - **Foundation first** (Week 1-2): Scaffolding, types, patterns
 - **LOGOS prototype** (Week 3-4): Prove concept with Bayesian + EV
 - **ETHOS** (Week 5-6): Add bias detection and emotional intelligence
@@ -28,6 +29,7 @@ This roadmap breaks Layer 0 implementation into **7 phases** that can be complet
 ## Phase 0: Foundation (Week 1-2)
 
 ### Goals
+
 - Create directory structure
 - Define all TypeScript types
 - Extend EventBus with cognitive events
@@ -37,6 +39,7 @@ This roadmap breaks Layer 0 implementation into **7 phases** that can be complet
 ### Deliverables
 
 **1. Directory Structure**
+
 ```bash
 mkdir -p src/cognition/{logos,ethos,pathos,knowledge,learning}
 mkdir -p tests/unit/cognition/{logos,ethos,pathos,knowledge,learning}
@@ -45,12 +48,14 @@ mkdir -p tests/security/cognition
 ```
 
 **2. Type Definitions** (`src/cognition/types.ts`)
+
 - All Zod schemas for cognitive types
 - Belief, Evidence, Decision, Outcome interfaces
 - BiasDetection, EmotionalState, Insight interfaces
 - Export everything for use across pillars
 
 **3. EventBus Extension** (`src/kernel/event-bus.ts`)
+
 ```typescript
 // Add to EventMap
 export interface EventMap {
@@ -71,17 +76,20 @@ export interface EventMap {
 ```
 
 **4. Test Scaffolding**
+
 - Create test files for every cognitive module
 - Write describe blocks (no implementations yet)
 - Set up test utilities and mocks
 
 **5. Documentation** (`src/cognition/CLAUDE.md`)
+
 - Layer 0 overview
 - How to use cognitive APIs
 - Integration patterns
 - Examples for each pillar
 
 **Success Criteria**:
+
 - ✅ Directory structure complete
 - ✅ `src/cognition/types.ts` compiles with 0 errors
 - ✅ EventBus extended, TypeScript passes
@@ -96,6 +104,7 @@ export interface EventMap {
 ## Phase 1: LOGOS Prototype (Week 3-4)
 
 ### Goals
+
 - Implement Bayesian reasoning
 - Implement expected value calculation
 - Prove concept works
@@ -104,6 +113,7 @@ export interface EventMap {
 ### Deliverables
 
 **1. Bayesian Module** (`src/cognition/logos/bayesian.ts`)
+
 ```typescript
 export async function updateBelief(prior: Belief, evidence: Evidence): Promise<BayesianUpdate>;
 export async function calculatePosterior(p_h: number, p_e_given_h: number, p_e: number): Promise<number>;
@@ -111,24 +121,28 @@ export async function updateBeliefSequential(belief: Belief, evidenceList: Evide
 ```
 
 **Tests**:
+
 - Positive evidence increases posterior ✓
 - Negative evidence decreases posterior ✓
 - Sequential updating works ✓
 - Edge cases: P(H) = 0, P(H) = 1 ✓
 
 **2. Expected Value Module** (`src/cognition/logos/expected-value.ts`)
+
 ```typescript
 export async function calculateExpectedValue(decision: Decision): Promise<ExpectedValueResult>;
 export async function rankDecisions(decisions: Decision[]): Promise<RankedDecision[]>;
 ```
 
 **Tests**:
+
 - Calculates EV correctly ✓
 - Handles negative EV ✓
 - Probabilities must sum to 1.0 ✓
 - Confidence calculation works ✓
 
 **3. Integration** (`src/agents/risk-assessor.ts` - if it exists, or create example)
+
 ```typescript
 // SCOUT using LOGOS
 import { calculateExpectedValue, updateBelief } from '../cognition/logos/index.js';
@@ -157,6 +171,7 @@ export class RiskAssessor {
 ```
 
 **Success Criteria**:
+
 - ✅ Bayesian module: 15+ tests, 90%+ coverage
 - ✅ Expected value module: 12+ tests, 90%+ coverage
 - ✅ Integration test: SCOUT makes better decisions with LOGOS ✓
@@ -167,6 +182,7 @@ export class RiskAssessor {
 **Risk**: Medium (proving concept - if this fails, reconsider Layer 0)
 
 **Decision Point**: After Phase 1, evaluate:
+
 - Does LOGOS improve decision quality? (measure)
 - Is API design good? (developer experience)
 - Is performance acceptable? (<50ms)
@@ -179,6 +195,7 @@ export class RiskAssessor {
 ## Phase 2: ETHOS Implementation (Week 5-6)
 
 ### Goals
+
 - Implement all 10 cognitive biases
 - Implement emotional state monitoring
 - Implement fear/greed cycle detection
@@ -187,6 +204,7 @@ export class RiskAssessor {
 ### Deliverables
 
 **1. Bias Detector** (`src/cognition/ethos/bias-detector.ts`)
+
 ```typescript
 export async function detectCognitiveBias(reasoning: string, context: Context): Promise<BiasAnalysis>;
 
@@ -206,6 +224,7 @@ function detectDunningKruger(reasoning: string, context: Context): BiasDetection
 **Tests**: Each bias has 5+ test cases (total: 50+ tests)
 
 **2. Emotional State** (`src/cognition/ethos/emotional-state.ts`)
+
 ```typescript
 export async function checkEmotionalState(agent: string, context: Context): Promise<EmotionalState>;
 
@@ -220,6 +239,7 @@ function mapToEmotions(valence: number, arousal: number, dominance: number): Emo
 **Tests**: 10+ test cases (various emotional states)
 
 **3. Fear/Greed Detector** (`src/cognition/ethos/fear-greed.ts`)
+
 ```typescript
 export async function detectFearGreedCycle(decisions: Decision[], outcomes: Outcome[]): Promise<FearGreedCycle>;
 
@@ -233,6 +253,7 @@ function detectEuphoria(decisions: Decision[], outcomes: Outcome[]): FearGreedCy
 **Tests**: 12+ test cases (each pattern with variations)
 
 **4. Discipline System** (`src/cognition/ethos/discipline.ts`)
+
 ```typescript
 export async function checkDiscipline(decision: Decision, agent: string, context: DisciplineContext): Promise<DisciplineCheckResult>;
 
@@ -247,6 +268,7 @@ function checkMeta(decision: Decision, context: DisciplineContext): MetaCheck;
 **Tests**: 20+ test cases (various failure modes)
 
 **Success Criteria**:
+
 - ✅ All 10 biases detectable
 - ✅ Emotional state assessment works
 - ✅ Fear/greed patterns detected
@@ -269,6 +291,7 @@ function checkMeta(decision: Decision, context: DisciplineContext): MetaCheck;
 **4. Meta-Learning** (`src/cognition/pathos/meta-learning.ts`)
 
 **Success Criteria**:
+
 - ✅ CBT detects 10 cognitive distortions
 - ✅ Reflection extracts insights from outcomes
 - ✅ Wisdom consultation works (query → relevant principles)
@@ -282,6 +305,7 @@ function checkMeta(decision: Decision, context: DisciplineContext): MetaCheck;
 ## Phase 4: Knowledge Integration (Week 9-10)
 
 ### Goals
+
 - Expand knowledge sources from 10 → 87
 - Implement 5-stage validation pipeline
 - Integrate with existing knowledge-fetcher
@@ -289,10 +313,12 @@ function checkMeta(decision: Decision, context: DisciplineContext): MetaCheck;
 ### Deliverables
 
 **1. Source Manager** (`src/cognition/knowledge/source-manager.ts`)
+
 - Extend [`knowledge-sources.ts`](../../src/autonomous/knowledge-sources.ts) with 77 new sources
 - Add pillar, councilMembers, frameworks fields
 
 **2. Content Validator** (`src/cognition/knowledge/content-validator.ts`)
+
 - Stage 1: Whitelist check
 - Stage 2: Sanitization (injection + cognitive patterns)
 - Stage 3: Bias detection
@@ -300,6 +326,7 @@ function checkMeta(decision: Decision, context: DisciplineContext): MetaCheck;
 - Stage 5: Human review queue (UNTRUSTED)
 
 **Success Criteria**:
+
 - ✅ 87 sources in KNOWLEDGE_SOURCES
 - ✅ Daily knowledge fetch runs successfully
 - ✅ Validation pipeline: >95% pass rate for VERIFIED sources
@@ -312,6 +339,7 @@ function checkMeta(decision: Decision, context: DisciplineContext): MetaCheck;
 ## Phase 5: Council Specializations (Week 11-12)
 
 ### Goals
+
 - Load cognitive profiles for all 15 members
 - Each member can query their specialized knowledge
 - Consultation patterns work
@@ -319,11 +347,13 @@ function checkMeta(decision: Decision, context: DisciplineContext): MetaCheck;
 ### Deliverables
 
 **1. Specializations** (`src/cognition/knowledge/specializations.ts`)
+
 - Define all 15 cognitive profiles
 - Map members to frameworks and sources
 - Load on Council init
 
 **2. Council Enhancement** (extend [`council-members.ts`](../../src/governance/council-members.ts))
+
 ```typescript
 export interface CouncilMember {
   // ... existing fields ...
@@ -338,6 +368,7 @@ export interface CouncilMember {
 ```
 
 **Success Criteria**:
+
 - ✅ All 15 members have loaded profiles
 - ✅ Members can query specialized knowledge
 - ✅ Consultation patterns work (member A asks member B for expertise)
@@ -349,6 +380,7 @@ export interface CouncilMember {
 ## Phase 6: Learning Loop (Week 13-14)
 
 ### Goals
+
 - Implement 5-stage learning loop
 - Integrate with scheduler
 - Enable continuous improvement
@@ -360,6 +392,7 @@ export interface CouncilMember {
 **3. Self-Assessment** (`src/cognition/learning/self-assessment.ts`)
 
 **Scheduler Integration**:
+
 ```typescript
 // Add to scheduler.ts tasks
 {
@@ -386,6 +419,7 @@ export interface CouncilMember {
 ```
 
 **Success Criteria**:
+
 - ✅ Performance reviews run daily
 - ✅ Gap analysis runs weekly
 - ✅ Self-assessment runs monthly
@@ -399,12 +433,14 @@ export interface CouncilMember {
 ## Phase 7: Dashboard Integration (Week 15-16)
 
 ### Goals
+
 - Add Cognition page to dashboard
 - Visualize pillars, specializations, learning progress
 
 ### Deliverables
 
 **1. API Endpoints** (`src/api/routes.ts`)
+
 ```typescript
 GET /api/cognition/health
 GET /api/cognition/pillars
@@ -415,12 +451,14 @@ GET /api/cognition/learning/assessment
 ```
 
 **2. Dashboard Page** (`dashboard/src/pages/Cognition.tsx`)
+
 - Health score for each pillar
 - Council specialization visualization
 - Learning progress charts
 - Knowledge source status
 
 **Success Criteria**:
+
 - ✅ Cognition page renders
 - ✅ Real-time data via WebSocket
 - ✅ Charts show learning progress

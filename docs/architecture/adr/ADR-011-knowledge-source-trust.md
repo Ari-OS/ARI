@@ -11,12 +11,14 @@
 ## Context
 
 Layer 0 (Cognitive Foundation) requires **external knowledge sources** to function:
+
 - Research papers (arXiv, academic journals)
 - Books (trading psychology, therapeutic frameworks, wisdom traditions)
 - Documentation (official sources from Anthropic, academic institutions)
 - Curated content (LessWrong, 80,000 Hours, Farnam Street)
 
 **Current State**: ARI has 10 technical sources in [`knowledge-sources.ts`](../../src/autonomous/knowledge-sources.ts):
+
 - Anthropic docs (official)
 - arXiv CS.AI/CL (peer-reviewed)
 - Node.js, TypeScript, MDN (official documentation)
@@ -37,6 +39,7 @@ External knowledge sources are **UNTRUSTED by default**. Risks include:
 **Cannot Trust Blindly**: Even academic papers can have biases, errors, or be retracted.
 
 **Must Balance**:
+
 - **Openness**: Need diverse sources to learn comprehensively
 - **Security**: Cannot allow malicious content to poison cognition
 - **Quality**: Bad knowledge is worse than no knowledge
@@ -59,6 +62,7 @@ Implement a **four-tier trust model** for knowledge sources with **five-stage va
 | **BLOCKED** | Known malicious/low-quality | ❌ Never | Content farms, propaganda sites | Rejected at Stage 1 |
 
 **Integration Rules**:
+
 - **VERIFIED**: Auto-integrate after sanitization + bias check + fact check
 - **STANDARD**: Auto-integrate after full validation (including cross-reference)
 - **UNTRUSTED**: Queue for human review, never auto-integrate
@@ -85,6 +89,7 @@ Integration (index for search)
 **Purpose**: Only fetch from explicitly approved sources
 
 **Implementation**:
+
 ```typescript
 function isWhitelisted(url: string): boolean {
   const parsed = new URL(url);
@@ -118,6 +123,7 @@ function isWhitelisted(url: string): boolean {
 | Absolute claims | "Always", "never", "every" | "This ALWAYS works" | Flag for nuance check |
 
 **Implementation**:
+
 ```typescript
 // src/cognition/knowledge/content-validator.ts
 export class ContentValidator extends Sanitizer {
@@ -180,6 +186,7 @@ export class ContentValidator extends Sanitizer {
 **Detection Methods**:
 
 **Political Bias Detection**:
+
 ```typescript
 interface BiasIndicators {
   politicalLeaning: 'far-left' | 'left' | 'center' | 'right' | 'far-right' | 'neutral';
@@ -194,17 +201,20 @@ async function detectPoliticalBias(content: string): Promise<BiasIndicators> {
 ```
 
 **Emotional Bias Detection**:
+
 - Fear-based framing ("Everything is collapsing")
 - Euphoric framing ("This will change everything")
 - Outrage framing ("You should be angry about...")
 
 **Quality Signals**:
+
 - Nuanced language (acknowledges complexity)
 - Citations provided (claims supported)
 - Multiple perspectives (considers alternatives)
 - Transparent limitations (acknowledges what's unknown)
 
 **Scoring**:
+
 ```typescript
 interface BiasScore {
   overall: number;        // 0 (neutral) to 1 (extremely biased)
@@ -237,6 +247,7 @@ if (biasScore.overall > 0.7) {
 **Method**: For factual claims in content, check if other VERIFIED sources agree.
 
 **Implementation**:
+
 ```typescript
 async function factCheck(
   claim: string,
@@ -269,6 +280,7 @@ async function factCheck(
 ```
 
 **Example**:
+
 ```
 Content claims: "Kelly Criterion maximizes long-term growth"
 Cross-reference:
@@ -294,6 +306,7 @@ Cross-reference:
 **Purpose**: Final safety check for user-generated content
 
 **Process**:
+
 1. UNTRUSTED content completes Stages 1-4
 2. Results queued in `~/.ari/cognition/review-queue.json`
 3. Operator receives notification: "3 pieces of content pending review"
@@ -302,6 +315,7 @@ Cross-reference:
 6. Approved items integrated with trust level marked
 
 **CLI Interface**:
+
 ```bash
 $ ari cognition review
 
@@ -339,6 +353,7 @@ Your choice: _
 ### VERIFIED Sources
 
 **Requirements** (ALL must be met):
+
 1. **Official/Authoritative**: From creator, institution, or recognized expert
 2. **Peer-Reviewed OR Established**: Academic journal OR long-standing reputation
 3. **No User-Generated Content**: Not forums, comments, Q&A sites
@@ -347,6 +362,7 @@ Your choice: _
 6. **Verifiable**: Can trace content to original authoritative source
 
 **Examples**:
+
 - ✅ Anthropic official documentation
 - ✅ Stanford University course materials
 - ✅ arXiv peer-reviewed papers (before publication)
@@ -361,6 +377,7 @@ Your choice: _
 ### STANDARD Sources
 
 **Requirements**:
+
 1. **Reputable Organization**: Established entity with editorial standards
 2. **Editorial Review**: Content is edited/reviewed (not raw user posts)
 3. **Transparent**: Clear authors, dates, affiliations
@@ -368,6 +385,7 @@ Your choice: _
 5. **Corrections Policy**: Publishes corrections when wrong
 
 **Examples**:
+
 - ✅ LessWrong posts by Eliezer Yudkowsky, Scott Alexander (VERIFIED authors only, not general community posts)
 - ✅ 80,000 Hours research (established org, editorial standards)
 - ✅ Farnam Street (Shane Parrish) - curated, high-quality
@@ -382,6 +400,7 @@ Your choice: _
 **Definition**: Anything that doesn't meet VERIFIED or STANDARD criteria.
 
 **Includes**:
+
 - User-generated content (forums, Q&A sites)
 - Personal blogs (no matter how smart the author)
 - Social media posts
@@ -390,6 +409,7 @@ Your choice: _
 - Sites with no clear editorial policy
 
 **Can Still Be Valuable**:
+
 - Reddit r/trading might have useful anecdotes
 - Personal blogs can have unique insights
 - Twitter threads from experts can be gems
@@ -397,6 +417,7 @@ Your choice: _
 **Requirement**: **Human review required** before integration.
 
 **Process**:
+
 1. Fetch content
 2. Run full validation (Stages 1-4)
 3. Queue for Operator review
@@ -409,6 +430,7 @@ Your choice: _
 **Definition**: Known malicious, low-quality, or inappropriate sources.
 
 **Includes**:
+
 - Content farms (SEO spam)
 - Propaganda sites (extremist ideologies)
 - Scam sites (get-rich-quick schemes)
@@ -418,6 +440,7 @@ Your choice: _
 **Action**: Reject at Stage 1 (whitelist check fails).
 
 **Maintained As**: Blocklist in `knowledge-sources.ts`:
+
 ```typescript
 export const BLOCKED_DOMAINS = [
   'example-content-farm.com',
@@ -484,6 +507,7 @@ graph TD
 **Location**: `src/cognition/knowledge/`
 
 **Files**:
+
 1. **source-manager.ts** - Extends [`knowledge-sources.ts`](../../src/autonomous/knowledge-sources.ts) with cognitive sources
 2. **content-validator.ts** - Implements 5-stage pipeline
 3. **bias-detector.ts** - Stage 3 implementation (political, emotional, logical bias)
@@ -510,6 +534,7 @@ graph TD
 **Example Application**:
 
 **arXiv CS.AI papers**:
+
 - ✅ Official (Cornell University operated)
 - ✅ Authoritative (academic researchers)
 - ✅ Peer-reviewed (before journal publication)
@@ -521,6 +546,7 @@ graph TD
 → **VERIFIED**
 
 **Personal blog by Stanford professor**:
+
 - ❌ Not official (personal blog, not Stanford.edu)
 - ✅ Authoritative (professor)
 - ❌ Not peer-reviewed (blog post)
@@ -550,6 +576,7 @@ graph TD
 Every piece of knowledge must be **traceable to source**.
 
 **Provenance Fields**:
+
 ```typescript
 interface KnowledgeProvenance {
   sourceId: string;           // Which source in KNOWLEDGE_SOURCES
@@ -576,6 +603,7 @@ interface KnowledgeProvenance {
 ```
 
 **Storage**:
+
 ```json
 // ~/.ari/cognition/sources/logos/bayesian-reasoning-doc.json
 {
@@ -620,6 +648,7 @@ interface KnowledgeProvenance {
 **Attack**: Attacker somehow adds malicious URL to `KNOWLEDGE_SOURCES`
 
 **Defense**:
+
 - `KNOWLEDGE_SOURCES` is **code** (in git), not config file
 - Requires code review + commit to change
 - Audit trail shows who added source
@@ -634,6 +663,7 @@ interface KnowledgeProvenance {
 **Attack**: Trusted source (e.g., stanford.edu) is hacked, serves malicious content
 
 **Defense**:
+
 - Stage 2: Sanitization catches injection attempts
 - Stage 3: Bias detection catches sudden extreme shift in content
 - Stage 4: Fact checking catches contradictions
@@ -653,6 +683,7 @@ interface KnowledgeProvenance {
 **Example**: Trading psychology source consistently recommends aggressive strategies → AEGIS becomes overly risk-seeking
 
 **Defense**:
+
 - **Diverse sources**: 5-10 sources per framework (no single source dominates)
 - **Contradiction detection**: If sources disagree, flag for review
 - **Performance monitoring**: Track decision quality over time
@@ -671,6 +702,7 @@ interface KnowledgeProvenance {
 **Attack**: Not an attack, but risk - old knowledge becomes incorrect as fields evolve
 
 **Defense**:
+
 - `updateFrequency` field on sources (daily, weekly, monthly)
 - Scheduled re-fetch based on frequency
 - Version tracking (keep history of content changes)
@@ -686,18 +718,21 @@ interface KnowledgeProvenance {
 ### VERIFIED Content Types
 
 **Academic Papers**:
+
 - arXiv preprints (before peer review, but still academic)
 - Published journal articles (after peer review)
 - University course materials (lecture notes, syllabi)
 - Conference proceedings (peer-reviewed)
 
 **Official Documentation**:
+
 - Anthropic API docs
 - Node.js, TypeScript, Python docs
 - Framework documentation (React, Vue, etc.)
 - Standards bodies (W3C, IETF, OWASP)
 
 **Public Domain Classics**:
+
 - Marcus Aurelius - Meditations
 - Seneca - Letters from a Stoic
 - Epictetus - Enchiridion
@@ -705,6 +740,7 @@ interface KnowledgeProvenance {
 - Miyamoto Musashi - Book of Five Rings
 
 **Established Books** (via official excerpts/summaries):
+
 - Ray Dalio - Principles
 - Nassim Taleb - Incerto series
 - Daniel Kahneman - Thinking Fast and Slow
@@ -715,17 +751,20 @@ interface KnowledgeProvenance {
 ### STANDARD Content Types
 
 **Curated Platforms**:
+
 - LessWrong (VERIFIED authors only: Yudkowsky, Alexander, Christiano)
 - 80,000 Hours (org has editorial standards)
 - Farnam Street (Shane Parrish curates)
 - Quantocracy (aggregates quant blogs, but curated)
 
 **Reputable Journals**:
+
 - Harvard Business Review (established, editorial review)
 - Scientific American (reputable, but popular science not academic)
 - Psychology Today (professional psychologists, editorial review)
 
 **Think Tanks**:
+
 - RAND Corporation (established research org)
 - Brookings Institution (if non-political topics)
 
@@ -734,6 +773,7 @@ interface KnowledgeProvenance {
 ### UNTRUSTED Content Types
 
 **User-Generated**:
+
 - Reddit posts (even in good subreddits)
 - Twitter/X threads
 - Medium blog posts
@@ -742,10 +782,12 @@ interface KnowledgeProvenance {
 - Stack Overflow (Q&A, not documentation)
 
 **Anonymous**:
+
 - Any content without clear authorship
 - Pseudonymous sources (unless verified identity)
 
 **Commercial**:
+
 - Product marketing (inherent bias)
 - Paid courses (unless from recognized institution)
 
@@ -760,6 +802,7 @@ ARI's existing trust levels (for **messages**): SYSTEM, OPERATOR, VERIFIED, STAN
 **New trust levels** (for **knowledge sources**): VERIFIED, STANDARD, UNTRUSTED, BLOCKED
 
 **Mapping**:
+
 ```typescript
 interface KnowledgeSource {
   id: string;
@@ -815,6 +858,7 @@ function synthesizeFromSources(results: KnowledgeResult[]): Synthesis {
 7. **Adjust**: Upgrade (STANDARD → VERIFIED) or downgrade (STANDARD → UNTRUSTED) based on evidence
 
 **CLI**:
+
 ```bash
 $ ari cognition add-source \
   --name "Trading Psychology Institute" \
@@ -841,6 +885,7 @@ Run 'ari cognition enable trading-psych' to enable fetching.
 ### Removing Sources
 
 **Reasons**:
+
 - Quality degradation (content getting worse)
 - Bias creep (shifting toward extreme views)
 - Unavailability (site down, paywalled, moved)
@@ -848,6 +893,7 @@ Run 'ari cognition enable trading-psych' to enable fetching.
 - Security incident (source compromised)
 
 **Process**:
+
 1. Mark as `enabled: false` in `knowledge-sources.ts`
 2. Audit trail: Log reason for removal
 3. Optional: Archive already-fetched content (keep if still valuable)
@@ -918,6 +964,7 @@ Every 3 months:
 **Total**: ~1 second per source (acceptable for daily batch fetch)
 
 **Optimization**:
+
 - Run in parallel (fetch 10 sources simultaneously)
 - Cache validation results (if content hash unchanged, skip re-validation)
 - Incremental fact checking (only check new claims, not entire document)
@@ -925,11 +972,13 @@ Every 3 months:
 ### Storage
 
 **Per Source** (estimated):
+
 - Raw content: 50-200 KB
 - Processed: 10-50 KB
 - Metadata + provenance: 2-5 KB
 
 **80 Sources**:
+
 - Raw: 4-16 MB
 - Processed: 800 KB - 4 MB
 - Metadata: 160-400 KB
@@ -937,6 +986,7 @@ Every 3 months:
 **Total**: ~20 MB (acceptable)
 
 **With 1 Year of Updates**:
+
 - Daily sources: 365 versions × 80 = 29,200 documents
 - Weekly sources: 52 versions × 80 = 4,160 documents
 - Monthly sources: 12 versions × 80 = 960 documents
@@ -983,6 +1033,7 @@ Knowledge Source Health:
 **Pros**: Simpler (one fewer dimension to track)
 
 **Cons**:
+
 - **Can't prioritize** high-quality sources
 - **Can't weight** in synthesis (Reddit post = Stanford paper)
 - **Can't auto-integrate** safely (would need human review for everything)
@@ -996,11 +1047,13 @@ Knowledge Source Health:
 **Description**: Only allow official/academic sources, reject everything else.
 
 **Pros**:
+
 - Maximum quality
 - Maximum security
 - No human review needed
 
 **Cons**:
+
 - **Misses valuable content** (LessWrong, Farnam Street, expert blogs)
 - **Too restrictive** (many good sources aren't "official")
 - **Slower learning** (smaller knowledge base)
@@ -1014,11 +1067,13 @@ Knowledge Source Health:
 **Description**: Use blockchain (immutable ledger) for knowledge provenance instead of JSON files.
 
 **Pros**:
+
 - Tamper-evident (like audit chain)
 - Can prove knowledge was fetched at specific time
 - Could enable knowledge sharing with other ARI instances
 
 **Cons**:
+
 - **Overkill** (JSON + SHA-256 hash is sufficient)
 - **Complexity** (blockchain adds dependencies)
 - **Performance** (blockchain writes are slow)

@@ -9,9 +9,11 @@
 ARI uses **8 specialized agents** organized into two categories:
 
 **Core Agents (5)** — Handle message processing and execution
+
 - Core, Guardian, Planner, Executor, Memory Manager
 
 **Governance Agents (3)** — Enforce rules and quality
+
 - Council, Arbiter, Overseer
 
 All agents communicate via the **EventBus** — no direct function calls between agents.
@@ -50,6 +52,7 @@ this.eventBus.on('message:accepted', (message) => {
 ```
 
 This ensures:
+
 - **Testability** — Mock the EventBus, test agents in isolation
 - **Traceability** — All events can be logged
 - **Decoupling** — Replace any agent without changing others
@@ -75,12 +78,14 @@ Every agent operates within bounds defined by the **5 Arbiter Rules**:
 **Purpose:** Central coordination and message processing pipeline.
 
 **Responsibilities:**
+
 - Start/stop all other agents
 - Process messages through the 5-step pipeline
 - Coordinate between agents
 - Report system health status
 
 **5-Step Pipeline:**
+
 ```
 1. Guardian assess → Threat detection and risk scoring
 2. Route → Emit to EventBus for context classification
@@ -90,6 +95,7 @@ Every agent operates within bounds defined by the **5 Arbiter Rules**:
 ```
 
 **Key Methods:**
+
 ```typescript
 async start(): Promise<void>           // Initialize all agents
 async stop(reason: string): Promise<void>  // Graceful shutdown
@@ -98,6 +104,7 @@ async processMessage(msg: Message): Promise<ProcessResult>  // Main pipeline
 ```
 
 **Events Emitted:**
+
 - `agent:started` — When Core starts
 - `agent:stopped` — When Core stops
 - `message:accepted` — When message passes Guardian
@@ -111,6 +118,7 @@ async processMessage(msg: Message): Promise<ProcessResult>  // Main pipeline
 **Purpose:** Real-time threat detection and anomaly monitoring.
 
 **Responsibilities:**
+
 - Detect injection patterns in content
 - Score risk based on trust level
 - Track behavioral baselines per source
@@ -118,6 +126,7 @@ async processMessage(msg: Message): Promise<ProcessResult>  // Main pipeline
 - Alert on high-risk assessments
 
 **Threat Assessment Logic:**
+
 ```typescript
 risk_score = (injection_score * 0.5) + (anomaly_score * 0.3) + (trust_penalty * 0.2)
 
@@ -126,6 +135,7 @@ if (risk_score >= 0.6) → ESCALATE
 ```
 
 **8 Injection Patterns:**
+
 | Pattern | Weight | Example |
 |---------|--------|---------|
 | template_injection | 0.8 | `${...}` |
@@ -139,20 +149,24 @@ if (risk_score >= 0.6) → ESCALATE
 
 **Behavioral Baselines:**
 Guardian tracks per-source:
+
 - Message count
 - Average message length
 - Average time between messages
 - Injection attempt history
 
 Anomalies trigger when:
+
 - Message length > 3x baseline
 - Time interval < 10% of baseline
 - 5+ injection attempts in 5 minutes
 
 **Events Subscribed:**
+
 - `message:accepted` — Analyze incoming messages
 
 **Events Emitted:**
+
 - `security:alert` — When threat detected or blocked
 
 ---
@@ -164,6 +178,7 @@ Anomalies trigger when:
 **Purpose:** Task decomposition and dependency management.
 
 **Responsibilities:**
+
 - Create execution plans
 - Break down goals into tasks
 - Build dependency DAGs (Directed Acyclic Graphs)
@@ -171,6 +186,7 @@ Anomalies trigger when:
 - Track plan progress
 
 **Data Structures:**
+
 ```typescript
 interface Plan {
   id: string;
@@ -194,6 +210,7 @@ interface Task {
 ```
 
 **Key Methods:**
+
 ```typescript
 async createPlan(name, description, owner): Promise<string>
 async addTask(planId, task): Promise<string>
@@ -202,6 +219,7 @@ async updateTaskStatus(planId, taskId, status): Promise<void>
 ```
 
 **Circular Dependency Detection:**
+
 ```typescript
 // Before adding dependency, check for cycles
 if (this.wouldCreateCycle(taskId, dependencyId)) {
@@ -218,6 +236,7 @@ if (this.wouldCreateCycle(taskId, dependencyId)) {
 **Purpose:** Tool execution with permission enforcement.
 
 **Responsibilities:**
+
 - Maintain tool registry
 - Execute tool calls
 - Enforce 3-layer permission checks
@@ -225,6 +244,7 @@ if (this.wouldCreateCycle(taskId, dependencyId)) {
 - Track execution results
 
 **3-Layer Permission Check:**
+
 ```
 Layer 1: Agent Allowlist → Is requesting agent allowed to use this tool?
 Layer 2: Trust Level → Does source trust level meet tool requirement?
@@ -232,6 +252,7 @@ Layer 3: Permission Tier → Does operation match allowed tier?
 ```
 
 **Permission Tiers:**
+
 | Tier | Description | Approval |
 |------|-------------|----------|
 | READ_ONLY | Information retrieval | Auto |
@@ -240,6 +261,7 @@ Layer 3: Permission Tier → Does operation match allowed tier?
 | ADMIN | System changes | Council vote |
 
 **Approval Workflow:**
+
 ```typescript
 if (tool.permission_tier === 'WRITE_DESTRUCTIVE') {
   // Request operator approval
@@ -251,6 +273,7 @@ if (tool.permission_tier === 'WRITE_DESTRUCTIVE') {
 ```
 
 **Built-in Tools:**
+
 | Tool | Tier | Description |
 |------|------|-------------|
 | file_read | READ_ONLY | Read file contents |
@@ -269,6 +292,7 @@ if (tool.permission_tier === 'WRITE_DESTRUCTIVE') {
 **Purpose:** Provenance-tracked knowledge storage.
 
 **Responsibilities:**
+
 - Store memory entries with full provenance
 - Partition isolation (Life, Ventures, System)
 - Integrity verification via hashing
@@ -276,6 +300,7 @@ if (tool.permission_tier === 'WRITE_DESTRUCTIVE') {
 - Retrieval with filtering
 
 **Memory Structure:**
+
 ```typescript
 interface MemoryEntry {
   id: string;
@@ -299,6 +324,7 @@ interface ProvenanceChain {
 ```
 
 **Integrity Verification:**
+
 ```typescript
 // Hash includes content + source + provenance
 const hash = sha256(JSON.stringify({
@@ -309,6 +335,7 @@ const hash = sha256(JSON.stringify({
 ```
 
 **Partition Isolation:**
+
 - **Life** — Personal data (finance, health, career)
 - **Ventures** — Business data (projects, clients)
 - **System** — Agent state and configuration
@@ -326,12 +353,14 @@ Cross-partition access requires SYSTEM trust level.
 **Purpose:** Collective decision-making through voting.
 
 **Responsibilities:**
+
 - Track 13 council members
 - Manage vote lifecycle
 - Enforce quorum thresholds
 - Expire overdue votes (1-hour limit)
 
 **Council Members (13):**
+
 | Member | Role |
 |--------|------|
 | core | Orchestration representative |
@@ -349,6 +378,7 @@ Cross-partition access requires SYSTEM trust level.
 | historian | Historical context |
 
 **Quorum Thresholds:**
+
 | Decision Type | Threshold | Required Votes |
 |--------------|-----------|----------------|
 | Standard | 50% | 7 of 15 |
@@ -356,11 +386,13 @@ Cross-partition access requires SYSTEM trust level.
 | Critical | 100% | 13 of 15 |
 
 **Vote Lifecycle:**
+
 ```
 DRAFT → PENDING_REVIEW → VOTING → APPROVED/REJECTED/EXPIRED
 ```
 
 **Key Methods:**
+
 ```typescript
 createVote(subject, proposedBy, threshold): string
 castVote(voteId, agentId, approve, reason?): boolean
@@ -377,6 +409,7 @@ expireOverdueVotes(): void  // Called every 60 seconds
 **Purpose:** Constitutional enforcement and final authority.
 
 **Responsibilities:**
+
 - Validate proposals against 6 constitutional rules
 - Sign off on releases
 - Emergency stop authority
@@ -385,18 +418,21 @@ expireOverdueVotes(): void  // Called every 60 seconds
 **6 Constitutional Rules:**
 
 **Rule 0: Creator Primacy**
+
 ```typescript
 // arbiter.ts - Creator's interests always come first
 // ARI always operates in the creator's best interest
 ```
 
 **Rule 1: Loopback-Only Gateway**
+
 ```typescript
 // gateway.ts - HOST is hardcoded constant
 const HOST = '127.0.0.1' as const;  // Cannot be changed
 ```
 
 **Rule 2: Content ≠ Command**
+
 ```typescript
 // All input treated as data
 const sanitized = sanitizer.scan(input);
@@ -406,6 +442,7 @@ if (sanitized.threats.length > 0) {
 ```
 
 **Rule 3: Audit Immutable**
+
 ```typescript
 // audit.ts - append-only with hash chain
 private previousHash = GENESIS_HASH;
@@ -419,6 +456,7 @@ async log(event) {
 ```
 
 **Rule 4: Least Privilege**
+
 ```typescript
 // Three-layer check before any tool execution
 if (!agentAllowlist.includes(agent)) return false;
@@ -427,6 +465,7 @@ if (operation > tool.maxPermission) return false;
 ```
 
 **Rule 5: Trust Required**
+
 ```typescript
 // Every message has explicit trust level
 interface Message {
@@ -444,6 +483,7 @@ interface Message {
 **Purpose:** Quality gate enforcement for releases.
 
 **Responsibilities:**
+
 - Check 5 quality gates before release
 - Generate compliance reports
 - Block releases that fail gates
@@ -459,6 +499,7 @@ interface Message {
 | Documentation | ADRs and API docs current | Manual review |
 
 **Gate Check Process:**
+
 ```typescript
 async checkGates(): Promise<GateResult[]> {
   return [
@@ -546,24 +587,28 @@ describe('NewAgent', () => {
 ## Event Reference
 
 ### Message Events
+
 | Event | Payload | Emitter | Subscribers |
 |-------|---------|---------|-------------|
 | `message:accepted` | `Message` | Core | Guardian, Router |
 | `message:blocked` | `{ message_id, reason }` | Guardian | Core, Audit |
 
 ### Agent Events
+
 | Event | Payload | Emitter | Subscribers |
 |-------|---------|---------|-------------|
 | `agent:started` | `{ agent, timestamp }` | Any agent | Audit |
 | `agent:stopped` | `{ agent, reason }` | Any agent | Audit |
 
 ### Security Events
+
 | Event | Payload | Emitter | Subscribers |
 |-------|---------|---------|-------------|
 | `security:alert` | `{ type, source, data }` | Guardian | Core, Audit |
 | `security:threat_detected` | `{ risk_score, patterns }` | Guardian | Audit |
 
 ### Governance Events
+
 | Event | Payload | Emitter | Subscribers |
 |-------|---------|---------|-------------|
 | `governance:vote_created` | `Vote` | Council | Audit |
@@ -571,6 +616,7 @@ describe('NewAgent', () => {
 | `governance:decision` | `{ vote_id, result }` | Council | Core, Audit |
 
 ### System Events
+
 | Event | Payload | Emitter | Subscribers |
 |-------|---------|---------|-------------|
 | `system:halted` | `{ reason, by }` | StopTheLine | All agents |

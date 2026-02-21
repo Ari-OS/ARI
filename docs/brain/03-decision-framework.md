@@ -22,12 +22,14 @@ Where:
 ### Component Definitions
 
 **Impact (0-10)**:
+
 - 0-2: Trivial (minor convenience)
 - 3-5: Moderate (noticeable improvement)
 - 6-8: Significant (meaningful progress toward goal)
 - 9-10: Transformative (game-changing outcome)
 
 **Alignment (0-1)**:
+
 - 1.0: Perfectly aligned with creator's stated values
 - 0.75: Mostly aligned, minor conflicts
 - 0.5: Neutral (neither aligned nor conflicting)
@@ -35,6 +37,7 @@ Where:
 - 0.0: Directly conflicts with values
 
 **Trust Multiplier**:
+
 - SYSTEM: 0.5x (highly trusted)
 - OPERATOR: 0.6x (trusted)
 - VERIFIED: 0.75x (moderately trusted)
@@ -43,12 +46,14 @@ Where:
 - HOSTILE: 2.0x (maximum risk)
 
 **Risk (0-10)**:
+
 - 0-2: Negligible (easily reversible)
 - 3-5: Moderate (requires effort to undo)
 - 6-8: High (difficult to undo, potential harm)
 - 9-10: Severe (irreversible, high harm potential)
 
 **Effort (1-10)**:
+
 - 1-2: Trivial (< 5 minutes)
 - 3-4: Low (5-30 minutes)
 - 5-6: Moderate (30 minutes - 2 hours)
@@ -58,6 +63,7 @@ Where:
 ### Example Calculations
 
 **Example 1: Add feature to existing codebase**
+
 ```
 Impact: 6 (significant improvement to user workflow)
 Alignment: 0.9 (aligns well with creator's goals)
@@ -69,6 +75,7 @@ ValueScore = (6 × 0.9 × 1.0) / (3 × 5) = 5.4 / 15 = 0.36
 ```
 
 **Example 2: Deploy to production without tests**
+
 ```
 Impact: 8 (fixes critical bug)
 Alignment: 0.5 (creator values speed, but also stability)
@@ -80,6 +87,7 @@ ValueScore = (8 × 0.5 × 1.0) / (9 × 2) = 4.0 / 18 = 0.22
 ```
 
 **Example 3: Automate routine task**
+
 ```
 Impact: 7 (saves 30 min/day)
 Alignment: 1.0 (creator explicitly requested)
@@ -102,6 +110,7 @@ ValueScore = (7 × 1.0 × 0.6) / (2 × 4) = 4.2 / 8 = 0.525
 ### Overrides
 
 ValueScore can be overridden by:
+
 1. **Constitutional violation**: Automatic rejection regardless of score
 2. **Creator directive**: Explicit approval overrides calculation
 3. **Emergency protocol**: StopTheLine allows immediate rejection
@@ -197,6 +206,7 @@ For high-stakes or low-confidence decisions, ARI runs a **verification loop** be
 ### Triggers
 
 Verification loop activates when:
+
 - **High stakes** (impact > 7/10 OR risk > 6/10)
 - **Low confidence** (< 60%)
 - **Bias detected** (any bias flag triggered)
@@ -209,6 +219,7 @@ Verification loop activates when:
 > "Deploy to production now. The bug is critical and users are affected."
 
 **Critique**:
+
 - Risk: Deploying without tests could introduce new bugs (risk 9/10)
 - Bias: Urgency bias (overweighting immediate problem)
 - Missing: Have we considered deploying a hotfix to a subset of users first?
@@ -240,14 +251,17 @@ function selectModel(decision: Decision): ModelTier {
 ### Cost-Benefit Analysis
 
 **Haiku** ($0.80/MTok):
+
 - Use for: Formatting, linting, routine Q&A, familiar patterns
 - Don't use for: Architecture, security, high-stakes
 
 **Sonnet** ($12/MTok):
+
 - Use for: Moderate complexity, standard tasks, code review
 - Don't use for: Trivial tasks (wasteful) or critical decisions (insufficient)
 
 **Opus** ($60/MTok):
+
 - Use for: Architecture decisions, security review, novel problems
 - Don't use for: Routine tasks (75x more expensive than Haiku)
 
@@ -266,6 +280,7 @@ interface BudgetTracker {
 ```
 
 When budget is exhausted:
+
 1. Fall back to cheaper models
 2. Defer non-critical tasks
 3. Alert user if critical task requires expensive model
@@ -287,11 +302,13 @@ For **strategic decisions** (not operational), ARI invokes the full **15-member 
 Each Council member casts a vote: **APPROVE**, **REJECT**, or **ABSTAIN**.
 
 **Vote Weights**:
+
 - Standard members: 1 vote each
 - NEXUS (integrator): 1.5 votes (tie-breaker authority)
 - VERA (ethics): Veto authority on ethical violations
 
 **Thresholds**:
+
 - **Simple majority** (> 50%): Routine strategic decisions
 - **Supermajority** (≥ 67%): Constitutional amendments, major changes
 - **Unanimous** (100%): Changes to value hierarchy
@@ -327,12 +344,14 @@ Each Council member casts a vote: **APPROVE**, **REJECT**, or **ABSTAIN**.
 Any agent can invoke **StopTheLine** to immediately halt operations.
 
 **Triggers**:
+
 - Constitutional violation detected
 - Security threat (risk ≥ 9/10)
 - Data corruption risk
 - User safety concern
 
 **Process**:
+
 ```
 1. Invoking agent emits 'emergency:stop_the_line' event
 2. All agents cease current operations
@@ -355,6 +374,7 @@ Opus fails → Surface failure to user, request guidance
 ```
 
 **Quality Criteria**:
+
 - Logical consistency
 - Completeness (addresses all requirements)
 - Accuracy (verifiable facts correct)

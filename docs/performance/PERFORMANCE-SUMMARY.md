@@ -3,6 +3,7 @@
 ## Quick Reference
 
 ### Health Status
+
 - **Overall**: Good (needs optimization in 3 areas)
 - **Critical Issues**: 0
 - **Medium Issues**: 3 (fixable in 2-3 weeks)
@@ -42,6 +43,7 @@ SCHEDULER HEALTH
 ## Top 3 Priorities
 
 ### 1. Async Audit Buffering (HIGH - 2-3h)
+
 **Impact**: 80% reduction in event emit latency
 **File**: `/Users/ari/ARI/src/kernel/audit.ts`
 **Change**: Buffer audit writes, flush in batches every 500ms
@@ -53,6 +55,7 @@ After:  emit() → audit.queue() → return (0.2ms), async flush in background
 ```
 
 ### 2. Deferred Notion Writes (HIGH - 2-3h)
+
 **Impact**: 75% reduction in notification latency
 **File**: `/Users/ari/ARI/src/autonomous/notification-manager.ts:398-422`
 **Change**: Queue Notion writes, batch every 500ms instead of blocking
@@ -64,6 +67,7 @@ After:  notify() → sendTelegram() → queueNotion() → return [async write]
 ```
 
 ### 3. Scheduler Task Coordinator (HIGH - 4-5h)
+
 **Impact**: Eliminate API quota conflicts, reduce memory spikes
 **File**: New `/Users/ari/ARI/src/autonomous/scheduler-coordinator.ts`
 **Change**: Detect collisions at 6am/7am/2pm, spread tasks 5-10 min apart
@@ -121,6 +125,7 @@ AFTER:
 ### Notification System Bottleneck
 
 **Current Path**: P1 (work hours) = 255-408ms
+
 ```
 notify() [1-3ms]
   ↓ scoreNotification() [5-8ms]
@@ -172,12 +177,14 @@ Estimated Savings:
 ### Cache Efficiency
 
 **Knowledge Index**: 65% hit ratio (target >80%)
+
 - Content engine queries only 55% hit
 - Reason: Unique query per content piece
 - Solution: Semantic cache matching (cosine >0.85)
 - Gain: +20% hit ratio on content queries
 
 **Market Monitor**: Rolling baseline reloaded on every startup
+
 - Cost: 150ms startup latency
 - Solution: SQLite with indexed queries
 - Gain: -120ms startup, lazy load older data
@@ -187,6 +194,7 @@ Estimated Savings:
 ## Implementation Timeline
 
 ### Week 1: Critical Fixes (Est. 8-10h)
+
 ```
 Monday:    Async audit buffering (2-3h)
 Tuesday:   Deferred Notion writes (2-3h)
@@ -195,6 +203,7 @@ Thu/Fri:   Testing + monitoring setup
 ```
 
 ### Week 2: Performance Enhancements (Est. 10-12h)
+
 ```
 Monday:    Knowledge index persistence (3-4h)
 Tuesday:   Unified API cache (4-5h)
@@ -202,6 +211,7 @@ Wed-Fri:   Adaptive polling + benchmarks
 ```
 
 ### Week 3-4: Monitoring & Validation
+
 ```
 Deploy + monitor improvements
 Capture before/after metrics
@@ -213,18 +223,21 @@ Iterate based on telemetry
 ## Expected Results After Optimization
 
 ### User-Facing Improvements
+
 - Notifications appear 5x faster (250ms → 50ms)
 - Startup completes 35% quicker (2.8s → 1.8s)
 - Smoother background operations (less stuttering)
 - Lower power consumption (-10-15%)
 
 ### System Efficiency
+
 - Event throughput +1900% (100/s → 2000/s)
 - Memory usage -32% (88MB → 60MB)
 - Cache hit ratio +11% (65% → 76%)
 - API credit waste -20-25% ($40-60/month)
 
 ### Operational Stability
+
 - Zero task conflicts (eliminate API quota issues)
 - Faster error detection (lower event latency)
 - Better observability (telemetry collection)
@@ -235,16 +248,19 @@ Iterate based on telemetry
 ## Risk Assessment
 
 ### LOW RISK Changes (Safe to implement first)
+
 1. Async audit buffering (no breaking changes, backward compatible)
 2. Deferred Notion writes (same end result, just delayed)
 3. Adaptive poll intervals (transparent to consumer)
 
 ### MEDIUM RISK Changes (Needs testing)
+
 1. Scheduler coordinator (reordering tasks, verify no dependencies)
 2. Knowledge index persistence (schema migration path)
 3. Unified API cache (ensure no stale data across systems)
 
 ### Testing Requirements
+
 - Unit tests for each component
 - Integration tests (full poll cycle)
 - Load tests (peak scheduler times)
@@ -255,7 +271,8 @@ Iterate based on telemetry
 
 ## Monitoring Recommendations
 
-### Add Telemetry Collection For:
+### Add Telemetry Collection For
+
 - Event emit latency (p50, p95, p99)
 - Scheduler task execution times + memory delta
 - Notification delivery latency (end-to-end)
@@ -263,7 +280,8 @@ Iterate based on telemetry
 - Poll cycle utilization (% of 5s window)
 - Memory growth trends (24h, 7d, 30d)
 
-### Alerts To Configure:
+### Alerts To Configure
+
 - Event loop blocking >5ms
 - X API credit burn exceeds projection
 - Scheduler task concurrency >2
@@ -276,10 +294,12 @@ Iterate based on telemetry
 ## Files to Review
 
 **Analysis produced**:
+
 - `PERFORMANCE-ANALYSIS.md` (full technical report, 350+ lines)
 - `PERFORMANCE-SUMMARY.md` (this file, quick reference)
 
 **Key files analyzed**:
+
 - `/Users/ari/ARI/src/autonomous/scheduler.ts` (35 tasks)
 - `/Users/ari/ARI/src/autonomous/agent.ts` (poll loop)
 - `/Users/ari/ARI/src/kernel/event-bus.ts` (EventBus)
@@ -300,4 +320,3 @@ Iterate based on telemetry
 6. **Iterate** on remaining optimizations
 
 All code locations provided above for reference. Ready to implement!
-

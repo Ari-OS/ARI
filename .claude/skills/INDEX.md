@@ -8,6 +8,7 @@ description: MOC (map of content) for all 46 ARI development skills. Traverse th
 46 skills organized by domain. Scan this index to find what you need, then invoke the skill.
 
 ## Security & Safety
+
 *Use when doing security reviews, detecting injection, managing trust, auditing*
 
 - [[ari-injection-detection]] — ARI's 27-pattern injection detection across 6 categories. Use when reviewing input security.
@@ -16,6 +17,7 @@ description: MOC (map of content) for all 46 ARI development skills. Traverse th
 - [[ari-security-hygiene]] — Security-first practices for commits, data handling, and prompt injection defense.
 
 ## Architecture & Layer System
+
 *Use when modifying layer dependencies, reviewing cross-layer imports, designing new components*
 
 - [[ari-layer-guardian]] — Enforce ARI's six-layer architecture. Prevents L0-L6 dependency violations. **Use before cross-layer work.**
@@ -26,6 +28,7 @@ description: MOC (map of content) for all 46 ARI development skills. Traverse th
 - [[ari-websocket-patterns]] — WebSocket communication patterns for ARI's real-time features.
 
 ## Agent System
+
 *Use when coordinating agents, creating new agents, managing governance*
 
 - [[ari-agent-coordination]] — Coordinate ARI's five specialized agents (Core, Guardian, Planner, Executor, Memory).
@@ -34,18 +37,21 @@ description: MOC (map of content) for all 46 ARI development skills. Traverse th
 - [[ari-natural-language]] — Natural language understanding and intent parsing.
 
 ## AI & Model Orchestration
+
 *Use when selecting models, managing costs, working with AI providers*
 
 - [[ari-model-selection]] — Intelligent model selection for autonomous ops — balance capability vs cost.
 - [[ari-anthropic-monitor]] — Monitor official Anthropic releases for ARI improvements. **Verified sources only.**
 
 ## Testing
+
 *Use before writing tests, fixing failures, measuring coverage*
 
 - [[ari-vitest-guardian]] — Vitest-specific testing skill for ARI's 80%+ coverage requirement and security paths (100%).
 - [[ari-testing-strategies]] — Comprehensive testing strategies for ARI's multi-layer architecture.
 
 ## Development Patterns
+
 *Use when implementing features, writing TypeScript, building APIs*
 
 - [[ari-zod-schemas]] — Zod schema management for ARI's type-safe runtime validation (ADR-006).
@@ -56,6 +62,7 @@ description: MOC (map of content) for all 46 ARI development skills. Traverse th
 - [[ari-parallel-workflows]] — Spawn parallel agents for independent tasks using git worktrees.
 
 ## Memory & Knowledge
+
 *Use when working with MEMORY.md, workspace files, session context*
 
 - [[ari-memory-management]] — ARI's provenance-tracked memory system for knowledge persistence.
@@ -64,6 +71,7 @@ description: MOC (map of content) for all 46 ARI development skills. Traverse th
 - [[ari-time-research]] — Research ARI's memory and knowledge over time windows.
 
 ## Self-Improvement & Learning
+
 *Use when running improvement cycles, tracking skill gaps, learning from interactions*
 
 - [[ari-continuous-improvement]] — ARI's continuous self-improvement and learning system.
@@ -75,6 +83,7 @@ description: MOC (map of content) for all 46 ARI development skills. Traverse th
 - [[ari-review]] — Spaced repetition reviews (SM-2) with retrieval-first prompts.
 
 ## Operations & Deployment
+
 *Use when deploying to Mac Mini, managing daemon, releasing versions*
 
 - [[ari-daemon-ops]] — macOS launchd daemon operations for ARI. **Mac Mini deployment.**
@@ -83,6 +92,7 @@ description: MOC (map of content) for all 46 ARI development skills. Traverse th
 - [[ari-monitoring-alerting]] — Real-time monitoring and alerting system.
 
 ## Collaboration & Skills
+
 *Use when creating new skills, integrating plugins, coworking*
 
 - [[ari-skill-generator]] — Automatically generate new skills based on identified gaps.
@@ -90,6 +100,7 @@ description: MOC (map of content) for all 46 ARI development skills. Traverse th
 - [[ari-teach-mode]] — Collaborative learning mode for building understanding.
 
 ## Platform Design
+
 *Use when building UI, designing for specific platforms*
 
 - [[platform-design]] — Router skill for platform-specific design guidelines.

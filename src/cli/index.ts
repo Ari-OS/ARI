@@ -33,6 +33,7 @@ import { registerSpeakCommand } from './commands/speak.js';
 import { registerDiagramCommand } from './commands/diagram.js';
 import { registerVideoCommand } from './commands/video.js';
 import { registerYouTubeCommand } from './commands/youtube.js';
+import { registerAutoDevCommand } from './commands/autodev.js';
 import { registerMcpCommand } from './commands/mcp.js';
 
 const program = new Command();
@@ -69,5 +70,6 @@ registerDiagramCommand(program);
 registerVideoCommand(program);
 registerYouTubeCommand(program);
 registerMcpCommand(program);
+registerAutoDevCommand(program);
 
 program.parse();

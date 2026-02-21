@@ -187,6 +187,7 @@ This document is the source of truth. Two system prompts exist in the codebase, 
 Both are distillations of this document. The channel prompt is richer because it directly shapes conversation. The pipeline prompt is leaner because it runs on every AI call.
 
 When updating ARI's personality:
+
 1. Update this document first
 2. Derive system prompt changes from this document
 3. Never change a system prompt without updating this document

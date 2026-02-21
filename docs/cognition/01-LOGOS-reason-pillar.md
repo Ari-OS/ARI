@@ -35,6 +35,7 @@ LOGOS (λόγος) - Greek for "reason", "word", "logic" - represents the **rati
 ### Why Algorithmic Reasoning?
 
 Life is full of decisions under uncertainty:
+
 - "Should I take this job?" (uncertain outcome)
 - "Should I invest in this?" (uncertain return)
 - "Should I start this project?" (uncertain success)
@@ -42,6 +43,7 @@ Life is full of decisions under uncertainty:
 **Naive Approach**: Binary thinking ("yes" or "no" without nuance)
 
 **LOGOS Approach**: Probabilistic thinking:
+
 - "60% chance this job works out well, 40% it doesn't"
 - "Expected value is +$12K, so yes despite uncertainty"
 - "Kelly Criterion says allocate 20% of time/resources"
@@ -79,18 +81,23 @@ LOGOS provides six interconnected reasoning frameworks:
 ### When to Use Which Framework
 
 **Decision Type**: Investment ($10K)
+
 - **Use**: Expected Value (compare alternatives), Kelly Criterion (sizing), Bayesian (update win probability)
 
 **Decision Type**: Career change
+
 - **Use**: Decision Tree (sequential choices), Expected Value (compare paths), Systems Thinking (how will this affect life system?)
 
 **Decision Type**: Health intervention
+
 - **Use**: Expected Value (cost/benefit), Bayesian (update belief as evidence comes in)
 
 **Decision Type**: Strategic planning
+
 - **Use**: Decision Tree (sequence of actions), Systems Thinking (leverage points), Antifragility (robustness)
 
 **Decision Type**: Risk assessment
+
 - **Use**: Bayesian (threat probability), Expected Value (cost of breach), Kelly (security budget allocation)
 
 ---
@@ -104,6 +111,7 @@ LOGOS provides six interconnected reasoning frameworks:
 > Update your beliefs based on evidence. Strong evidence shifts beliefs significantly, weak evidence shifts them slightly.
 
 **Formula**:
+
 ```
 P(H|E) = P(E|H) × P(H) / P(E)
 
@@ -121,16 +129,20 @@ Where:
 **Scenario**: SCOUT assessing if new business will succeed.
 
 **Prior Belief**:
+
 - P(Success) = 0.30 (30% based on industry statistics)
 
 **New Evidence**:
+
 - "Founder has 3 successful exits"
 
 **Likelihood**:
+
 - P(3 exits | Success) = 0.80 (80% of successful businesses have experienced founders)
 - P(3 exits | Failure) = 0.20 (20% of failed businesses still had experienced founders)
 
 **Marginal Probability**:
+
 ```
 P(3 exits) = P(3 exits | Success) × P(Success) + P(3 exits | Failure) × P(Failure)
            = 0.80 × 0.30 + 0.20 × 0.70
@@ -139,6 +151,7 @@ P(3 exits) = P(3 exits | Success) × P(Success) + P(3 exits | Failure) × P(Fail
 ```
 
 **Posterior**:
+
 ```
 P(Success | 3 exits) = P(3 exits | Success) × P(Success) / P(3 exits)
                      = 0.80 × 0.30 / 0.38
@@ -371,6 +384,7 @@ function buildReasoning(
 **Multiple Evidence**: Update belief with evidence 1, then evidence 2, then evidence 3...
 
 **Implementation**:
+
 ```typescript
 export async function updateBeliefSequential(
   initialBelief: Belief,
@@ -401,6 +415,7 @@ export async function updateBeliefSequential(
 ```
 
 **Example**:
+
 ```
 Initial: "50% chance project succeeds"
 
@@ -420,6 +435,7 @@ Final: "68% chance project succeeds" (net: +18% from initial)
 **Scenario**: Incoming message has suspicious patterns. How likely is it malicious?
 
 **Prior**:
+
 ```typescript
 const prior: Belief = {
   hypothesis: 'This message is a prompt injection attack',
@@ -433,6 +449,7 @@ const prior: Belief = {
 ```
 
 **Evidence 1**: Message contains "ignore previous instructions"
+
 ```typescript
 const evidence1: Evidence = {
   observation: 'Contains "ignore previous instructions"',
@@ -448,6 +465,7 @@ const update1 = await updateBelief(prior, evidence1);
 ```
 
 **Evidence 2**: Message trust level is "untrusted"
+
 ```typescript
 const evidence2: Evidence = {
   observation: 'Source trust level is UNTRUSTED',
@@ -471,6 +489,7 @@ const update2 = await updateBelief(update1.belief, evidence2);
 **Scenario**: Evaluating if investment will return >20% in 1 year.
 
 **Prior**:
+
 ```
 P(Return > 20%) = 0.25 (base rate for this asset class)
 ```
@@ -485,6 +504,7 @@ P(Return > 20%) = 0.25 (base rate for this asset class)
 **Final Belief**: 33% chance of >20% return
 
 **Decision with Expected Value**:
+
 ```
 EV = 0.33 × ($20K) + 0.67 × (-$10K) = $6.6K - $6.7K = -$100 (negative EV)
 Recommendation: AVOID (despite some positive signals, EV is negative)
@@ -495,14 +515,17 @@ Recommendation: AVOID (despite some positive signals, EV is negative)
 ### Mathematical Properties
 
 **Property 1: Conservation of Probability**
+
 ```
 P(H|E) + P(¬H|E) = 1
 ```
+
 If belief in H increases, belief in ¬H decreases proportionally.
 
 **Property 2: Strong Evidence Dominates Prior**
 
 If likelihood is extreme (0.99 or 0.01), posterior is mostly determined by evidence:
+
 ```
 Prior: 0.10
 Likelihood: 0.99 (very strong evidence)
@@ -512,6 +535,7 @@ Posterior: ~0.92 (jumps to high confidence)
 **Property 3: Weak Evidence Barely Shifts Belief**
 
 If likelihood is near marginal (0.50), posterior stays close to prior:
+
 ```
 Prior: 0.50
 Likelihood: 0.55 (weak evidence)
@@ -527,34 +551,34 @@ Posterior: ~0.52 (barely moves)
 **Primary Sources** (VERIFIED):
 
 1. **Stanford Introduction to Probability and Statistics**
-   - URL: https://online.stanford.edu/courses/gse-ystatslearning-statistical-learning
+   - URL: <https://online.stanford.edu/courses/gse-ystatslearning-statistical-learning>
    - Content: Bayesian inference, posterior calculation, applications
    - Update: Annually (course is stable)
 
 2. **arXiv stat.ME (Methodology)**
-   - URL: https://arxiv.org/list/stat.ME/recent
+   - URL: <https://arxiv.org/list/stat.ME/recent>
    - Content: Recent Bayesian methodology papers
    - Update: Daily
 
 3. **Arbital Bayes Guide**
-   - URL: https://arbital.com/p/bayes_rule/
+   - URL: <https://arbital.com/p/bayes_rule/>
    - Content: Intuitive Bayes explanations with visualizations
    - Update: Monthly (stable resource)
 
 4. **LessWrong: Eliezer Yudkowsky on Bayesian Reasoning**
-   - URL: https://www.lesswrong.com/tag/bayesian
+   - URL: <https://www.lesswrong.com/tag/bayesian>
    - Content: Practical Bayesian thinking (VERIFIED author only)
    - Update: Weekly
 
 **Supplementary Sources** (STANDARD):
 
-5. **3Blue1Brown: Bayes Theorem Visualization** (YouTube)
-   - URL: https://www.youtube.com/watch?v=HZGCoVF3YvM
+1. **3Blue1Brown: Bayes Theorem Visualization** (YouTube)
+   - URL: <https://www.youtube.com/watch?v=HZGCoVF3YvM>
    - Content: Visual intuition for Bayes
    - Update: One-time (video)
 
-6. **Bayesian Methods for Hackers**
-   - URL: https://camdavidsonpilon.github.io/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers/
+2. **Bayesian Methods for Hackers**
+   - URL: <https://camdavidsonpilon.github.io/Probabilistic-Programming-and-Bayesian-Methods-for-Hackers/>
    - Content: Practical Bayesian programming
    - Update: Annually
 
@@ -666,6 +690,7 @@ describe('updateBelief', () => {
 > The value of a risky decision is the sum of all possible outcomes, each weighted by its probability.
 
 **Formula**:
+
 ```
 EV = Σ (P_i × V_i) for all outcomes i
 
@@ -676,6 +701,7 @@ Where:
 ```
 
 **Interpretation**:
+
 - EV > 0: Positive expected value → Take the decision
 - EV = 0: Neutral → Indifferent
 - EV < 0: Negative expected value → Avoid the decision
@@ -689,6 +715,7 @@ Where:
 **Scenario**: Should BLOOM take an online course?
 
 **Outcomes**:
+
 1. **Love it, complete it, apply learnings**:
    - Probability: 0.40 (40%)
    - Value: +100 (career boost, new skills)
@@ -706,6 +733,7 @@ Where:
    - Value: -5 (wasted money on enrollment)
 
 **Calculation**:
+
 ```
 EV = (0.40 × 100) + (0.30 × 20) + (0.20 × -10) + (0.10 × -5)
    = 40 + 6 - 2 - 0.5
@@ -715,6 +743,7 @@ EV = (0.40 × 100) + (0.30 × 20) + (0.20 × -10) + (0.10 × -5)
 **Interpretation**: **Positive EV (+43.5)** → Take the course. Even accounting for risk of not finishing, the expected outcome is positive.
 
 **Comparison**: If not taking course:
+
 ```
 EV(don't take) = 1.0 × 0 = 0
 ```
@@ -951,6 +980,7 @@ function calculateBreakEven(outcomes: Outcome[]): number | null {
 > The optimal fraction of capital to bet is determined by your edge (win probability) and the odds.
 
 **Formula**:
+
 ```
 f* = (p × b - q) / b
 
@@ -962,11 +992,13 @@ Where:
 ```
 
 **Interpretation**:
+
 - f* > 0: Positive edge → Bet this fraction
 - f* = 0: No edge → Don't bet
 - f* < 0: Negative edge → Opposite bet (or avoid entirely)
 
 **Key Properties**:
+
 1. **Maximizes long-term growth** (geometric mean of capital)
 2. **Never risks ruin** (never bets more than optimal)
 3. **Adapts to edge** (bigger edge → bigger bet)
@@ -980,6 +1012,7 @@ Where:
 **Scenario**: MINT considering investment.
 
 **Parameters**:
+
 - Investment cost: $5,000
 - If successful: Get back $12,000 (profit: $7,000)
 - Win probability: 0.60 (60%)
@@ -987,11 +1020,13 @@ Where:
 - Current capital: $20,000
 
 **Payoff Ratio**:
+
 ```
 b = profit / loss = $7,000 / $5,000 = 1.4
 ```
 
 **Kelly Calculation**:
+
 ```
 f* = (p × b - q) / b
    = (0.60 × 1.4 - 0.40) / 1.4
@@ -1001,6 +1036,7 @@ f* = (p × b - q) / b
 ```
 
 **Recommendations**:
+
 - **Full Kelly**: Bet 31.4% of capital = $6,280
 - **Half Kelly**: Bet 15.7% of capital = $3,140 ✅ **Recommended**
 - **Quarter Kelly**: Bet 7.85% of capital = $1,570 (very conservative)
@@ -1008,6 +1044,7 @@ f* = (p × b - q) / b
 **Decision**: Invest **$3,140** (half-Kelly) for safety.
 
 **Why Not Full Kelly?**
+
 - Full Kelly assumes probabilities are **exactly** correct
 - In reality, probabilities are **estimates** (could be wrong)
 - Half-Kelly provides **insurance** against estimation error
@@ -1018,6 +1055,7 @@ f* = (p × b - q) / b
 ### Edge Cases & Warnings
 
 **Case 1: No Edge (p × b = q)**
+
 ```
 p = 0.50, b = 1.0 (even odds)
 f* = (0.50 × 1.0 - 0.50) / 1.0 = 0
@@ -1026,6 +1064,7 @@ Recommendation: Don't bet (no advantage)
 ```
 
 **Case 2: Negative Edge (p × b < q)**
+
 ```
 p = 0.40, b = 1.0
 f* = (0.40 × 1.0 - 0.60) / 1.0 = -0.20
@@ -1034,6 +1073,7 @@ Recommendation: Don't bet (negative edge means expected loss)
 ```
 
 **Case 3: Small Edge (f* < 0.05)**
+
 ```
 p = 0.51, b = 1.0
 f* = (0.51 × 1.0 - 0.49) / 1.0 = 0.02 (2%)
@@ -1042,6 +1082,7 @@ Recommendation: Edge is tiny. Only bet if probabilities are highly confident.
 ```
 
 **Case 4: Huge Edge (f* > 0.50)**
+
 ```
 p = 0.90, b = 2.0 (great odds)
 f* = (0.90 × 2.0 - 0.10) / 2.0 = 0.85 (85%)
@@ -1252,11 +1293,13 @@ function estimateRiskOfRuin(
 **Van Tharp** (Trade Your Way to Financial Freedom) extended Kelly with **expectancy**:
 
 **Expectancy Formula**:
+
 ```
 Expectancy = (Win% × AvgWin) - (Loss% × AvgLoss)
 ```
 
 **Example**:
+
 ```
 Trading system:
   Win%: 60%
@@ -1272,6 +1315,7 @@ Interpretation: On average, each trade makes $200.
 ```
 
 **R-Multiples**: Normalize outcomes to risk taken.
+
 ```
 If you risk $100 to make $300:
   Win: +3R (3× risk)
@@ -1311,7 +1355,7 @@ Expectancy in R-multiples = (Win% × AvgR_win) - (Loss% × AvgR_loss)
 
 **Supplementary Sources** (STANDARD):
 
-5. **Quantitative Finance Blogs**
+1. **Quantitative Finance Blogs**
    - Quantocracy (curated quant blog aggregator)
    - Alpha Architect (evidence-based investing)
 
@@ -1326,6 +1370,7 @@ Expectancy in R-multiples = (Win% × AvgR_win) - (Loss% × AvgR_loss)
 > Break complex sequential decisions into a tree structure. Solve backwards (from end to beginning) to find the optimal path.
 
 **Structure**:
+
 ```
                     Root Decision
                    /      |      \
@@ -1350,6 +1395,7 @@ Expectancy in R-multiples = (Win% × AvgR_win) - (Loss% × AvgR_loss)
 **Scenario**: TRUE helping Operator decide between career paths.
 
 **Tree**:
+
 ```
                      Career Decision
                     /               \
@@ -1365,17 +1411,20 @@ Expectancy in R-multiples = (Win% × AvgR_win) - (Loss% × AvgR_loss)
 ```
 
 **Values** (utility on 0-100 scale):
+
 - Stay current job: 60 (safe, known quantity)
 - Take new job, don't seek promotion: 75 (good, but plateau)
 - Take new job, get promoted: 100 (excellent)
 - Take new job, promotion rejected: 50 (frustrating)
 
 **Probabilities**:
+
 - P(Get promoted | Apply) = 0.40 (40%)
 
 **Backward Induction**:
 
 Step 1: Calculate EV of "Try for promotion?" node:
+
 ```
 EV(Apply for promotion) = 0.40 × 100 + 0.60 × 50 = 40 + 30 = 70
 EV(Don't apply) = 1.0 × 75 = 75
@@ -1384,6 +1433,7 @@ Choose: DON'T APPLY (EV 75 > 70)
 ```
 
 Step 2: Calculate EV of root:
+
 ```
 EV(Stay) = 60
 EV(Take new job) = 75 (we chose "don't apply" branch)
@@ -1555,53 +1605,65 @@ export async function analyzeDecisionTree(
 **In ascending order of effectiveness** (12 = weakest, 1 = strongest):
 
 **12. Constants, Parameters** (Numbers):
-   - Example: Tax rates, minimum wage, speed limits
-   - Effectiveness: **Low** (changing numbers rarely fixes systems)
-   - "Tweaking parameters is like rearranging deck chairs on Titanic"
+
+- Example: Tax rates, minimum wage, speed limits
+- Effectiveness: **Low** (changing numbers rarely fixes systems)
+- "Tweaking parameters is like rearranging deck chairs on Titanic"
 
 **11. Buffers** (Stocks relative to flows):
-   - Example: Savings buffer, inventory, emergency fund
-   - Effectiveness: **Low-Medium** (important for stability, but doesn't change system dynamics)
+
+- Example: Savings buffer, inventory, emergency fund
+- Effectiveness: **Low-Medium** (important for stability, but doesn't change system dynamics)
 
 **10. Stock-and-Flow Structures**:
-   - Example: Physical infrastructure, organizational hierarchies
-   - Effectiveness: **Medium** (hard to change, but structural impact when changed)
+
+- Example: Physical infrastructure, organizational hierarchies
+- Effectiveness: **Medium** (hard to change, but structural impact when changed)
 
 **9. Delays** (Relative to rate of system change):
-   - Example: Lag between action and consequence
-   - Effectiveness: **Medium** (reducing delays improves feedback quality)
+
+- Example: Lag between action and consequence
+- Effectiveness: **Medium** (reducing delays improves feedback quality)
 
 **8. Balancing Feedback Loops**:
-   - Example: Thermostat (temperature rises → cooling activates → temperature falls)
-   - Effectiveness: **Medium-High** (stabilizes systems)
+
+- Example: Thermostat (temperature rises → cooling activates → temperature falls)
+- Effectiveness: **Medium-High** (stabilizes systems)
 
 **7. Reinforcing Feedback Loops**:
-   - Example: Compound interest, skill improvement, network effects
-   - Effectiveness: **High** (exponential growth/decay)
+
+- Example: Compound interest, skill improvement, network effects
+- Effectiveness: **High** (exponential growth/decay)
 
 **6. Information Flows**:
-   - Example: Making information visible (prices, scores, metrics)
-   - Effectiveness: **High** (people change behavior when they see consequences)
+
+- Example: Making information visible (prices, scores, metrics)
+- Effectiveness: **High** (people change behavior when they see consequences)
 
 **5. Rules of the System**:
-   - Example: Laws, incentives, constitutions
-   - Effectiveness: **High** (changes behavior at scale)
+
+- Example: Laws, incentives, constitutions
+- Effectiveness: **High** (changes behavior at scale)
 
 **4. Power to Self-Organize**:
-   - Example: Evolution, market economies, immune systems
-   - Effectiveness: **Very High** (systems that adapt survive and thrive)
+
+- Example: Evolution, market economies, immune systems
+- Effectiveness: **Very High** (systems that adapt survive and thrive)
 
 **3. Goals of the System**:
-   - Example: Company mission, personal values, national objectives
-   - Effectiveness: **Very High** (everything else serves the goal)
+
+- Example: Company mission, personal values, national objectives
+- Effectiveness: **Very High** (everything else serves the goal)
 
 **2. Paradigms** (Mindset from which goals arise):
-   - Example: Worldviews, shared assumptions, cultural beliefs
-   - Effectiveness: **Extremely High** (paradigm shifts change everything)
+
+- Example: Worldviews, shared assumptions, cultural beliefs
+- Effectiveness: **Extremely High** (paradigm shifts change everything)
 
 **1. Power to Transcend Paradigms**:
-   - Example: Ability to step outside current paradigm and choose another
-   - Effectiveness: **HIGHEST** (meta-level - can change paradigms themselves)
+
+- Example: Ability to step outside current paradigm and choose another
+- Effectiveness: **HIGHEST** (meta-level - can change paradigms themselves)
 
 **Key Insight**: Most interventions target #9-12 (low leverage). **High-leverage interventions** target #1-6 (goals, paradigms, rules, information).
 
@@ -1612,12 +1674,14 @@ export async function analyzeDecisionTree(
 **System**: Personal health and fitness
 
 **Components** (stocks):
+
 - Energy level
 - Body weight
 - Fitness level
 - Stress level
 
 **Flows**:
+
 - Energy: Sleep (inflow), exertion (outflow)
 - Weight: Calories in (inflow), calories out (outflow)
 - Fitness: Exercise (inflow), detraining (outflow)
@@ -1626,18 +1690,21 @@ export async function analyzeDecisionTree(
 **Feedback Loops**:
 
 **Reinforcing Loop 1** (Fitness spiral):
+
 ```
 More exercise → Higher fitness → More energy → More exercise → Even higher fitness
 (Virtuous cycle)
 ```
 
 **Reinforcing Loop 2** (Stress spiral):
+
 ```
 High stress → Poor sleep → Lower energy → Can't exercise → More stress → Even worse sleep
 (Vicious cycle)
 ```
 
 **Balancing Loop** (Homeostasis):
+
 ```
 Eat more → Weight increases → Feel heavier → Eat less → Weight decreases
 ```
@@ -1645,21 +1712,27 @@ Eat more → Weight increases → Feel heavier → Eat less → Weight decreases
 **Leverage Points Analysis**:
 
 **Low Leverage** (#12): "Eat 100 fewer calories per day" (parameter tweak)
+
 - Effectiveness: Low (easy to compensate, doesn't change system)
 
 **Medium Leverage** (#8): "Get 8 hours sleep consistently" (balancing loop - stabilizes energy)
+
 - Effectiveness: Medium (helps, but doesn't address root cause)
 
 **High Leverage** (#6): "Track calories daily" (information flow - make hidden visible)
+
 - Effectiveness: High (awareness changes behavior)
 
 **Very High Leverage** (#5): "No eating after 8 PM" (rule)
+
 - Effectiveness: Very High (simple rule, major impact)
 
 **Highest Leverage** (#3): "Goal: Long-term health, not short-term weight loss" (goal shift)
+
 - Effectiveness: Extremely High (changes entire approach - sustainable vs crash dieting)
 
 **Meta Leverage** (#1): "Realize health is about systems, not willpower" (paradigm shift)
+
 - Effectiveness: HIGHEST (once you see health as system, you optimize differently)
 
 **Recommendation**: Don't focus on calories (#12). Focus on sleep (#8), tracking (#6), rules (#5), and goal clarity (#3).
@@ -1825,6 +1898,7 @@ export async function identifyLeveragePoints(
 #### 1. Optionality (Asymmetric Payoff)
 
 **Formula**:
+
 ```
 Antifragility = Upside potential - Downside risk
 
@@ -1832,6 +1906,7 @@ Ideal: Capped downside, unlimited upside
 ```
 
 **Example**:
+
 ```
 Fragile: Betting entire net worth on one investment
   Downside: Lose everything (-100%)
@@ -1845,6 +1920,7 @@ Antifragile: Portfolio with 90% safe bonds, 10% high-risk ventures
 ```
 
 **Implementation**: **Barbell Strategy**
+
 - 90% in extremely safe (treasury bonds, cash, stable job)
 - 10% in extremely risky (startups, volatile assets, side projects)
 - Avoid middle (moderately risky = worst of both worlds)
@@ -1858,15 +1934,18 @@ Antifragile: Portfolio with 90% safe bonds, 10% high-risk ventures
 **Examples**:
 
 **Fragile Approach**: "What should I add to my diet to be healthy?"
+
 - Adding supplements, superfoods, vitamins
 - More complexity, more to manage
 
 **Antifragile Approach**: "What should I remove from my diet?"
+
 - Remove sugar, processed foods, excessive alcohol
 - Less complexity, easier to sustain
 - **Via negativa**: Health comes from **NOT eating bad things**, not from eating exotic superfoods
 
 **Application to ARI**:
+
 - Via negativa: Remove bad tools/frameworks > add more tools/frameworks
 - "What should ARI STOP doing?" > "What should ARI START doing?"
 
@@ -1877,6 +1956,7 @@ Antifragile: Portfolio with 90% safe bonds, 10% high-risk ventures
 **Convex Payoff**: Upside > downside (benefits from volatility)
 
 **Example**:
+
 ```
 Stock option:
   If stock down 50%: Lose premium paid ($100)
@@ -1888,6 +1968,7 @@ Stock option:
 **Concave Payoff**: Downside > upside (hurt by volatility)
 
 **Example**:
+
 ```
 Writing insurance:
   If no claims: Collect small premium ($100)
@@ -2028,6 +2109,7 @@ export async function analyzeAntifragility(
 ### Phase 0: Foundation (Week 1-2)
 
 **Create Files**:
+
 ```bash
 mkdir -p src/cognition/logos
 touch src/cognition/logos/index.ts
@@ -2040,6 +2122,7 @@ touch src/cognition/logos/antifragility.ts
 ```
 
 **Define Types** (`src/cognition/types.ts`):
+
 - All Zod schemas
 - All interfaces
 - All enums
@@ -2047,6 +2130,7 @@ touch src/cognition/logos/antifragility.ts
 ### Phase 1: Implement Core (Week 3-4)
 
 **Priority Order**:
+
 1. **Expected Value** (most universally useful)
 2. **Bayesian Reasoning** (foundational)
 3. **Kelly Criterion** (high-value for MINT/SCOUT)
@@ -2055,6 +2139,7 @@ touch src/cognition/logos/antifragility.ts
 6. **Antifragility** (philosophical, can be last)
 
 **Test First** (TDD):
+
 - Write tests before implementation
 - Cover happy path + edge cases + errors
 - Target: 90%+ coverage for LOGOS
@@ -2066,6 +2151,7 @@ touch src/cognition/logos/antifragility.ts
 **Total LOGOS Sources**: ~28 sources
 
 **By Category**:
+
 - Bayesian (6 sources)
 - Expected Value (4 sources)
 - Kelly Criterion (5 sources)
@@ -2074,6 +2160,7 @@ touch src/cognition/logos/antifragility.ts
 - Antifragility (3 sources)
 
 **Trust Distribution**:
+
 - VERIFIED: 18 sources (64%)
 - STANDARD: 10 sources (36%)
 - UNTRUSTED: 0 (all curated)

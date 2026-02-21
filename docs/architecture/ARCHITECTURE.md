@@ -85,6 +85,7 @@ The kernel is the foundational security layer. It enforces the Content ≠ Comma
 ### Components
 
 #### gateway.ts
+
 - **Fastify HTTP server bound to 127.0.0.1 only** (hardcoded, never configurable)
 - Port 3141 (default, can be configured but host cannot)
 - POST /message: Message submission with sanitization
@@ -94,6 +95,7 @@ The kernel is the foundational security layer. It enforces the Content ≠ Comma
 **Security invariant**: HOST is hardcoded to `'127.0.0.1'`. No configuration can override this. Gateway rejects all non-loopback bindings.
 
 #### sanitizer.ts
+
 - **39 injection patterns across 14 categories**:
   1. Direct Override (ignore/disregard/forget previous)
   2. Role Manipulation (you are now, act as, pretend)
@@ -110,6 +112,7 @@ The kernel is the foundational security layer. It enforces the Content ≠ Comma
 **Enforcement point**: Every message through POST /message passes through sanitize() before acceptance.
 
 #### audit.ts
+
 - **SHA-256 hash-chained audit log**
 - Genesis block: previousHash = "0x00...00"
 - Each event links to previous via hash chain
@@ -120,6 +123,7 @@ The kernel is the foundational security layer. It enforces the Content ≠ Comma
 **Immutability guarantee**: No deletion, no modification. Only append operations allowed.
 
 #### event-bus.ts
+
 - **Typed publish-subscribe system**
 - Event types: message:accepted, message:rejected, message:received, system:routed, security:detected, gateway:started, gateway:stopped, vote:started, vote:cast, vote:completed, arbiter:ruling
 - Error isolation: handler failures don't break other handlers
@@ -128,12 +132,14 @@ The kernel is the foundational security layer. It enforces the Content ≠ Comma
 **Coupling point**: EventBus is the ONLY inter-layer communication mechanism. No direct function calls between layers.
 
 #### config.ts
+
 - Configuration loader/saver
 - Zod schema validation
 - Storage at ~/.ari/config.json
 - Default values for fresh install
 
 #### types.ts
+
 - Zod schemas for all kernel types
 - Trust levels: system, operator, verified, standard, untrusted, hostile
 - Permission tiers: READ_ONLY, WRITE_SAFE, WRITE_DESTRUCTIVE, ADMIN
@@ -163,6 +169,7 @@ The core layer manages memory, context routing, and storage. It receives sanitiz
 ### Components
 
 #### router.ts (System)
+
 - Subscribes to 'message:accepted' events
 - Matches messages to contexts via trigger detection
 - Returns RouteResult with matched context and confidence
@@ -171,6 +178,7 @@ The core layer manages memory, context routing, and storage. It receives sanitiz
 **Routing logic**: Topic detection for life contexts, explicit mention for ventures.
 
 #### storage.ts (System)
+
 - Context persistence at ~/.ari/contexts/
 - JSON files: {context_id}.json
 - Active context tracking: active.json
@@ -178,6 +186,7 @@ The core layer manages memory, context routing, and storage. It receives sanitiz
 - setActive() and getActive() for context switching
 
 #### memory-manager.ts (Agent)
+
 - **6 memory types**: FACT, PREFERENCE, PATTERN, CONTEXT, DECISION, QUARANTINE
 - **3 partitions**: PUBLIC, INTERNAL, SENSITIVE with access control
 - SHA-256 integrity hashing on all memory entries
@@ -190,6 +199,7 @@ The core layer manages memory, context routing, and storage. It receives sanitiz
 **Memory lifecycle**: create → verify → decay → quarantine or expire
 
 #### guardian.ts (Agent)
+
 - Real-time threat assessment
 - 8 behavioral patterns: template injection, eval/exec, prototype pollution, path traversal, XSS, SQL, command injection
 - Anomaly detection: message length, timing, injection spike
@@ -220,6 +230,7 @@ The governance layer enforces constitutional rules, manages voting, and gates qu
 ### Components
 
 #### arbiter.ts
+
 - **6 constitutional rules** (hard invariants):
   0. **creator_primacy**: Always operate in the creator's best interest
   1. **loopback_only**: Gateway must bind to 127.0.0.1
@@ -235,6 +246,7 @@ The governance layer enforces constitutional rules, manages voting, and gates qu
 **Constitutional guarantee**: Arbiter rules cannot be overridden by votes.
 
 #### council.ts
+
 - **15-member voting council**
 - **3 thresholds**: MAJORITY (>50%), SUPERMAJORITY (>=66%), UNANIMOUS (100%)
 - **50% quorum requirement**: At least 8 of 15 must participate
@@ -245,6 +257,7 @@ The governance layer enforces constitutional rules, manages voting, and gates qu
 **Vote lifecycle**: create → cast → early conclusion or deadline → close with result
 
 #### overseer.ts
+
 - **5 quality gates**:
   1. **test_coverage**: Minimum test coverage threshold
   2. **audit_integrity**: Audit chain verification passes
@@ -278,6 +291,7 @@ The strategic layer plans tasks, orchestrates agents, and manages the overall me
 ### Components
 
 #### planner.ts
+
 - Task decomposition and dependency management
 - Plan creation with task addition
 - Circular dependency detection (DFS algorithm)
@@ -288,6 +302,7 @@ The strategic layer plans tasks, orchestrates agents, and manages the overall me
 **Planning invariant**: No circular dependencies allowed.
 
 #### core.ts
+
 - Master orchestrator for 5-step message pipeline:
   1. Guardian assess (threat detection)
   2. Router route (context matching)
@@ -325,6 +340,7 @@ The execution layer is the only layer that performs actual operations. All opera
 ### Components
 
 #### executor.ts
+
 - **3-layer permission checks**:
   1. Agent allowlist: Is agent authorized for this tool?
   2. Trust level: Does source meet minimum trust threshold?
@@ -522,6 +538,7 @@ Agent → Propose Action → Arbiter (Layer 2)
 ## Component Specifications
 
 ### Gateway
+
 - **Interface**: HTTP REST (Fastify)
 - **Port**: 3141 (configurable)
 - **Host**: 127.0.0.1 (hardcoded)
@@ -529,30 +546,35 @@ Agent → Propose Action → Arbiter (Layer 2)
 - **Dependencies**: sanitizer, audit, event-bus
 
 ### Sanitizer
+
 - **Patterns**: 39 injection patterns
 - **Categories**: 14 (override, role, command, extraction, authority, exfiltration, SSRF, path traversal, null byte, XML, jailbreak, tag injection, SQL, script)
 - **Risk Scoring**: Severity weights × trust multipliers
 - **Output**: SanitizeResult with safe flag, threats, risk score
 
 ### Audit Logger
+
 - **Algorithm**: SHA-256 hash chain
 - **Storage**: ~/.ari/audit.json (append-only)
 - **Genesis**: previousHash = "0x00...00"
 - **Verification**: Recompute entire chain on verify()
 
 ### Event Bus
+
 - **Pattern**: Publish-subscribe (typed events)
 - **Error Handling**: Isolated (one handler failure doesn't break others)
 - **Synchronous**: Emit returns immediately after all handlers run
 - **Events**: 11 event types (message:*, system:*, security:*, gateway:*, vote:*, arbiter:*)
 
 ### Router
+
 - **Trigger Matching**: Regex + keyword detection
 - **Confidence Scoring**: 0.0 to 1.0
 - **Permission Mapping**: Context type → permission tier
 - **Audit**: All routing decisions logged
 
 ### Memory Manager
+
 - **Capacity**: 10,000 entries
 - **Partitions**: PUBLIC, INTERNAL, SENSITIVE
 - **Integrity**: SHA-256 hash per entry
@@ -560,30 +582,35 @@ Agent → Propose Action → Arbiter (Layer 2)
 - **Quarantine**: Auto-quarantine on poisoning detection
 
 ### Guardian
+
 - **Detection**: 8 behavioral patterns + anomaly detection
 - **Rate Limiting**: 60 messages/min per source
 - **Risk Formula**: 0.5×injection + 0.3×anomaly + 0.2×trust_penalty
 - **Thresholds**: Block >=0.8, escalate >=0.6
 
 ### Planner
+
 - **Dependency Graph**: DAG (directed acyclic graph)
 - **Circular Detection**: DFS algorithm
 - **Priority**: 4 levels (low, medium, high, critical)
 - **Task States**: pending, in_progress, completed, failed
 
 ### Executor
+
 - **Permission Tiers**: READ_ONLY, WRITE_SAFE, WRITE_DESTRUCTIVE, ADMIN
 - **Approval Workflow**: Required for WRITE_DESTRUCTIVE, ADMIN
 - **Concurrency**: 10 max simultaneous operations
 - **Timeout**: 30s default per tool
 
 ### Arbiter
+
 - **Rules**: 6 constitutional invariants
 - **Evaluation**: All actions checked against all rules
 - **Dispute Resolution**: Refer to council if no violations
 - **Binding**: All rulings are binding
 
 ### Council
+
 - **Members**: 15 voting agents
 - **Quorum**: 50% (8 of 15)
 - **Thresholds**: MAJORITY (>50%), SUPERMAJORITY (>=66%), UNANIMOUS (100%)
@@ -591,6 +618,7 @@ Agent → Propose Action → Arbiter (Layer 2)
 - **Early Conclusion**: Vote closes when outcome is determined
 
 ### Overseer
+
 - **Gates**: 5 quality gates (test, audit, security, build, docs)
 - **Evaluation**: All gates must pass for release
 - **Blocking**: Any gate failure blocks release
@@ -598,18 +626,21 @@ Agent → Propose Action → Arbiter (Layer 2)
 ## Operational Constraints
 
 ### Performance
+
 - Message throughput: ~100 msgs/sec (limited by audit I/O)
 - Memory capacity: 10K entries (memory-manager)
 - Concurrent tools: 10 max (executor)
 - Rate limit: 60 msgs/min per source (guardian)
 
 ### Storage
+
 - Config: ~/.ari/config.json (~1KB)
 - Audit log: ~/.ari/audit.json (grows ~500 bytes per event)
 - Contexts: ~/.ari/contexts/*.json (~1KB per context)
 - Memory: In-memory only (Phase 2), persistent storage in Phase 3
 
 ### Network
+
 - Binding: 127.0.0.1:3141 only
 - Protocol: HTTP/1.1 (REST)
 - TLS: Not required (loopback only)
@@ -618,18 +649,21 @@ Agent → Propose Action → Arbiter (Layer 2)
 ## Future Architecture (Post-Phase 2)
 
 ### Phase 3 Additions
+
 - Domain agent implementations (research, marketing, sales, etc.)
 - Agent-to-agent communication patterns
 - Memory persistence to disk
 - UI console for audit inspection
 
 ### Phase 4 Additions
+
 - Multi-venture isolation hardening (memory partitioning per venture)
 - Automated test harness for v12 specs
 - Performance optimization (audit log rotation, memory indexing)
 - Proactive notifications and scheduling
 
 ### Deferred (Post-Phase 4)
+
 - Feedback loops (ADR-008)
 - Reinforcement learning (ADR-008)
 - External API integrations (requires security review)

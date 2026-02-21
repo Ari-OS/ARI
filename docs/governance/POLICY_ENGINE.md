@@ -5,6 +5,7 @@ The deterministic authority for runtime permission decisions.
 ## What the Policy Engine Does
 
 When any agent wants to use a tool, the PolicyEngine decides:
+
 1. **Is this agent allowed?** (agent allowlist check)
 2. **Does the source have sufficient trust?** (trust level check)
 3. **How risky is this operation?** (risk score calculation)
@@ -81,6 +82,7 @@ Risk Score = Base Severity × Trust Multiplier
 Any request with risk score >= **0.8** is automatically blocked. No approval workflow, no council vote. Blocked.
 
 Examples:
+
 - `WRITE_DESTRUCTIVE (0.6) × untrusted (1.5) = 0.9` → **BLOCKED**
 - `ADMIN (0.9) × standard (1.0) = 0.9` → **BLOCKED**
 - `WRITE_SAFE (0.3) × hostile (2.0) = 0.6` → Allowed but logged

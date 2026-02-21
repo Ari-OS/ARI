@@ -11,6 +11,7 @@ REST API and WebSocket endpoints for ARI operations.
 | index.ts | API initialization and exports |
 
 Routes are split into modular files under `routes/`:
+
 - `health.ts` — `/health`, `/version`, `/status`
 - `messages.ts` — `/message`
 - `cognitive.ts` — `/api/cognition/*`
@@ -32,11 +33,13 @@ Routes are split into modular files under `routes/`:
 ## Endpoints
 
 ### System
+
 - `GET /health` — Health check
 - `GET /version` — Version info
 - `POST /message` — Send message to ARI
 
 ### Cognitive (Layer 0)
+
 - `GET /api/cognition/health` — Cognitive health status
 - `GET /api/cognition/pillars` — Pillar health details
 - `POST /api/cognition/logos/bayesian` — Bayesian belief update
@@ -48,10 +51,12 @@ Routes are split into modular files under `routes/`:
 - `POST /api/cognition/pathos/wisdom` — Query wisdom traditions
 
 ### Governance
+
 - `GET /api/governance/council` — Council status
 - `POST /api/governance/proposal` — Submit proposal
 
 ### Autonomous
+
 - `GET /api/autonomous/status` — Agent status
 - `GET /api/autonomous/tasks` — Task queue
 

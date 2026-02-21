@@ -14,6 +14,7 @@ triggers:
 # ARI Practice — Evidence-Based Skill Development
 
 Run deliberate practice sessions that build genuine mastery using:
+
 - **Ericsson's deliberate practice** (2016) — Focused practice at edge of ability
 - **Anthropic's interaction research** — High-scoring patterns that predict real learning
 - **Zone of Proximal Development** — Optimal challenge calibration

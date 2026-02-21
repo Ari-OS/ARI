@@ -17,6 +17,7 @@ Real-time monitoring of ARI's health, performance, and security with automated a
 ## Metrics Collection
 
 ### System Metrics
+
 ```typescript
 interface SystemMetrics {
   cpu: {
@@ -38,6 +39,7 @@ interface SystemMetrics {
 ```
 
 ### Application Metrics
+
 ```typescript
 interface AppMetrics {
   requests: {

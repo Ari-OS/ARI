@@ -125,6 +125,7 @@ Located in `scripts/macos/`:
 ## Log Files
 
 Gateway logs are stored at:
+
 - `~/.ari/logs/gateway-stdout.log` - Standard output
 - `~/.ari/logs/gateway-stderr.log` - Standard error
 

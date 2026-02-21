@@ -51,12 +51,14 @@ Plugins and marketplaces are installed globally in `~/.claude/` and need to be s
 ### On a New Machine
 
 1. Clone the ARI repository:
+
    ```bash
    git clone https://github.com/ARI-OS/ARI.git
    cd ARI
    ```
 
 2. Run the setup script:
+
    ```bash
    ./scripts/setup-claude-environment.sh
    ```
@@ -64,6 +66,7 @@ Plugins and marketplaces are installed globally in `~/.claude/` and need to be s
 3. Restart Claude Code
 
 4. Install dependencies and build:
+
    ```bash
    npm install
    npm run build
@@ -128,6 +131,7 @@ The 26 custom skills are automatically loaded when you open Claude Code in the A
 ## Hooks
 
 ARI includes project-level hooks that automatically:
+
 - Type-check TypeScript files after edits
 - Run tests when test files change
 - Alert when kernel layer is modified
@@ -166,16 +170,19 @@ done
 ## Troubleshooting
 
 ### Plugins not loading
+
 1. Restart Claude Code
 2. Check `~/.claude/settings.json` exists
 3. Run setup script again
 
 ### Skills not available
+
 1. Ensure you're in the ARI directory
 2. Check `.claude/skills/` exists
 3. Each skill needs a `SKILL.md` file
 
 ### Permission errors
+
 ```bash
 chmod +x scripts/setup-claude-environment.sh
 ```
@@ -183,6 +190,7 @@ chmod +x scripts/setup-claude-environment.sh
 ## Security Notes
 
 All plugins are from verified sources:
+
 - **Anthropic official** repositories
 - **Trail of Bits** (professional security firm)
 - **Verified community** projects with MIT licenses

@@ -1,4 +1,5 @@
 # 📋 [CONTEXT NAME] — LIFE CONTEXT
+
 ## [Domain Description]
 
 **Context Type:** Life Domain
@@ -25,10 +26,12 @@
 ## GOALS
 
 ### Short-term
+
 - [Goal 1]
 - [Goal 2]
 
 ### Long-term
+
 - [Goal 1]
 - [Goal 2]
 
@@ -46,11 +49,13 @@
 ## CONTEXT LOADING TRIGGERS
 
 Load this context when operator mentions:
+
 - [Trigger 1]
 - [Trigger 2]
 - [Trigger 3]
 
 Do NOT load when:
+
 - Unrelated topics
 - Other life domains
 

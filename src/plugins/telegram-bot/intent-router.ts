@@ -2,6 +2,7 @@ import type { Context } from 'grammy';
 import type { AIOrchestrator } from '../../ai/orchestrator.js';
 import type { EventBus } from '../../kernel/event-bus.js';
 import type { ConversationEntry } from './conversation-store.js';
+import { NLUService, type NLUResult } from './nlu-service.js';
 
 /**
  * Intent detection result with routing metadata.
@@ -62,11 +63,14 @@ export class IntentRouter {
   private routes: IntentRoute[] = [];
   private defaultHandler: ((ctx: Context) => Promise<void>) | null = null;
   private confusionCounts = new Map<number, number>(); // chatId → count
+  private nluService: NLUService;
 
   constructor(
     private readonly orchestrator: AIOrchestrator | null,
     private readonly eventBus: EventBus,
-  ) {}
+  ) {
+    this.nluService = new NLUService(orchestrator);
+  }
 
   // ── Route registration ────────────────────────────────────────────────────
 
@@ -229,39 +233,21 @@ export class IntentRouter {
   ): Promise<IntentResult | null> {
     if (!this.orchestrator) return null;
 
-    const intentList = this.routes.map(r => r.intent).join(', ');
+    const intentList = this.routes.map(r => r.intent);
+    const nluResult: NLUResult | null = await this.nluService.analyze(text, intentList, history);
 
-    // Build context snippet from recent messages (last 5)
-    const recentContext = history.slice(-5).map(m => `${m.role}: ${m.content.slice(0, 100)}`).join('\n');
-    const contextSection = recentContext
-      ? `\nConversation context (last ${Math.min(history.length, 5)} messages):\n${recentContext}\n`
-      : '';
+    if (!nluResult) return null;
 
-    const prompt = `Classify the user's intent. Available intents: ${intentList}, conversational.${contextSection}
-Return ONLY a JSON object: {"intent": "...", "confidence": 0.0-1.0, "entities": {}}
-User message: "${text.slice(0, 300)}"`;
+    // For now, we route based on the primary intent.
+    // In the future, we could iterate over nluResult.secondaryIntents
+    // and execute them sequentially for compound commands.
 
-    const response = await this.orchestrator.chat(
-      [{ role: 'user', content: prompt }],
-      'You are an intent classifier. Return only valid JSON. Use the conversation context to improve accuracy.',
-      'core',
-    );
-
-    try {
-      const parsed = JSON.parse(response) as {
-        intent: string;
-        confidence: number;
-        entities?: Record<string, string>;
-      };
-      return {
-        intent: parsed.intent,
-        confidence: parsed.confidence,
-        extractedEntities: parsed.entities ?? {},
-        routedVia: 'ai_classification',
-      };
-    } catch {
-      return null;
-    }
+    return {
+      intent: nluResult.primaryIntent.intent,
+      confidence: nluResult.primaryIntent.confidence,
+      extractedEntities: nluResult.primaryIntent.entities as Record<string, string>,
+      routedVia: 'ai_classification',
+    };
   }
 
   // ── Clarification prompt ──────────────────────────────────────────────────

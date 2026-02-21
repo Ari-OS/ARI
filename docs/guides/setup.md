@@ -65,11 +65,13 @@ npx ari gateway start
 ### Install Node.js (if needed)
 
 **macOS (Homebrew)**:
+
 ```bash
 brew install node@20
 ```
 
 **macOS (nvm)**:
+
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 source ~/.bashrc
@@ -78,13 +80,14 @@ nvm use 20
 ```
 
 **Linux (Ubuntu/Debian)**:
+
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
 
 **Windows**:
-Download from https://nodejs.org/ (LTS version)
+Download from <https://nodejs.org/> (LTS version)
 
 ---
 
@@ -110,6 +113,7 @@ npm install
 ```
 
 This installs:
+
 - Fastify (HTTP server)
 - Zod (schema validation)
 - Commander (CLI)
@@ -132,6 +136,7 @@ npx ari onboard init
 ```
 
 This creates:
+
 - `~/.ari/` — Data directory
 - `~/.ari/config.json` — Configuration
 - `~/.ari/audit.json` — Genesis block for audit chain
@@ -145,6 +150,7 @@ npx ari doctor
 ```
 
 Expected output:
+
 ```
 ARI Doctor - System Health Check
 ─────────────────────────────────
@@ -220,6 +226,7 @@ npx ari gateway start
 ```
 
 Output:
+
 ```
 ARI Gateway starting...
 ✓ Config loaded
@@ -250,6 +257,7 @@ curl http://127.0.0.1:3141/health
 ```
 
 Response:
+
 ```json
 {"status":"healthy","uptime":123}
 ```
@@ -295,7 +303,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 in your browser.
+Open <http://localhost:5173> in your browser.
 
 ### Production Build
 
@@ -331,6 +339,7 @@ npx ari daemon install
 ```
 
 This creates:
+
 ```
 ~/Library/LaunchAgents/com.ari.daemon.plist
 ```
@@ -342,6 +351,7 @@ npx ari daemon start
 ```
 
 Or:
+
 ```bash
 launchctl load ~/Library/LaunchAgents/com.ari.daemon.plist
 ```
@@ -379,12 +389,14 @@ npx ari daemon uninstall
 **VS Code** (Recommended):
 
 Extensions:
+
 - TypeScript and JavaScript Language Features
 - ESLint
 - Prettier
 - Vitest
 
 Settings:
+
 ```json
 {
   "typescript.tsdk": "node_modules/typescript/lib",
@@ -439,6 +451,7 @@ ARI uses Husky for Git hooks:
 - **commit-msg**: Validates commit message format
 
 Commit message format:
+
 ```
 type(scope): description
 

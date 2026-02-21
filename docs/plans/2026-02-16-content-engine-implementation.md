@@ -17,6 +17,7 @@
 Create Zod schemas and types for the entire content engine domain.
 
 **Files:**
+
 - Create: `src/plugins/content-engine/types.ts`
 - Test: `tests/unit/plugins/content-engine/types.test.ts`
 
@@ -289,6 +290,7 @@ git commit -m "feat(content-engine): add Zod schemas for drafts, templates, and 
 Add typed events for the content pipeline to the EventMap.
 
 **Files:**
+
 - Modify: `src/kernel/event-bus.ts` (EventMap interface)
 - Test: `tests/unit/plugins/content-engine/events.test.ts`
 
@@ -411,6 +413,7 @@ git commit -m "feat(content-engine): add typed EventBus events for content pipel
 Scores intelligence items for "threadability" and produces topic briefs.
 
 **Files:**
+
 - Create: `src/plugins/content-engine/trend-analyzer.ts`
 - Test: `tests/unit/plugins/content-engine/trend-analyzer.test.ts`
 
@@ -701,6 +704,7 @@ git commit -m "feat(content-engine): add trend analyzer for scoring intelligence
 Manages content draft files on disk with lifecycle state transitions.
 
 **Files:**
+
 - Create: `src/plugins/content-engine/draft-queue.ts`
 - Test: `tests/unit/plugins/content-engine/draft-queue.test.ts`
 
@@ -1041,6 +1045,7 @@ git commit -m "feat(content-engine): add draft queue with persistence and lifecy
 Uses AIOrchestrator to generate platform-specific content from topic briefs.
 
 **Files:**
+
 - Create: `src/plugins/content-engine/content-drafter.ts`
 - Test: `tests/unit/plugins/content-engine/content-drafter.test.ts`
 
@@ -1309,6 +1314,7 @@ git commit -m "feat(content-engine): add AI-powered content drafter with platfor
 Extend the existing X client with `postTweet`, `postThread`, and `deleteTweet`.
 
 **Files:**
+
 - Modify: `src/integrations/twitter/client.ts`
 - Test: `tests/unit/integrations/twitter/write.test.ts`
 
@@ -1524,6 +1530,7 @@ git commit -m "feat(twitter): add postTweet, postThread, and deleteTweet write m
 Publishes approved drafts to X and archives to disk.
 
 **Files:**
+
 - Create: `src/plugins/content-engine/publisher.ts`
 - Test: `tests/unit/plugins/content-engine/publisher.test.ts`
 
@@ -1740,6 +1747,7 @@ git commit -m "feat(content-engine): add publisher for X thread/tweet posting wi
 Wire everything together as a `DomainPlugin` following the crypto/pokemon pattern.
 
 **Files:**
+
 - Create: `src/plugins/content-engine/index.ts`
 - Test: `tests/unit/plugins/content-engine/index.test.ts`
 
@@ -2053,6 +2061,7 @@ git commit -m "feat(content-engine): add DomainPlugin with scheduling, briefing,
 Wire the plugin into the plugin registry.
 
 **Files:**
+
 - Modify: `src/plugins/register-plugins.ts`
 - Test: `tests/unit/plugins/content-engine/registration.test.ts`
 
@@ -2127,6 +2136,7 @@ git commit -m "feat(content-engine): register plugin in plugin registry"
 Add `/drafts`, `/draft`, `/approve`, `/reject` commands to the Telegram bot.
 
 **Files:**
+
 - Create: `src/plugins/telegram-bot/commands/content.ts`
 - Modify: `src/plugins/telegram-bot/bot.ts` (add command registration)
 - Test: `tests/unit/plugins/telegram-bot/commands/content.test.ts`
@@ -2394,11 +2404,13 @@ export async function handleReject(
 In `src/plugins/telegram-bot/bot.ts`:
 
 Add import:
+
 ```typescript
 import { handleDrafts, handleApprove, handleReject } from './commands/content.js';
 ```
 
 Add command registrations (after the existing command block):
+
 ```typescript
 bot.command('drafts', (ctx) => handleDrafts(ctx, registry));
 bot.command('approve', (ctx) => handleApprove(ctx, registry));
@@ -2424,6 +2436,7 @@ git commit -m "feat(content-engine): add /drafts, /approve, /reject Telegram com
 Test the end-to-end flow: intelligence items → trend analysis → drafting → queue → review.
 
 **Files:**
+
 - Create: `tests/integration/content-engine.test.ts`
 
 **Step 1: Write the integration test**

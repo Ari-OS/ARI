@@ -39,7 +39,10 @@ export type CallbackAction =
   | 'todayTasks'   // Show today's task list
   | 'moreInfo'     // Get more information
   | 'lessLike'     // Send fewer like this
-  | 'breakdown';   // Show full budget breakdown
+  | 'breakdown'    // Show full budget breakdown
+  | 'councilApprove' // Council vote: Approve
+  | 'councilReject'  // Council vote: Reject
+  | 'councilAbstain'; // Council vote: Abstain
 
 /**
  * Parse a callback_data string into action and notification ID.
@@ -54,6 +57,7 @@ export function parseCallbackData(data: string): { action: CallbackAction; notif
   const validActions: CallbackAction[] = [
     'ack', 'dismiss', 'details', 'snooze', 'save', 'skip',
     'fullDigest', 'todayTasks', 'moreInfo', 'lessLike', 'breakdown',
+    'councilApprove', 'councilReject', 'councilAbstain'
   ];
 
   if (!validActions.includes(action as CallbackAction)) return null;
@@ -113,6 +117,13 @@ function getCategoryButtons(
   notificationId: string,
 ): InlineKeyboardRow {
   switch (category) {
+    case 'council_approval':
+      return [
+        { text: '✅ Approve', callback_data: makeCallbackData('councilApprove', notificationId) },
+        { text: '❌ Reject', callback_data: makeCallbackData('councilReject', notificationId) },
+        { text: '⚖️ Abstain', callback_data: makeCallbackData('councilAbstain', notificationId) },
+      ];
+
     case 'error':
     case 'security':
       return [
@@ -195,6 +206,9 @@ export function generateAckedKeyboard(action: CallbackAction): TelegramInlineKey
     moreInfo: 'ℹ️ Info shown',
     lessLike: '🔕 Noted — fewer like this',
     breakdown: '📊 Breakdown shown',
+    councilApprove: '✅ Voted: Approve',
+    councilReject: '❌ Voted: Reject',
+    councilAbstain: '⚖️ Voted: Abstain',
   };
 
   return {

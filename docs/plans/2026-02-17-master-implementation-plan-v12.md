@@ -3,6 +3,7 @@
 > **For Claude executing this plan:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` task-by-task.
 >
 > **Non-negotiables:**
+>
 > - ARI pronouns: **she/her**. Always.
 > - Pryceless Solutions (**not** "Priceless"). prycehedrick.com. PayThePryce.
 > - Mac Mini SSH user: **ari** (NOT prycehedrick)
@@ -16,7 +17,8 @@
 
 Based on full codebase audit (351 TypeScript files), these facts override any prior documentation:
 
-### What Already Exists (DO NOT REBUILD):
+### What Already Exists (DO NOT REBUILD)
+
 | Component | Location | Status |
 |-----------|----------|--------|
 | EmbeddingService | `src/ai/embedding-service.ts` | **BUILT** — use this in Phase 4 RAG |
@@ -27,7 +29,8 @@ Based on full codebase audit (351 TypeScript files), these facts override any pr
 | NotionClient | `src/integrations/notion/notion-client.ts` (420 lines) | **BUILT** |
 | DocumentIngestor | `src/system/document-ingestor.ts` | **BUILT** (new, unstaged) |
 
-### What Does NOT Exist (Must Be Created):
+### What Does NOT Exist (Must Be Created)
+
 | Component | Needed By | Priority |
 |-----------|----------|----------|
 | `src/utils/execFileNoThrow.ts` | Phase 0 Bug fix + VideoAssembler | **P0 — create first** |
@@ -37,12 +40,14 @@ Based on full codebase audit (351 TypeScript files), these facts override any pr
 | `src/integrations/fathom/` | Phase 20 | P3 |
 | `src/observability/langfuse-wrapper.ts` | Phase 8 | P2 |
 
-### Package.json Corrections:
+### Package.json Corrections
+
 - `better-sqlite3` is in **devDependencies** — confirmed (Bug 1 from Phase 0)
 - All 22 integration directories exist; CRM and Fathom do NOT exist yet
 - No `src/utils/` directory exists at all
 
-### Database Best Practice (OpenClaw-validated):
+### Database Best Practice (OpenClaw-validated)
+
 All SQLite databases MUST use WAL mode: `db.pragma('journal_mode = WAL')`
 This prevents read/write locking across ARI's 15+ concurrent database connections.
 
@@ -61,6 +66,7 @@ ARI is Pryce's personal AI operating system. She runs 24/7 on his Mac Mini, comm
 ARI's personality is defined in `~/.ari/workspace/SOUL.md`. Key traits:
 
 **Communication Style:**
+
 - Lead with the answer, reasoning follows only if valuable
 - Direct and concise — Pryce has limited time, no fluff
 - Warm but professional — trusted advisor, not a robot
@@ -69,6 +75,7 @@ ARI's personality is defined in `~/.ari/workspace/SOUL.md`. Key traits:
 - Never: "As an AI...", "Great question!", "I'd be happy to help!"
 
 **Tone adaptation by time of day:**
+
 - 5-7 AM: Ultra-brief dashboard cards (30-second read)
 - 7-4 PM: Urgent-only, actionable
 - 4-9 PM: Silent (family time — only true emergencies)
@@ -76,6 +83,7 @@ ARI's personality is defined in `~/.ari/workspace/SOUL.md`. Key traits:
 - Midnight+: Concise, no fluff
 
 **Decision Principles:**
+
 1. What does Pryce *actually* need? (not what he asked)
 2. What's the cost of being wrong? (low-stakes: act; high-stakes: present options)
 3. What would he want to know but didn't think to ask?
@@ -125,23 +133,28 @@ L6 Interfaces  ← CLI, Dashboard, Telegram (L0-L5)
 Before touching any code, fix the identity files. ARI boots with wrong information.
 
 **File: `~/.ari/workspace/MEMORY.md`**
+
 - **BUG (G12 — CRITICAL):** Contains "Son Declan" — this person does not exist
 - **Correct:** Partner + Kai (son, 3) + Portland (daughter, 1)
 - Action: `grep -n "Declan" ~/.ari/workspace/MEMORY.md` → find and replace
 
 **File: `~/.ari/workspace/GOALS.md`**
+
 - **BUG (G13):** Phase A listed as "Immediate" — Phase A is DONE
 - Update to reflect current phase (Phase B — intelligence, market, content)
 
 **File: `~/.ari/workspace/AGENTS.md`**
+
 - **BUG (G14):** Lists 5 agents, codebase has 20+ active components
 - Update to list all real agents: Core, Guardian, Planner, Executor, MemoryManager, LearningMachine, AgentSpawner, InitiativeEngine, SelfImprovementLoop, TemporalMemory, + all plugins
 
 **File: `~/.ari/workspace/TOOLS.md`**
+
 - **BUG (G15):** Lists 5 of 22 integrations
 - Update to list all active: Telegram, Notion, Anthropic, CoinGecko, TCGPlayer, ElevenLabs, Perplexity, GitHub, HackerNews, RSS, Apple (Calendar+Reminders), Weather, Whisper, OpenAI + all pending
 
 **File: `~/.ari/workspace/HEARTBEAT.md`**
+
 - **BUG (G16):** Missing 17 of 37 scheduled tasks
 - Update with full cron schedule (include all 37 tasks)
 
@@ -206,6 +219,7 @@ npm install better-sqlite3 --save
 ### 🔴 Bug 2: ConversationStore Only Persists User Messages
 
 **File:** `src/plugins/telegram-bot/conversation-store.ts`
+
 - Ensure `addAssistantMessage()` exists and is serialized in `flushDirty()`
 - Extend SESSION_TTL from 24 hours to 7 days
 - Add WAL mode: `this.db.pragma('journal_mode = WAL')`
@@ -290,15 +304,18 @@ if (whisperUrl.hostname !== '127.0.0.1' && whisperUrl.hostname !== 'localhost') 
 ### 🔴 Bug 8 (B1-B6): Layer Violations + Content Engine
 
 **B1/B2:** ContentDrafter null orchestrator + Dual ContentEnginePlugin instances
+
 - File: `src/autonomous/agent.ts:329,334`
 - Fix: Single ContentEnginePlugin, real orchestrator instance
 
 **B3:** X API OAuth 1.0a
+
 - File: `src/integrations/twitter/client.ts`
 - Fix: Add OAuth 1.0a signing for postTweet() and postThread()
 - Env: X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET
 
 **B4/B5/B6:** Layer violations
+
 - `src/agents/executor.ts` → remove imports from governance/policy-engine (L3→L4), execution/tool-registry (L3→L5)
 - `src/system/context-layers.ts` → remove import from agents/memory-manager (L2→L3)
 - Fix: Replace with EventBus event emissions
@@ -346,6 +363,7 @@ tests/unit/plugins/video-pipeline/youtube-publisher.test.ts
 ```
 
 YouTubePublisher scheduling tests:
+
 ```typescript
 it('should schedule Shorts at 6pm ET (22:00 UTC daily)');
 it('should schedule long-form on Tue/Wed/Thu at 12pm ET (17:00 UTC)');
@@ -489,6 +507,7 @@ Delete: 4 plugin bridges if unused after wiring
 ### Task 3.5.4: Create AssemblyAI integration
 
 **File:** `src/integrations/assemblyai/client.ts`
+
 - `transcribe(audioUrl)` → POST to AssemblyAI, poll, return transcript + word timestamps
 - `generateSrt(words, lineLength)` → SRT format output
 
@@ -507,12 +526,14 @@ DO NOT rebuild. Verify it has: `embed(text)`, `cosineSimilarity(a, b)`, caching.
 ### Task 4.2: VectorStore (SQLite + WAL mode)
 
 **File:** `src/system/vector-store.ts`
+
 - WAL mode mandatory
 - `upsert(doc)`, `search(embedding, topK, category)`, `count(category)`
 
 ### Task 4.3: RAGEngine
 
 **File:** `src/system/rag-engine.ts`
+
 - `retrieve(query, options)`, `buildContextPrompt(query)`, `ingest(content, meta)`
 - `indexWorkspaceFiles(dir)`, `indexBriefing(html, date)`, `indexIntelligenceItem(item)`
 
@@ -575,6 +596,7 @@ Complete automated pipeline: Topic selection → Script → HeyGen render → Ca
 ### Task 9.2: LaneQueue for durable workflows
 
 **File:** `src/autonomous/lane-queue.ts`
+
 - Persists to `~/.ari/queue/pending.jsonl` — survives restarts
 - Lanes: user (concurrency 1), scheduled (1), initiative (2), background (3)
 
@@ -588,12 +610,14 @@ Complete automated pipeline: Topic selection → Script → HeyGen render → Ca
 ## Phase 11: Soul Evolution System
 
 **File:** `src/autonomous/soul-evolution.ts`
+
 - `proposeChange(file, current, proposed, rationale)` → Telegram diff → wait for approval
 - `weeklyReflection()` → analyze interactions, propose personality refinements
 
 ## Phase 12: Self-Improvement Loop
 
 **ALREADY EXISTS** at `src/autonomous/self-improvement-loop.ts` — extend with:
+
 - Real feedback signals (👍/👎 from Telegram)
 - Implicit signals (no engagement = reduce priority)
 - Weekly analysis + improvement proposals
@@ -608,6 +632,7 @@ Complete automated pipeline: Topic selection → Script → HeyGen render → Ca
 15 distinct voices: Logician, Guardian, Ethicist, Pragmatist, Innovator, Skeptic, Empath, Strategist, Economist, Poet, Scientist, Custodian, Connector, Healer, Futurist
 
 Decision thresholds:
+
 - Publish content without approval: 60% + Guardian
 - Budget >$10/mo: 50%
 - Message to third party: 70%
@@ -652,6 +677,7 @@ Decision thresholds:
 ## Phase 19: CRM System
 
 **Files:**
+
 - `src/integrations/crm/crm-store.ts` — SQLite + vector embeddings
 - `src/integrations/crm/contact-manager.ts`
 - `src/integrations/crm/interaction-log.ts`
@@ -664,6 +690,7 @@ Weekly CRM Report: Sunday 8pm. Overdue contacts, pipeline value, at-risk clients
 ## Phase 20: Meeting-to-Action-Items Pipeline (Fathom)
 
 **Files:**
+
 - `src/integrations/fathom/webhook-handler.ts`
 - `src/integrations/fathom/transcript-processor.ts`
 - `src/integrations/fathom/action-item-extractor.ts`
@@ -675,6 +702,7 @@ POST /api/webhooks/fathom → extract action items → Notion sync → Telegram 
 OpenAI Vision (GPT-4o) food detection → Edamam nutrition → SQLite journal
 
 **Files:**
+
 - `src/integrations/food-journal/food-detector.ts`
 - `src/integrations/food-journal/edamam-client.ts`
 - `src/integrations/food-journal/food-journal-store.ts`
@@ -718,6 +746,7 @@ Score < 35/50 = REJECT. 35-45/50 = approve with edits. > 45/50 = publish immedia
 ## Phase 28: Knowledge Base System (Full RAG Pipeline)
 
 Sources: URLs, YouTube transcripts, X threads, PDFs, RSS, Readwise
+
 - `src/system/knowledge-base.ts`
 - `src/system/entity-extractor.ts`
 - `src/integrations/youtube/transcript.ts`
@@ -725,6 +754,7 @@ Sources: URLs, YouTube transcripts, X threads, PDFs, RSS, Readwise
 ## Phase 29: Human 3.0 — Mind/Body/Spirit/Vocation Tracking
 
 4 quadrants:
+
 - Mind: learning time, books, skills, deep work
 - Body: sleep (Apple Health), food journal, activity
 - Spirit: family time (Kai 3, Portland 1), rest, gratitude
@@ -733,6 +763,7 @@ Sources: URLs, YouTube transcripts, X threads, PDFs, RSS, Readwise
 Weekly Life Review: Sunday 8pm via Telegram + Notion archival
 
 **Files:**
+
 - `src/autonomous/human-tracker.ts`
 - `src/autonomous/life-review.ts`
 
@@ -933,6 +964,7 @@ EDAMAM_APP_KEY=
 ```
 
 **KEY SHORTCUTS FROM AUDIT (DO NOT REBUILD THESE):**
+
 - EmbeddingService: `src/ai/embedding-service.ts`
 - TemporalMemory: `src/agents/temporal-memory.ts`
 - SelfImprovementLoop: `src/autonomous/self-improvement-loop.ts`

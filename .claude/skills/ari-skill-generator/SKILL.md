@@ -19,24 +19,28 @@ Automatically create new Claude Code skills when gaps are identified or new capa
 ## Skill Generation Process
 
 ### Phase 1: Analysis
+
 1. Identify the gap or need
 2. Research existing patterns
 3. Check for similar skills to extend
 4. Define scope and boundaries
 
 ### Phase 2: Design
+
 1. Define trigger conditions
 2. Specify input requirements
 3. Design output format
 4. Consider edge cases
 
 ### Phase 3: Implementation
+
 1. Create SKILL.md file
 2. Write comprehensive documentation
 3. Include code examples
 4. Add ARI-specific context
 
 ### Phase 4: Validation
+
 1. Test with real scenarios
 2. Verify integration with existing skills
 3. Check for conflicts

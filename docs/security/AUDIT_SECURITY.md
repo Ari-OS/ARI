@@ -47,6 +47,7 @@ The first event chains from a genesis hash: 64 zeros (`000...000`). This is hard
 ### Verification
 
 `verify()` walks the entire chain and checks:
+
 1. Each event's `previousHash` matches the actual previous event's `hash`
 2. Each event's `hash` matches what you get when you recompute it
 
@@ -74,6 +75,7 @@ Periodically (every 100 events by default), ARI creates a **checkpoint** — a s
 ```
 
 The HMAC signature uses a key stored in macOS Keychain (backed by the Secure Enclave on Apple Silicon). An attacker who replaces the audit file can't forge matching checkpoints because:
+
 1. They don't have the signing key
 2. The key is in Keychain, not on the filesystem
 3. Keychain access requires the user's login session
@@ -81,11 +83,13 @@ The HMAC signature uses a key stored in macOS Keychain (backed by the Secure Enc
 ### Signing Key Persistence
 
 The signing key is stored in macOS Keychain under `ari-audit-signing-key`. This means:
+
 - **Key survives restarts** — same key is loaded each time ARI starts
 - **Key survives file replacement** — Keychain is separate from filesystem
 - **Key requires login** — only the logged-in user can access it
 
 On startup, ARI:
+
 1. Tries to load the key from Keychain
 2. If found: uses it (all old checkpoints remain verifiable)
 3. If not found: generates a new key and stores it in Keychain
@@ -96,6 +100,7 @@ You can check key status via `isKeyPersisted()` on the AuditLogger instance.
 ### Checkpoint Verification
 
 `verifyCheckpoints()` checks each checkpoint against the current chain:
+
 1. Does the chain have at least as many events as the checkpoint recorded?
 2. Does the event at position N have the hash the checkpoint recorded?
 3. Does the first event still have the same hash?
@@ -106,6 +111,7 @@ Any mismatch means the chain was replaced after the checkpoint was taken.
 ### Checkpoint Storage
 
 Checkpoints are stored separately from the main audit log:
+
 - Audit log: `~/.ari/audit.json`
 - Checkpoints: `~/.ari/audit-checkpoints.json`
 - Signing key: macOS Keychain (`ari-audit-signing-key`)

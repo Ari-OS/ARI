@@ -13,12 +13,14 @@
 ARI's mission is to be a **Life Operating System** that continuously improves. Currently:
 
 **What ARI Has**:
+
 - Knowledge fetching ([`knowledge-fetcher.ts`](../../src/autonomous/knowledge-fetcher.ts))
 - Knowledge indexing ([`knowledge-index.ts`](../../src/autonomous/knowledge-index.ts))
 - Scheduled tasks ([`scheduler.ts`](../../src/autonomous/scheduler.ts))
 - Audit trail of all decisions (SHA-256 hash chain)
 
 **What ARI Lacks**:
+
 - **Learning from outcomes** - Decisions are made, outcomes happen, but no reflection
 - **Knowledge gap analysis** - Don't identify what we don't know
 - **Self-improvement mechanism** - No way to measure if getting better
@@ -27,11 +29,13 @@ ARI's mission is to be a **Life Operating System** that continuously improves. C
 ### The Learning Challenge
 
 **Feedback Loop Theory**: Systems improve through feedback cycles:
+
 ```
 Action → Outcome → Reflection → Learning → Better Action
 ```
 
 **ARI's Current State**: Broken loop:
+
 ```
 Action → Outcome → [GAP] → No learning → Same action (repeat mistakes)
 ```
@@ -41,12 +45,14 @@ Action → Outcome → [GAP] → No learning → Same action (repeat mistakes)
 ### Why Supervised (Not Autonomous)?
 
 **ADR-008** defers reinforcement learning to Phase 3+. Reasons:
+
 1. **Safety**: Autonomous self-modification can violate security boundaries
 2. **Alignment**: Reward functions can be misspecified (Goodhart's Law)
 3. **Stability**: Phase 2 focuses on architecture, not optimization
 4. **Transparency**: Human oversight maintains control
 
-**Supervised Learning**: 
+**Supervised Learning**:
+
 - System **proposes** improvements
 - Human **approves** changes
 - Balance: Automation where safe, human judgment where critical
@@ -133,6 +139,7 @@ Implement a **5-stage continuous learning loop** that runs automatically (via sc
 | 09:00 AM 1st of month | Self-assessment | `self_assessment` | ✅ Yes (measurement only) |
 
 **Conditional Task**:
+
 - **Source discovery**: Triggered by gap analysis (not scheduled)
 - Runs when >= 3 gaps identified
 - Proposes sources, queues for approval
@@ -144,6 +151,7 @@ Implement a **5-stage continuous learning loop** that runs automatically (via sc
 ### Purpose
 
 Measure decision quality over last 24 hours:
+
 - What decisions were made?
 - What were the outcomes?
 - Were expectations accurate? (expected value vs actual)
@@ -242,6 +250,7 @@ export async function runPerformanceReview(
 ### Purpose
 
 Identify what knowledge is missing:
+
 - What questions couldn't be answered?
 - What frameworks would have helped?
 - What sources should be added?
@@ -312,6 +321,7 @@ export async function runGapAnalysis(
 ```
 
 **Example Output**:
+
 ```json
 {
   "period": { "start": "2026-01-26", "end": "2026-02-01" },
@@ -350,6 +360,7 @@ Find new knowledge sources to fill identified gaps.
 ### Trigger Conditions
 
 Run source discovery when:
+
 - Gap analysis identifies >= 3 gaps with severity "high" or "critical"
 - OR: >= 5 gaps total
 - OR: Manual trigger: `ari cognition discover-sources`
@@ -430,6 +441,7 @@ export async function discoverSources(
 ```
 
 **Approval Flow**:
+
 ```bash
 $ ari cognition review-proposals
 
@@ -472,6 +484,7 @@ Fetch and index new content from approved sources.
 **Extends**: Existing [`knowledge-fetcher.ts`](../../src/autonomous/knowledge-fetcher.ts)
 
 **Process**:
+
 1. **Fetch** from all enabled sources (respects `updateFrequency`)
 2. **Validate** through 5-stage pipeline (ADR-011)
 3. **Index** in TF-IDF search ([`knowledge-index.ts`](../../src/autonomous/knowledge-index.ts))
@@ -480,11 +493,13 @@ Fetch and index new content from approved sources.
 **Scheduled**: Daily 8 AM (existing `knowledge_index` task)
 
 **Auto-Approval**:
+
 - **VERIFIED sources**: Auto-integrate (high trust)
 - **STANDARD sources**: Auto-integrate after validation
 - **UNTRUSTED sources**: Queue for human review
 
 **Metrics Tracked**:
+
 ```typescript
 interface IntegrationMetrics {
   sourcesFetched: number;
@@ -617,6 +632,7 @@ function scoreToGrade(score: number): 'A' | 'B' | 'C' | 'D' | 'F' {
 ```
 
 **Report Format**:
+
 ```
 ═══════════════════════════════════════════════════════════
 ARI SELF-ASSESSMENT: January 2026
@@ -663,6 +679,7 @@ VERDICT: Strong improvement. Keep current trajectory.
 ```
 
 **Distribution**:
+
 - Saved to `~/.ari/cognition/assessment/2026-01.json`
 - Notification to Operator (monthly report ready)
 - Optionally: Include in monthly newsletter/summary
@@ -737,18 +754,21 @@ Your choice: a
 ### What This Does (Allowed)
 
 ✅ **Supervised learning**:
+
 - Analyzes performance (read-only)
 - Identifies gaps (proposes sources)
 - Fetches approved sources (human approves)
 - Measures improvement (reports to human)
 
 ✅ **Human-in-the-loop**:
+
 - Operator approves new sources
 - Operator reviews UNTRUSTED content
 - Operator approves major changes
 - Operator can override any decision
 
 ✅ **Transparent**:
+
 - All learning logged in audit chain
 - Reports generated monthly
 - Operator always knows what's happening
@@ -756,16 +776,19 @@ Your choice: a
 ### What This Doesn't Do (Deferred to Phase 3+)
 
 ❌ **Autonomous self-modification**:
+
 - Doesn't automatically change framework logic
 - Doesn't automatically adjust Council member weights
 - Doesn't autonomously add sources (proposes only)
 
 ❌ **Reinforcement learning**:
+
 - Doesn't use reward signals to optimize
 - Doesn't update decision weights autonomously
 - Doesn't train models on outcomes
 
 ❌ **Autonomous experimentation**:
+
 - Doesn't A/B test different strategies
 - Doesn't try new frameworks without approval
 
@@ -808,12 +831,14 @@ Your choice: a
 ### Computational Cost
 
 **Daily Performance Review**:
+
 - Query audit log: ~100ms (scan last 24h)
 - Analyze 10-50 decisions: ~500ms
 - Generate insights: ~200ms
 - **Total**: <1 second (acceptable for daily 9 PM task)
 
 **Weekly Gap Analysis**:
+
 - Query audit log: ~500ms (scan 7 days)
 - Analyze 50-300 decisions: ~2 seconds
 - Identify gaps: ~1 second
@@ -821,6 +846,7 @@ Your choice: a
 - **Total**: <5 seconds (acceptable for weekly Sunday task)
 
 **Monthly Self-Assessment**:
+
 - Aggregate 30 days of reviews: ~3 seconds
 - Calculate metrics: ~2 seconds
 - Generate report: ~1 second
@@ -829,16 +855,19 @@ Your choice: a
 ### Storage Growth
 
 **Per Day**:
+
 - Performance review: ~10 KB
 - Knowledge integration: ~500 KB (new documents)
 
 **Per Month**:
+
 - Performance reviews: ~300 KB (30 days)
 - Gap analysis: ~40 KB (4 weeks)
 - Self-assessment: ~20 KB
 - Knowledge: ~15 MB (500 KB × 30 days)
 
 **Per Year**:
+
 - Performance: ~3.6 MB
 - Gaps: ~2 MB
 - Assessments: ~240 KB
@@ -887,6 +916,7 @@ Your choice: a
 **Pros**: Fastest learning, no human bottleneck
 
 **Cons**:
+
 - **Violates ADR-008** (RL deferred)
 - **Security risk** (could integrate malicious sources)
 - **Alignment risk** (could optimize for wrong metrics)
@@ -903,6 +933,7 @@ Your choice: a
 **Pros**: Complete human control, zero automation risk
 
 **Cons**:
+
 - **Slow** (human bottleneck for everything)
 - **Inconsistent** (depends on operator availability)
 - **Misses patterns** (humans can't analyze 1000s of decisions)
@@ -919,6 +950,7 @@ Your choice: a
 **Pros**: State-of-the-art ML, automatic optimization, proven in games/robotics
 
 **Cons**:
+
 - **Violates ADR-008** (RL deferred to Phase 3+)
 - **Reward hacking** (Goodhart's Law - optimize metric, not goal)
 - **Alignment difficulty** (hard to define "good decision" reward)
@@ -950,19 +982,23 @@ Your choice: a
 ### Week 1
 
 **Monday**: MINT makes investment decision using Kelly Criterion
+
 - Decision: Invest $2,000 (20% of capital)
 - Expected value: +$400
 - Kelly fraction: 0.20 (half-Kelly)
 
 **Friday**: Outcome known
+
 - Actual value: +$350 (close to expected)
 - Result: SUCCESS
 
 **Sunday 8 PM**: Gap analysis runs
+
 - No gaps (Kelly Criterion worked well)
 - Note: Kelly accuracy high (expected $400, got $350 = 87.5% accurate)
 
 **Sunday 9 PM**: Performance review runs
+
 - Week's success rate: 85% (6/7 decisions successful)
 - Kelly Criterion effectiveness: 100% (1/1 success)
 - Recommendation: "Kelly working well, continue using"
@@ -970,22 +1006,26 @@ Your choice: a
 ### Week 2
 
 **Tuesday**: MINT makes investment decision
+
 - Feels euphoric (recent win streak)
 - Emotional risk: 0.72 (high)
 - Discipline check: FAILED (emotional risk > 0.6)
 - Recommendation: Wait 24h
 
 **Wednesday**: MINT waits (cooling-off period), re-evaluates
+
 - Emotional risk: 0.28 (normalized)
 - Discipline check: PASSED
 - Proceeds with Kelly-sized bet
 - Outcome: SUCCESS (avoided emotional over-bet)
 
 **Sunday 8 PM**: Gap analysis runs
+
 - No gaps
 - Note: Emotional risk detection prevented mistake (valuable)
 
 **Sunday 9 PM**: Performance review runs
+
 - Week's success rate: 100% (5/5 decisions successful)
 - Discipline system effectiveness: 100% (prevented 1 emotional mistake)
 - Insight: "Cooling-off period after wins prevents greed chase"
@@ -994,6 +1034,7 @@ Your choice: a
 ### Month End (Feb 1, 9 AM)
 
 **Self-Assessment Runs**:
+
 - January success rate: 87.5% (vs December: 79.0%)
 - Improvement: +8.5% ↑
 - Biases detected: 15 (vs December: 28)
@@ -1002,6 +1043,7 @@ Your choice: a
 - Recommendation: "Strong month. Kelly + discipline system working well. Continue current approach."
 
 **Operator Reviews**:
+
 - Reads report: "This is good progress"
 - No changes needed: System is improving as intended
 

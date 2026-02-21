@@ -60,6 +60,7 @@ Three-branch governance: Council (legislative), Arbiter (judicial), Overseer (ex
 ### Voting Styles
 
 The Council is balanced by design:
+
 - **Cautious (5)**: ECHO, AEGIS, SCOUT, OPAL, PULSE, MINT, VERA — default to reject unless evidence is strong
 - **Balanced (5)**: ATLAS, TRUE, TEMPO, EMBER, NEXUS — weigh proportionally
 - **Progressive (3)**: BOLT, PRISM, BLOOM — default to approve unless risk is clear
@@ -84,6 +85,7 @@ This means any proposal needs convincing evidence to pass, not just enthusiasm.
 ### When the Council Decides
 
 The Council votes on **policy-level decisions**:
+
 - Should we add a new tool?
 - Should we change a budget limit?
 - Should we approve a high-cost AI request ($0.25+)?
@@ -130,6 +132,7 @@ Enforces 6 immutable constitutional rules. No vote, command, or configuration ca
 ### Dispute Resolution
 
 When a Council decision conflicts with a constitutional rule:
+
 1. Arbiter blocks execution
 2. Security alert emitted
 3. Council notified of conflict

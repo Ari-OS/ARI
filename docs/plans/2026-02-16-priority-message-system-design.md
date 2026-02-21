@@ -8,6 +8,7 @@
 ## Problem Statement
 
 ARI currently has **two parallel notification systems** (NotificationManager + AlertSystem) with:
+
 - Static category-to-priority mapping (budget is always "high" regardless of context)
 - Fire-and-forget delivery (no tracking of read/ack/resolve states)
 - No delivery retry (if Telegram API fails, notification is lost)
@@ -177,6 +178,7 @@ Every notification above P3 gets action buttons:
 ### Expandable Block Quotes
 
 Use `<blockquote expandable>` (Bot API 7.3+) for detailed sections:
+
 - Morning briefing: headlines visible, detailed market data expandable
 - Error alerts: summary visible, stack trace expandable
 - Career matches: top 2 visible, remaining expandable
@@ -184,6 +186,7 @@ Use `<blockquote expandable>` (Bot API 7.3+) for detailed sections:
 ### Message Editing (Not New Messages)
 
 Edit in place for:
+
 - Budget progress bars (update as spend changes)
 - Long-running task status (processing → done)
 - Market price updates within same time window
@@ -235,6 +238,7 @@ Edit in place for:
 ## Implementation Phases
 
 ### Phase 1: Priority Scoring Engine (Day 1-2)
+
 - Add `priority-scorer.ts` with multi-factor scoring
 - Replace static `CATEGORY_PRIORITIES` mapping in NotificationManager
 - Add category defaults table
@@ -242,6 +246,7 @@ Edit in place for:
 - Tests for all scoring scenarios
 
 ### Phase 2: Notification Lifecycle (Day 2-3)
+
 - Add state machine to NotificationRecord
 - Track delivery attempts per channel
 - Add retry queue with exponential backoff (3 attempts)
@@ -249,6 +254,7 @@ Edit in place for:
 - Tests for state transitions
 
 ### Phase 3: Telegram Inline Keyboards (Day 3-4)
+
 - Add `InlineKeyboard` support to TelegramSender
 - Add callback query handler in bot.ts
 - Implement ack/dismiss/details/snooze actions
@@ -256,6 +262,7 @@ Edit in place for:
 - Tests for keyboard generation and callback handling
 
 ### Phase 4: Smart Batching & Grouping (Day 4-5)
+
 - Add `groupKey` support to NotificationRecord
 - Implement notification grouping (3 budget alerts → 1 summary)
 - Add auto-resolution (4h timeout for non-critical)
@@ -263,6 +270,7 @@ Edit in place for:
 - Tests for grouping and auto-resolution
 
 ### Phase 5: Engagement Tracking & Feedback (Day 5-6)
+
 - Track read/ack rates per category
 - Feed engagement data into UserRelevance scoring
 - Add "Send fewer like this" callback button
@@ -270,6 +278,7 @@ Edit in place for:
 - Tests for engagement tracking
 
 ### Phase 6: Unify AlertSystem (Day 6-7)
+
 - Merge council voting from alert-system.ts into scoring stage
 - Remove AlertSystem as separate entity
 - Single pipeline handles everything
@@ -280,6 +289,7 @@ Edit in place for:
 ## Files to Create/Modify
 
 ### New Files
+
 | File | Purpose |
 |------|---------|
 | `src/autonomous/priority-scorer.ts` | Multi-factor scoring engine |
@@ -289,6 +299,7 @@ Edit in place for:
 | `tests/unit/autonomous/notification-lifecycle.test.ts` | Lifecycle tests |
 
 ### Modified Files
+
 | File | Changes |
 |------|---------|
 | `src/autonomous/notification-manager.ts` | Wire scoring, lifecycle, retry |

@@ -19,6 +19,7 @@ Terms specific to ARI's architecture, philosophy, and implementation.
 ## Architecture
 
 **Seven-Layer Architecture** — ARI's strict dependency hierarchy:
+
 | Layer | Name | Purpose |
 |-------|------|---------|
 | L0 | Cognitive | LOGOS/ETHOS/PATHOS reasoning (no external imports) |
@@ -56,6 +57,7 @@ Terms specific to ARI's architecture, philosophy, and implementation.
 **Hash Chain Audit** — Every action ARI takes is logged with a SHA-256 hash that references the previous log entry (like a blockchain). No entry can be altered without breaking the chain. Immutable by design.
 
 **Trust Levels** — Six tiers that modify risk scoring:
+
 | Level | Multiplier | Who |
 |-------|------------|-----|
 | SYSTEM | 0.5x | Internal ARI processes |
@@ -94,6 +96,7 @@ Terms specific to ARI's architecture, philosophy, and implementation.
 **Autonomous Agent** — The top-level orchestrator that polls scheduled tasks, handles Telegram messages, routes intents, and coordinates all proactive behavior.
 
 **Briefing** — ARI's daily summary messages delivered via Telegram:
+
 - **Morning briefing**: 6:30 AM — weather, calendar, tasks, market, news
 - **Evening summary**: 9:00 PM — day recap, tomorrow preview
 - **Weekly review**: Sundays 6:00 PM — week in review, next week prep

@@ -10,6 +10,7 @@
 ## Pre-Implementation
 
 ### Decision Made
+
 - [x] Budget profile selected: **Balanced**
 - [x] Timeline confirmed: **10-day phased rollout**
 - [x] Implementation team: **Pryce + Claude**
@@ -17,6 +18,7 @@
 - [x] Risk assessment reviewed and accepted
 
 ### Environment Prepared
+
 - [x] Mac Mini accessible via SSH (<USER>@<MAC_MINI_IP>)
 - [x] Anthropic API key ready
 - [x] Telegram bot credentials (TELEGRAM_BOT_TOKEN + TELEGRAM_OWNER_USER_ID)
@@ -48,11 +50,13 @@
 - [x] **1.6** Update exports in `src/observability/index.ts`
 - [x] **1.7** Commit with message: "feat(observability): add TokenBudgetTracker"
 - [x] **1.8** Manual testing:
+
   ```bash
   node -e "const {TokenBudgetTracker} = require('./dist/observability/token-budget-tracker.js'); const t = new TokenBudgetTracker({dailyMaxTokens: 100000, dailyMaxCost: 1.0, reservedForUser: 50000}); console.log(t.getStatus());"
   ```
 
 **Completion Criteria:**
+
 - [✓] All tests passing
 - [✓] Manual test successful
 - [✓] TypeScript compiles without errors
@@ -78,11 +82,13 @@
 - [x] **2.6** Update exports in `src/execution/index.ts`
 - [x] **2.7** Commit with message: "feat(execution): add ModelRouter"
 - [x] **2.8** Manual testing:
+
   ```bash
   node -e "const {ModelRouter} = require('./dist/execution/model-router.js'); const r = new ModelRouter(); console.log(r.routeTask({type: 'test-generation', description: 'Write tests'}));"
   ```
 
 **Completion Criteria:**
+
 - [✓] All tests passing
 - [✓] Routing logic validated
 - [✓] Cost estimates accurate
@@ -108,6 +114,7 @@
 - [x] **3.6** Commit: "feat(autonomous): integrate budget tracking with ClaudeClient"
 
 **Completion Criteria:**
+
 - [✓] Budget checks happen before every API call
 - [✓] Usage recorded after every API call
 - [✓] Model automatically selected when appropriate
@@ -118,6 +125,7 @@
 ### Day 1 End-of-Day Checkpoint
 
 **Expected Status:**
+
 - [✓] 3 tasks completed
 - [✓] Core components built and tested
 - [✓] ~11 hours work completed
@@ -125,6 +133,7 @@
 - [✓] Ready for integration phase
 
 **Metrics:**
+
 - Files created: 6
 - Tests written: 25+
 - Lines of code: ~1,000
@@ -150,6 +159,7 @@
 - [x] **4.4** Commit: "feat(autonomous): integrate budget awareness"
 
 **Completion Criteria:**
+
 - [✓] Agent respects budget limits
 - [✓] Throttling activates at thresholds
 - [✓] Tests passing
@@ -171,6 +181,7 @@
 - [x] **5.4** Commit: "feat(scheduler): add smart scheduling with budget awareness"
 
 **Completion Criteria:**
+
 - [✓] Tasks have model hints
 - [✓] Budget checked before execution
 - [✓] Low-priority tasks skipped when budget tight
@@ -188,6 +199,7 @@
 - [x] **6.5** Commit: "feat(dashboard): add real-time budget panel"
 
 **Completion Criteria:**
+
 - [✓] Panel shows real-time usage
 - [✓] Updates every 30 seconds
 - [✓] Color-coded status
@@ -198,6 +210,7 @@
 ### Day 3-4 End Checkpoint
 
 **Expected Status:**
+
 - [✓] 3 more tasks completed (6 total)
 - [✓] Integration complete
 - [✓] Dashboard functional
@@ -222,6 +235,7 @@
 - [x] **7.4** Tests and commit
 
 **Completion Criteria:**
+
 - [✓] Initiatives have cost estimates
 - [✓] Safety gates block risky work
 - [✓] Execution decisions based on risk/cost
@@ -239,6 +253,7 @@
 - [x] **8.5** Commit
 
 **Completion Criteria:**
+
 - [✓] Items can be queued
 - [✓] Approve/reject working
 - [✓] Persists across restarts
@@ -256,6 +271,7 @@
 - [x] **9.5** Test and commit
 
 **Completion Criteria:**
+
 - [✓] All code changes in worktrees
 - [✓] Main branch never touched
 - [✓] Easy rollback available
@@ -276,6 +292,7 @@
 - [x] **10.5** Test and commit
 
 **Completion Criteria:**
+
 - [✓] Brief generates successfully
 - [✓] Contains all required sections
 - [✓] Saves to file
@@ -295,6 +312,7 @@
 - [x] **11.5** Test and commit
 
 **Completion Criteria:**
+
 - [✓] Summary includes day's work
 - [✓] Approval queue visible
 - [✓] Cost breakdown included
@@ -312,6 +330,7 @@
 - [ ] **12.5** Test and commit
 
 **Completion Criteria:**
+
 - [✓] All panels functional
 - [✓] Real-time updates
 - [✓] Responsive design
@@ -330,6 +349,7 @@
 - [x] **13.4** Verify all tests pass on Mini
 
 **Completion Criteria:**
+
 - [✓] Mac Mini at same commit as local
 - [✓] All dependencies installed
 - [✓] Build successful
@@ -348,6 +368,7 @@
 - [x] **14.5** Check daemon restart successful
 
 **Completion Criteria:**
+
 - [✓] Budget config in place
 - [✓] Autonomous mode enabled
 - [✓] Daemon running with new code
@@ -359,24 +380,28 @@
 **Objective:** Validate system works end-to-end
 
 **Evening (Day 9):**
+
 - [ ] **15.1** Start monitoring: `./scripts/monitor-mac-mini.sh`
 - [ ] **15.2** Verify first scheduled tasks run
 - [ ] **15.3** Check budget tracking working
 - [ ] **15.4** Review audit log
 
 **Overnight:**
+
 - [ ] **15.5** Let system run autonomously
 - [ ] **15.6** Initiative scan at 6:00 AM
 - [ ] **15.7** Morning brief generation at 6:30 AM
 - [ ] **15.8** Daily brief delivery at 7:30 AM
 
 **Morning (Day 10):**
+
 - [ ] **15.9** Read morning brief
 - [ ] **15.10** Verify overnight work completed
 - [ ] **15.11** Check budget usage
 - [ ] **15.12** Review audit log for issues
 
 **Expected Metrics:**
+
 ```
 Overnight Cost: ~$0.20-0.30
 Tasks Completed: 2-4
@@ -385,6 +410,7 @@ Issues: 0-1 minor issues expected
 ```
 
 **Completion Criteria:**
+
 - [✓] Morning brief delivered on time
 - [✓] Budget tracking accurate
 - [✓] Autonomous work completed
@@ -397,6 +423,7 @@ Issues: 0-1 minor issues expected
 **Objective:** Monitor and tune for one week
 
 **Daily Checklist:**
+
 ```
 Day 1-7:
 - [ ] Morning brief received and read (2 min)
@@ -410,6 +437,7 @@ Daily time: ~13 minutes
 ```
 
 **End of Week Analysis:**
+
 ```
 Metrics to Collect:
 ├─ Total cost: $_____ (target: < $17.50)
@@ -428,6 +456,7 @@ Tuning Needed:
 ```
 
 **Completion Criteria:**
+
 - [✓] 7 consecutive days operational
 - [✓] Average cost < $2/day
 - [✓] Morning briefs 100% on time
@@ -440,6 +469,7 @@ Tuning Needed:
 ### Week 2: Optimization
 
 **Tasks:**
+
 - [ ] Analyze Week 1 data
 - [ ] Identify top 3 cost drivers
 - [ ] Tune model routing based on actual usage
@@ -456,6 +486,7 @@ Tuning Needed:
 ### Month 1: Validation
 
 **Metrics to Track:**
+
 ```
 Cost Performance:
 ├─ Total month: $_____ (target: < $75)
@@ -478,6 +509,7 @@ User Experience:
 ```
 
 **Review Meeting (End of Month):**
+
 - [ ] Review all metrics
 - [ ] Identify successes
 - [ ] Identify issues
@@ -491,30 +523,35 @@ User Experience:
 ### Before Moving to Next Phase
 
 **Phase 1 → Phase 2:**
+
 - [✓] All Phase 1 tests passing
 - [✓] Manual testing successful
 - [✓] No critical bugs
 - [✓] Code reviewed
 
 **Phase 2 → Phase 3:**
+
 - [✓] Integration tests passing
 - [✓] Budget tracking working in agent
 - [✓] Scheduler budget-aware
 - [✓] Dashboard functional
 
 **Phase 3 → Phase 4:**
+
 - [✓] Initiative engine enhanced
 - [✓] Safety gates operational
 - [✓] Approval queue working
 - [✓] Worktree isolation tested
 
 **Phase 4 → Phase 5:**
+
 - [✓] Deliverables generating correctly
 - [✓] Dashboard complete
 - [✓] All tests passing
 - [✓] Ready for production
 
 **Phase 5 → Production:**
+
 - [✓] Mac Mini deployed
 - [✓] 24 hours successful operation
 - [✓] Morning brief delivered
@@ -577,6 +614,7 @@ Time: 30 minutes
 ### Daily Updates (During Implementation)
 
 **Format:**
+
 ```
 End of Day Update:
 ├─ Tasks completed: X/Y
@@ -591,6 +629,7 @@ End of Day Update:
 ### Weekly Summary (After Week 1)
 
 **Format:**
+
 ```
 Week 1 Summary:
 ├─ Implementation: Complete/Partial
@@ -607,6 +646,7 @@ Week 1 Summary:
 ### Monthly Review (After Month 1)
 
 **Format:**
+
 ```
 Month 1 Comprehensive Review:
 ├─ Financial: Total cost, ROI, efficiency
@@ -717,6 +757,7 @@ Month 1 Comprehensive Review:
 ## How to Use This Checklist
 
 **During Implementation:**
+
 1. Work through tasks sequentially
 2. Check off sub-tasks as completed
 3. Don't skip to next phase until all tasks done
@@ -724,6 +765,7 @@ Month 1 Comprehensive Review:
 5. Commit frequently (after each task)
 
 **Progress Tracking:**
+
 ```
 [ ] = Not started
 [→] = In progress
@@ -734,6 +776,7 @@ Month 1 Comprehensive Review:
 
 **Time Tracking:**
 Record actual time per task:
+
 ```
 Task 1: Est 4h, Actual ___h
 Task 2: Est 4h, Actual ___h
@@ -743,6 +786,7 @@ Total: Est 40h, Actual ___h
 
 **Issue Tracking:**
 Document blockers encountered:
+
 ```
 Issue 1: [Description]
 Resolution: [How you fixed it]
@@ -758,30 +802,35 @@ Issue 2: ...
 ### Best Practices
 
 **1. Test-First Development**
+
 - Write tests before implementation
 - Verify tests fail before writing code
 - Ensure tests pass after implementation
 - Maintain >80% coverage
 
 **2. Incremental Commits**
+
 - Commit after each task
 - Use conventional commit messages
 - Keep commits focused and atomic
 - Push to GitHub regularly
 
 **3. Local Testing First**
+
 - Test everything locally before deploying
 - Use test data/mocks
 - Verify in isolation
 - Only deploy when confident
 
 **4. Validation Gates**
+
 - Run full test suite before each phase
 - Verify no regressions
 - Check TypeScript compilation
 - Ensure lint passes
 
 **5. Documentation As You Go**
+
 - Comment complex logic
 - Update README with new features
 - Document configuration options

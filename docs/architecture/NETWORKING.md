@@ -85,11 +85,13 @@ const PORT = config.port || 3141;
 ```
 
 **Why**:
+
 - Eliminates entire classes of remote attacks
 - No firewall rules needed — network stack itself blocks external access
 - Defense in depth — even if Tailscale were compromised, ARI remains isolated
 
 **Access Pattern**:
+
 ```bash
 # From Mac Mini itself (local)
 curl http://127.0.0.1:3141/health
@@ -103,6 +105,7 @@ ssh <USER>@<MAC_MINI_IP> "curl -s http://127.0.0.1:3141/health"
 **Principle**: Tailscale provides encrypted, authenticated access to the Mac Mini. This is the only way to reach ARI remotely.
 
 **What Tailscale Provides**:
+
 - WireGuard encryption (state-of-the-art)
 - Device authentication via identity provider
 - No port forwarding required
@@ -110,11 +113,13 @@ ssh <USER>@<MAC_MINI_IP> "curl -s http://127.0.0.1:3141/health"
 - Audit log of all connections
 
 **What We Use**:
+
 - SSH access to Mac Mini: `ssh <USER>@<MAC_MINI_IP>`
 - CLI invocation via SSH: `ssh <USER>@<MAC_MINI_IP> "cd ~/ARI && node dist/cli/index.js doctor"`
 - Dashboard access via SSH tunnel: `ssh -L 5173:127.0.0.1:5173 <USER>@<MAC_MINI_IP>`
 
 **What We DON'T Use**:
+
 - Tailscale Serve — We don't expose ARI Gateway directly
 - Tailscale Funnel — We don't expose anything to the public internet
 - Direct API access — All access goes through SSH
@@ -124,6 +129,7 @@ ssh <USER>@<MAC_MINI_IP> "curl -s http://127.0.0.1:3141/health"
 **Principle**: The public internet never touches ARI directly.
 
 **Implementation**:
+
 - No ports open to the internet
 - Mac Mini behind router NAT (no port forwarding)
 - Tailscale ACLs restrict who can access
@@ -148,6 +154,7 @@ ssh <USER>@<MAC_MINI_IP> "cd ~/ARI && node dist/cli/index.js message 'Plan my da
 ```
 
 **Security**:
+
 - Requires Tailscale authentication
 - Requires SSH key or password
 - Runs as local user on Mac Mini
@@ -165,6 +172,7 @@ ssh -L 5173:127.0.0.1:5173 -L 3141:127.0.0.1:3141 <USER>@<MAC_MINI_IP>
 ```
 
 **Security**:
+
 - All traffic encrypted through SSH tunnel
 - Appears as loopback on both ends
 - No direct network exposure
@@ -185,6 +193,7 @@ curl -X POST http://localhost:3141/message -d '{"content": "Hello"}'
 ### Pattern 4: Mobile Access (Future)
 
 For iPhone/iPad access, we'll create an ARI client app that:
+
 1. Establishes Tailscale connection
 2. Opens SSH tunnel to Mac Mini
 3. Communicates with ARI Gateway through tunnel
@@ -249,6 +258,7 @@ A distributed ARI would be multiple separate instances. A centralized ARI is one
 ### Attack Surface
 
 The only network attack surface is:
+
 1. Tailscale daemon (audited, well-maintained)
 2. SSH daemon (battle-tested, key-only auth recommended)
 
@@ -290,6 +300,7 @@ Host ari
 ```
 
 Then simply:
+
 ```bash
 ssh ari
 # Tunnels established automatically
@@ -314,16 +325,19 @@ tail -f ~/Library/Logs/ari-gateway.log
 When/if ARI becomes a product, the architecture scales:
 
 ### Phase 1: Personal (Current)
+
 - Single Mac Mini per operator
 - Full loopback security model
 - Direct SSH/Tailscale access
 
 ### Phase 2: Team
+
 - Shared ARI instance for small teams
 - Tailscale Teams for access control
 - Role-based trust levels in ARI
 
 ### Phase 3: Hosted
+
 - Cloud-hosted ARI instances
 - Proper API gateway with OAuth
 - Tenant isolation
@@ -431,6 +445,7 @@ ARI:       User → Gateway → Cognitive Analysis → Council Vote → Executio
 ```
 
 Before ARI acts, it asks:
+
 - Is this decision biased? (ETHOS bias detection)
 - What's the expected value? (LOGOS EV calculation)
 - Does this align with my principles? (PATHOS virtue check)
@@ -439,6 +454,7 @@ Before ARI acts, it asks:
 **2. Constitutional Constraints**
 
 ARI has 6 immutable rules that cannot be overridden:
+
 1. Creator Primacy — Serves operator's interests
 2. Loopback Only — Security boundary
 3. Content ≠ Command — Injection protection
@@ -451,6 +467,7 @@ OpenClaw has DM pairing for security; ARI has a constitution.
 **3. Learning Loop**
 
 ARI runs a 5-stage learning loop:
+
 1. Performance Review (daily)
 2. Gap Analysis (weekly)
 3. Source Discovery (triggered by gaps)
@@ -462,6 +479,7 @@ This means ARI gets better over time without explicit retraining.
 **4. Philosophical Integration**
 
 ARI embeds actual decision-making frameworks:
+
 - **Bayesian reasoning** for belief updating
 - **Kelly Criterion** for optimal sizing
 - **CBT** for cognitive distortion detection

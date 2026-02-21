@@ -126,29 +126,35 @@
 ### From 31 Documents — Key Patterns Applied
 
 **Content Quality Control (Goldie Locks Zone PDF)**
+
 - 15-20 min QC per article: search intent match, EEAT signals, keyword in URL/title/H2
 - FAQs from People Also Ask, 2-3 internal/external links, AI detection score < 30%
 - Images/videos every 200-300 words, sentences on separate lines, no fluff intro
 - **Applied in:** ContentQualityScorer (100-point system in quality-scorer.ts)
 
 **Multi-Agent Content Pipeline (n8n Telegram Bot + AI Avatar Video Editor)**
+
 - Pattern: Research → Writer → Human Approval Gate → Revision Loop → Publish
 - **Applied in:** ContentDrafter → DraftQueue → Telegram review → RevisionEngine → Publisher
 
 **SEO Automation (RankWithMake + Perplexity SEO SOP + LinkedIn SEO SOP)**
+
 - Keyword research via Perplexity → content generation → platform-specific publishing
 - LinkedIn articles rank faster (high DA, free), programmatic SEO micro-tools
 - **Applied in:** SEOEnginePlugin with KeywordTracker, ContentOptimizer, LinkedInOptimizer
 
 **Video Automation (HeyGen SOP + Shorts Automation + AI Avatar Video Editor)**
+
 - Research → Script (2000-2500 words) → Avatar (HeyGen API v2) → Captions → Assembly → Upload
 - **Applied in:** VideoPipelinePlugin with ScriptGenerator, AvatarRenderer
 
 **RAG for Knowledge (RAG Stock Earnings Workflow)**
+
 - PDF ingestion → embeddings → structured retrieval
 - **Applied in:** DocumentIngestor for briefing auto-ingestion + search
 
 **OpenClaw/SOUL.md Framework (NEW — from aaronjmars/soul.md)**
+
 - Structured personality files: SOUL.md (identity), STYLE.md (voice), SKILL.md (operations)
 - Specificity over generality, named influences, real contradictions, predictive clarity
 - Agent reads soul file first on every session — "reading itself into being"
@@ -162,6 +168,7 @@
 > **Commit:** `b7868cd fix(core): resolve 4 critical bugs blocking core functionality`
 
 ### Completed
+
 - [x] 0.1 Fix ContentDrafter null orchestrator (B1 + B2)
 - [x] 0.2 Fix X API write auth with OAuth 1.0a (B3)
 - [x] 0.3 Fix Telegram message length splitting (B9)
@@ -174,6 +181,7 @@
 > **Commit:** `6fa84c0 feat(content+telegram): wire growth components and complete telegram interface`
 
 ### Completed
+
 - [x] 1.1 Wire 5 content growth components (repurposer, engagement, intent, analytics, feedback)
 - [x] 1.2 Add ContentQualityScorer (100-point system from Goldie Locks Zone)
 - [x] 1.3 Add RevisionEngine with AI-powered draft revision loop
@@ -185,6 +193,7 @@
 ## Phase 2: Telegram Interface Completion — DONE (merged into Phase 1 commit)
 
 ### Completed
+
 - [x] 2.1 ConversationStore activated (24h, 50 msgs, disk-persistent)
 - [x] 2.2 Settings persistence fixed
 - [x] 2.3 Workspace loading unified (see Phase 5 unstaged changes)
@@ -196,6 +205,7 @@
 > **Commit:** `fd5f3b2 feat(plugins): add seo engine and video pipeline plugins`
 
 ### Completed
+
 - [x] 3.1 Plugin structure: `src/plugins/seo-engine/` with 5 files
 - [x] 3.2 KeywordTracker with AI-powered keyword discovery + tracking
 - [x] 3.3 ContentOptimizer with 100-point SEO scoring system
@@ -204,6 +214,7 @@
 - [x] 3.6 Tests: content-optimizer.test.ts (177 lines), keyword-tracker.test.ts (170 lines)
 
 ### Remaining (Tomorrow Session 3)
+
 - [ ] 3.7 Add `competitor-analyzer.ts` — SERP analysis + competitor tracking
 - [ ] 3.8 Add `programmatic-gen.ts` — Micro-tool/calculator page generator (from "Rank #1 in 60 Seconds")
 - [ ] 3.9 Add `internal-linker.ts` — Auto-suggest internal links between content
@@ -217,6 +228,7 @@
 ### Implementation Details for Remaining Items
 
 **3.7 competitor-analyzer.ts:**
+
 ```typescript
 export class CompetitorAnalyzer {
   constructor(private orchestrator: AIOrchestrator, private perplexity?: PerplexityClient) {}
@@ -226,6 +238,7 @@ export class CompetitorAnalyzer {
 ```
 
 **3.8 programmatic-gen.ts** (from Rank #1 in 60 Seconds research):
+
 ```typescript
 export class ProgrammaticGenerator {
   constructor(private orchestrator: AIOrchestrator) {}
@@ -237,6 +250,7 @@ export class ProgrammaticGenerator {
 ```
 
 **3.12 Telegram /seo command:**
+
 ```typescript
 // /seo research <niche> — Discover keywords
 // /seo track <keyword> — Add to tracking
@@ -253,6 +267,7 @@ export class ProgrammaticGenerator {
 > **Commit:** `fd5f3b2 feat(plugins): add seo engine and video pipeline plugins`
 
 ### Completed
+
 - [x] 4.1 Plugin structure: `src/plugins/video-pipeline/` with 4 files
 - [x] 4.2 ScriptGenerator with multi-agent pipeline (research → outline → script → revise)
 - [x] 4.3 AvatarRenderer with HeyGen API v2 integration
@@ -260,6 +275,7 @@ export class ProgrammaticGenerator {
 - [x] 4.5 Tests: avatar-renderer.test.ts (173 lines), script-generator.test.ts (178 lines)
 
 ### Remaining (Tomorrow Session 3)
+
 - [ ] 4.6 Add `src/integrations/heygen/client.ts` — Standalone HeyGen API client
 - [ ] 4.7 Add `voice-producer.ts` — ElevenLabs TTS for narration
 - [ ] 4.8 Add `caption-generator.ts` — Whisper transcription → SRT files
@@ -275,6 +291,7 @@ export class ProgrammaticGenerator {
 ### Implementation Details for Remaining Items
 
 **4.6 HeyGen client:**
+
 ```typescript
 export class HeyGenClient {
   constructor(private apiKey: string) {}
@@ -286,9 +303,11 @@ export class HeyGenClient {
   async listAvatars(): Promise<Avatar[]>;
 }
 ```
+
 Env var: `HEYGEN_API_KEY`
 
 **4.9 Video assembler (FFmpeg):**
+
 ```typescript
 export class VideoAssembler {
   async assemble(config: {
@@ -299,9 +318,11 @@ export class VideoAssembler {
   async extractShorts(videoPath: string, segments: TimeRange[]): Promise<string[]>;
 }
 ```
+
 Prerequisite: FFmpeg installed on Mac Mini (`brew install ffmpeg`)
 
 **4.13 Telegram approval gates:**
+
 1. Script approval: After generation → send to Telegram with [Approve] [Edit] [Reject] inline keyboard
 2. Final video approval: After assembly → send video file with [Publish] [Re-render] [Reject]
 
@@ -312,11 +333,13 @@ Prerequisite: FFmpeg installed on Mac Mini (`brew install ffmpeg`)
 > **Goal:** Ensure ARI's personality is consistent, workspace files loaded properly, autonomous system prompt reflects ARI's identity.
 
 ### Already Done (Unstaged)
+
 - [x] 5.1 workspace-loader.ts updated: GOALS.md + PREFERENCES.md added to loadIdentityPrompt()
 - [x] 5.2 agent.ts: AUTONOMOUS_SYSTEM_PROMPT renamed to FALLBACK_SYSTEM_PROMPT
 - [x] 5.3 agent.ts: getAutonomousPrompt() method loads identity from workspace files dynamically
 
 ### Remaining
+
 - [ ] 5.4 Enhance SOUL.md using OpenClaw/soul.md framework insights (see Phase 9)
 - [ ] 5.5 Add STYLE.md to workspace (voice guide — from SOUL.md framework)
 - [ ] 5.6 Verify all 5 workspace files are current and complete
@@ -339,12 +362,14 @@ Prerequisite: FFmpeg installed on Mac Mini (`brew install ffmpeg`)
 > **Goal:** Add document ingestion pipeline for searchable knowledge.
 
 ### Already Done (Unstaged)
+
 - [x] 6.1 DocumentIngestor class created (106 lines) — text ingestion, briefing ingestion, conversation ingestion, search
 - [x] 6.2 DocumentIngestor test file (116 lines, 5 test cases)
 - [x] 6.3 Wired in agent.ts: auto-ingest morning briefings into knowledge for RAG retrieval
 - [x] 6.4 buildBriefingText() method for converting structured briefing data to searchable text
 
 ### Remaining
+
 - [ ] 6.5 Wire DocumentIngestor to Telegram `/knowledge store` and `/knowledge search` commands
 - [ ] 6.6 Add vector embedding support (future — currently using text search)
 - [ ] 6.7 Auto-ingest Telegram conversations (with user permission toggle)
@@ -352,6 +377,7 @@ Prerequisite: FFmpeg installed on Mac Mini (`brew install ffmpeg`)
 ### Design Note: Text Search vs Vector Embeddings
 
 The current DocumentIngestor uses simple word-matching text search. This is intentional:
+
 - No external API dependency (no OpenAI embedding calls)
 - Works offline on Mac Mini
 - Sufficient for personal knowledge base (<10K documents)
@@ -362,12 +388,14 @@ The current DocumentIngestor uses simple word-matching text search. This is inte
 ## Phase 7: Notification & Scheduling Polish — IN PROGRESS (unstaged)
 
 ### Already Done (Unstaged)
+
 - [x] 7.1 portfolio-premarket task added (6:00 AM weekdays) — portfolio populated before 6:30 AM briefing
 - [x] 7.2 Scheduling conflicts staggered: initiative-comprehensive-scan to 5:30 AM, initiative-midday-check to 2:30 PM
 - [x] 7.3 Orphaned health_check handler removed (agent_health_check is the correct one)
 - [x] 7.4 Orphaned perplexity_research handler removed (used on-demand via Telegram /search)
 
 ### Remaining
+
 - [ ] 7.5 Message splitting in notification-manager.ts (import splitTelegramMessage) — already done in Phase 0 commit
 - [ ] 7.6 Verify all 37 scheduler tasks have matching handlers in agent.ts
 
@@ -376,10 +404,12 @@ The current DocumentIngestor uses simple word-matching text search. This is inte
 ## Phase 8: API Keys & Environment Config — IN PROGRESS (unstaged)
 
 ### Already Done (Unstaged)
+
 - [x] 8.1 daemon.ts envVarsToInject expanded to 30+ vars (organized by category)
 - [x] 8.2 .env.example expanded to 47 documented vars across 6 priority tiers
 
 ### Remaining
+
 - [ ] 8.3 Compare Mac Mini `~/.ari/.env` against .env.example — identify gaps
 - [ ] 8.4 Add missing API keys to Mac Mini .env
 
@@ -501,6 +531,7 @@ Confidence: 0.82
 ```
 
 **Telegram inline keyboard callbacks:**
+
 - `soul_approve_<id>` → applies the change, confirms back
 - `soul_reject_<id>` → rejects, asks for optional reason
 - `soul_edit_<id>` → puts proposal in edit mode, user sends revised text
@@ -627,10 +658,12 @@ npm run typecheck && npm run lint && npm test
 ### 10.1 Git Alignment Strategy
 
 **Current state:**
+
 - MacBook: 6 commits ahead of origin (origin suspended)
 - Mac Mini: unknown (may have diverged)
 
 **Strategy (GitHub suspended):**
+
 1. SCP entire repo from MacBook to Mac Mini (simplest approach)
 2. Backup Mac Mini's current repo first
 3. Rebuild node_modules and native modules on Mac Mini
@@ -707,7 +740,7 @@ tail -20 ~/.ari/logs/gateway-stdout.log  # Check for errors
 | 19 | Content | Trigger content_daily_drafts | Drafts generated |
 | 20 | Content | /content approve <id> | Quality scored, scheduled |
 | 21 | Notifications | Trigger budget:warning | Telegram notification received |
-| 22 | Health | curl http://127.0.0.1:3141/health | 200 OK |
+| 22 | Health | curl <http://127.0.0.1:3141/health> | 200 OK |
 | 23 | Daemon | npx ari daemon status | Running, uptime shown |
 | 24 | SOUL | /soul propose test | Sends Telegram approval request |
 
@@ -716,25 +749,32 @@ tail -20 ~/.ari/logs/gateway-stdout.log  # Check for errors
 ## Future Phases (Backlog)
 
 ### Phase F1: Sales Engine (Pryceless Solutions)
+
 - Apollo.io integration, Instantly.ai cold email, Notion CRM, Stripe invoicing
 - Files: `src/plugins/sales-engine/` (8 files)
 
 ### Phase F2: Figma MCP Integration
+
 - Add ClaudeTalkToFigma to `.mcp.json` — config only, no code
 
 ### Phase F3: Layer Violation Resolution (B4, B5, B6)
+
 - Move PolicyEngine/ToolRegistry/MemoryManager interfaces to `kernel/types.ts`
 
 ### Phase F4: Open Operator Integration
+
 - Browser-based AI agent for competitor research, design feedback
 
 ### Phase F5: N8N/Make.com Bridge
+
 - Webhook endpoint for bidirectional automation triggers
 
 ### Phase F6: YouTube Integration
+
 - YouTube Data API v3 for video upload + analytics
 
 ### Phase F7: Vector Embeddings for Knowledge
+
 - Add OpenAI text-embedding-3-small to DocumentIngestor for semantic search
 
 ---
@@ -825,11 +865,13 @@ tail -20 ~/.ari/logs/gateway-stdout.log  # Check for errors
 ## Build Session Execution Order
 
 ### Tonight (Right Now): Commit Unstaged Work
+
 1. Verify tests pass: `npm run typecheck && npm run lint && npm test`
 2. Commit unstaged changes (commits 1-3 above)
 3. Save this plan document
 
 ### Tomorrow Session 1 (9 PM - 11 PM): SEO Engine Completion
+
 1. Phase 3 remaining: competitor-analyzer, programmatic-gen, internal-linker, quality-checklist, serp-monitor
 2. /seo Telegram command
 3. Wire to agent.ts handlers + scheduler tasks
@@ -837,6 +879,7 @@ tail -20 ~/.ari/logs/gateway-stdout.log  # Check for errors
 5. Commit + verify
 
 ### Tomorrow Session 2 (11 PM - 1 AM): Video Pipeline Completion
+
 1. Phase 4 remaining: voice-producer, caption-generator, video-assembler, thumbnail-generator, shorts-generator
 2. HeyGen client integration
 3. /video Telegram command with approval gates
@@ -844,6 +887,7 @@ tail -20 ~/.ari/logs/gateway-stdout.log  # Check for errors
 5. Commit + verify
 
 ### Day 3 Session: SOUL Evolution + Deploy
+
 1. Phase 9: Soul evolution engine + Telegram integration
 2. Enhanced SOUL.md with OpenClaw structure
 3. Create STYLE.md workspace file

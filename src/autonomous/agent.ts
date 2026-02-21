@@ -158,6 +158,11 @@ export class AutonomousAgent {
   private lastPendingReminders: Array<{ name: string; dueDate?: Date; priority: number; list: string }> = [];
   private lastWeather: { location: string; tempF: number; condition: string; feelsLikeF: number; humidity: number; forecast?: Array<{ date: string; maxTempF: number; minTempF: number; condition: string; chanceOfRain: number }> } | null = null;
   private lastTechNews: Array<{ title: string; url?: string; score?: number; source: string }> = [];
+  // Extended intelligence cache for enriched morning briefings
+  private lastGithubNotifications: Array<{ id: string; reason: string; subject: { title: string; type: string }; repository: string }> = [];
+  private lastUpcomingEarnings: Array<{ symbol: string; name: string; daysUntil: number; estimate: number | null }> = [];
+  private lastCryptoGlobal: import('../plugins/crypto/types.js').CoinGeckoGlobalData | null = null;
+  private lastPerplexityBriefing: { answer: string; citations: string[] } | null = null;
 
   // Budget-aware components
   private costTracker: CostTracker | null = null;
@@ -1273,6 +1278,11 @@ export class AutonomousAgent {
           pendingReminders: this.lastPendingReminders.length > 0 ? this.lastPendingReminders : null,
           weather: this.lastWeather,
           techNews: this.lastTechNews.length > 0 ? this.lastTechNews : null,
+          // Extended intelligence (populated during intelligence_scan and github_poll)
+          githubNotifications: this.lastGithubNotifications.length > 0 ? this.lastGithubNotifications : null,
+          upcomingEarnings: this.lastUpcomingEarnings.length > 0 ? this.lastUpcomingEarnings : null,
+          cryptoGlobal: this.lastCryptoGlobal,
+          perplexityBriefing: this.lastPerplexityBriefing,
         };
         const briefingResult = await this.briefingGenerator.morningBriefing(briefingContext);
 
@@ -2063,6 +2073,56 @@ export class AutonomousAgent {
             items: this.lastDigest.stats.itemsIncluded,
           }, 'Daily digest generated — will be included in morning briefing');
         }
+
+        // Fetch CoinGecko global market data (BTC/ETH dominance, sentiment)
+        try {
+          const { CoinGeckoClient } = await import('../plugins/crypto/api-client.js');
+          const cgClient = new CoinGeckoClient(process.env.COINGECKO_API_KEY);
+          this.lastCryptoGlobal = await cgClient.getGlobal();
+          log.info({ btcDominance: this.lastCryptoGlobal.btcDominance.toFixed(1) }, 'CoinGecko global fetched');
+        } catch (error) {
+          log.warn({ error: error instanceof Error ? error.message : String(error) }, 'CoinGecko global fetch failed');
+        }
+
+        // Fetch Perplexity AI morning brief (top tech + market developments)
+        if (process.env.PERPLEXITY_API_KEY) {
+          try {
+            const { PerplexityClient } = await import('../integrations/perplexity/client.js');
+            const perplexity = new PerplexityClient(process.env.PERPLEXITY_API_KEY);
+            const brief = await perplexity.search(
+              'What are the 3 most important technology, AI, and financial market developments in the past 24 hours? Be concise.',
+              'web',
+            );
+            this.lastPerplexityBriefing = {
+              answer: brief.answer,
+              citations: brief.citations,
+            };
+            log.info('Perplexity morning brief fetched');
+          } catch (error) {
+            log.warn({ error: error instanceof Error ? error.message : String(error) }, 'Perplexity morning brief failed');
+          }
+        }
+
+        // Fetch upcoming earnings (next 5 trading days) for tracked stocks
+        if (process.env.ALPHA_VANTAGE_API_KEY) {
+          try {
+            const { EarningsCalendar } = await import('../integrations/alpha-vantage/earnings-calendar.js');
+            const earningsCalendar = new EarningsCalendar(process.env.ALPHA_VANTAGE_API_KEY);
+            const trackedStocks = ['AAPL', 'NVDA', 'TSLA', 'VOO', 'QQQ', 'MSFT', 'AMZN', 'GOOGL'];
+            const upcoming = await earningsCalendar.getEarningsWithin(trackedStocks, 5);
+            this.lastUpcomingEarnings = upcoming.map(e => ({
+              symbol: e.symbol,
+              name: e.name,
+              daysUntil: e.daysUntil,
+              estimate: e.estimate ?? null,
+            }));
+            if (this.lastUpcomingEarnings.length > 0) {
+              log.info({ count: this.lastUpcomingEarnings.length }, 'Earnings calendar fetched for morning briefing');
+            }
+          } catch (error) {
+            log.warn({ error: error instanceof Error ? error.message : String(error) }, 'Earnings calendar fetch failed');
+          }
+        }
       } catch (error) {
         log.error({ error }, 'Intelligence scan failed');
       }
@@ -2471,7 +2531,7 @@ export class AutonomousAgent {
       try {
         const { GitHubClient } = await import('../integrations/github/client.js');
         const github = new GitHubClient(token);
-        // Fetch repo activity instead of notifications to match event type
+        // Fetch repo activity
         const activity = await github.getRepoActivity('Ari-OS', 'ARI');
         this.eventBus.emit('integration:github_polled', {
           repo: 'Ari-OS/ARI',
@@ -2479,6 +2539,21 @@ export class AutonomousAgent {
           openPRs: activity.openPRs,
           timestamp: new Date().toISOString(),
         });
+        // Also cache unread notifications for morning briefing
+        try {
+          const notifications = await github.getNotifications(true);
+          this.lastGithubNotifications = notifications.map(n => ({
+            id: n.id,
+            reason: n.reason,
+            subject: { title: n.subject.title, type: n.subject.type },
+            repository: n.repository,
+          }));
+          if (this.lastGithubNotifications.length > 0) {
+            log.info({ count: this.lastGithubNotifications.length }, 'GitHub notifications cached for morning briefing');
+          }
+        } catch {
+          // Notifications are optional — don't fail the whole github_poll
+        }
       } catch (error: unknown) {
         this.eventBus.emit('system:error', {
           error: error instanceof Error ? error : new Error(String(error)),

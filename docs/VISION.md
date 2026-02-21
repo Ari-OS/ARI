@@ -54,6 +54,7 @@ This creates a fundamental gap: **AI that does things, but doesn't think about t
 ARI has a foundational layer dedicated to *how to think*, not just *what to do*:
 
 **LOGOS — Reason**
+
 - Bayesian belief updating
 - Expected value calculation
 - Kelly Criterion for optimal sizing
@@ -62,6 +63,7 @@ ARI has a foundational layer dedicated to *how to think*, not just *what to do*:
 - Antifragility assessment
 
 **ETHOS — Character**
+
 - Cognitive bias detection (10 types)
 - Emotional state monitoring (VAD model)
 - Fear/greed cycle recognition
@@ -69,6 +71,7 @@ ARI has a foundational layer dedicated to *how to think*, not just *what to do*:
 - Trading psychology patterns
 
 **PATHOS — Growth**
+
 - CBT-based cognitive reframing
 - Stoic dichotomy of control
 - Virtue ethics alignment
@@ -103,6 +106,7 @@ Every interaction teaches ARI. Every outcome is analyzed. Insights are extracted
 ### 4. Immutable Audit Trail
 
 Every decision is recorded in a SHA-256 hash chain:
+
 - What was decided
 - Why (cognitive analysis)
 - Who approved (governance)
@@ -143,6 +147,7 @@ The difference is between **doing** and **thinking before doing**.
 ## Who Is ARI For?
 
 ARI is for people who:
+
 - Make consequential decisions
 - Value systematic thinking
 - Want their AI to get smarter over time
@@ -157,16 +162,19 @@ ARI is **not** for people who just want a faster way to send messages.
 ## The Philosophy
 
 ### Shadow Integration (Jung)
+>
 > "What you suppress controls you. What you observe, you can understand."
 
 ARI doesn't hide failures. It logs them, analyzes them, and learns from them.
 
 ### Radical Transparency (Dalio)
+>
 > "Every operation is audited. Every decision is traceable."
 
 No black boxes. The audit trail is immutable.
 
 ### Ruthless Simplicity (Musashi)
+>
 > "Every line of code must justify its existence."
 
 Clarity over cleverness. If it doesn't serve the mission, it doesn't belong.
@@ -188,18 +196,21 @@ The emphasis is on *reasoning* — the cognitive layer that sits between input a
 ## The Future
 
 ### Near-term
+
 - Complete Cognitive Layer 0 implementation
 - Dashboard visualization of cognitive activity
 - Learning loop operational
 - 87 curated knowledge sources integrated
 
 ### Medium-term
+
 - Mobile interface (iOS/Android)
 - Multi-channel integration (via OpenClaw interop)
 - Team collaboration features
 - Enhanced visualization
 
 ### Long-term
+
 - Hosted ARI instances
 - API for third-party integration
 - Cognitive framework marketplace

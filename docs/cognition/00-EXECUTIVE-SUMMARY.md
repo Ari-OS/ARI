@@ -11,6 +11,7 @@
 ### Complete Design Documentation (350+ pages)
 
 **6 Architectural Decision Records (ADRs)**:
+
 1. ADR-009: Cognitive Layer Architecture (18 pages)
 2. ADR-010: Three-Pillar Framework (15 pages)
 3. ADR-011: Knowledge Source Trust Model (22 pages)
@@ -40,6 +41,7 @@
 ### The Three Pillars
 
 **LOGOS (Reason)** - Algorithmic decision-making:
+
 - Bayesian belief updating (update probabilities with evidence)
 - Expected value calculation (compare alternatives mathematically)
 - Kelly Criterion (optimal position sizing)
@@ -48,6 +50,7 @@
 - Antifragility (Nassim Taleb - gains from disorder)
 
 **ETHOS (Character)** - Emotional intelligence:
+
 - 10 cognitive biases detection (Kahneman, Tversky)
 - Emotional state monitoring (valence, arousal, dominance)
 - Fear/greed cycle detection (trading psychology - Mark Douglas)
@@ -56,6 +59,7 @@
 - Behavioral finance (Richard Thaler)
 
 **PATHOS (Growth)** - Continuous learning:
+
 - Therapeutic frameworks (CBT/DBT/ACT - Beck, Linehan, Hayes)
 - Stoic philosophy (Marcus Aurelius, Seneca, Epictetus)
 - Deliberate practice (Anders Ericsson - skill mastery)
@@ -72,6 +76,7 @@
 **Decisions**: Logical but not probabilistic, no bias awareness, no learning from outcomes
 
 **Example - MINT (Wealth) investment decision**:
+
 ```
 Risk score: 0.40 (medium)
 Recommendation: "Consider investing"
@@ -79,6 +84,7 @@ Reasoning: "Risk is acceptable"
 ```
 
 **Limitations**:
+
 - No expected value calculation
 - No Kelly Criterion for sizing
 - No bias detection (might be showing overconfidence)
@@ -92,6 +98,7 @@ Reasoning: "Risk is acceptable"
 **Decisions**: Probabilistic, bias-aware, emotionally intelligent, continuously improving
 
 **Example - MINT with Layer 0**:
+
 ```
 Expected Value: +$3,750 (positive)
 Kelly Criterion: Allocate 32.5% of capital (full Kelly) or 16.25% (half Kelly - recommended)
@@ -136,6 +143,7 @@ Final Recommendation:
 ```
 
 **Improvements**:
+
 - ✅ Mathematically sound (Bayesian, EV, Kelly)
 - ✅ Psychologically aware (detected euphoria, adjusted sizing)
 - ✅ Bias-checked (confirmed no major biases)
@@ -149,26 +157,32 @@ Final Recommendation:
 ### All 15 Members Gain Specialized Expertise
 
 **AEGIS** (Guardian): Risk psychology expert
+
 - Frameworks: Trading psychology, Taleb antifragility, Stoic courage
 - Benefit: Distinguishes real threats from fear-driven false alarms
 
 **SCOUT** (Risk): Quantitative risk expert
+
 - Frameworks: Expected value, Kelly Criterion, Bayesian probability
 - Benefit: Every risk quantified (not just "high/medium/low")
 
 **MINT** (Wealth): Behavioral finance expert
+
 - Frameworks: Kelly, behavioral finance biases, loss aversion mitigation
 - Benefit: Prevents emotional financial mistakes
 
 **PULSE** (Health): Therapeutic expert
+
 - Frameworks: CBT/DBT/ACT, wellness psychology
 - Benefit: Reframes health challenges, builds sustainable habits
 
 **BLOOM** (Growth): Meta-learning expert
+
 - Frameworks: Deliberate practice, spaced repetition
 - Benefit: Optimizes learning for any skill
 
 **VERA** (Ethics): Stoic philosophy expert
+
 - Frameworks: Dichotomy of control, virtue ethics
 - Benefit: Principled ethical guidance
 
@@ -181,11 +195,13 @@ Final Recommendation:
 **Current**: 10 technical sources (Anthropic, Node.js, TypeScript, OWASP)
 
 **Proposed**: 87 curated sources across cognitive domains:
+
 - 28 LOGOS sources (Bayesian, decision theory, systems thinking)
 - 24 ETHOS sources (trading psychology, bias research, emotional intelligence)
 - 35 PATHOS sources (CBT/DBT/ACT, Stoicism, meta-learning, wisdom)
 
 **Trust Distribution**:
+
 - VERIFIED: 58 sources (67%) - Official, academic, public domain classics
 - STANDARD: 29 sources (33%) - Reputable, editorial standards
 - UNTRUSTED: 0 (all curated, human review required before adding)
@@ -213,18 +229,21 @@ Final Recommendation:
 ## Success Metrics
 
 ### Immediate (After Phase 1 - LOGOS Prototype)
+
 - ✅ LOGOS functional (Bayesian + Expected Value working)
 - ✅ SCOUT demonstrates improved risk assessment
 - ✅ API response time <50ms
 - ✅ 90%+ test coverage
 
 ### After 30 Days (Full Deployment)
+
 - ✅ Decision quality >= 85% (vs 70% baseline)
 - ✅ Bias detection rate 10-15% (vs 0% currently)
 - ✅ All 15 Council members using cognitive APIs
 - ✅ Knowledge base contains 87 sources
 
 ### After 6 Months
+
 - ✅ Measurable improvement in decision quality month-over-month
 - ✅ Bias rate < 10% (continuous reduction)
 - ✅ Learning velocity >= 5 insights/week
@@ -235,6 +254,7 @@ Final Recommendation:
 ## Security Guarantees
 
 **All Existing Invariants Maintained**:
+
 1. ✅ Loopback-Only (Layer 0 doesn't bind to network)
 2. ✅ Content ≠ Command (knowledge is DATA, never executable)
 3. ✅ Audit Immutable (all cognitive operations logged)
@@ -242,6 +262,7 @@ Final Recommendation:
 5. ✅ Trust Required (sources use 4-tier trust model)
 
 **New Security Measures**:
+
 1. ✅ 5-stage validation pipeline (whitelist → sanitize → bias-check → fact-check → human review)
 2. ✅ Source diversity (5-10 sources per framework, no single point of failure)
 3. ✅ Provenance tracking (every piece of knowledge traceable to source)
@@ -305,11 +326,13 @@ Final Recommendation:
 ## The Vision
 
 **ARI transforms from**:
+
 - Multi-agent system with logical decision-making
 - Static knowledge (doesn't learn from outcomes)
 - No awareness of psychological factors
 
 **ARI transforms into**:
+
 - **Cognitively-enhanced Life Operating System**
 - Decisions backed by probability theory, psychology, and wisdom
 - Continuous learning and self-improvement

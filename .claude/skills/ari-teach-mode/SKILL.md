@@ -48,6 +48,7 @@ When discovering something worth knowing:
 ```
 
 Designed to be:
+
 - **Scannable** — Skip if in a hurry
 - **Contextual** — Tied to what we just did
 - **Reusable** — Patterns you can apply elsewhere

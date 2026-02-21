@@ -31,16 +31,18 @@
 
 ETHOS (ἦθος) - Greek for "character", "credibility", "ethics" - represents the **disciplined mind** that recognizes emotional and cognitive biases, then acts with discipline despite them.
 
-###Why Emotional Intelligence for AI?
+### Why Emotional Intelligence for AI?
 
 ARI makes decisions that affect a human's life (Pryce). Those decisions must account for **human psychology**:
 
 **Without ETHOS**:
+
 - "The math says invest $10K" (ignores that user just lost $5K yesterday and is emotional)
 - "EV is positive, proceed" (ignores confirmation bias in probability estimates)
 - "Kelly says 40%" (ignores that euphoria from recent wins is inflating confidence)
 
 **With ETHOS**:
+
 - "Math says $10K, but you lost $5K yesterday. Emotional risk is high (0.75). **Wait 24h**."
 - "EV is positive, but you're showing confirmation bias (only cited supporting evidence). **Seek contradicting evidence** first."
 - "Kelly says 40%, but recent win streak suggests euphoria. **Use quarter-Kelly** (10%) until emotional state normalizes."
@@ -86,25 +88,30 @@ ARI makes decisions that affect a human's life (Pryce). Those decisions must acc
 ### The Five Fundamental Truths (Douglas)
 
 **Truth 1: Anything can happen**
+
 - No matter how certain you are, any outcome is possible
 - 95% probability ≠ 100% (still 5% chance of opposite)
 - **Application**: Never be 100% confident, always prepare for surprise
 
 **Truth 2: You don't need to know what's going to happen next to make money**
+
 - You need an **edge** (probability advantage), not certainty
 - Win probability > 50% is enough (don't need to predict specific outcome)
 - **Application**: Focus on **process** (edge), not outcome (prediction)
 
 **Truth 3: There is a random distribution between wins and losses for any set of variables that define an edge**
+
 - Wins and losses come in random clusters
 - 5 losses in a row ≠ system is broken (could be normal variance)
 - **Application**: Don't abandon strategy after losses (unless edge is gone)
 
 **Truth 4: An edge is nothing more than an indication of a higher probability of one thing happening over another**
+
 - Edge doesn't guarantee wins (just makes them more likely)
 - **Application**: Accept losses as part of the game (they will happen)
 
 **Truth 5: Every moment in the market (or life) is unique**
+
 - Past patterns don't guarantee future outcomes
 - **Application**: Avoid over-fitting to past (each situation is new)
 
@@ -113,16 +120,19 @@ ARI makes decisions that affect a human's life (Pryce). Those decisions must acc
 ### Probabilistic Mindset
 
 **Shift from**:
+
 - "This WILL work" (certainty)
 - "I KNOW what will happen" (prediction)
 - "I'm RIGHT" (ego attachment)
 
 **Shift to**:
+
 - "This has 60% chance of working" (probability)
 - "I estimate outcomes, I don't predict them" (humility)
 - "I'm making a bet with positive EV, outcome is uncertain" (detachment)
 
 **Implementation**:
+
 ```typescript
 export interface ProbabilisticMindset {
   avoidsCertainty: boolean;       // Never says "definitely" or "always"
@@ -207,6 +217,7 @@ export async function assessMindset(
 **Douglas's Solution**: **Accept emotions exist, act according to rules anyway.**
 
 **Implementation**:
+
 ```
 1. Recognize emotion ("I'm feeling greedy")
 2. Acknowledge it's affecting judgment ("This is making me want to bet bigger")
@@ -225,11 +236,13 @@ export async function assessMindset(
 **Position Sizing Psychology** (Trade Your Way to Financial Freedom):
 
 **Expectancy**:
+
 ```
 Expectancy = (Win% × AvgWin) - (Loss% × AvgLoss)
 ```
 
 **Example**:
+
 ```
 System:
   Wins: 60% of trades, average $600 profit
@@ -243,6 +256,7 @@ Interpretation: This system makes $200 per trade on average.
 ```
 
 **R-Multiples** (Normalize to risk):
+
 ```
 If risking $100 per trade:
   Win: $600 profit = +6R
@@ -254,6 +268,7 @@ Expectancy = (0.60 × 6R) - (0.40 × 4R)
 ```
 
 **System Confidence**:
+
 ```
 How confident should you be in your system?
 
@@ -261,6 +276,7 @@ Confidence = Expectancy / (AvgWin + AvgLoss)
 ```
 
 **Application to ARI**:
+
 - Use **expectancy** to evaluate decision systems (is this approach working?)
 - Use **R-multiples** to normalize outcomes (big bets vs small bets)
 - Use **system confidence** to know when to scale up (high confidence) or down (low confidence)
@@ -282,6 +298,7 @@ Confidence = Expectancy / (AvgWin + AvgLoss)
 **Definition**: Seeking information that confirms existing beliefs, ignoring contradicting evidence.
 
 **Example**:
+
 ```
 Belief: "This investment will succeed"
 Search behavior:
@@ -291,6 +308,7 @@ Result: Overconfident (only saw one side)
 ```
 
 **Detection Pattern**:
+
 ```typescript
 function detectConfirmationBias(reasoning: string, context: Context): BiasDetection | null {
   // Pattern 1: Only cites supporting evidence
@@ -320,6 +338,7 @@ function detectConfirmationBias(reasoning: string, context: Context): BiasDetect
 ```
 
 **Mitigation**:
+
 - **Steel-manning**: Argue the OPPOSITE position as strongly as possible
 - **Falsification**: Look for evidence that would prove you WRONG
 - **Devil's advocate**: Ask another Council member to critique
@@ -331,6 +350,7 @@ function detectConfirmationBias(reasoning: string, context: Context): BiasDetect
 **Definition**: Continuing investment because of past costs (which are irrelevant to future decisions).
 
 **Example**:
+
 ```
 Decision: "I've already spent $10K on this project. Should I spend another $5K?"
 
@@ -340,6 +360,7 @@ Rational reasoning: "The past $10K is gone (sunk cost). Evaluate the NEW $5K dec
 ```
 
 **Detection Pattern**:
+
 ```typescript
 function detectSunkCostFallacy(reasoning: string): BiasDetection | null {
   // Phrases indicating sunk cost thinking
@@ -369,6 +390,7 @@ function detectSunkCostFallacy(reasoning: string): BiasDetection | null {
 ```
 
 **Mitigation**:
+
 - **Mental reset**: Imagine you have zero prior exposure, would you invest NOW?
 - **Opportunity cost**: What else could you do with those resources?
 - **Cutting losses**: Sometimes the best decision is to stop (exit discipline)
@@ -380,6 +402,7 @@ function detectSunkCostFallacy(reasoning: string): BiasDetection | null {
 **Definition**: Overweighting recent events, underweighting long-term history.
 
 **Example**:
+
 ```
 Market: Down 3 days in a row
 Recency biased: "Market is crashing, sell everything!"
@@ -387,6 +410,7 @@ Reality: Over 30 days, market is up 5% (3-day dip is noise)
 ```
 
 **Detection Pattern**:
+
 ```typescript
 function detectRecencyBias(reasoning: string, context: Context): BiasDetection | null {
   // Check if decision is based on very recent events (< 7 days)
@@ -418,6 +442,7 @@ function detectRecencyBias(reasoning: string, context: Context): BiasDetection |
 ```
 
 **Mitigation**:
+
 - **Zoom out**: Check 30-day, 90-day, 1-year trends
 - **Base rates**: What's the historical average?
 - **Sample size**: One data point ≠ trend
@@ -429,6 +454,7 @@ function detectRecencyBias(reasoning: string, context: Context): BiasDetection |
 **Definition**: Fear of losses is stronger than desire for equivalent gains. Losses hurt ~2x more than gains feel good.
 
 **Kahneman & Tversky Finding**:
+
 ```
 Would you take this bet?
   50% chance: Win $100
@@ -445,6 +471,7 @@ EV = +$50, but many still reject (loss aversion)
 ```
 
 **Detection Pattern**:
+
 ```typescript
 function detectLossAversion(reasoning: string, decision: Decision): BiasDetection | null {
   // Check if focusing on downside despite positive EV
@@ -474,6 +501,7 @@ function detectLossAversion(reasoning: string, decision: Decision): BiasDetectio
 ```
 
 **Mitigation**:
+
 - **Reframe**: Losses are **data**, not failures
 - **Expected value**: Focus on long-term average, not individual outcomes
 - **Kelly sizing**: Use proper position sizing (limits maximum loss)
@@ -487,12 +515,14 @@ function detectLossAversion(reasoning: string, decision: Decision): BiasDetectio
 **Dunning-Kruger Effect**: Incompetence → overconfidence (know just enough to be dangerous).
 
 **Example**:
+
 ```
 After reading one book on investing: "I understand the market now!"
 Reality: Read 1 book = know 1% of investing (far from expert)
 ```
 
 **Detection Pattern**:
+
 ```typescript
 function detectOverconfidence(reasoning: string, context: Context): BiasDetection | null {
   // Pattern 1: Uses absolute language
@@ -522,6 +552,7 @@ function detectOverconfidence(reasoning: string, context: Context): BiasDetectio
 ```
 
 **Mitigation**:
+
 - **Confidence intervals**: Instead of "70%", say "60-80% range"
 - **Base rates**: "How often do similar things succeed?" (outside view)
 - **Pre-mortem**: "Assume this failed. What went wrong?" (forces consideration of failure modes)
@@ -552,10 +583,12 @@ function detectOverconfidence(reasoning: string, context: Context): BiasDetectio
 ### Russell's Circumplex Model
 
 **Two Dimensions**:
+
 1. **Valence**: Negative (-1) ← → Positive (+1)
 2. **Arousal**: Low (0) ← → High (1)
 
 **Four Quadrants**:
+
 ```
           High Arousal (1.0)
                  ↑
@@ -574,6 +607,7 @@ Negative ←───────┼───────→ Positive (Valence)
 ```
 
 **Third Dimension**: **Dominance** (Mehrabian)
+
 - 0.0 = Powerless, out of control
 - 1.0 = In control, empowered
 
@@ -582,6 +616,7 @@ Negative ←───────┼───────→ Positive (Valence)
 ### Emotional Risk Calculation
 
 **Formula**:
+
 ```typescript
 function calculateEmotionalRisk(state: EmotionalState): number {
   // High arousal = risky (whether positive or negative)
@@ -604,6 +639,7 @@ function calculateEmotionalRisk(state: EmotionalState): number {
 ```
 
 **Risk Thresholds**:
+
 - **< 0.30**: Safe (calm, rational state)
 - **0.30 - 0.60**: Caution (elevated emotion, consider waiting)
 - **> 0.60**: High risk (delay decision, seek second opinion)
@@ -815,6 +851,7 @@ function mapToEmotions(
 #### Pattern 1: Fear Spiral
 
 **Signature**:
+
 ```
 T0: Loss (-$500)
 T1: Small bet ($100, down from usual $500) - FEAR
@@ -827,6 +864,7 @@ Diagnosis: Fear spiral (one loss → persistent risk avoidance)
 ```
 
 **Detection Algorithm**:
+
 ```typescript
 function detectFearSpiral(
   decisions: Decision[],
@@ -886,6 +924,7 @@ function detectFearSpiral(
 #### Pattern 2: Greed Chase
 
 **Signature**:
+
 ```
 T0: Win (+$800)
 T1: Bigger bet ($1,200, up from usual $500) - GREED
@@ -897,6 +936,7 @@ Diagnosis: Greed chase (wins → overconfidence → excessive bets → crash)
 ```
 
 **Detection Algorithm**:
+
 ```typescript
 function detectGreedChase(
   decisions: Decision[],
@@ -945,6 +985,7 @@ function detectGreedChase(
 #### Pattern 3: Revenge Trading
 
 **Signature**:
+
 ```
 T0: Loss (-$500)
 T1: Immediately after, larger bet ($1,500) - "I'll make it back"
@@ -954,6 +995,7 @@ Diagnosis: Revenge trading (anger → aggressive bet → bigger loss)
 ```
 
 **Detection Algorithm**:
+
 ```typescript
 function detectRevenge Trading(
   decisions: Decision[],
@@ -1013,6 +1055,7 @@ function detectRevenge Trading(
 **Self-Control Research**: "Willpower is finite. Systems > willpower."
 
 **Problem**: Relying on willpower fails:
+
 - Willpower depletes throughout day (ego depletion)
 - Emotions override willpower (fear/greed > discipline)
 - Cognitive biases distort willpower ("I'm special, rules don't apply to me")
@@ -1136,12 +1179,14 @@ export async function checkDiscipline(
 **Decision**: Invest $50,000 (major allocation)
 
 **Context**:
+
 - Time: 2:30 AM
 - Recent: Lost $5,000 yesterday
 - Sleep: 4 hours last night
 - Research: Read 1 article
 
 **Discipline Check**:
+
 ```json
 {
   "physicalState": {
@@ -1211,6 +1256,7 @@ export async function checkDiscipline(
 **Definition**: Treating money differently based on arbitrary categories.
 
 **Example**:
+
 ```
 Scenario: Win $1,000 at casino
 
@@ -1224,6 +1270,7 @@ Rational Accounting:
 ```
 
 **Detection**:
+
 ```typescript
 function detectMentalAccounting(reasoning: string): BiasDetection | null {
   const mentalAccountingPhrases = [
@@ -1253,6 +1300,7 @@ function detectMentalAccounting(reasoning: string): BiasDetection | null {
 **Definition**: Valuing something more once you own it.
 
 **Example**:
+
 ```
 Scenario: You buy stock at $100. It drops to $80.
 
@@ -1267,6 +1315,7 @@ Rational:
 ```
 
 **Detection**:
+
 ```typescript
 function detectEndowmentEffect(reasoning: string): BiasDetection | null {
   const endowmentPhrases = [
@@ -1296,6 +1345,7 @@ function detectEndowmentEffect(reasoning: string): BiasDetection | null {
 ### Primary Sources (VERIFIED)
 
 **Trading Psychology**:
+
 1. **Mark Douglas - Trading in the Zone** (2000)
    - Probabilistic mindset, discipline, emotional regulation
    - 5 fundamental truths
@@ -1308,26 +1358,29 @@ function detectEndowmentEffect(reasoning: string): BiasDetection | null {
 
 **Cognitive Biases**:
 4. **Daniel Kahneman - Thinking, Fast and Slow** (2011)
-   - Comprehensive catalog of biases
-   - System 1 (fast, emotional) vs System 2 (slow, rational)
 
-5. **Amos Tversky & Daniel Kahneman - Prospect Theory** (1979 paper)
+- Comprehensive catalog of biases
+- System 1 (fast, emotional) vs System 2 (slow, rational)
+
+1. **Amos Tversky & Daniel Kahneman - Prospect Theory** (1979 paper)
    - Loss aversion, framing effects
    - Original research
 
 **Behavioral Finance**:
 6. **Richard Thaler - Misbehaving** (2015)
-   - Behavioral economics applied to finance
-   - Mental accounting, endowment effect
 
-7. **Richard Thaler - Nudge** (2008)
+- Behavioral economics applied to finance
+- Mental accounting, endowment effect
+
+1. **Richard Thaler - Nudge** (2008)
    - Choice architecture, decision environments
 
 **Emotional Intelligence**:
 8. **Daniel Goleman - Emotional Intelligence** (1995)
-   - Self-awareness, self-regulation, empathy
 
-9. **James Gross - Emotion Regulation Research**
+- Self-awareness, self-regulation, empathy
+
+1. **James Gross - Emotion Regulation Research**
    - Academic papers on emotion regulation strategies
 
 **Loss Aversion**:
@@ -1337,9 +1390,9 @@ function detectEndowmentEffect(reasoning: string): BiasDetection | null {
 
 ### Supplementary Sources (STANDARD)
 
-11. **Trading psychology blogs** (curated, VERIFIED authors only)
-12. **Behavioral economics journals**
-13. **Psychology Today** (professional psychologists)
+1. **Trading psychology blogs** (curated, VERIFIED authors only)
+2. **Behavioral economics journals**
+3. **Psychology Today** (professional psychologists)
 
 **Total ETHOS Sources**: ~22 sources
 
@@ -1350,6 +1403,7 @@ function detectEndowmentEffect(reasoning: string): BiasDetection | null {
 ### Phase 1: Core Bias Detection (Week 1-2)
 
 **Implement**:
+
 1. 10 cognitive biases detection functions
 2. Bias severity scoring
 3. Mitigation recommendations
@@ -1361,6 +1415,7 @@ function detectEndowmentEffect(reasoning: string): BiasDetection | null {
 ### Phase 2: Emotional State (Week 2-3)
 
 **Implement**:
+
 1. Valence/arousal/dominance estimation
 2. Emotional risk calculation
 3. Recommendation engine
@@ -1372,6 +1427,7 @@ function detectEndowmentEffect(reasoning: string): BiasDetection | null {
 ### Phase 3: Fear/Greed Cycles (Week 3-4)
 
 **Implement**:
+
 1. Pattern detection (fear spiral, greed chase, revenge trading)
 2. Historical pattern tracking
 3. Breaking mechanisms
@@ -1383,6 +1439,7 @@ function detectEndowmentEffect(reasoning: string): BiasDetection | null {
 ### Phase 4: Discipline Systems (Week 4-5)
 
 **Implement**:
+
 1. Pre-decision checklist
 2. Cooling-off period enforcement
 3. Rule compliance checking
@@ -1396,21 +1453,25 @@ function detectEndowmentEffect(reasoning: string): BiasDetection | null {
 ### Primary ETHOS Users
 
 **AEGIS** (Guardian):
+
 - Uses: Trading psychology (risk perception), bias detection (threat assessment)
 - Frequency: Daily (every threat analysis)
 - Benefit: Distinguishes real threats from fear-driven false alarms
 
 **MINT** (Wealth):
+
 - Uses: All frameworks (trading psych, biases, emotional state, fear/greed, discipline)
 - Frequency: Daily (every financial decision)
 - Benefit: Prevents emotional financial mistakes
 
 **SCOUT** (Risk):
+
 - Uses: Bias detection, emotional state (adjusts risk estimates for emotion)
 - Frequency: Daily
 - Benefit: More accurate risk assessment (accounts for psychological factors)
 
 **EMBER** (Relationships):
+
 - Uses: Emotional intelligence, empathy, communication psychology
 - Frequency: Weekly
 - Benefit: Better relationship decisions

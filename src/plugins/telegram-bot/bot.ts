@@ -237,9 +237,9 @@ export function createBot(deps: BotDependencies): Bot {
 
     // ── Video pipeline approval commands ────────────────────────────────
     // Patterns: "approve <id>", "reject <id>", "edit <id> [feedback]"
-    const approveMatch = /^approve\s+([a-f0-9-]{8,})/i.exec(text);
-    const rejectMatch = /^reject\s+([a-f0-9-]{8,})/i.exec(text);
-    const editMatch = /^edit\s+([a-f0-9-]{8,})\s*(.*)/is.exec(text);
+    const approveMatch = text.match(/^approve\s+([a-f0-9-]{8,})/i);
+    const rejectMatch = text.match(/^reject\s+([a-f0-9-]{8,})/i);
+    const editMatch = text.match(/^edit\s+([a-f0-9-]{8,})\s*(.*)/is);
 
     if (approveMatch?.[1] ?? rejectMatch?.[1] ?? editMatch?.[1]) {
       const requestId = (approveMatch?.[1] ?? rejectMatch?.[1] ?? editMatch?.[1])!;
@@ -347,6 +347,19 @@ export function createBot(deps: BotDependencies): Bot {
 
     // Handle the action
     switch (action) {
+      case 'councilApprove':
+      case 'councilReject':
+      case 'councilAbstain': {
+        const option = action === 'councilApprove' ? 'APPROVE' : action === 'councilReject' ? 'REJECT' : 'ABSTAIN';
+        eventBus.emit('telegram:council_vote', {
+          voteId: notificationId,
+          agent: 'operator',
+          option,
+        });
+        await ctx.answerCallbackQuery({ text: `Voted: ${option}` });
+        break;
+      }
+
       case 'ack': {
         if (record) {
           // Transition to ACKNOWLEDGED if in valid state

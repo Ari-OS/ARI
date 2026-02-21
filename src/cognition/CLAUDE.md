@@ -19,6 +19,7 @@ Layer 0: Cognitive (trimmed to essentials)
 ```
 
 **Additional modules** (active):
+
 - `knowledge/` — Cognitive source management (5 files: cognitive-sources, content-validator, source-manager, specializations, index)
 - `learning/` — Self-improvement subsystem (7 files: decision-journal, calibration-tracker, gap-analysis, learning-loop, performance-review, self-assessment, index)
 

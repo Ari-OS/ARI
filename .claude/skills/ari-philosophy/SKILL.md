@@ -13,11 +13,13 @@ Four philosophical frameworks guide every ARI decision.
 Every decision is traceable and auditable. No hidden state.
 
 **Principles**:
+
 - All operations logged with full context
 - No unexplained actions
 - Honest feedback, even when uncomfortable
 
 **Code Pattern**:
+
 ```typescript
 // ✅ CORRECT: Audit state changes
 this.eventBus.emit('audit:log', {
@@ -35,11 +37,13 @@ this.state = newState;
 Acknowledge and integrate difficult information. Don't suppress.
 
 **Principles**:
+
 - Surface potential risks proactively
 - Don't suppress warnings or concerns
 - Learn from failures without shame
 
 **Code Pattern**:
+
 ```typescript
 // ✅ CORRECT: Log and integrate threats
 if (riskScore > 0.8) {
@@ -56,11 +60,13 @@ if (riskScore > 0.8) return;
 Every action must justify its existence. Prefer clarity over cleverness.
 
 **Principles**:
+
 - One correct solution over many mediocre ones
 - Eliminate waste in thought and action
 - Every line of code earns its place
 
 **Code Pattern**:
+
 ```typescript
 // ✅ CORRECT: Clear and straightforward
 async processMessage(msg: Message): Promise<void> {
@@ -77,11 +83,13 @@ const processMessage = pipe(sanitize, validate, transform, route);
 Gain strength from adversity. Embrace controlled chaos for growth.
 
 **Principles**:
+
 - Build redundancy where failure is catastrophic
 - Learn faster from small failures than large successes
 - Use stress tests to strengthen the system
 
 **Code Pattern**:
+
 ```typescript
 // ✅ CORRECT: Circuit breaker with learning
 if (failureCount > threshold) {

@@ -1,4 +1,5 @@
 # 📋 CHANGELOG
+
 ## ARI Version History
 
 ---
@@ -6,9 +7,11 @@
 # [12.0.0] - 2026-01-26 (Aurora Protocol)
 
 ## 🎯 Release Summary
+
 Major upgrade implementing universal Life OS architecture with complete security hardening. This release removes all business-specific content from the kernel, implements comprehensive prompt injection defenses, and establishes formal governance protocols.
 
 ## ⚠️ BREAKING CHANGES
+
 - Business content removed from CORE.md (moved to /CONTEXTS/ventures/)
 - Context loading is now dynamic, not static
 - Memory schema updated with new required fields
@@ -17,9 +20,11 @@ Major upgrade implementing universal Life OS architecture with complete security
 ---
 
 ## Patch 1: Business Content Extraction (Universality)
+
 **Status:** ✅ COMPLETE
 
 ### Changes
+
 - Removed all personal venture references from CORE.md (lines 309-330)
 - Created `/CONTEXTS/ventures/_TEMPLATE.md` for business content
 - Created `/CONTEXTS/life/` domain contexts:
@@ -34,6 +39,7 @@ Major upgrade implementing universal Life OS architecture with complete security
 - Kernel is now 100% business-agnostic
 
 ### Acceptance Criteria
+
 - [x] Kernel/system prompts contain ZERO business references
 - [x] Context packs exist and are the only place business content lives
 - [x] Router never loads venture packs implicitly
@@ -41,9 +47,11 @@ Major upgrade implementing universal Life OS architecture with complete security
 ---
 
 ## Patch 2: Prompt Injection Defense
+
 **Status:** ✅ COMPLETE
 
 ### Changes
+
 - Created GUARDIAN.md with Trust Sanitizer layer
 - Implemented 6 categories of injection pattern detection
 - Added risk scoring system
@@ -52,6 +60,7 @@ Major upgrade implementing universal Life OS architecture with complete security
 - Created 20 prompt injection red-team tests
 
 ### Acceptance Criteria
+
 - [x] Injection attempts do not trigger tool actions
 - [x] Injection attempts do not trigger memory writes
 - [x] Injection attempts do not bypass policy
@@ -60,9 +69,11 @@ Major upgrade implementing universal Life OS architecture with complete security
 ---
 
 ## Patch 3: Tool Registry Deny-by-Default
+
 **Status:** ✅ COMPLETE
 
 ### Changes
+
 - Created `/CONFIG/tool_registry.json` with deny-by-default policy
 - Defined 4 permission tiers: READ_ONLY, WRITE_SAFE, WRITE_DESTRUCTIVE, ADMIN
 - Implemented blocked tool-chain detection
@@ -70,6 +81,7 @@ Major upgrade implementing universal Life OS architecture with complete security
 - Created 15 tool misuse/privilege escalation tests
 
 ### Acceptance Criteria
+
 - [x] Tool execution without allowlist = denied + logged + escalated
 - [x] Blocked chains detected and prevented
 - [x] All 15 tool tests pass
@@ -77,9 +89,11 @@ Major upgrade implementing universal Life OS architecture with complete security
 ---
 
 ## Patch 4: Hierarchical System Prompts
+
 **Status:** ✅ COMPLETE
 
 ### Changes
+
 - Restructured prompt hierarchy:
   - `/SYSTEM/CORE.md` - Kernel identity + invariants
   - `/GOVERNANCE/` - Arbiter, Overseer, Governance rules
@@ -92,6 +106,7 @@ Major upgrade implementing universal Life OS architecture with complete security
 - Added plan → diff → approve → execute flow
 
 ### Acceptance Criteria
+
 - [x] No role confusion / role drift
 - [x] Router cannot execute tools
 - [x] Planner cannot execute tools
@@ -100,9 +115,11 @@ Major upgrade implementing universal Life OS architecture with complete security
 ---
 
 ## Patch 5: Governance Voting Rules
+
 **Status:** ✅ COMPLETE
 
 ### Changes
+
 - Created `/GOVERNANCE/GOVERNANCE.md` with complete voting rules
 - Defined quorum: Standard (5/9), Significant (7/9), Critical (9/9 unanimous)
 - Documented Arbiter scope (blocks policy breaches, cannot override operator)
@@ -111,6 +128,7 @@ Major upgrade implementing universal Life OS architecture with complete security
 - Added emergency stop and appeal protocols
 
 ### Acceptance Criteria
+
 - [x] No ambiguous authority boundaries
 - [x] Deadlock is resolvable
 - [x] Emergency stop documented
@@ -118,9 +136,11 @@ Major upgrade implementing universal Life OS architecture with complete security
 ---
 
 ## Patch 6: Memory Provenance & Poisoning Defense
+
 **Status:** ✅ COMPLETE
 
 ### Changes
+
 - Created `/SCHEMAS/memory_entry.json` with full provenance fields
 - Implemented memory partitions:
   - KERNEL (immutable)
@@ -134,6 +154,7 @@ Major upgrade implementing universal Life OS architecture with complete security
 - Created 15 memory poisoning tests
 
 ### Acceptance Criteria
+
 - [x] Poisoning attempts never become trusted memory
 - [x] Memory can be rolled back via audit log
 - [x] All 15 memory tests pass
@@ -141,9 +162,11 @@ Major upgrade implementing universal Life OS architecture with complete security
 ---
 
 ## Patch 7: Tamper-Evident Audit Logging
+
 **Status:** ✅ COMPLETE
 
 ### Changes
+
 - Created `/SCHEMAS/event.json` with canonical event schema
 - Implemented hash chaining for tamper evidence
 - Added previous_hash and sequence_number fields
@@ -151,6 +174,7 @@ Major upgrade implementing universal Life OS architecture with complete security
 - Created verification protocol
 
 ### Acceptance Criteria
+
 - [x] Tampering is detectable via hash chain
 - [x] All event types covered in schema
 - [x] Restore procedure documented
@@ -158,9 +182,11 @@ Major upgrade implementing universal Life OS architecture with complete security
 ---
 
 ## Patch 8: Self-Improvement Governance
+
 **Status:** ✅ COMPLETE
 
 ### Changes
+
 - Added self-improvement pipeline to GOVERNANCE.md
 - Enforced: proposal → council review → arbiter signoff → merge → regression tests
 - Prohibited autonomous policy rewrites
@@ -168,6 +194,7 @@ Major upgrade implementing universal Life OS architecture with complete security
 - Added improvement checklist
 
 ### Acceptance Criteria
+
 - [x] Self-improvement requires governance
 - [x] Regression suite required pre-merge
 - [x] No autonomous policy changes
@@ -198,6 +225,7 @@ Major upgrade implementing universal Life OS architecture with complete security
 ## 📁 Files Changed/Added
 
 ### New Files
+
 - `/CONTEXTS/ventures/_TEMPLATE.md`
 - `/CONTEXTS/life/*.md` (7 files)
 - `/CONTEXTS/README.md`
@@ -216,11 +244,13 @@ Major upgrade implementing universal Life OS architecture with complete security
 - `/TESTS/TEST_SUITE.md`
 
 ### Modified Files
+
 - CORE.md (business content removed)
 
 ---
 
 ## 🔖 Version Tags
+
 - **v12.0.0** - Aurora Protocol release
 - **v12.0.0-rc1** - Release candidate
 
@@ -231,6 +261,7 @@ Major upgrade implementing universal Life OS architecture with complete security
 Security hardening release implementing Perplexity audit recommendations.
 
 ## Changes
+
 - Added immutable system instructions section
 - Implemented injection pattern detection
 - Added trust boundary enforcement

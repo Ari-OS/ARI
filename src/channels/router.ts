@@ -159,13 +159,14 @@ export class ChannelRouter {
     // Sanitize the message content (Content ≠ Command principle)
     const sanitizeResult = sanitize(message.content, message.trustLevel);
 
-    if (!sanitizeResult.safe) {
-      // Log security event but continue with sanitized content
-      await this.audit.log('channel_message_sanitized', 'system', message.trustLevel, {
+    if (!sanitizeResult.safe || sanitizeResult.riskScore >= 0.8) {
+      // Log security event and strictly drop the message
+      await this.audit.log('channel_message_blocked', 'system', message.trustLevel, {
         channelId: message.channelId,
         senderId: message.senderId,
         threats: sanitizeResult.threats,
         riskScore: sanitizeResult.riskScore,
+        action: 'dropped'
       });
 
       this.eventBus.emit('security:detected', {
@@ -178,12 +179,13 @@ export class ChannelRouter {
           senderId: message.senderId,
           threats: sanitizeResult.threats,
           riskScore: sanitizeResult.riskScore,
+          action: 'dropped'
         },
         mitigated: true,
       });
 
-      // Use sanitized content
-      message = { ...message, content: sanitizeResult.sanitizedContent };
+      // Strict enforcement: Drop the message, do not proceed
+      return;
     }
 
     // Get or create session

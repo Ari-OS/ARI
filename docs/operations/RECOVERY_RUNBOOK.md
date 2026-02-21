@@ -37,6 +37,7 @@ scripts/macos/install.sh
 ```
 
 **If the daemon keeps crashing**: Check `~/.ari/logs/gateway-stderr.log` for the error. Common causes:
+
 - Port 3141 already in use: `lsof -i :3141` then kill the process
 - Missing environment variables: Check `~/ARI/.env` exists
 - Build corruption: `npm run build` to rebuild
@@ -241,6 +242,7 @@ curl http://127.0.0.1:3141/health
 ## Emergency Contacts
 
 If ARI sends a P0 alert:
+
 1. Check the specific error in the alert message
 2. Follow the relevant procedure above
 3. If unable to resolve, check `~/.ari/logs/gateway-stderr.log`

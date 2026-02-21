@@ -85,6 +85,7 @@ async verifyAuditChain(): Promise<VerificationResult> {
 ## Security Alerts
 
 If verification fails:
+
 1. **DO NOT** proceed with normal operations
 2. **LOG** the failure with full details
 3. **ALERT** via EventBus: `security:audit_tampered`

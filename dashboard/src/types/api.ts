@@ -5,7 +5,7 @@ export type TrustLevel = 'SYSTEM' | 'OPERATOR' | 'VERIFIED' | 'STANDARD' | 'TRUS
 export type MemoryType = 'FACT' | 'TASK' | 'GOAL' | 'INTERACTION';
 export type MemoryPartition = 'PUBLIC' | 'PRIVATE' | 'QUARANTINE';
 export type AgentType = 'GUARDIAN' | 'PLANNER' | 'EXECUTOR' | 'MEMORY_MANAGER' | 'CORE';
-export type ProposalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
+export type ProposalStatus = 'OPEN' | 'PASSED' | 'FAILED' | 'EXPIRED' | 'VETOED';
 
 export interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';

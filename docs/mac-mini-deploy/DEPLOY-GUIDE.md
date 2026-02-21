@@ -60,6 +60,7 @@ npm test
 ## Step 8: Deploy Workspace Files
 
 From your MacBook (separate terminal):
+
 ```bash
 scp -i ~/.ssh/id_ed25519 ~/.ari/workspace/*.md ari@100.81.73.34:~/.ari/workspace/
 ```
@@ -123,6 +124,7 @@ curl -s http://127.0.0.1:3141/api/scheduler/next | jq .
 ## Rollback
 
 If something goes wrong:
+
 ```bash
 cd /Users/ari/ARI
 git log --oneline -5  # Find last known good commit

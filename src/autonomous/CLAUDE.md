@@ -69,6 +69,7 @@ Proactive agent capabilities: scheduling, briefings, market intelligence, conten
 ## Market Intelligence
 
 Thresholds (Phase 1 — Feb 2026):
+
 - Crypto: 7% daily / 15% weekly (BTC 7%, ETH 10%, SOL 10%)
 - Stock: 3% daily / 8% weekly
 - ETF: 2% daily / 5% weekly

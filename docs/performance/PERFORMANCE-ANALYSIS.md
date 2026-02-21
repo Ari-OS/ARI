@@ -76,33 +76,39 @@ ARI demonstrates a well-architected but increasingly complex autonomous system w
 ### Bottlenecks Identified
 
 #### 1. Knowledge Index Rebuild (~300ms)
+
 **Location**: `/Users/ari/ARI/src/autonomous/knowledge-index.ts`
 **Impact**: 10.7% of startup time
 **Root Cause**: Full TF-IDF index recalculation on every startup with no incremental loading
 
 **Recommendation**:
+
 - Implement persistent index serialization (Protocol Buffers or binary format)
 - Lazy-load index on first query rather than at startup
 - Expected gain: 250ms reduction (8.9% startup improvement)
 - Risk: Low (backward compatible with fallback)
 
 #### 2. Market Monitor Baseline Load (~150ms)
+
 **Location**: `/Users/ari/ARI/src/autonomous/market-monitor.ts:124-140` (RollingBaseline)
 **Impact**: 5.4% of startup time
 **Root Cause**: Parsing all historical price snapshots from JSON files
 
 **Recommendation**:
+
 - Use SQLite with indexed queries instead of in-memory JSON parsing
 - Load only last 7 days on startup, lazy-load older data on demand
 - Expected gain: 120ms reduction (4.3% startup improvement)
 - Risk: Low (new schema can coexist with old format)
 
 #### 3. Scheduler Cron Expression Parsing (~150ms)
+
 **Location**: `/Users/ari/ARI/src/autonomous/scheduler.ts:58-126` (parseCronExpression)
 **Impact**: 5.4% of startup time
 **Root Cause**: 35 tasks × cron parsing + next-run calculations for all
 
 **Recommendation**:
+
 - Pre-compute and cache next-run times from previous session state
 - Use memoized parsing with LRU cache (max 50 expressions)
 - Expected gain: 100ms reduction (3.6% startup improvement)
@@ -127,6 +133,7 @@ ARI demonstrates a well-architected but increasingly complex autonomous system w
 ### Critical Analysis
 
 **Scheduler State** (`/Users/ari/ARI/src/autonomous/scheduler.ts:131-573`):
+
 - **Total tasks**: 43 active tasks
 - **Essential tasks** (budget-proof): 10 tasks
 - **Non-essential tasks**: 33 tasks
@@ -215,6 +222,7 @@ const optimized = coordinator.optimizeSchedule(tasks, {
 ```
 
 **Expected Improvements**:
+
 - Reduce peak concurrency from 3 to 1-2 tasks
 - Eliminate API quota contention
 - Reduce memory spikes by 40%
@@ -246,6 +254,7 @@ private async runTask(taskId: string): Promise<void> {
 ```
 
 **Expected Improvements**:
+
 - Identify slow tasks (outliers >2σ from mean)
 - Trigger optimization alerts when tasks exceed budget
 - Build historical performance baseline
@@ -287,6 +296,7 @@ class XCreditClient {
 ```
 
 #### Pricing Model (Feb 2026)
+
 - Posts Read: $0.005/resource
 - User Read: $0.010/resource
 - Content Create: $0.010/request
@@ -297,6 +307,7 @@ class XCreditClient {
 #### Rate Limiting Analysis
 
 **CoinGecko API** (`/Users/ari/ARI/src/plugins/crypto/api-client.ts`):
+
 ```typescript
 const MAX_TOKENS = 25;              // tokens
 const REFILL_INTERVAL_MS = 60_000;  // 1 minute refill cycle
@@ -304,6 +315,7 @@ const REFILL_INTERVAL_MS = 60_000;  // 1 minute refill cycle
 ```
 
 **Token bucket implementation**:
+
 - ✅ Correct: Refills at 25 tokens/minute
 - ⚠️ Issue: No burst handling (immediate rejection if tokens=0)
 - ⚠️ Issue: No exponential backoff on API errors
@@ -328,6 +340,7 @@ async cachedFetch<T>(key: string, endpoint: string): Promise<T> {
 **Estimated Deduplication Rate**: 35-45% (based on historical patterns)
 
 **Analysis**:
+
 - Portfolio queries repeated 2-3× daily during market hours
 - Intelligence scan may call same endpoints as life monitor
 - Market monitor and portfolio tracker overlap on crypto prices
@@ -365,11 +378,13 @@ export class SharedApiCache {
 ```
 
 **Integration points**:
+
 - MarketMonitor → SharedApiCache (crypto prices)
 - IntelligenceScanner → SharedApiCache (news feeds)
 - PortfolioTracker → SharedApiCache (portfolio data)
 
 **Expected improvements**:
+
 - Deduplication: 45-50% → 55-65% (additional 10-15% savings)
 - X API monthly savings: $40-60/month
 - CoinGecko rate limit headroom: +5 req/min
@@ -396,6 +411,7 @@ private async executeWithRetry<T>(fn: () => Promise<T>): Promise<T> {
 ```
 
 **Expected improvements**:
+
 - Reduce transient API failure propagation
 - Preserve rate limit tokens during network hiccups
 - Estimated success rate improvement: 98% → 99.5%
@@ -449,6 +465,7 @@ Weighted average:                                  | 65% ✓
 ```
 
 **Bottleneck**: Content engine has only 55% hit ratio due to:
+
 1. Unique queries per content piece
 2. Short TTL (12h) due to content staleness
 3. No semantic caching (exact query matching only)
@@ -484,6 +501,7 @@ class SemanticCache {
 ```
 
 **Expected improvements**:
+
 - Content engine hit ratio: 55% → 75% (20% gain)
 - Overall hit ratio: 65% → 76% (+11%)
 - Query latency: 8-12ms → 4-6ms (-50%)
@@ -511,6 +529,7 @@ export class TieredCache {
 ```
 
 **Expected improvements**:
+
 - Memory efficiency: 18MB → 12MB (-33%)
 - Warm cache access: <1ms
 - LRU churn reduction: 15% less overhead
@@ -659,6 +678,7 @@ class AuditLogger {
 ```
 
 **Expected improvements**:
+
 - Event emit latency: 1.0-1.5ms → 0.2-0.3ms (-80%)
 - Audit throughput: 100 events/sec → 2000+ events/sec
 - Event loop blockage: 1.2ms → 0.05ms peak
@@ -691,11 +711,13 @@ class EventBus {
 ```
 
 **Classification**:
+
 - **Critical** (security, audit): Guardian threats, audit logs
 - **Standard** (observability, internal): Cost tracking, metrics
 - **Deferred** (non-blocking): Notifications, optional handlers
 
 **Expected improvements**:
+
 - P0 event latency: 0.5-1.0ms
 - System latency reduction: 5-10% on critical paths
 
@@ -799,6 +821,7 @@ async generateDraftStreaming(topic: string): Promise<ContentDraft> {
 ```
 
 **Expected improvements**:
+
 - Time-to-first-token: 8-12s → 2-3s (70% latency reduction for UI)
 - User feedback loop: enables real-time preview
 - Better error handling: catch issues mid-stream
@@ -820,6 +843,7 @@ async fetchContext(topic: string): Promise<ContentContext> {
 ```
 
 **Expected improvements**:
+
 - Context fetch: 5-6s sequential → 1.5-2s parallel (-70%)
 - Total pipeline: 13-17s → 9-14s (-25%)
 
@@ -843,6 +867,7 @@ async generateDraft(topic: string, forceRefresh = false): Promise<ContentDraft> 
 ```
 
 **Expected improvements**:
+
 - Cache hit latency: 9-14s → 0.5-1.0ms
 - Cache hit ratio (estimated): 25-35% of requests
 
@@ -932,6 +957,7 @@ private async poll(): Promise<void> {
 ```
 
 **Expected improvements**:
+
 - Reduce unnecessary polling when no work queued
 - Lower CPU usage: 10-15% → 2-5%
 - Faster response to new tasks: maintain <5s latency for urgent items
@@ -959,6 +985,7 @@ private async pollUntilEmpty(): Promise<void> {
 ```
 
 **Expected improvements**:
+
 - Task latency: Depends on queue position
 - Better queuing behavior: FIFO vs LIFO balance
 - Event-driven feels more responsive
@@ -1010,6 +1037,7 @@ routeNotification()
 ```
 
 **Critical path** (P1 during work hours):
+
 - Scoring: 5-8ms
 - Telegram send: 50-100ms
 - Notion send: 200-300ms
@@ -1084,6 +1112,7 @@ class NotificationManager {
 ```
 
 **Expected improvements**:
+
 - Notion I/O moved to background (non-blocking)
 - notify() latency: 255-408ms → 55-110ms (-75%)
 - Batch write efficiency: 300ms/entry → 30ms/entry (-90%)
@@ -1110,6 +1139,7 @@ class CachedPriorityScorer {
 ```
 
 **Expected improvements**:
+
 - Priority scoring: 5-8ms → 1-2ms (75% reduction)
 - Repeated category handling: near-instant
 
@@ -1172,21 +1202,25 @@ class BatchedTelegramSender {
 ## Implementation Roadmap
 
 ### Phase 1 (Week 1): Critical Fixes
+
 1. Async audit buffering (EventBus)
 2. Deferred Notion writes (NotificationManager)
 3. Scheduler coordinator (identify conflicts)
 
 ### Phase 2 (Week 2): Performance Enhancements
+
 1. Knowledge index persistence
 2. Unified API cache
 3. Adaptive poll interval
 
 ### Phase 3 (Week 3): Content & UX
+
 1. Streaming content drafts
 2. Semantic cache layer
 3. Context-aware preloading
 
 ### Phase 4 (Week 4): Monitoring & Validation
+
 1. Performance telemetry (all subsystems)
 2. Benchmarking suite
 3. Regression testing
@@ -1211,6 +1245,7 @@ class BatchedTelegramSender {
 ## References
 
 **Files Analyzed**:
+
 - `/Users/ari/ARI/src/autonomous/scheduler.ts` (35 tasks, cron parsing)
 - `/Users/ari/ARI/src/autonomous/agent.ts` (main poll loop, 5s interval)
 - `/Users/ari/ARI/src/kernel/event-bus.ts` (typed pub/sub)
@@ -1235,4 +1270,3 @@ class BatchedTelegramSender {
 4. **Benchmark** before/after with telemetry
 5. **Monitor** production impact
 6. **Iterate** on remaining phases
-

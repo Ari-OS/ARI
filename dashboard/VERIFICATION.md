@@ -19,6 +19,7 @@
    - ✅ `.gitignore` - Ignore patterns
 
 3. **Dependencies Installed**
+
    ```
    Dependencies:
    - react@19.0.0
@@ -38,6 +39,7 @@
    ```
 
 4. **Source Code Structure**
+
    ```
    src/
    ├── main.tsx              # Entry point
@@ -66,10 +68,12 @@
    ```
 
 5. **Build Verification**
+
    ```bash
    cd dashboard
    npm run build
    ```
+
    - ✅ TypeScript compilation successful (0 errors)
    - ✅ Vite build successful
    - ✅ Output generated in `dist/` directory
@@ -161,12 +165,14 @@ npm run typecheck        # Type check only
 ### Next Steps
 
 1. Start the ARI gateway:
+
    ```bash
    # From the ARI root directory
    npm run gateway:start
    ```
 
 2. Start the dashboard:
+
    ```bash
    npm run dashboard:dev
    ```

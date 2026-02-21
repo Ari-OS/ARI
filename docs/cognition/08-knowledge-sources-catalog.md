@@ -26,7 +26,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S001: Stanford Probability and Statistics Course
 
-- **URL**: https://online.stanford.edu/courses/stats200-introduction-statistical-learning
+- **URL**: <https://online.stanford.edu/courses/stats200-introduction-statistical-learning>
 - **Category**: DOCUMENTATION
 - **Trust**: VERIFIED
 - **Pillar**: LOGOS
@@ -49,7 +49,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S002: arXiv stat.ME (Methodology)
 
-- **URL**: https://arxiv.org/list/stat.ME/recent
+- **URL**: <https://arxiv.org/list/stat.ME/recent>
 - **Category**: RESEARCH  
 - **Trust**: VERIFIED  
 - **Pillar**: LOGOS  
@@ -67,7 +67,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S003: Arbital Bayes' Rule Guide
 
-- **URL**: https://arbital.com/p/bayes_rule/  
+- **URL**: <https://arbital.com/p/bayes_rule/>  
 - **Category**: DOCUMENTATION  
 - **Trust**: VERIFIED (created by MIRI - Machine Intelligence Research Institute)  
 - **Pillar**: LOGOS  
@@ -87,11 +87,11 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 *(Abbreviated - full catalog would list all 8)*
 
-4. **LessWrong Bayesian Tag** (VERIFIED authors only)
-5. **Bayesian Methods for Hackers** (GitHub book)
-6. **3Blue1Brown Bayes Video** (YouTube, one-time)
-7. **Stanford Encyclopedia: Bayesian Epistemology**
-8. **Probabilistic Programming primers**
+1. **LessWrong Bayesian Tag** (VERIFIED authors only)
+2. **Bayesian Methods for Hackers** (GitHub book)
+3. **3Blue1Brown Bayes Video** (YouTube, one-time)
+4. **Stanford Encyclopedia: Bayesian Epistemology**
+5. **Probabilistic Programming primers**
 
 ---
 
@@ -99,7 +99,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S009: Decision Theory Academic Papers
 
-- **URL**: https://plato.stanford.edu/entries/decision-theory/
+- **URL**: <https://plato.stanford.edu/entries/decision-theory/>
 - **Category**: RESEARCH
 - **Trust**: VERIFIED (Stanford Encyclopedia of Philosophy)
 - **Pillar**: LOGOS
@@ -118,11 +118,11 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S010-S014: Additional Expected Value Sources
 
-9. **Nate Silver - The Signal and the Noise**
-10. **arXiv decision theory papers**
-11. **80,000 Hours decision-making framework**
-12. **Superforecasting (Philip Tetlock)**
-13. **Decision Analysis Society publications**
+1. **Nate Silver - The Signal and the Noise**
+2. **arXiv decision theory papers**
+3. **80,000 Hours decision-making framework**
+4. **Superforecasting (Philip Tetlock)**
+5. **Decision Analysis Society publications**
 
 ---
 
@@ -165,9 +165,9 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S017-S019: Additional Kelly Sources
 
-17. **Van Tharp - Position Sizing**
-18. **Kelly Criterion academic papers** (arXiv q-fin)
-19. **Quantitative finance journals** (Kelly applications)
+1. **Van Tharp - Position Sizing**
+2. **Kelly Criterion academic papers** (arXiv q-fin)
+3. **Quantitative finance journals** (Kelly applications)
 
 ---
 
@@ -175,7 +175,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S020: Donella Meadows - Thinking in Systems
 
-- **URL**: https://donellameadows.org/ (official site with excerpts)
+- **URL**: <https://donellameadows.org/> (official site with excerpts)
 - **Category**: DOCUMENTATION
 - **Trust**: VERIFIED
 - **Pillar**: LOGOS
@@ -194,7 +194,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S021: Santa Fe Institute - Complexity Research
 
-- **URL**: https://www.santafe.edu/research/results/working-papers
+- **URL**: <https://www.santafe.edu/research/results/working-papers>
 - **Category**: RESEARCH
 - **Trust**: VERIFIED (leading complexity research institute)
 - **Pillar**: LOGOS
@@ -212,10 +212,10 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S022-S025: Additional Systems Thinking Sources
 
-22. **System Dynamics Society** publications
-23. **MIT System Dynamics** course materials
-24. **Barabási - Network Science** (book/course)
-25. **Complexity journal** (academic)
+1. **System Dynamics Society** publications
+2. **MIT System Dynamics** course materials
+3. **Barabási - Network Science** (book/course)
+4. **Complexity journal** (academic)
 
 ---
 
@@ -223,7 +223,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S026: Nassim Taleb - Incerto Series
 
-- **URL**: https://www.fooledbyrandomness.com/ (official site)
+- **URL**: <https://www.fooledbyrandomness.com/> (official site)
 - **Category**: DOCUMENTATION
 - **Trust**: VERIFIED
 - **Pillar**: LOGOS (also ETHOS, PATHOS - cross-cutting)
@@ -244,8 +244,8 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S027-S028: Additional Taleb Sources
 
-27. **Taleb's Technical Papers** (arXiv, SSRN)
-28. **Academic critiques and applications** of Taleb's work
+1. **Taleb's Technical Papers** (arXiv, SSRN)
+2. **Academic critiques and applications** of Taleb's work
 
 ---
 
@@ -275,7 +275,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S030: Van Tharp - Trade Your Way to Financial Freedom
 
-- **URL**: https://www.vantharp.com/ (official site)
+- **URL**: <https://www.vantharp.com/> (official site)
 - **Category**: DOCUMENTATION
 - **Trust**: VERIFIED
 - **Pillar**: ETHOS + LOGOS (position sizing)
@@ -292,10 +292,10 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S031-S034: Additional Trading Psychology
 
-31. **Mark Douglas - The Disciplined Trader**
-32. **Brett Steenbarger - Psychology of Trading**
-33. **Trading psychology research papers**
-34. **Professional trader journals** (VERIFIED authors only)
+1. **Mark Douglas - The Disciplined Trader**
+2. **Brett Steenbarger - Psychology of Trading**
+3. **Trading psychology research papers**
+4. **Professional trader journals** (VERIFIED authors only)
 
 ---
 
@@ -320,7 +320,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S036: Prospect Theory (Original Paper, 1979)
 
-- **URL**: https://www.jstor.org/stable/1914185 (or academic access)
+- **URL**: <https://www.jstor.org/stable/1914185> (or academic access)
 - **Category**: RESEARCH
 - **Trust**: VERIFIED (seminal paper, Nobel-winning)
 - **Pillar**: ETHOS
@@ -336,12 +336,12 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S037-S042: Additional Bias Sources
 
-37. **Amos Tversky papers** (co-author with Kahneman)
-38. **Judgment Under Uncertainty** (Kahneman/Tversky collection)
-39. **Behavioral economics journals**
-40. **Bias research on arXiv**
-41. **Rationality: A-Z** (LessWrong compilation)
-42. **Cognitive bias codex** (visual reference)
+1. **Amos Tversky papers** (co-author with Kahneman)
+2. **Judgment Under Uncertainty** (Kahneman/Tversky collection)
+3. **Behavioral economics journals**
+4. **Bias research on arXiv**
+5. **Rationality: A-Z** (LessWrong compilation)
+6. **Cognitive bias codex** (visual reference)
 
 ---
 
@@ -366,10 +366,10 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S044-S047: Additional Behavioral Finance
 
-44. **Richard Thaler - Nudge**
-45. **Behavioral finance journals**
-46. **SSRN behavioral finance papers**
-47. **CFA Institute behavioral finance resources**
+1. **Richard Thaler - Nudge**
+2. **Behavioral finance journals**
+3. **SSRN behavioral finance papers**
+4. **CFA Institute behavioral finance resources**
 
 ---
 
@@ -394,10 +394,10 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S049-S052: Additional EI Sources
 
-49. **Emotion regulation research** (James Gross)
-50. **Affective science journals**
-51. **Social psychology research**
-52. **Communication psychology**
+1. **Emotion regulation research** (James Gross)
+2. **Affective science journals**
+3. **Social psychology research**
+4. **Communication psychology**
 
 ---
 
@@ -407,7 +407,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S053: Beck Institute - CBT Resources
 
-- **URL**: https://beckinstitute.org/about-beck-cbt/
+- **URL**: <https://beckinstitute.org/about-beck-cbt/>
 - **Category**: OFFICIAL
 - **Trust**: VERIFIED (founded by Aaron Beck, inventor of CBT)
 - **Pillar**: PATHOS
@@ -426,11 +426,11 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S054-S058: Additional CBT Sources
 
-54. **Cognitive therapy research journals**
-55. **David Burns - Feeling Good** (book excerpts)
-56. **CBT worksheets and techniques** (evidence-based)
-57. **Clinical psychology journals** (CBT outcomes)
-58. **Cognitive distortion catalogs**
+1. **Cognitive therapy research journals**
+2. **David Burns - Feeling Good** (book excerpts)
+3. **CBT worksheets and techniques** (evidence-based)
+4. **Clinical psychology journals** (CBT outcomes)
+5. **Cognitive distortion catalogs**
 
 ---
 
@@ -438,7 +438,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S059: Linehan Institute - DBT Resources
 
-- **URL**: https://behavioraltech.org/
+- **URL**: <https://behavioraltech.org/>
 - **Category**: OFFICIAL
 - **Trust**: VERIFIED (founded by Marsha Linehan, inventor of DBT)
 - **Pillar**: PATHOS
@@ -454,9 +454,9 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S060-S062: Additional DBT Sources
 
-60. **DBT skills training manual** excerpts
-61. **DBT research papers**
-62. **Dialectical thinking frameworks**
+1. **DBT skills training manual** excerpts
+2. **DBT research papers**
+3. **Dialectical thinking frameworks**
 
 ---
 
@@ -464,7 +464,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S063: Association for Contextual Behavioral Science
 
-- **URL**: https://contextualscience.org/
+- **URL**: <https://contextualscience.org/>
 - **Category**: OFFICIAL
 - **Trust**: VERIFIED
 - **Pillar**: PATHOS
@@ -480,9 +480,9 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S064-S066: Additional ACT Sources
 
-64. **Steven Hayes - Get Out of Your Mind** (book)
-65. **ACT research papers**
-66. **Values clarification exercises**
+1. **Steven Hayes - Get Out of Your Mind** (book)
+2. **ACT research papers**
+3. **Values clarification exercises**
 
 ---
 
@@ -490,7 +490,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S067: Marcus Aurelius - Meditations
 
-- **URL**: https://www.gutenberg.org/ebooks/2680 (public domain)
+- **URL**: <https://www.gutenberg.org/ebooks/2680> (public domain)
 - **Category**: DOCUMENTATION
 - **Trust**: VERIFIED (public domain classic, translated by George Long)
 - **Pillar**: PATHOS
@@ -510,7 +510,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S068: Seneca - Letters from a Stoic
 
-- **URL**: https://www.gutenberg.org/ebooks/author/4643 (public domain)
+- **URL**: <https://www.gutenberg.org/ebooks/author/4643> (public domain)
 - **Category**: DOCUMENTATION
 - **Trust**: VERIFIED
 - **Pillar**: PATHOS
@@ -526,7 +526,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S069: Epictetus - Enchiridion (Handbook)
 
-- **URL**: https://www.gutenberg.org/ebooks/45109 (public domain)
+- **URL**: <https://www.gutenberg.org/ebooks/45109> (public domain)
 - **Category**: DOCUMENTATION
 - **Trust**: VERIFIED
 - **Pillar**: PATHOS
@@ -542,11 +542,11 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S070-S074: Additional Stoic Sources
 
-70. **Modern Stoicism** (https://modernstoicism.com - VERIFIED)
-71. **Daily Stoic** (Ryan Holiday) - STANDARD (popular but well-researched)
-72. **Stoicism research** (philosophy journals)
-73. **Stoic philosophy Stanford Encyclopedia**
-74. **How to Be a Stoic** (Massimo Pigliucci) - STANDARD
+1. **Modern Stoicism** (<https://modernstoicism.com> - VERIFIED)
+2. **Daily Stoic** (Ryan Holiday) - STANDARD (popular but well-researched)
+3. **Stoicism research** (philosophy journals)
+4. **Stoic philosophy Stanford Encyclopedia**
+5. **How to Be a Stoic** (Massimo Pigliucci) - STANDARD
 
 ---
 
@@ -586,9 +586,9 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S077-S079: Additional Deliberate Practice Sources
 
-77. **Skill acquisition research journals**
-78. **Expertise development papers**
-79. **Performance psychology**
+1. **Skill acquisition research journals**
+2. **Expertise development papers**
+3. **Performance psychology**
 
 ---
 
@@ -596,7 +596,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S080: Learning How to Learn (Coursera - Barbara Oakley)
 
-- **URL**: https://www.coursera.org/learn/learning-how-to-learn
+- **URL**: <https://www.coursera.org/learn/learning-how-to-learn>
 - **Category**: DOCUMENTATION
 - **Trust**: VERIFIED (UCSD course, 4M+ students)
 - **Pillar**: PATHOS
@@ -629,10 +629,10 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S082-S085: Additional Meta-Learning Sources
 
-82. **Spaced repetition research** (Ebbinghaus, Piotr Wozniak)
-83. **Cognitive load theory** (John Sweller)
-84. **Ultralearning** (Scott Young) - STANDARD
-85. **Anki spacing algorithm** documentation
+1. **Spaced repetition research** (Ebbinghaus, Piotr Wozniak)
+2. **Cognitive load theory** (John Sweller)
+3. **Ultralearning** (Scott Young) - STANDARD
+4. **Anki spacing algorithm** documentation
 
 ---
 
@@ -640,7 +640,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 
 #### S086: Ray Dalio - Principles
 
-- **URL**: https://www.principles.com/ (official site)
+- **URL**: <https://www.principles.com/> (official site)
 - **Category**: DOCUMENTATION
 - **Trust**: VERIFIED
 - **Pillar**: PATHOS (also LOGOS)
@@ -681,6 +681,7 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 ### P0 - Critical (Must Have)
 
 **LOGOS** (15 sources):
+
 - All Bayesian fundamentals
 - Expected value core texts
 - Kelly Criterion originals
@@ -688,11 +689,13 @@ This catalog documents all curated knowledge sources for ARI's Cognitive Layer 0
 - Taleb's Incerto series
 
 **ETHOS** (12 sources):
+
 - Douglas trading psychology
 - Kahneman bias catalog
 - Thaler behavioral finance
 
 **PATHOS** (18 sources):
+
 - Beck CBT, Linehan DBT, Hayes ACT
 - Marcus Aurelius, Seneca, Epictetus
 - Ericsson deliberate practice

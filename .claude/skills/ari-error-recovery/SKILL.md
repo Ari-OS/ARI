@@ -42,6 +42,7 @@ try {
 ## Error Categories
 
 ### 1. Security Errors (Critical)
+
 ```typescript
 class SecurityError extends Error {
   constructor(
@@ -59,6 +60,7 @@ throw new SecurityError('Injection detected', 'SEC001', 0.95);
 ```
 
 ### 2. Validation Errors
+
 ```typescript
 class ValidationError extends Error {
   constructor(
@@ -73,6 +75,7 @@ class ValidationError extends Error {
 ```
 
 ### 3. Agent Errors
+
 ```typescript
 class AgentError extends Error {
   constructor(
@@ -87,6 +90,7 @@ class AgentError extends Error {
 ```
 
 ### 4. Governance Errors
+
 ```typescript
 class GovernanceError extends Error {
   constructor(
@@ -103,6 +107,7 @@ class GovernanceError extends Error {
 ## Recovery Strategies
 
 ### Retry with Backoff
+
 ```typescript
 async function withRetry<T>(
   operation: () => Promise<T>,
@@ -131,6 +136,7 @@ async function withRetry<T>(
 ```
 
 ### Circuit Breaker
+
 ```typescript
 class CircuitBreaker {
   private failures = 0;
@@ -159,6 +165,7 @@ class CircuitBreaker {
 ```
 
 ### Fallback
+
 ```typescript
 async function withFallback<T>(
   primary: () => Promise<T>,

@@ -158,6 +158,7 @@ logger.info({ operation: 'sanitize', duration }, 'Benchmark');
 ## Monitoring
 
 Key metrics to track:
+
 - Event queue depth
 - Memory heap size
 - GC pause duration

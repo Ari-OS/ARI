@@ -32,6 +32,7 @@ Build the most reliable, secure, and intelligent personal AI system ever created
 ## Security - CRITICAL
 
 **Never commit personal information:**
+
 - No hardcoded names or usernames in code
 - No email addresses or phone numbers
 - No IP addresses or internal hostnames

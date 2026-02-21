@@ -57,6 +57,7 @@ Use `/ari-recall <key>` to retrieve stored memories.
 ## Memory Persistence
 
 Memories are stored in:
+
 1. ARI's MemoryManager (runtime)
 2. `~/.ari/memory.json` (persistent)
 3. Searchable via MCP tools

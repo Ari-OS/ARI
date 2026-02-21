@@ -7,6 +7,7 @@ ARI is built with gratitude to all who contribute.
 ## Creator & Lead Developer
 
 **Pryce Hedrick** ([@PryceHedrick](https://github.com/PryceHedrick))
+
 - Creator of ARI (Artificial Reasoning Intelligence)
 - Owner of Pryceless Solutions (prycehedrick.com)
 - Architecture, vision, and direction
@@ -17,6 +18,7 @@ ARI is built with gratitude to all who contribute.
 ## AI Collaborators
 
 **ARI** (Artificial Reasoning Intelligence)
+
 - Self-improving autonomous agent
 - Assists with implementation, code review, and testing
 - Architecture co-design and documentation
@@ -42,9 +44,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 ## Attribution
 
 When using or distributing ARI:
+
 - Credit "Pryce Hedrick" and "ARI"
 - Keep the LICENSE file intact
-- Link to https://github.com/Ari-OS/ARI
+- Link to <https://github.com/Ari-OS/ARI>
 
 ---
 

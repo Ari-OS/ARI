@@ -75,6 +75,7 @@ Security paths require explicit testing of all attack vectors.
 Test each of the 42 injection patterns in sanitizer.ts.
 
 Example pattern:
+
 ```typescript
 describe('Sanitizer injection defense', () => {
   it('should detect template injection', () => {

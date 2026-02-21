@@ -53,6 +53,7 @@ white (#f8f8ff), void black (#0d0d0d). No smile. No warmth. Presence only.
 ```
 
 **Key elements**:
+
 - Partially visible face made of geometric fragments
 - One visible eye with purple circuitry iris
 - Data-thread hair in lavender and white
@@ -73,6 +74,7 @@ minimalist, instantly recognizable. Suitable for favicon and small sizes.
 ```
 
 **Key elements**:
+
 - Geometric 'A' construction
 - Purple glow at center
 - Circuit lines extending outward
@@ -92,6 +94,7 @@ around the entire eye. Square format, centered. Works at any size from
 ```
 
 **Key elements**:
+
 - Single purple eye
 - Circuitry spiral in iris
 - Thin white border

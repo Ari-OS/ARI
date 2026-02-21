@@ -1,8 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getProposals,
   getGovernanceRules,
   getQualityGates,
+  approveProposal,
+  rejectProposal,
 } from '../api/client';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
@@ -60,10 +62,22 @@ const MEMBER_TYPE_STYLES = {
 };
 
 export function Governance() {
+  const queryClient = useQueryClient();
+
   const { data: proposals, isLoading: proposalsLoading, isError: proposalsError, refetch: refetchProposals } = useQuery({
     queryKey: ['proposals'],
     queryFn: getProposals,
     refetchInterval: 15000,
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => approveProposal(id, 'Approved via Actionable UI'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals'] }),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: string) => rejectProposal(id, 'Rejected via Actionable UI'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals'] }),
   });
 
   const { data: rules, isLoading: rulesLoading, isError: rulesError, refetch: refetchRules } = useQuery({
@@ -332,16 +346,16 @@ export function Governance() {
                       <span
                         className="rounded px-3 py-1 text-xs font-semibold"
                         style={{
-                          background: proposal.status === 'APPROVED'
+                          background: proposal.status === 'PASSED'
                             ? 'var(--ari-success-muted)'
-                            : proposal.status === 'REJECTED'
+                            : proposal.status === 'FAILED' || proposal.status === 'VETOED'
                               ? 'var(--ari-error-muted)'
                               : proposal.status === 'EXPIRED'
                                 ? 'var(--bg-tertiary)'
                                 : 'var(--ari-warning-muted)',
-                          color: proposal.status === 'APPROVED'
+                          color: proposal.status === 'PASSED'
                             ? 'var(--ari-success)'
-                            : proposal.status === 'REJECTED'
+                            : proposal.status === 'FAILED' || proposal.status === 'VETOED'
                               ? 'var(--ari-error)'
                               : proposal.status === 'EXPIRED'
                                 ? 'var(--text-muted)'
@@ -399,6 +413,35 @@ export function Governance() {
                         Expires: {new Date(proposal.expiresAt).toLocaleString()}
                       </span>
                     </div>
+
+                    {proposal.status === 'OPEN' && (
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          onClick={() => approveMutation.mutate(proposal.id)}
+                          disabled={approveMutation.isPending || rejectMutation.isPending}
+                          className="flex-1 rounded-lg py-2 text-sm font-medium transition-colors"
+                          style={{
+                            background: 'var(--ari-success-muted)',
+                            color: 'var(--ari-success)',
+                            border: '1px solid color-mix(in srgb, var(--ari-success) 30%, transparent)'
+                          }}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => rejectMutation.mutate(proposal.id)}
+                          disabled={approveMutation.isPending || rejectMutation.isPending}
+                          className="flex-1 rounded-lg py-2 text-sm font-medium transition-colors"
+                          style={{
+                            background: 'var(--ari-error-muted)',
+                            color: 'var(--ari-error)',
+                            border: '1px solid color-mix(in srgb, var(--ari-error) 30%, transparent)'
+                          }}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

@@ -57,6 +57,7 @@
 ### Codebase Audit Results (22 findings)
 
 **Critical (3):**
+
 1. Shell injection in `src/integrations/sms/sms-executor.ts` — uses string interpolation in shell command
 2. Shell injection in `src/ops/backup-manager.ts` — uses string interpolation in synchronous shell command
 3. L0 Cognitive → L1 Kernel architecture violation — 6 files in `src/cognition/` import from `src/kernel/`
@@ -95,6 +96,7 @@
 ### A.1 Fix SMS Executor Shell Injection
 
 **Files:**
+
 - Modify: `src/integrations/sms/sms-executor.ts`
 - Test: `tests/unit/integrations/sms/sms-executor.test.ts`
 
@@ -103,18 +105,21 @@
 **Fix:** Replace string-interpolated shell invocations with `execFile()` using argument arrays. The `execFile` function does NOT spawn a shell, so special characters in arguments are harmless.
 
 **Before (vulnerable):**
+
 ```typescript
 // DANGEROUS: phoneNumber could contain "; rm -rf /"
 child_process.execSync(`osascript -e '...${phoneNumber}...'`);
 ```
 
 **After (safe):**
+
 ```typescript
 // SAFE: execFile passes args as array, no shell interpretation
 child_process.execFile('osascript', ['-e', script], callback);
 ```
 
 **Test:** Add injection attack test cases:
+
 ```typescript
 it('should safely handle phone numbers with shell metacharacters', async () => {
   const result = await executor.send('$(whoami)', 'test');
@@ -125,6 +130,7 @@ it('should safely handle phone numbers with shell metacharacters', async () => {
 ### A.2 Fix Backup Manager Shell Injection
 
 **Files:**
+
 - Modify: `src/ops/backup-manager.ts`
 - Test: `tests/unit/ops/backup-manager.test.ts`
 
@@ -135,9 +141,11 @@ it('should safely handle phone numbers with shell metacharacters', async () => {
 ### A.3 Security Regression Tests
 
 **Files:**
+
 - Create: `tests/security/shell-injection.test.ts`
 
 **Tests to add:**
+
 - SMS executor with shell metacharacters in phone number
 - SMS executor with shell metacharacters in message body
 - Backup manager with shell metacharacters in file paths
@@ -154,6 +162,7 @@ it('should safely handle phone numbers with shell metacharacters', async () => {
 **Problem:** 6 files in `src/cognition/` import from `src/kernel/`. L0 should be self-contained with zero imports.
 
 **Files to fix:**
+
 1. `src/cognition/logos.ts` — imports EventBus type
 2. `src/cognition/ethos.ts` — imports EventBus type
 3. `src/cognition/pathos.ts` — imports EventBus type
@@ -281,6 +290,7 @@ export class PerplexityClient {
 ```
 
 **Use cases:**
+
 - Market event context ("Why did NVDA drop 8%?")
 - Trend analysis for content engine
 - Research backing for morning briefings
@@ -334,6 +344,7 @@ export class ReadwiseClient {
 ### Current Dashboard State
 
 The existing React dashboard has:
+
 - React 19 + Vite 7 + TailwindCSS 4
 - Recharts 3 for charts
 - WebSocket context for real-time updates
@@ -398,6 +409,7 @@ Telegram Mini Apps are web apps that run inside Telegram. Use the existing Vite 
 **Create:** `dashboard/src/mini-app/` — Separate entry point for Telegram Mini App
 
 **Key pages:**
+
 - Quick task capture (voice → text → Notion)
 - Today's schedule at a glance
 - Market snapshot
@@ -562,6 +574,7 @@ Based on the codebase audit, these source files lack dedicated test coverage:
 ### 160+ Silent Catch Blocks
 
 Many catch blocks across the codebase either:
+
 - Catch and do nothing (`catch {}`)
 - Catch and log but swallow the error
 - Catch with generic "error occurred" message
@@ -574,6 +587,7 @@ Many catch blocks across the codebase either:
    - Optional features → acceptable to catch and degrade gracefully
 
 2. **Pattern to apply:**
+
 ```typescript
 // BEFORE (silent)
 try { await doThing(); } catch {}
@@ -591,7 +605,7 @@ try {
 }
 ```
 
-3. **Batch by file:** Fix 10-15 files per session, run full test suite after each batch.
+1. **Batch by file:** Fix 10-15 files per session, run full test suite after each batch.
 
 ---
 
@@ -673,27 +687,32 @@ try {
 ## Implementation Timeline {#timeline}
 
 ### Week 1 (Immediate)
+
 - [x] Phase 1: Smart Market Notifications (DONE)
 - [x] Phase 2: Apple Ecosystem Integration (DONE)
 - [ ] Phase A: Security Hardening (CRITICAL)
 - [ ] Phase C.1-C.2: HN + RSS integrations (quick wins)
 
 ### Week 2
+
 - [ ] Phase B: Architecture Alignment (layer violations)
 - [ ] Phase C.3-C.4: Weather + GitHub integrations
 - [ ] Phase D.2: Batch API optimization
 
 ### Week 3
+
 - [ ] Phase D.1: Perplexity integration
 - [ ] Phase E.1-E.2: Dashboard new pages
 - [ ] Phase I: Test coverage push (batch 1)
 
 ### Week 4
+
 - [ ] Phase D.3: Readwise integration
 - [ ] Phase E.3: Real-time dashboard updates
 - [ ] Phase J: Error handling cleanup (batch 1)
 
 ### Month 2
+
 - [ ] Phase F: Telegram Mini App
 - [ ] Phase G: Business infrastructure
 - [ ] Phase H: Knowledge acceleration

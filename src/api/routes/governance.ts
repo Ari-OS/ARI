@@ -52,4 +52,40 @@ export const governanceRoutes: FastifyPluginAsync<ApiRouteOptions> = async (
     }
     return deps.overseer.getGates();
   });
+
+  fastify.post<{ Params: { id: string }, Body: { reasoning?: string } }>('/api/proposals/:id/approve', async (request, reply) => {
+    const { id } = request.params;
+    const { reasoning = 'Approved via Dashboard' } = request.body;
+
+    if (!deps.council) {
+      reply.code(404);
+      return { error: 'Council not initialized' };
+    }
+
+    const success = deps.council.operatorOverride(id, 'APPROVE', reasoning);
+    if (!success) {
+      reply.code(400);
+      return { error: 'Failed to cast vote. Vote may be closed or invalid.' };
+    }
+
+    return { success: true, id };
+  });
+
+  fastify.post<{ Params: { id: string }, Body: { reasoning?: string } }>('/api/proposals/:id/reject', async (request, reply) => {
+    const { id } = request.params;
+    const { reasoning = 'Rejected via Dashboard' } = request.body;
+
+    if (!deps.council) {
+      reply.code(404);
+      return { error: 'Council not initialized' };
+    }
+
+    const success = deps.council.operatorOverride(id, 'REJECT', reasoning);
+    if (!success) {
+      reply.code(400);
+      return { error: 'Failed to cast vote. Vote may be closed or invalid.' };
+    }
+
+    return { success: true, id };
+  });
 };

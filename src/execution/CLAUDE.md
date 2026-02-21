@@ -23,6 +23,7 @@ Tool registry and executor for ARI's capability invocation.
 ## Permission Model
 
 Three-layer check before execution:
+
 1. **Agent Allowlist** — Is agent permitted?
 2. **Trust Level** — Sufficient trust score?
 3. **Permission Tier** — Operation allowed?

@@ -11,6 +11,7 @@ This document defines the integration contract between the v3 kernel (TypeScript
 ### KERNEL Layer (`src/kernel/*`)
 
 **Responsibilities:**
+
 - Gateway: HTTP ingress (loopback-only Fastify server)
 - Sanitizer: Injection detection and risk scoring
 - Audit: SHA-256 hash-chained tamper-evident logging
@@ -18,11 +19,13 @@ This document defines the integration contract between the v3 kernel (TypeScript
 - Config: Zod-validated configuration management
 
 **Ownership:**
+
 - Owns the inbound message pipeline: `receive → sanitize → audit → publish`
 - All inbound content is treated as DATA (trust level determined by source)
 - No business logic (contexts, governance, agent prompts) belongs in kernel
 
 **Constraints:**
+
 - System layer MUST NOT bypass kernel pipeline
 - System layer MUST NOT call gateway routes directly (use EventBus only)
 - System layer MUST NOT mutate audit chain (append-only via AuditLogger)
@@ -31,16 +34,19 @@ This document defines the integration contract between the v3 kernel (TypeScript
 ### SYSTEM Layer (`src/system/*`)
 
 **Responsibilities:**
+
 - Context routing: Load and apply contexts based on message content
 - Governance reference: Read-only access to constitutional rules
 - Agent orchestration: Future multi-agent coordination (not in initial merge)
 
 **Ownership:**
+
 - Subscribes to kernel events via EventBus
 - Routes messages to appropriate contexts after kernel validation
 - Logs routing decisions to audit chain (append-only)
 
 **Constraints:**
+
 - MUST subscribe to kernel events only (no direct gateway calls)
 - MUST NOT bypass sanitizer or audit pipeline
 - MUST NOT modify kernel configuration
@@ -63,21 +69,25 @@ This document defines the integration contract between the v3 kernel (TypeScript
 #### Kernel → System Events
 
 **`message:received`**
+
 - **When:** Fired after sanitization + audit, before acceptance
 - **Payload:** `Message` (from `src/kernel/types.ts`)
 - **Purpose:** Notify system that a new message entered the pipeline
 
 **`message:accepted`**
+
 - **When:** Explicit signal that message passed full kernel pipeline
 - **Payload:** `Message` (from `src/kernel/types.ts`)
 - **Purpose:** System can safely route this message (all security checks passed)
 
 **`security:detected`**
+
 - **When:** Injection pattern detected by sanitizer
 - **Payload:** `SecurityEvent` (from `src/kernel/types.ts`)
 - **Purpose:** System may log/alert but MUST NOT retry or bypass
 
 **`gateway:started` / `gateway:stopped`**
+
 - **When:** Gateway lifecycle changes
 - **Payload:** `{ timestamp: string, port: number }`
 - **Purpose:** System can track kernel availability
@@ -85,6 +95,7 @@ This document defines the integration contract between the v3 kernel (TypeScript
 #### System → Audit Events
 
 **`system:routed`**
+
 - **When:** System router classified and routed a message
 - **Payload:** `{ messageId: string, contextId?: string, route: string, timestamp: string }`
 - **Purpose:** Audit trail of routing decisions
@@ -93,6 +104,7 @@ This document defines the integration contract between the v3 kernel (TypeScript
 ### Payload Types
 
 All event payloads MUST use types defined in:
+
 - `src/kernel/types.ts` (kernel types: `Message`, `AuditEvent`, `SecurityEvent`, `Config`, `TrustLevel`, `SanitizeResult`)
 - `src/system/types.ts` (system types: `RoutingDecision`, `ContextMetadata`, etc.)
 
@@ -135,6 +147,7 @@ All payloads MUST be Zod-validated at boundaries.
 ### Existing Config (unchanged)
 
 **`~/.ari/config.json`** (from v3 kernel)
+
 ```json
 {
   "gateway": {
@@ -152,20 +165,24 @@ All payloads MUST be Zod-validated at boundaries.
 ### New Config (system layer)
 
 **`~/.ari/contexts/`** directory
+
 - Purpose: Store context definitions (JSON files per context)
 - Created by: `ari onboard init` or `ari context add`
 
 **`~/.ari/contexts/active.json`**
+
 - Purpose: Track currently active contexts
 - Schema: `{ activeContexts: string[], lastUpdated: string }`
 
 **`~/.ari/governance/`** directory
+
 - Purpose: Read-only governance rules and constitutional reference
 - Created by: `ari onboard init` (copied from docs/v12/GOVERNANCE/)
 
 ### Migration
 
 **On first run after merge:**
+
 - `ari onboard init` creates new directories alongside existing ones
 - Existing config.json unchanged
 - Existing audit.log unchanged (hash chain continues)
@@ -183,6 +200,7 @@ All payloads MUST be Zod-validated at boundaries.
 ### This Merge
 
 **Version completed at 2.0.0**
+
 - Rationale: This merge restored the v12 spec's intended scope (system layer)
 - v12 spec specified the architecture; v3 implemented kernel only
 - Merge completed the v12 specification implementation
@@ -201,11 +219,13 @@ All payloads MUST be Zod-validated at boundaries.
 No specifications or references to "Re" integration exist in v12 documentation.
 
 **Action:** No adapter created. If "Re" integration is required, file a separate specification request with:
+
 - "Re" system capabilities and API
 - Integration requirements (events, auth, data model)
 - Security/trust model for external system
 
 Placeholder comment in `src/system/integrations/re.ts` (if needed):
+
 ```typescript
 // "Re" integration: No v12 specification exists.
 // See docs/MERGE_SPEC.md for integration requirements.

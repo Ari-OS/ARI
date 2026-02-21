@@ -17,24 +17,28 @@ Enable ARI to continuously improve through structured learning, feedback integra
 ## Improvement Dimensions
 
 ### 1. Security Hardening
+
 - Track new attack vectors from security research
 - Update injection patterns based on real-world threats
 - Strengthen trust level calibration
 - Enhance audit trail analysis
 
 ### 2. Performance Enhancement
+
 - Profile operations for bottlenecks
 - Optimize hot code paths
 - Reduce memory footprint
 - Improve response latency
 
 ### 3. Agent Intelligence
+
 - Refine task decomposition strategies
 - Improve context understanding
 - Enhance multi-agent coordination
 - Better error recovery
 
 ### 4. Governance Refinement
+
 - Calibrate voting thresholds
 - Improve constitutional rules
 - Optimize quality gates
@@ -43,18 +47,21 @@ Enable ARI to continuously improve through structured learning, feedback integra
 ## Learning Sources
 
 ### Official (Highest Trust)
+
 - Anthropic API documentation
 - Claude Code release notes
 - Security advisories
 - Best practice guides
 
 ### Verified (High Trust)
+
 - Trail of Bits security research
 - OWASP updates
 - Node.js security bulletins
 - TypeScript release notes
 
 ### Operational (Medium Trust)
+
 - ARI's own audit trail analysis
 - Performance metrics trends
 - Error pattern detection
@@ -141,6 +148,7 @@ Each proposal must include:
 ## Knowledge Integration
 
 New learnings are integrated as:
+
 1. **Skills** - Reusable patterns and guides
 2. **Hooks** - Automated quality checks
 3. **Patterns** - Detection signatures

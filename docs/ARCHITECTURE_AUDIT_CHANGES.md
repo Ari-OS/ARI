@@ -209,6 +209,7 @@ Risk Score = Base Severity × Trust Multiplier
 | 👑 ADMIN | 0.9 | Changing system config |
 
 **Trust Multiplier** (how much do we trust the source?):
+
 | Source | Multiplier | Effect |
 |--------|-----------|--------|
 | 🤖 system | ×0.5 | Halves the risk (ARI trusts itself) |

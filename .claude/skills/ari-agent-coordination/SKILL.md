@@ -45,6 +45,7 @@ Core (response aggregation)
 ## Agent Communication (via EventBus)
 
 ### Core → Guardian
+
 ```typescript
 eventBus.emit('guardian:assess', {
   messageId: 'uuid',
@@ -54,6 +55,7 @@ eventBus.emit('guardian:assess', {
 ```
 
 ### Guardian → Core
+
 ```typescript
 eventBus.emit('core:guardian_result', {
   messageId: 'uuid',
@@ -64,6 +66,7 @@ eventBus.emit('core:guardian_result', {
 ```
 
 ### Core → Planner
+
 ```typescript
 eventBus.emit('planner:decompose', {
   messageId: 'uuid',
@@ -73,6 +76,7 @@ eventBus.emit('planner:decompose', {
 ```
 
 ### Planner → Executor
+
 ```typescript
 eventBus.emit('executor:execute', {
   taskId: 'uuid',
@@ -84,6 +88,7 @@ eventBus.emit('executor:execute', {
 ```
 
 ### Executor → Memory Manager
+
 ```typescript
 eventBus.emit('memory:store', {
   taskId: 'uuid',
@@ -144,6 +149,7 @@ eventBus.on('agent:error', async (event) => {
 ## Coordination Patterns
 
 ### Parallel Execution
+
 ```typescript
 // Independent tasks can run in parallel
 const parallelTasks = tasks.filter(t => t.dependencies.length === 0);
@@ -151,6 +157,7 @@ await Promise.all(parallelTasks.map(t => executeTask(t)));
 ```
 
 ### Sequential Pipeline
+
 ```typescript
 // Dependent tasks run sequentially
 for (const task of dependentTasks) {
@@ -160,6 +167,7 @@ for (const task of dependentTasks) {
 ```
 
 ### Consensus Required
+
 ```typescript
 // High-risk operations need multiple agents
 const guardianApproval = await requestApproval('guardian', operation);

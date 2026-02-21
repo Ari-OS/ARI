@@ -41,9 +41,11 @@ Manage Claude Cowork plugins with ARI. This skill provides bidirectional integra
 ## Capabilities
 
 ### 1. Generate Plugins
+
 Create domain-specific plugins from natural language descriptions.
 
 **Supported Domains:**
+
 - `sales` - Lead qualification, deal analysis, pipeline management
 - `marketing` - Content strategy, campaign planning, analytics
 - `finance` - Expense analysis, financial reporting, budgeting
@@ -52,30 +54,37 @@ Create domain-specific plugins from natural language descriptions.
 - `development` - Code review, architecture analysis, testing
 
 **Example:**
+
 ```
 Generate a plugin for sales team that helps with lead qualification and deal analysis
 ```
 
 ### 2. Import Plugins
+
 Import existing Cowork plugins into ARI's skill system.
 
 **Example:**
+
 ```
 Import the plugin from ~/.ari/plugins/my-plugin/plugin.json
 ```
 
 ### 3. Export ARI as Plugin
+
 Package ARI's capabilities as a distributable Cowork plugin.
 
 **Example:**
+
 ```
 Export ARI's research and development skills as a Cowork plugin
 ```
 
 ### 4. List Plugins
+
 Show all imported plugins and their components.
 
 **Example:**
+
 ```
 List all installed Cowork plugins
 ```
@@ -90,6 +99,7 @@ List all installed Cowork plugins
 ## Plugin Format
 
 Cowork plugins consist of:
+
 - **Skills** - AI capabilities with instructions and triggers
 - **Connectors** - Data source integrations
 - **Commands** - Slash command shortcuts
@@ -98,6 +108,7 @@ Cowork plugins consist of:
 ## Output
 
 Plugin operations return structured JSON with:
+
 - Plugin metadata (id, name, version)
 - Component counts
 - Import/export status

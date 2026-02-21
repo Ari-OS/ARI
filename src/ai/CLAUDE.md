@@ -60,6 +60,7 @@ AIOrchestrator.execute(request)
 ## Feature Flags
 
 Gradual rollout via `~/.ari/ai-config.json`:
+
 - `AI_ORCHESTRATOR_ENABLED` — Master switch
 - `AI_ORCHESTRATOR_ROLLOUT_PERCENT` — 0-100 gradual rollout
 - `AI_GOVERNANCE_ENABLED` — Council integration

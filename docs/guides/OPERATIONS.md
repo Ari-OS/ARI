@@ -5,6 +5,7 @@ Version 2.0.0 — Aurora Protocol
 ## Build and Development
 
 ### Prerequisites
+
 - Node.js 20.0.0 or later
 - npm (comes with Node.js)
 - macOS (primary target platform)
@@ -94,6 +95,7 @@ npx ari gateway status -p 3142
 ```
 
 Expected output if running:
+
 ```
 Gateway is running at http://127.0.0.1:3141
 Health: OK
@@ -150,6 +152,7 @@ Planned file: `~/Library/LaunchAgents/com.ari.daemon.plist`
 ```
 
 Planned commands:
+
 ```bash
 # Load daemon (start on boot)
 launchctl load ~/Library/LaunchAgents/com.ari.daemon.plist
@@ -181,6 +184,7 @@ ls -lt ~/.ari/logs/
 **Log Format:** Pino JSON (structured logging)
 
 Example:
+
 ```json
 {
   "level": 30,
@@ -239,6 +243,7 @@ cat ~/.ari/contexts/{context-id}.json | jq '.'
 **Cause:** Port already in use.
 
 **Solution:**
+
 ```bash
 # Find process using port 3141
 lsof -i :3141
@@ -257,6 +262,7 @@ npx ari gateway start -p 3142
 **Cause:** Gateway not running or crashed.
 
 **Solution:**
+
 ```bash
 # Check if process is running
 ps aux | grep "ari gateway"
@@ -278,6 +284,7 @@ curl http://127.0.0.1:3141/health
 **Cause:** Audit file tampered or corrupted.
 
 **Solution:**
+
 ```bash
 # Check for specific error
 npx ari audit verify
@@ -291,6 +298,7 @@ npx ari onboard init
 ```
 
 **Prevention:**
+
 - Regular backups of ~/.ari/audit.json
 - Read-only file permissions (future)
 - Encrypted backups (Phase 4)
@@ -302,6 +310,7 @@ npx ari onboard init
 **Cause:** Manual edit broke Zod schema validation.
 
 **Solution:**
+
 ```bash
 # Check specific error
 npx ari doctor
@@ -324,6 +333,7 @@ npx ari doctor
 **Cause:** Context not created or wrong name.
 
 **Solution:**
+
 ```bash
 # List all contexts
 npx ari context list
@@ -342,6 +352,7 @@ npx ari context create my-context venture
 **Cause:** Code changes broke tests or environment issue.
 
 **Solution:**
+
 ```bash
 # Run with verbose output
 npm test -- --reporter=verbose
@@ -363,6 +374,7 @@ node --version  # Should be 20.0.0+
 ### From Fresh Install
 
 No migration needed. Run:
+
 ```bash
 npm install
 npm run build
@@ -374,17 +386,21 @@ npx ari onboard init
 **Context:** v12 is a superset of v3. Kernel layer preserved.
 
 **Steps:**
+
 1. Backup existing ~/.ari/ directory
+
    ```bash
    cp -r ~/.ari ~/.ari.backup.$(date +%Y%m%d)
    ```
 
 2. Pull v12 code
+
    ```bash
    git pull origin main
    ```
 
 3. Rebuild
+
    ```bash
    npm run clean
    npm install
@@ -392,16 +408,19 @@ npx ari onboard init
    ```
 
 4. Verify health
+
    ```bash
    npx ari doctor
    ```
 
 5. Initialize contexts (new in v12)
+
    ```bash
    npx ari context init
    ```
 
 6. Test
+
    ```bash
    npm test
    ```
@@ -413,7 +432,9 @@ npx ari onboard init
 **Context:** Restoring from backup.
 
 **Steps:**
+
 1. Stop gateway
+
    ```bash
    # Find and kill gateway process
    lsof -i :3141
@@ -421,18 +442,21 @@ npx ari onboard init
    ```
 
 2. Restore ~/.ari/ directory
+
    ```bash
    rm -rf ~/.ari
    cp -r ~/.ari.backup.YYYYMMDD ~/.ari
    ```
 
 3. Verify integrity
+
    ```bash
    npx ari doctor
    npx ari audit verify
    ```
 
 4. Restart gateway
+
    ```bash
    npx ari gateway start
    ```
@@ -457,6 +481,7 @@ tar -tzf ari-backup-$(date +%Y%m%d).tar.gz
 **Not yet implemented.** Phase 4 feature.
 
 Planned:
+
 - Hourly snapshots of audit.json
 - Daily backups of full ~/.ari/
 - Retention: 7 days hourly, 30 days daily, 12 months monthly
@@ -478,6 +503,7 @@ npx ari doctor
 **Not yet implemented.** Phase 3 (UI Console).
 
 Planned metrics:
+
 - Requests per minute
 - Sanitization hit rate
 - Audit log size
@@ -520,11 +546,13 @@ npm run test:watch
 ### Adding New Features
 
 1. Create feature branch
+
    ```bash
    git checkout -b feature/new-feature
    ```
 
 2. Write tests first (TDD)
+
    ```bash
    # Create test file
    touch tests/unit/kernel/new-feature.test.ts
@@ -534,6 +562,7 @@ npm run test:watch
    ```
 
 3. Implement feature
+
    ```bash
    # Create source file
    touch src/kernel/new-feature.ts
@@ -544,6 +573,7 @@ npm run test:watch
    ```
 
 4. Verify health
+
    ```bash
    npm run build
    npx ari doctor
@@ -551,6 +581,7 @@ npm run test:watch
    ```
 
 5. Commit
+
    ```bash
    git add .
    git commit -m "feat: add new feature"
@@ -561,6 +592,7 @@ npm run test:watch
 **Not yet implemented.** Requires governance process (v12 spec).
 
 Planned:
+
 1. Run full test suite (all 187 tests passing)
 2. Update CHANGELOG.md
 3. Bump version in package.json

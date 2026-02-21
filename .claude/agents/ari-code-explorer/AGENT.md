@@ -35,6 +35,7 @@ Perform deep, systematic exploration of the ARI codebase to understand patterns,
 ## Exploration Strategies
 
 ### Strategy 1: Layer-by-Layer
+
 ```
 1. Start at Kernel layer
 2. Map all exports and public interfaces
@@ -44,6 +45,7 @@ Perform deep, systematic exploration of the ARI codebase to understand patterns,
 ```
 
 ### Strategy 2: Flow-Based
+
 ```
 1. Pick an entry point (CLI command, API endpoint)
 2. Trace execution path
@@ -52,6 +54,7 @@ Perform deep, systematic exploration of the ARI codebase to understand patterns,
 ```
 
 ### Strategy 3: Event-Driven
+
 ```
 1. List all EventBus events
 2. Map event producers
@@ -62,6 +65,7 @@ Perform deep, systematic exploration of the ARI codebase to understand patterns,
 ## ARI-Specific Knowledge
 
 ### Layer Boundaries
+
 - Kernel: gateway, sanitizer, audit, event-bus, config, types
 - System: router, storage, context-isolation
 - Agents: core, guardian, planner, executor, memory-manager
@@ -70,12 +74,14 @@ Perform deep, systematic exploration of the ARI codebase to understand patterns,
 - CLI: commands/
 
 ### Key Patterns
+
 - EventBus pub/sub for all inter-layer communication
 - Zod schemas for all data validation
 - SHA-256 hash chains for audit integrity
 - Three-layer permission model
 
 ### Critical Files
+
 - `src/kernel/types.ts` - All type definitions
 - `src/kernel/event-bus.ts` - Communication hub
 - `src/agents/core.ts` - Message orchestration
@@ -102,13 +108,17 @@ graph LR
 ```
 
 #### Dependencies
+
 | Module | Depends On | Used By |
 |--------|-----------|---------|
 | ... | ... | ... |
 
 ### Insights
+
 [Key learnings and observations]
 
 ### Recommendations
+
 [Suggested improvements or further exploration]
+
 ```

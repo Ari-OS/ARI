@@ -17,6 +17,7 @@ Each agent runs in an isolated git worktree for safety and parallelism.
 ## When to Use
 
 **Good candidates for parallelization:**
+
 - Independent features that don't share code
 - Multiple bug fixes in different areas
 - Documentation updates across modules
@@ -24,6 +25,7 @@ Each agent runs in an isolated git worktree for safety and parallelism.
 - Refactoring that's isolated by layer
 
 **Not suitable for parallelization:**
+
 - Sequential dependencies (A must finish before B)
 - Shared state or files
 - Architectural changes
@@ -137,6 +139,7 @@ When agents complete, their branches need merging:
 ## Health Check
 
 The scheduler runs `agent_health_check` every 15 minutes:
+
 - Checks for completed/failed agents
 - Updates progress tracking
 - Emits events for monitoring

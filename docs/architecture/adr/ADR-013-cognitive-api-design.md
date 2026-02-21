@@ -29,7 +29,7 @@ Layer 0 (Cognitive Foundation) must expose cognitive frameworks to higher layers
 1. **Imperative vs Query-Based?**
    - Imperative: `cognition.execute('assess risk')`
    - Query-Based: `cognition.assessRisk(params)`
-   
+
 2. **Synchronous vs Async?**
    - Sync: `const result = assessRisk()`
    - Async: `const result = await assessRisk()`
@@ -55,6 +55,7 @@ Implement **functional, async, modular, query-based** API pattern.
 #### Principle 1: Functional Exports (Not Classes)
 
 **Pattern**:
+
 ```typescript
 // ✅ CORRECT: Functional
 export async function calculateExpectedValue(
@@ -72,6 +73,7 @@ export class ExpectedValueCalculator {
 ```
 
 **Rationale**:
+
 - **Simpler**: Functions are simpler than classes for stateless operations
 - **Composable**: Functions can be easily composed
 - **Testable**: Pure functions easier to test than stateful classes
@@ -84,6 +86,7 @@ export class ExpectedValueCalculator {
 #### Principle 2: Always Async (Even if Currently Sync)
 
 **Pattern**:
+
 ```typescript
 // ✅ CORRECT: Async (even if currently synchronous)
 export async function detectBias(text: string): Promise<Bias[]> {
@@ -100,6 +103,7 @@ export function detectBias(text: string): Bias[] {
 ```
 
 **Rationale**:
+
 - **Future-proof**: May need to query knowledge base later (async operation)
 - **Consistent**: All cognitive APIs have same async pattern
 - **Composable**: Async functions can await each other
@@ -110,6 +114,7 @@ export function detectBias(text: string): Bias[] {
 #### Principle 3: Modular Imports (Not Monolithic)
 
 **Pattern**:
+
 ```typescript
 // ✅ CORRECT: Import specific functions
 import { calculateExpectedValue } from '../cognition/logos/expected-value.js';
@@ -126,12 +131,14 @@ const biases = await cognition.ethos.biasDetector.detect(reasoning);
 ```
 
 **Rationale**:
+
 - **Tree-shaking**: Bundlers can eliminate unused code
 - **Explicit dependencies**: Clear what each file uses
 - **Faster imports**: Don't load entire cognition layer if only using one function
 - **Familiar**: Matches TypeScript ecosystem conventions
 
 **Convenience Export**: `src/cognition/index.ts` re-exports all for convenience:
+
 ```typescript
 // src/cognition/index.ts
 export * from './logos/index.js';
@@ -144,6 +151,7 @@ export * from './pathos/index.js';
 #### Principle 4: Rich Response Objects (Not Primitives)
 
 **Pattern**:
+
 ```typescript
 // ✅ CORRECT: Rich object with metadata
 export async function calculateExpectedValue(
@@ -173,6 +181,7 @@ export async function calculateExpectedValue(
 ```
 
 **Rationale**:
+
 - **Explainability**: Consumers know WHY this is the result
 - **Confidence**: Quantify uncertainty (0.95 confidence vs 0.40 confidence)
 - **Provenance**: Traceable to sources (audit requirement)
@@ -184,6 +193,7 @@ export async function calculateExpectedValue(
 #### Principle 5: Query-Based (Not Imperative)
 
 **Pattern**:
+
 ```typescript
 // ✅ CORRECT: Query-based (asking for information)
 const result = await assessEmotionalState(member, context);
@@ -195,6 +205,7 @@ await regulateEmotion(member, targetState);
 ```
 
 **Rationale**:
+
 - **Layer 0 provides analysis, not execution**
 - **Decision authority stays with Council members** (they decide whether to act on cognitive insights)
 - **Separation of concerns**: Cognition = information, Execution = action
@@ -1382,18 +1393,21 @@ export async function calculateExpectedValue(
 ### Caching Strategy
 
 **What to Cache**:
+
 - Expected value for common decision patterns (e.g., standard investment scenarios)
 - Kelly Criterion for typical probabilities
 - Wisdom principles (rarely change)
 - Bias detection patterns (static)
 
 **What NOT to Cache**:
+
 - Emotional state (changes frequently)
 - Bayesian beliefs (updated with new evidence)
 - Reflection (unique per outcome)
 - Performance reviews (time-sensitive)
 
 **Implementation**:
+
 ```typescript
 // src/cognition/knowledge/cache.ts
 
@@ -1433,6 +1447,7 @@ class CognitiveCache {
 ```
 
 **Cache Metrics**:
+
 - Hit rate (should be >60% for frequently-used APIs)
 - Miss rate
 - Average response time (cached vs uncached)
@@ -1506,6 +1521,7 @@ export async function calculateExpectedValue(
 ```
 
 **Caller Error Handling**:
+
 ```typescript
 // In Council member code
 try {
@@ -1532,16 +1548,19 @@ try {
 **Commitment**: Layer 0 APIs are **stable** after v1.0 (no breaking changes).
 
 **Semantic Versioning**:
+
 - **Major** (v1.0 → v2.0): Breaking changes (function signature changes, removed functions)
 - **Minor** (v1.0 → v1.1): New functions added, backward compatible
 - **Patch** (v1.0.0 → v1.0.1): Bug fixes, no API changes
 
 **Deprecation Process**:
+
 1. Mark function as `@deprecated` in JSDoc (6 months warning)
 2. Emit deprecation warning when called
 3. After 6 months: Remove in next major version
 
 **Example**:
+
 ```typescript
 /**
  * @deprecated Use calculateExpectedValue() instead. Will be removed in v2.0.
@@ -1560,6 +1579,7 @@ export async function computeExpectedValue(decision: Decision): Promise<number> 
 ### 1. Class-Based API
 
 **Pattern**:
+
 ```typescript
 const cognitive = new CognitiveLayer(eventBus);
 const ev = await cognitive.logos.calculateExpectedValue(decision);
@@ -1567,7 +1587,8 @@ const ev = await cognitive.logos.calculateExpectedValue(decision);
 
 **Pros**: Object-oriented, encapsulates state, familiar to Java/C# developers
 
-**Cons**: 
+**Cons**:
+
 - Overkill for stateless operations
 - Harder to tree-shake
 - Requires instantiation (extra step)
@@ -1580,6 +1601,7 @@ const ev = await cognitive.logos.calculateExpectedValue(decision);
 ### 2. Builder Pattern
 
 **Pattern**:
+
 ```typescript
 const decision = new DecisionBuilder()
   .addOutcome({ prob: 0.6, value: 100 })
@@ -1592,6 +1614,7 @@ const ev = await decision.calculateExpectedValue();
 **Pros**: Fluent API, validation during build
 
 **Cons**:
+
 - Verbose (more code to write)
 - Unnecessary abstraction (plain objects work fine with Zod)
 - Locks into builder pattern (hard to change later)
@@ -1603,6 +1626,7 @@ const ev = await decision.calculateExpectedValue();
 ### 3. GraphQL-Style Query Language
 
 **Pattern**:
+
 ```typescript
 const result = await cognition.query(`
   {
@@ -1622,6 +1646,7 @@ const result = await cognition.query(`
 **Pros**: Flexible, can request exactly what you need, familiar to web developers
 
 **Cons**:
+
 - Massive complexity (GraphQL runtime, schema, resolvers)
 - Type safety harder (string queries)
 - Overkill for internal API
@@ -1634,6 +1659,7 @@ const result = await cognition.query(`
 ### 4. RPC/gRPC Pattern
 
 **Pattern**:
+
 ```typescript
 const client = createCognitiveClient();
 const ev = await client.CalculateExpectedValue({ decision });
@@ -1642,6 +1668,7 @@ const ev = await client.CalculateExpectedValue({ decision });
 **Pros**: Standardized, could support remote calls, protocol buffers
 
 **Cons**:
+
 - Requires RPC framework (complexity)
 - Network overhead (even for in-process)
 - Violates ADR-001 (in-process agents)
@@ -1678,6 +1705,7 @@ Every exported function must have:
 ```
 
 **Example**:
+
 ```typescript
 /**
  * Calculate expected value of a decision

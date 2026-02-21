@@ -13,6 +13,7 @@ Common issues and solutions for ARI setup and operation.
 **Cause:** Native module not compiled for current Node.js version.
 
 **Fix:**
+
 ```bash
 cd node_modules/better-sqlite3
 npx node-gyp rebuild
@@ -21,11 +22,13 @@ npm test -- tests/unit/system/vector-store.test.ts
 ```
 
 If `node-gyp` is not installed:
+
 ```bash
 npm install -g node-gyp
 ```
 
 If Xcode command line tools missing (macOS):
+
 ```bash
 xcode-select --install
 ```
@@ -39,6 +42,7 @@ xcode-select --install
 **Cause:** Husky post-install script requires husky to be installed first.
 
 **Fix (Mac Mini and CI):**
+
 ```bash
 npm install --ignore-scripts
 # Then manually run build:
@@ -54,6 +58,7 @@ npm run build
 **Cause:** Mac Mini shell profile sets `NODE_ENV=production`, skipping devDependencies.
 
 **Fix:**
+
 ```bash
 NODE_ENV=development npm install --ignore-scripts
 NODE_ENV=development npm run build
@@ -68,6 +73,7 @@ NODE_ENV=development npm run build
 **Symptom:** `EADDRINUSE: address already in use 127.0.0.1:3141`
 
 **Fix:**
+
 ```bash
 # Find what's on port 3141
 lsof -i :3141
@@ -84,6 +90,7 @@ npm run build && npx ari gateway start
 **Symptom:** `curl http://127.0.0.1:3141/health` returns connection refused
 
 **Fix:**
+
 ```bash
 # Check gateway is actually running:
 ps aux | grep "ari gateway"
@@ -103,6 +110,7 @@ cat ~/.ari/.env | grep -c "=" # Should show 20+ vars
 **Symptom:** `launchctl list | grep ari.daemon` shows no entry
 
 **Fix:**
+
 ```bash
 # Check plist exists:
 ls ~/Library/LaunchAgents/com.ari.daemon.plist
@@ -122,6 +130,7 @@ launchctl list | grep ari.daemon
 **Symptom:** PID shows briefly then daemon is gone
 
 **Fix:**
+
 ```bash
 tail -50 ~/.ari/logs/daemon.log
 tail -50 ~/.ari/logs/daemon-error.log
@@ -136,6 +145,7 @@ cat ~/.ari/.env | grep ANTHROPIC_API_KEY
 **Symptom:** Last briefing was days ago; daemon is running but nothing in Telegram
 
 **Diagnosis:**
+
 ```bash
 # Check briefing log:
 grep "morning" ~/.ari/logs/daemon.log | tail -10
@@ -146,6 +156,7 @@ npx ari autonomous trigger morning-briefing
 ```
 
 **Common causes:**
+
 - Scheduler tasks disabled (check task enabled status)
 - Telegram bot token expired
 - ANTHROPIC_API_KEY rate limited
@@ -161,6 +172,7 @@ npx ari autonomous trigger morning-briefing
 **Cause:** `~/.ari/data/` directory doesn't exist for SQLite database
 
 **Fix:**
+
 ```bash
 mkdir -p ~/.ari/data
 npm rebuild better-sqlite3 --ignore-scripts=false
@@ -176,6 +188,7 @@ npm test -- tests/unit/system/vector-store.test.ts
 **Cause:** ConversationStore constructor returned undefined or missing shutdown() method
 
 **Fix:**
+
 ```bash
 # Check the class:
 grep -n "shutdown" src/plugins/telegram-bot/conversation-store.ts
@@ -192,6 +205,7 @@ npm test -- tests/unit/plugins/telegram-bot/conversation-store.test.ts 2>&1 | he
 **Cause:** `PolicyEngine` not injected; dynamic import resolves after test synchronously calls methods
 
 **Fix:**
+
 ```typescript
 // In test files, inject PolicyEngine via constructor:
 import { PolicyEngine } from '../../../src/governance/policy-engine.js';
@@ -207,12 +221,14 @@ executor = new Executor(auditLogger, eventBus, new PolicyEngine(auditLogger, eve
 **Cause:** Husky runs in minimal PATH that doesn't include Homebrew Node.js
 
 **Fix (already applied):**
+
 ```bash
 # .husky/pre-commit already has this line:
 export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
 ```
 
 If still failing, check Node.js path:
+
 ```bash
 which node
 # Should be: /opt/homebrew/opt/node@22/bin/node
@@ -237,6 +253,7 @@ which node
 **Symptom:** Messages sent to @ari_pryce_bot get no response
 
 **Diagnosis:**
+
 ```bash
 # Check bot token is valid:
 curl "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe"
@@ -277,6 +294,7 @@ ssh -o ConnectTimeout=10 -i ~/.ssh/id_ed25519 ari@100.81.73.34
 **Symptom:** `node: command not found` in SSH session
 
 **Fix:**
+
 ```bash
 ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "source ~/.zshrc 2>/dev/null; source ~/.zprofile 2>/dev/null; node --version"
 # Always source shell profiles first in SSH commands
@@ -293,6 +311,7 @@ ssh -i ~/.ssh/id_ed25519 ari@100.81.73.34 "source ~/.zshrc 2>/dev/null; source ~
 **Cause:** Event handler typed as `(payload: any)` -> accessing properties is "unsafe"
 
 **Fix:** Use `(payload: unknown)` and cast inside:
+
 ```typescript
 this.eventBus.on('some:event', (raw) => {
   const payload = raw as { field: string };
@@ -307,6 +326,7 @@ this.eventBus.on('some:event', (raw) => {
 **Symptom:** `@typescript-eslint/require-await` error
 
 **Fix:**
+
 ```typescript
 // Remove async:
 function doThing(): string { return 'value'; }
@@ -321,6 +341,7 @@ function doThing(): Promise<string> { return Promise.resolve('value'); }
 **Symptom:** ESLint or architectural error: "L3 importing from L4"
 
 **Fix:** Use EventBus for cross-layer communication:
+
 ```typescript
 // WRONG (L3 directly importing L4):
 import { PolicyEngine } from '../governance/policy-engine.js';
@@ -339,6 +360,7 @@ this.eventBus.emit('policy:check_requested', { ... });
 **Symptom:** Commit rejected: "subject may not be sentence-case"
 
 **Fix:** Use lowercase subject:
+
 ```bash
 # WRONG:
 git commit -m "Fix the bug in executor"

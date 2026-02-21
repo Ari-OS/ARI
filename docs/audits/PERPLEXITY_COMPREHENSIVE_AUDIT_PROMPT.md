@@ -249,6 +249,7 @@ Additional context: This system will be used as a "Life Operating System" — ma
 After the initial audit, use these for specific deep dives:
 
 ### Deep Dive 1: Bayesian Implementation
+
 ```
 Continuing our ARI audit: Focus specifically on Bayesian reasoning in AI agents.
 
@@ -261,6 +262,7 @@ Cite specific papers from 2020-2024. Be mathematically rigorous.
 ```
 
 ### Deep Dive 2: Cognitive Bias Detection
+
 ```
 Continuing our ARI audit: Focus on cognitive bias detection systems.
 
@@ -274,6 +276,7 @@ Cite specific papers and include accuracy benchmarks where available.
 ```
 
 ### Deep Dive 3: Trading Psychology Systems
+
 ```
 Continuing our ARI audit: Focus on trading psychology assessment systems.
 
@@ -287,6 +290,7 @@ Include both academic and industry sources.
 ```
 
 ### Deep Dive 4: Therapeutic AI Ethics
+
 ```
 Continuing our ARI audit: Focus on AI systems that implement therapeutic techniques.
 
@@ -300,6 +304,7 @@ Focus on ethics papers and clinical guidelines.
 ```
 
 ### Deep Dive 5: Cognitive Architecture Comparison
+
 ```
 Continuing our ARI audit: Compare ARI to established cognitive architectures.
 
@@ -313,6 +318,7 @@ Provide architectural diagrams or descriptions where helpful.
 ```
 
 ### Deep Dive 6: Learning and Self-Improvement
+
 ```
 Continuing our ARI audit: Focus on self-improving AI systems.
 

@@ -27,27 +27,32 @@ Thank you for your interest in contributing to ARI — Artificial Reasoning Inte
 
 1. Fork the repository on GitHub
 2. Clone your fork locally:
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/ari.git
    cd ari
    ```
 
 3. Add upstream remote:
+
    ```bash
    git remote add upstream https://github.com/ARI-OS/ARI.git
    ```
 
 4. Install dependencies:
+
    ```bash
    npm install
    ```
 
 5. Build the project:
+
    ```bash
    npm run build
    ```
 
 6. Run tests to verify setup:
+
    ```bash
    npm test
    ```
@@ -57,6 +62,7 @@ Thank you for your interest in contributing to ARI — Artificial Reasoning Inte
 ### Making Changes
 
 1. Always create a feature branch from `main`:
+
    ```bash
    git checkout main
    git pull upstream main
@@ -68,11 +74,13 @@ Thank you for your interest in contributing to ARI — Artificial Reasoning Inte
 4. Add or update tests as needed
 5. Update documentation if required
 6. Run tests frequently:
+
    ```bash
    npm test
    ```
 
 7. Check code quality:
+
    ```bash
    npm run lint
    npm run typecheck

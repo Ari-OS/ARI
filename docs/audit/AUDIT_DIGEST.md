@@ -119,17 +119,17 @@ This digest synthesizes the complete Perplexity Audit of ARI v3.0.0 into actiona
 
 **Priority**: HIGH (1 week)
 
-4. **Rate Limiter Resilience** (PR-3, 3 days)
+1. **Rate Limiter Resilience** (PR-3, 3 days)
    - Issue: Rate limit per sender only (spoofing bypass)
    - Fix: Track by session + sender
    - Impact: MEDIUM (abuse prevention)
 
-5. **Event Subscriber Cleanup** (PR-4, 1 day)
+2. **Event Subscriber Cleanup** (PR-4, 1 day)
    - Issue: Subscribers not unsubscribed on disconnect (memory leak)
    - Fix: Add unsubscribe on disconnect
    - Impact: LOW (memory growth)
 
-6. **UTF-8 Safety** (PR-6, 1 day)
+3. **UTF-8 Safety** (PR-6, 1 day)
    - Issue: Byte-level filtering may corrupt multi-byte UTF-8
    - Fix: Use proper TextDecoder
    - Impact: LOW (data integrity edge case)
@@ -138,22 +138,22 @@ This digest synthesizes the complete Perplexity Audit of ARI v3.0.0 into actiona
 
 **Priority**: MEDIUM (6-8 weeks after hardening)
 
-7. **No Reasoning Engine**
+1. **No Reasoning Engine**
    - Gap: v3.0.0 is message pipeline only
    - Solution: Phase 2b—Advisor pattern (agent proposes, operator decides)
    - Rationale: Deliberate phasing, not a defect
 
-8. **No Agent System**
+2. **No Agent System**
    - Gap: No AgentRegistry, no agent types in code
    - Solution: Phase 2a—Add agent types + registry
    - Rationale: Foundation must stabilize before agents
 
-9. **No Permission Model (Implemented)**
+3. **No Permission Model (Implemented)**
    - Gap: Designed in docs, not enforced in code
    - Solution: Phase 2a—Coarse permissions (low/medium/high risk)
    - Rationale: Simplicity-first approach (defer fine-grained to Phase 3)
 
-10. **No Persistent Memory**
+4. **No Persistent Memory**
     - Gap: In-memory only, no JSONL persistence
     - Solution: Phase 2c—Memory service (optional, deferrable)
     - Rationale: Advisor pattern works without persistent memory
@@ -162,17 +162,17 @@ This digest synthesizes the complete Perplexity Audit of ARI v3.0.0 into actiona
 
 **Priority**: LOW (Long-term roadmap)
 
-11. **Single Operator Only**
+1. **Single Operator Only**
     - Gap: No multi-user support
     - Solution: Phase 3b—Multi-operator with permissions
     - Rationale: Not needed for personal OS (Phase 1-2)
 
-12. **No Council Voting**
+2. **No Council Voting**
     - Gap: No agent consensus mechanism
     - Solution: Phase 2d—Simple council voting (50%+1 quorum)
     - Rationale: Advisor pattern sufficient for Phase 2b
 
-13. **No Agent Learning**
+3. **No Agent Learning**
     - Gap: Agents are static (no improvement over time)
     - Solution: Phase 3a—Feedback loops → RL fine-tuning
     - Rationale: Requires stable agent system first
@@ -186,6 +186,7 @@ This digest synthesizes the complete Perplexity Audit of ARI v3.0.0 into actiona
 **Status**: ✅ PASS (Zero Scope Drift Detected)
 
 The audit confirms:
+
 - README.md and docs clearly state "personal operating system gateway"
 - Security is foundation, NOT the product
 - No evidence of drift toward "security-only gateway"
@@ -511,6 +512,7 @@ The audit synthesizes 60 external sources into actionable principles:
 ### C. Success Criteria
 
 **Phase 0 (Hardening) Success**:
+
 - [ ] All 6 PRs merged and tested
 - [ ] v3.0.1 deployed as always-on daemon
 - [ ] Zero critical security issues
@@ -518,12 +520,14 @@ The audit synthesizes 60 external sources into actionable principles:
 - [ ] Operator feedback gathered
 
 **Phase 2a (Agent Foundation) Success**:
+
 - [ ] Agent types in audit log
 - [ ] AgentRegistry can register/lookup 6 agents
 - [ ] All tests pass
 - [ ] No complexity creep (module LOC < 500)
 
 **Phase 2b (Advisor Pattern) Success**:
+
 - [ ] Planner agent proposes 1-step actions
 - [ ] Guardian agent checks invariants
 - [ ] Operator approves/rejects proposals
@@ -531,6 +535,7 @@ The audit synthesizes 60 external sources into actionable principles:
 - [ ] End-to-end flow tested
 
 **Phase 2 Overall Success**:
+
 - [ ] Life OS mission preserved (no scope drift)
 - [ ] Philosophy enforced (Jung/Musashi/Dalio)
 - [ ] Complexity within bounds (~4K LOC total)

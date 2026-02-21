@@ -77,6 +77,7 @@ When the budget reaches `reduce` level, only these operations are allowed:
 | P0/P1 alert delivery | Operator must know about critical issues |
 
 **Everything else is non-essential** during brownout:
+
 - Morning/evening briefings
 - Autonomous task execution
 - Proactive research
@@ -88,6 +89,7 @@ This list is intentionally short. "Essential" must not expand over time — if s
 ## Cost Tracking
 
 The `CostTracker` (`src/observability/cost-tracker.ts`) tracks:
+
 - Per-request cost (input tokens + output tokens)
 - Daily running total
 - Monthly running total
@@ -125,6 +127,7 @@ OPAL (resource_manager) can veto if estimated tokens > 100,000.
 ## Monitoring
 
 Budget status is available via:
+
 - Dashboard API: `GET /api/budget/status`
 - CLI: `npx ari budget status`
 - Script: `scripts/check-budget-status.sh`

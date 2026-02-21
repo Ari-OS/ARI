@@ -19,6 +19,7 @@ This document analyzes the gap between ARI's **repo truth** (what the code actua
 **ARI is a Life Operating System** — a local-first, multi-agent personal OS that orchestrates AI agents to manage life domains (health, career, finances, ventures, personal growth) with security as its foundation.
 
 **Evidence from code:**
+
 - `README.md`: "Your Life Operating System", "ARI orchestrates AI agents to manage your life"
 - `package.json`: "Secure Multi-Agent Personal OS"
 - `CLAUDE.md`: "Description: Your Life Operating System"
@@ -58,25 +59,32 @@ This document analyzes the gap between ARI's **repo truth** (what the code actua
 These are the non-negotiable security properties enforced by the codebase:
 
 ### 1. Loopback-Only Gateway
+
 **Location**: `src/kernel/gateway.ts:20`
+
 ```typescript
 await this.app.listen({ port: this.port, host: '127.0.0.1' });
 ```
+
 **Status**: ✅ Enforced — hardcoded, not configurable
 
 ### 2. Content ≠ Command
+
 **Location**: `src/kernel/sanitizer.ts`
 **Status**: ✅ Enforced — 39 injection patterns, binary accept/reject
 
 ### 3. Audit Immutable
+
 **Location**: `src/kernel/audit.ts`
 **Status**: ✅ Enforced — SHA-256 hash chain from genesis
 
 ### 4. Least Privilege
+
 **Location**: `src/agents/executor.ts`
 **Status**: ✅ Enforced — 3-layer permission checks
 
 ### 5. Trust Required
+
 **Location**: `src/kernel/types.ts`
 **Status**: ✅ Enforced — 6 trust levels with risk multipliers
 
@@ -133,18 +141,18 @@ await this.app.listen({ port: this.port, host: '127.0.0.1' });
 
 ### Medium Priority
 
-3. **Verify quickstart commands**
+1. **Verify quickstart commands**
    - Test each command in fresh environment
    - Update any broken commands
 
-4. **Add identity documentation**
+2. **Add identity documentation**
    - BRAND.md — Voice, values, aesthetic
    - X_PROFILE.md — Social presence
    - IMAGE_PROMPTS.md — Visual identity
 
 ### Low Priority
 
-5. **Update architecture diagram**
+1. **Update architecture diagram**
    - Show data flow more clearly
    - Add invariant indicators
 

@@ -18,6 +18,7 @@
 ## Phase A: Verify Morning Briefing (Days 1-2)
 
 ### Already Complete (From Codebase Audit)
+
 - [x] BriefingGenerator class exists (`src/autonomous/briefings.ts`)
 - [x] BriefingGenerator instantiated in autonomous agent (`agent.ts:230`)
 - [x] Morning briefing handler registered (`agent.ts:751`)
@@ -29,6 +30,7 @@
 - [x] 37 autonomous components, 25 active handlers
 
 ### Phase A Code Changes (Feb 16, 2026)
+
 - [x] BriefingGenerator stores EventBus reference for event emissions
 - [x] `morningBriefing()` emits `briefing:morning_delivered` event
 - [x] `eveningSummary()` emits `briefing:evening_delivered` event
@@ -40,6 +42,7 @@
 - [x] 9 new tests added (39 total in briefings.test.ts, 4,885 suite-wide)
 
 ### Remaining (Deployment Only)
+
 - [ ] Verify ANTHROPIC_API_KEY set in `~/.ari/.env` on Mac Mini
 - [ ] Verify TELEGRAM_BOT_TOKEN set in `~/.ari/.env`
 - [ ] Verify TELEGRAM_OWNER_USER_ID set in `~/.ari/.env`
@@ -109,6 +112,7 @@
 ## Financial Checklist
 
 ### Month 1
+
 - [ ] Swap ChatGPT Plus ($20) for Anthropic API credits ($20)
 - [ ] Open separate business checking for Pryceless Solutions
 - [ ] Begin Pokemon card inventory (2 weekends)
@@ -117,12 +121,14 @@
 - [ ] Set aside tax reserve account (25-30% of business income)
 
 ### Month 2-3
+
 - [ ] List Pokemon Tier B and C cards for sale
 - [ ] Land first Pryceless Solutions client
 - [ ] Emergency fund: $1,000 (Tier 1)
 - [ ] Address fixer-upper Tier 1 safety items ($350-$1,100)
 
 ### Month 4-6
+
 - [ ] Emergency fund: $2,500+ (Tier 2)
 - [ ] Pryceless Solutions MRR: $1,000-$2,500
 - [ ] Storage unit canceled (inventory moved home)
@@ -134,6 +140,7 @@
 ## Career Transition Checklist
 
 ### Prep (Week 1-2)
+
 - [ ] Polish ARI GitHub README with architecture diagrams
 - [ ] Record 2-minute ARI demo video
 - [ ] Update LinkedIn headline: "AI Systems Engineer | Building ARI"
@@ -141,11 +148,13 @@
 - [ ] Write 1-2 blog posts about ARI on dev.to or Hashnode
 
 ### Apply (Week 3+)
+
 - [ ] 5-10 applications/week on LinkedIn, Wellfound, Otta
 - [ ] Target roles: AI Engineer, Backend Engineer, Platform Engineer
 - [ ] Salary target: $75K-$120K (remote preferred)
 
 ### Interview Prep (Ongoing)
+
 - [ ] LeetCode: 30 min/day, Easy+Medium (NeetCode 150)
 - [ ] System design: Use ARI architecture for every question
 - [ ] Prepare 5-7 STAR stories using ARI as backbone
@@ -155,18 +164,21 @@
 ## Content Launch Checklist
 
 ### Setup
+
 - [ ] TikTok: @PayThePryce
 - [ ] YouTube: PayThePryce channel
 - [ ] X/Twitter: Leverage X Premium Plus
 - [ ] Consistent bio across all platforms
 
 ### First Month Content
+
 - [ ] 3 TikToks (ARI demo, Pokemon teaser, AI tip)
 - [ ] 1 X thread: "I built a 90,000-line AI OS"
 - [ ] 1 YouTube video (screen record build session)
 - [ ] Daily X posting habit established
 
 ### X Premium Plus Strategy
+
 - [ ] Enable revenue sharing
 - [ ] Use longer post format (25K chars)
 - [ ] Leverage Grok for trend research
@@ -178,6 +190,7 @@
 ## Pryceless Solutions Launch Checklist
 
 ### Week 1
+
 - [ ] Open business bank account
 - [ ] Set up invoicing (Wave, free)
 - [ ] Create service packages page on prycehedrick.com
@@ -187,6 +200,7 @@
 - [ ] Identify 5 local businesses for free audits
 
 ### Month 1-3 (First Clients)
+
 - [ ] Deliver 3-5 free AI audits
 - [ ] Convert 1-2 to paid implementation ($500-$2,000)
 - [ ] Create Upwork profile
@@ -198,6 +212,7 @@
 ## ARI Workspace Files
 
 ### Location: `~/.ari/workspace/`
+
 - [ ] SOUL.md — ARI personality definition
 - [ ] USER.md — Pryce's operator profile
 - [ ] IDENTITY.md — ARI identity definition
@@ -240,6 +255,7 @@
 ---
 
 **The 3 Things That Matter Most:**
+
 1. **Verify ARI's morning briefing works end-to-end** (this week)
 2. **Land a CS/SWE job** ($60K+ doubles your surplus)
 3. **Get your first paying client** (30 days)

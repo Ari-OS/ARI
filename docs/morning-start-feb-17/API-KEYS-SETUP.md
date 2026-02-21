@@ -25,24 +25,28 @@ TWITTER_BEARER_TOKEN=...
 ## How to Get Each Key
 
 ### Anthropic API Key
-1. Go to https://console.anthropic.com
+
+1. Go to <https://console.anthropic.com>
 2. Create account (separate from Claude Max subscription)
 3. Go to API Keys → Create Key
 4. Copy the key starting with `sk-ant-`
 5. Add $20 credits to start
 
 ### Telegram Bot Token (Already Set)
+
 - Bot: @ari_pryce_bot
 - Token and User ID should already be in `~/.ari/.env`
 
 ### OpenAI API Key (Optional)
-1. Go to https://platform.openai.com
+
+1. Go to <https://platform.openai.com>
 2. API Keys → Create new secret key
 3. Used for: text-embedding-3-small (RAG system)
 4. Cost: ~$0.02 per 1M tokens (very cheap)
 
 ### Gemini API Key (Optional)
-1. Go to https://aistudio.google.com/apikey
+
+1. Go to <https://aistudio.google.com/apikey>
 2. Create API key
 3. Used for: Gemini 2.5 Flash routing ($0.30/1M input)
 

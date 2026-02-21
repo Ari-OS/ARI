@@ -3,13 +3,13 @@ import { sanitize, isSafe, INJECTION_PATTERNS } from '../../src/kernel/sanitizer
 
 describe('Injection Detection', () => {
   describe('pattern count verification', () => {
-    it('should have 39 injection patterns', () => {
-      expect(INJECTION_PATTERNS.length).toBe(39);
+    it('should have 63 injection patterns', () => {
+      expect(INJECTION_PATTERNS.length).toBe(63);
     });
 
-    it('should cover 16 categories', () => {
-      const categories = new Set(INJECTION_PATTERNS.map(p => p.category));
-      expect(categories.size).toBe(14);
+    it('should cover 27 categories', () => {
+      const categories = new Set(INJECTION_PATTERNS.map((p: any) => p.category));
+      expect(categories.size).toBe(27);
     });
   });
 

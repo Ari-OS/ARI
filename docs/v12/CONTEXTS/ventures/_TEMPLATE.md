@@ -1,4 +1,5 @@
 # 🌐 [VENTURE NAME] — VENTURE CONTEXT
+
 ## [Business Type/Description]
 
 **Context Type:** Venture  
@@ -9,7 +10,9 @@
 ---
 
 ## ═══════════════════════════════════════════════════════════════
+
 ## VENTURE IDENTITY
+
 ## ═══════════════════════════════════════════════════════════════
 
 **Business Name:** [Name]  
@@ -28,7 +31,9 @@
 ---
 
 ## ═══════════════════════════════════════════════════════════════
+
 ## PRICING (IF APPLICABLE)
+
 ## ═══════════════════════════════════════════════════════════════
 
 ### Service/Product Offerings
@@ -52,7 +57,9 @@
 ---
 
 ## ═══════════════════════════════════════════════════════════════
+
 ## SALES/OPERATIONS FRAMEWORK
+
 ## ═══════════════════════════════════════════════════════════════
 
 ### Lead Qualification (if applicable)
@@ -63,35 +70,45 @@
 | [Criterion 2] | X | [Assessment method] |
 
 ### Red Flags
+
 - [Warning sign 1]
 - [Warning sign 2]
 
 ### Green Flags
+
 - [Positive indicator 1]
 - [Positive indicator 2]
 
 ---
 
 ## ═══════════════════════════════════════════════════════════════
+
 ## OPERATIONAL DETAILS
+
 ## ═══════════════════════════════════════════════════════════════
 
 ### Key Processes
+
 [Document your key operational processes]
 
 ### Tools & Resources
+
 [List tools specific to this venture]
 
 ### Communication Guidelines
+
 [How to communicate with clients/customers/partners]
 
 ---
 
 ## ═══════════════════════════════════════════════════════════════
+
 ## MEMORY PARTITION
+
 ## ═══════════════════════════════════════════════════════════════
 
 All [Venture Name] memories are tagged:
+
 ```json
 {
   "partition": "VENTURE_[NAME]",
@@ -102,6 +119,7 @@ All [Venture Name] memories are tagged:
 ```
 
 Venture memories do NOT leak into:
+
 - Personal life contexts
 - Other venture contexts
 - Kernel operations
@@ -109,16 +127,20 @@ Venture memories do NOT leak into:
 ---
 
 ## ═══════════════════════════════════════════════════════════════
+
 ## CONTEXT LOADING TRIGGERS
+
 ## ═══════════════════════════════════════════════════════════════
 
 Load this context when operator mentions:
+
 - "[Venture name]"
 - "[Key product/service]"
 - "[Client type]"
 - [Other specific triggers]
 
 Do NOT load when:
+
 - General life questions
 - Other venture work
 - Personal matters

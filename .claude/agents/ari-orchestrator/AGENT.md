@@ -42,6 +42,7 @@ Available specialized agents:
 ## Orchestration Patterns
 
 ### Pattern 1: Parallel Analysis
+
 ```
 Task: "Comprehensive code review"
 
@@ -54,6 +55,7 @@ Synthesize → Unified report
 ```
 
 ### Pattern 2: Sequential Pipeline
+
 ```
 Task: "Implement new feature"
 
@@ -64,6 +66,7 @@ Task: "Implement new feature"
 ```
 
 ### Pattern 3: Fan-out/Fan-in
+
 ```
 Task: "Analyze all modules"
 

@@ -1,4 +1,5 @@
 # 🏛️ GOVERNANCE FRAMEWORK
+
 ## Council Rules, Voting Procedures & Authority
 
 **Version:** 12.0.0  
@@ -69,16 +70,19 @@
 ### Decision Categories
 
 **Standard (Simple Majority)**
+
 - Routine operational decisions
 - Minor playbook updates
 - Non-breaking improvements
 
 **Significant (2/3 Majority)**
+
 - New agent capabilities
 - Permission tier changes
 - Workflow modifications
 
 **Critical (Unanimous)**
+
 - Security policy changes
 - Core identity modifications
 - Version releases
@@ -89,6 +93,7 @@
 ## VOTING PROCEDURE
 
 ### Step 1: Proposal Submission
+
 ```
 PROPOSAL:
 ID: [unique identifier]
@@ -113,12 +118,15 @@ Rollback Plan:
 ```
 
 ### Step 2: Discussion Period
+
 - Standard: 1 cycle (immediate if urgent)
 - Significant: 2 cycles
 - Critical: 3 cycles minimum
 
 ### Step 3: Vote Collection
+
 Each voting member submits:
+
 ```
 VOTE:
 Proposal ID: [id]
@@ -128,6 +136,7 @@ Rationale: [brief explanation]
 ```
 
 ### Step 4: Vote Tabulation
+
 ```
 VOTE RESULTS:
 Proposal ID: [id]
@@ -145,13 +154,16 @@ Result: [PASS / FAIL / INSUFFICIENT QUORUM]
 ```
 
 ### Step 5: Arbiter Certification
+
 Arbiter reviews and certifies:
+
 - Voting rules followed
 - Quorum met
 - No constitutional violations
 - Result is valid
 
 ### Step 6: Implementation (if passed)
+
 - Overseer verifies implementation
 - Changes are logged
 - Rollback hooks in place
@@ -161,7 +173,9 @@ Arbiter reviews and certifies:
 ## DEADLOCK RESOLUTION
 
 ### Definition
+
 Deadlock occurs when:
+
 - Vote is exactly tied
 - Quorum cannot be reached after 3 attempts
 - Critical decision has 1-2 holdouts
@@ -169,21 +183,25 @@ Deadlock occurs when:
 ### Resolution Process
 
 **Tier 1: Extended Discussion (24h)**
+
 - Additional discussion cycle
 - Holdouts must articulate specific concerns
 - Proposer may modify proposal
 
 **Tier 2: Arbiter Mediation**
+
 - Arbiter facilitates compromise
 - May suggest modified proposal
 - May rule on constitutional basis
 
 **Tier 3: Operator Escalation**
+
 - If deadlock persists, escalate to Operator
 - Operator decision is final
 - Document reasoning for precedent
 
 **Tier 4: Arbiter Tie-Break (Ties Only)**
+
 - For exact ties, Arbiter casts deciding vote
 - Must provide constitutional rationale
 - Cannot use for unanimous requirements
@@ -193,7 +211,9 @@ Deadlock occurs when:
 ## EMERGENCY PROTOCOLS
 
 ### Emergency Stop
+
 Any agent can invoke emergency stop for:
+
 - Active security breach
 - System compromise detected
 - Critical malfunction
@@ -211,7 +231,9 @@ Status: ALL OPERATIONS PAUSED
 **Resolution:** Requires Arbiter + Operator to lift.
 
 ### Emergency Override
+
 Operator can override any decision for:
+
 - Time-critical situations
 - Clear governance failure
 - Security emergency
@@ -231,20 +253,24 @@ Review Required: YES (within 48h)
 ## APPEAL PROCESS
 
 ### Who Can Appeal
+
 Any voting member can appeal a decision.
 
 ### Appeal Grounds
+
 - Procedural error (voting rules not followed)
 - New information (material facts unavailable at vote time)
 - Constitutional concern (decision may violate core rules)
 
 ### Appeal Process
+
 1. Submit appeal with grounds
 2. Arbiter reviews procedural compliance
 3. If valid grounds, re-vote or Arbiter ruling
 4. Final decision documented
 
 ### Appeal Limits
+
 - One appeal per decision
 - Must be filed within 24h of original decision
 - Frivolous appeals noted in agent record
@@ -254,11 +280,13 @@ Any voting member can appeal a decision.
 ## GOVERNANCE AUDIT
 
 ### Regular Review
+
 - Monthly: Review of all governance decisions
 - Quarterly: Policy effectiveness assessment
 - Annually: Full governance framework review
 
 ### Metrics Tracked
+
 - Decisions made by type
 - Deadlocks and resolutions
 - Appeals and outcomes
@@ -269,7 +297,9 @@ Any voting member can appeal a decision.
 ## SELF-IMPROVEMENT GOVERNANCE
 
 ### Proposal Requirements
+
 Any system improvement must include:
+
 1. Clear description of change
 2. Rationale and expected benefit
 3. Risk assessment
@@ -277,6 +307,7 @@ Any system improvement must include:
 5. Rollback procedure
 
 ### Approval Flow
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  SELF-IMPROVEMENT PIPELINE                                       │
@@ -302,6 +333,7 @@ Any system improvement must include:
 ```
 
 ### Prohibited Self-Modifications
+
 - Autonomous policy rewrites
 - Security constraint relaxation
 - Trust boundary changes

@@ -11,6 +11,7 @@ The MCP server is now available at `src/mcp/server.ts`.
 ## Available Tools
 
 ### Audit Tools
+
 | Tool | Description |
 |------|-------------|
 | `ari_audit_verify` | Verify audit chain integrity, returns validation status |
@@ -18,6 +19,7 @@ The MCP server is now available at `src/mcp/server.ts`.
 | `ari_audit_stats` | Get audit statistics and chain health |
 
 ### Memory Tools
+
 | Tool | Description |
 |------|-------------|
 | `ari_memory_store` | Store knowledge with provenance tracking |
@@ -25,6 +27,7 @@ The MCP server is now available at `src/mcp/server.ts`.
 | `ari_memory_search` | Search memory by domain, tags, or text |
 
 ### Agent Tools
+
 | Tool | Description |
 |------|-------------|
 | `ari_agent_status` | Get agent status (health, tasks, resources) |
@@ -32,6 +35,7 @@ The MCP server is now available at `src/mcp/server.ts`.
 | `ari_task_submit` | Submit task to ARI for processing |
 
 ### Governance Tools
+
 | Tool | Description |
 |------|-------------|
 | `ari_council_status` | Get council status and voting history |
@@ -39,6 +43,7 @@ The MCP server is now available at `src/mcp/server.ts`.
 | `ari_gate_check` | Check operation against quality gates |
 
 ### System Tools
+
 | Tool | Description |
 |------|-------------|
 | `ari_health` | Get overall system health |
@@ -85,11 +90,13 @@ Or for development with tsx:
 ## Usage Examples
 
 ### Verify Audit Chain
+
 ```
 Use ari_audit_verify to check integrity
 ```
 
 ### Store Learning
+
 ```
 Use ari_memory_store with:
 - key: "pattern_circuit_breaker"
@@ -99,6 +106,7 @@ Use ari_memory_store with:
 ```
 
 ### Submit Task
+
 ```
 Use ari_task_submit with:
 - content: "Analyze codebase for security vulnerabilities"

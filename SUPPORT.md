@@ -18,6 +18,7 @@ ARI is a personal AI operating system built and maintained by Pryce Hedrick.
 ### Common Issues
 
 **Tests failing after clone?**
+
 ```bash
 npm install --ignore-scripts
 cd node_modules/better-sqlite3
@@ -27,6 +28,7 @@ npm test
 ```
 
 **Gateway won't start?**
+
 ```bash
 # Verify loopback-only binding (127.0.0.1:3141)
 npm run build && npx ari gateway start
@@ -35,10 +37,12 @@ curl http://127.0.0.1:3141/health
 
 **Missing API keys?**
 Copy `.env.example` → `.env` and fill in required keys. At minimum:
+
 - `ANTHROPIC_API_KEY` — required for all AI operations
 - `TELEGRAM_BOT_TOKEN` + `TELEGRAM_OWNER_USER_ID` — required for Telegram interface
 
 **Mac Mini daemon not running?**
+
 ```bash
 launchctl load ~/Library/LaunchAgents/com.ari.gateway.plist
 launchctl load ~/Library/LaunchAgents/com.ari.daemon.plist
@@ -46,6 +50,7 @@ launchctl list | grep ari
 ```
 
 **better-sqlite3 build error?**
+
 ```bash
 # Requires native build tools
 cd node_modules/better-sqlite3
@@ -53,6 +58,7 @@ npx node-gyp rebuild
 ```
 
 **TypeScript errors after pull?**
+
 ```bash
 npm run typecheck 2>&1 | head -30
 # Check for new required env vars in src/kernel/config.ts
@@ -61,10 +67,12 @@ npm run typecheck 2>&1 | head -30
 ### Mac Mini Deployment
 
 ARI is designed to run 24/7 on a Mac Mini. See the full deployment guide:
+
 - [`docs/guides/MAC_MINI_SETUP.md`](docs/guides/MAC_MINI_SETUP.md) — Complete setup walkthrough
 - [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) — Comprehensive issue reference
 
 Key steps:
+
 1. `NODE_ENV=development npm install --ignore-scripts`
 2. `NODE_ENV=development npm run build`
 3. Rebuild better-sqlite3 native module

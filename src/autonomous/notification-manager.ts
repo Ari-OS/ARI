@@ -50,7 +50,8 @@ export type NotificationCategory =
   | 'billing'         // Billing cycle events
   | 'value'           // Value analytics
   | 'adaptive'        // Adaptive learning recommendations
-  | 'governance';     // Council votes, arbiter rulings, oversight
+  | 'governance'      // Council votes, arbiter rulings, oversight
+  | 'council_approval'; // Council vote interactions
 
 export interface NotificationRequest {
   category: NotificationCategory;
@@ -130,6 +131,7 @@ const DEFAULT_CONFIG: NotificationConfig = {
     value: 720,        // Twice per day max
     adaptive: 1440,    // Once per day
     governance: 120,   // Once per 2hr — was 60 (council vote noise)
+    council_approval: 0, // No cooldown for council votes
   },
 };
 
@@ -728,7 +730,7 @@ export class NotificationManager {
   }
 
   /**
-   * Process and send queued notifications (called at batch time)
+   * Process and send queued notifications using NotificationGrouper
    */
   async processQueue(): Promise<{ processed: number; sent: number }> {
     const now = new Date();
@@ -742,42 +744,49 @@ export class NotificationManager {
 
     let sent = 0;
 
-    // Group by priority
-    const p1Items = toProcess.filter((q) => q.entry.priority === 'P1');
-    const otherItems = toProcess.filter((q) => q.entry.priority !== 'P1');
+    // Convert QueuedNotification to NotificationRecord format for grouper
+    const records = toProcess.map(q => ({
+      id: q.entry.id,
+      category: q.entry.category as NotificationCategory,
+      title: q.entry.title,
+      body: q.entry.body,
+      priority: q.entry.priority,
+      state: 'QUEUED' as const,
+      createdAt: new Date(q.entry.queuedAt ?? now).getTime(),
+      deliveryAttempts: 0,
+      maxRetries: 3,
+      originalScore: 0,
+      currentScore: 0,
+      escalationLevel: 0,
+      dedupKey: q.entry.dedupKey
+    }));
 
-    // Send P1 items individually via Telegram
-    for (const item of p1Items) {
-      const icon = this.getCategoryIcon(item.entry.category as NotificationCategory);
-      const telegramResult = await this.telegram?.send(
-        `${icon} <b>${this.escapeHtml(item.entry.title)}</b>\n${this.escapeHtml(item.entry.body)}`,
-        { forceDelivery: false }
-      );
-      if (telegramResult?.sent) sent++;
-    }
+    // Import the grouper
+    const { notificationGrouper } = await import('./notification-grouper.js');
 
-    // Batch other items to Notion
-    if (otherItems.length > 0 && this.notion?.isReady()) {
-      const entries = otherItems.map((q) => q.entry);
-      await this.notion.createBatchSummary(entries);
-      sent += otherItems.length;
-    }
+    // Group items into a structured digest
+    const digests = notificationGrouper.generateBatchDigest(records);
 
-    // Send morning summary via Telegram — show actual content, not just counts
-    if (toProcess.length > 0 && this.telegram?.isReady()) {
-      const summaryLines = ['▫ <b>Morning Queue</b>'];
-      for (const item of p1Items.slice(0, 3)) {
-        const icon = this.getCategoryIcon(item.entry.category as NotificationCategory);
-        const snippet = item.entry.body.length > 120
-          ? `${item.entry.body.slice(0, 117)}…`
-          : item.entry.body;
-        summaryLines.push(`${icon} <b>${this.escapeHtml(item.entry.title)}</b>`);
-        summaryLines.push(`  ${this.escapeHtml(snippet)}`);
+    // Send the structured digest via Telegram
+    if (digests.length > 0 && this.telegram?.isReady()) {
+      const summaryLines = ['📬 <b>Batched Updates</b>\n'];
+      
+      for (const digest of digests) {
+        const icon = this.getCategoryIcon(digest.category);
+        summaryLines.push(`${icon} <b>${digest.title}</b>`);
+        summaryLines.push(this.escapeHtml(digest.body));
+        summaryLines.push('');
       }
-      if (otherItems.length > 0) {
-        summaryLines.push(`<i>+ ${otherItems.length} more logged to Notion</i>`);
-      }
+
       await this.telegram.send(summaryLines.join('\n'), { forceDelivery: false });
+      sent++;
+    }
+
+    // Log all processed items to Notion
+    if (this.notion?.isReady()) {
+      const entries = toProcess.map(q => q.entry);
+      await this.notion.createBatchSummary(entries);
+      sent += entries.length;
     }
 
     // Remove processed items
@@ -810,6 +819,7 @@ export class NotificationManager {
       value: '📈',
       adaptive: '🧠',
       governance: '⚖️',
+      council_approval: '⚖️',
     };
     return icons[category];
   }

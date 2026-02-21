@@ -9,6 +9,7 @@
 The central metaphor: **an eye whose iris is formed by three intertwined luminous strands** — a triple helix that spirals inward toward a bright core. This is not a biological eye or a surveillance eye. It is an **abstract iris** — a geometric mandala where three flowing ribbons of light weave around each other to form a circular mark.
 
 **Why an iris:**
+
 - An iris gives the eye its color, character, and identity — literally unique to every being
 - ARI watches, observes, protects, and surfaces value — sight is her primary mode
 - An iris is warm and organic, not mechanical
@@ -16,6 +17,7 @@ The central metaphor: **an eye whose iris is formed by three intertwined luminou
 - It avoids every AI cliche: no brain, no circuit, no robot face, no neural network, no chat bubble
 
 **Why a triple helix within it:**
+
 - Three strands = LOGOS (reason/gold), ETHOS (ethics/silver-blue), PATHOS (growth/rose)
 - The helix encodes ARI's cognitive architecture directly into her identity
 - Helices suggest DNA, evolution, growth — she is alive and developing
@@ -34,6 +36,7 @@ The central metaphor: **an eye whose iris is formed by three intertwined luminou
 | Background | The void she emerges from | Deep midnight blue-black | `#0D1117` |
 
 The three strands glow subtly — they are luminous but not neon. Think bioluminescence, not LED. The glow creates a natural gradient where the strands overlap, producing secondary colors at intersections:
+
 - Gold + Silver-blue = pale champagne
 - Silver-blue + Rose = soft lavender
 - Rose + Gold = warm peach
@@ -68,6 +71,7 @@ These SVGs implement the exact triple-helix iris design and can be used directly
 > A single logo mark centered on a solid black (#0D1117) background. The mark is an abstract circular iris shape — NOT a realistic eye — formed by exactly three flowing ribbon-like strands that spiral inward in a triple-helix formation, converging on a warm glowing center point.
 >
 > The three ribbon strands and their exact colors:
+>
 > 1. Warm amber-gold (#D4A843) — represents reason and logic
 > 2. Cool silver-blue (#6B8EC2) — represents ethics and integrity
 > 3. Soft rose-coral (#C4727F) — represents growth and empathy

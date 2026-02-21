@@ -397,6 +397,7 @@ interface LearningModeState {
 Learning Mode can be activated at any point:
 
 **Before Activation:**
+
 ```
 User: How do I implement a hash chain?
 
@@ -405,6 +406,7 @@ ARI: Here's a complete hash chain implementation:
 ```
 
 **Activate Mid-Conversation:**
+
 ```
 User: wait, activate learning mode
 

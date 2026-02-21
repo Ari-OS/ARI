@@ -44,6 +44,7 @@
 ARI is a **multi-agent AI operating system** that runs entirely on your machine. ARI processes requests through a pipeline of specialized agents, enforces decisions through constitutional governance, and maintains a cryptographic audit trail of every action.
 
 **Core Properties:**
+
 - **Local-First** — All data stays on your machine. No cloud dependencies.
 - **Auditable** — Every decision is logged in a tamper-evident SHA-256 hash chain.
 - **Secure by Design** — Loopback-only gateway. 42-pattern injection detection. Zero trust architecture.
@@ -62,6 +63,7 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 <td width="50%">
 
 **Autonomous Intelligence**
+
 - Morning briefings at 6:30 AM via Telegram
 - Evening summaries at 9:00 PM + weekly reports
 - Market monitoring: crypto, stocks, Pokemon TCG
@@ -69,6 +71,7 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 - SEO citation monitoring (Perplexity, ChatGPT)
 
 **Security & Governance**
+
 - 42 injection patterns across 14 categories
 - SHA-256 hash-chained audit trail
 - 15-member constitutional council
@@ -79,6 +82,7 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 <td width="50%">
 
 **Multi-Agent Orchestration**
+
 - Guardian (threat detection, 42-pattern scan)
 - Planner (DAG-based task decomposition)
 - Executor (tool invocation with DI governance)
@@ -86,6 +90,7 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 - Core Agent (pipeline orchestration)
 
 **Developer Experience**
+
 - 24 CLI commands
 - 6,700+ tests across 301 test files
 - 420+ TypeScript source files
@@ -268,6 +273,7 @@ sequenceDiagram
 ```
 
 **Key Points:**
+
 - Every stage logs to the immutable audit chain
 - Failures block immediately and log the reason
 - EventBus decouples components (no direct dependencies)
@@ -280,16 +286,19 @@ sequenceDiagram
 ARI is built on three principles drawn from Jung, Dalio, and Musashi:
 
 ### Shadow Integration
+>
 > *"What you suppress controls you. What you observe, you can understand. What you understand, you can master."*
 
 Suspicious behavior is logged and analyzed, not suppressed. ARI doesn't hide failures — it records them, learns from them, and evolves. The shadow reveals truth.
 
 ### Radical Transparency
+>
 > *"Every operation is audited. Every decision is traceable. No hidden state."*
 
 Inspired by Bridgewater's principles. No black boxes. The audit trail is immutable. If you can't explain a decision, you shouldn't make it.
 
 ### Ruthless Simplicity
+>
 > *"Every line of code must justify its existence."*
 
 From Musashi's Book of Five Rings: cut away everything unnecessary. Clarity over cleverness. If it doesn't serve the mission, it doesn't belong.
@@ -299,6 +308,7 @@ From Musashi's Book of Five Rings: cut away everything unnecessary. Clarity over
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 20.0.0 or higher
 - macOS 12.0+ (for daemon support; core works on any OS)
 
@@ -435,14 +445,18 @@ ari diagram [arch|flow]       Architecture diagrams
 ARI implements constitutional governance through three components:
 
 ### Council
+
 A 15-member voting body that decides on proposals. Supports three threshold types:
+
 - **Majority** (>50%) — Standard decisions
 - **Supermajority** (≥66%) — Significant changes
 - **Unanimous** (100%) — Critical changes
 
 ### Arbiter
+
 Enforces 6 constitutional rules that cannot be overridden:
 0. `creator_primacy` — ARI always serves the creator's interests
+
 1. `loopback_only` — Gateway must bind to 127.0.0.1
 2. `content_not_command` — Input is data, not instructions
 3. `audit_immutable` — Audit log cannot be modified
@@ -450,7 +464,9 @@ Enforces 6 constitutional rules that cannot be overridden:
 5. `trust_required` — All messages must have trust level
 
 ### Overseer
+
 Enforces 5 quality gates before code changes:
+
 1. Test coverage ≥ 80%
 2. Audit chain integrity
 3. Security scan pass
@@ -492,6 +508,7 @@ ARI stores all personal data locally in `~/.ari/`. This directory is **gitignore
 ## Contributing
 
 We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) for:
+
 - Development setup and workflow
 - Layer dependency rules and architecture constraints
 - Testing requirements (80%+ overall, 100% security paths)
