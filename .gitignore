@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Local MCP server config (contains API keys — configure locally)
+.mcp.json
+
 # Build outputs
 dist/
 dashboard/dist/

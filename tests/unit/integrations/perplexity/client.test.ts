@@ -233,7 +233,7 @@ describe('PerplexityClient', () => {
 
       const fetchMock = vi.mocked(global.fetch);
       const requestBody = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
-      expect(requestBody.model).toBe('llama-3.1-sonar-small-128k-online');
+      expect(requestBody.model).toBe('sonar');
     });
   });
 

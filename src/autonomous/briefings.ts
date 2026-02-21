@@ -27,6 +27,8 @@
  * - Career/intelligence updates since morning
  */
 
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { NotificationManager } from './notification-manager.js';
 import { NotionInbox } from '../integrations/notion/inbox.js';
 import { dailyAudit, type DailyAudit } from './daily-audit.js';
@@ -38,6 +40,7 @@ import type { NotionConfig } from './types.js';
 import type { DailyDigest } from './daily-digest.js';
 import type { LifeMonitorReport } from './life-monitor.js';
 import type { GovernanceSnapshot } from './governance-reporter.js';
+import type { IntelligenceItem } from './intelligence-scanner.js';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -494,6 +497,57 @@ export class BriefingGenerator {
       success: true,
       smsSent: notifyResult.sent,
     };
+  }
+
+  /**
+   * Generate and send X Likes Curated Digest (~8 PM)
+   *
+   * Reads today's intelligence scan results, filters for items sourced
+   * from X likes, groups by domain, and surfaces the most relevant ones
+   * as a scannable evening reading list.
+   */
+  async xLikesDigest(): Promise<BriefingResult> {
+    const INTEL_DIR = path.join(process.env.HOME ?? '~', '.ari', 'knowledge', 'intelligence');
+    const SCAN_LOG = path.join(INTEL_DIR, 'scan-log.json');
+
+    let socialItems: IntelligenceItem[] = [];
+
+    try {
+      const raw = await fs.readFile(SCAN_LOG, 'utf-8');
+      const scanResult = JSON.parse(raw) as { topItems: IntelligenceItem[]; startedAt: string };
+      // Only use items from today's scan (within last 18 hours)
+      const cutoffMs = Date.now() - 18 * 60 * 60 * 1000;
+      const scanAge = new Date(scanResult.startedAt).getTime();
+      if (scanAge > cutoffMs) {
+        socialItems = scanResult.topItems
+          .filter(item => item.sourceCategory === 'SOCIAL')
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 12);
+      }
+    } catch {
+      // No scan available yet — send empty digest
+    }
+
+    const telegramHtml = splitTelegramMessage(this.formatXLikesHtml(socialItems));
+
+    const notifyResult = await this.notificationManager.notify({
+      category: 'daily',
+      title: 'Your Reading List',
+      body: socialItems.length > 0
+        ? `${socialItems.length} posts from today's likes curated for you.`
+        : 'Nothing from your X likes today — clean slate.',
+      priority: 'low',
+      telegramHtml,
+    });
+
+    await dailyAudit.logActivity(
+      'system_event',
+      'X Likes Digest',
+      `Curated ${socialItems.length} social items`,
+      { outcome: 'success', details: { type: 'x_likes_digest', count: socialItems.length } }
+    );
+
+    return { success: true, smsSent: notifyResult.sent };
   }
 
   // ─── Telegram HTML Formatters ─────────────────────────────────────────────
@@ -1090,6 +1144,74 @@ export class BriefingGenerator {
     lines.push(`<i>${verdictPrefix} ${verdict}.</i>`);
 
     return lines;
+  }
+
+  private formatXLikesHtml(items: IntelligenceItem[]): string {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', {
+      weekday: 'long', month: 'short', day: 'numeric', timeZone: this.timezone,
+    });
+
+    const lines: string[] = [];
+    lines.push(`<b>📚 Your Reading List — ${dateStr}</b>`);
+    lines.push('');
+
+    if (items.length === 0) {
+      lines.push('<i>Nothing from your X likes today.</i>');
+      return lines.join('\n');
+    }
+
+    // Group by primary domain
+    const grouped = new Map<string, IntelligenceItem[]>();
+    for (const item of items) {
+      const domain = item.domains[0] ?? 'general';
+      const group = grouped.get(domain) ?? [];
+      group.push(item);
+      grouped.set(domain, group);
+    }
+
+    const domainEmoji: Record<string, string> = {
+      ai: '🤖', programming: '💻', investment: '📈',
+      career: '🎯', business: '💡', security: '🛡',
+      tools: '🔧', general: '📌',
+    };
+
+    for (const [domain, domainItems] of grouped) {
+      const emoji = domainEmoji[domain] ?? '📌';
+      lines.push(`<b>${emoji} ${domain.charAt(0).toUpperCase() + domain.slice(1)}</b>`);
+
+      for (const item of domainItems.slice(0, 3)) {
+        const meta = item.metadata;
+        const author = meta?.authorName as string | undefined ?? meta?.authorUsername as string | undefined ?? '';
+        const authorStr = author ? `<i>${this.esc(author)}</i>  ` : '';
+
+        // Trim tweet text to 120 chars
+        const text = item.summary.length > 120
+          ? item.summary.slice(0, 117) + '...'
+          : item.summary;
+
+        const engagementNote = typeof meta?.likes === 'number' && meta.likes > 100
+          ? ` · ❤️ ${meta.likes}`
+          : '';
+
+        if (item.url && !item.url.includes('x.com/i/status')) {
+          lines.push(`▸ ${authorStr}<a href="${item.url}">${this.esc(text)}</a>${engagementNote}`);
+        } else {
+          lines.push(`▸ ${authorStr}${this.esc(text)}${engagementNote}`);
+        }
+      }
+
+      lines.push('');
+    }
+
+    const totalLikes = items.reduce((sum, item) => {
+      const meta = item.metadata;
+      return sum + (typeof meta?.likes === 'number' ? meta.likes : 0);
+    }, 0);
+
+    lines.push(`<i>${items.length} posts from your X likes · ${totalLikes.toLocaleString()} total likes on sourced content</i>`);
+
+    return lines.join('\n');
   }
 
   private getContextualGreeting(dayName: string): string {

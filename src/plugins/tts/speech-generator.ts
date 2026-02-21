@@ -102,6 +102,12 @@ export class SpeechGenerator {
         body: JSON.stringify({
           text: request.text,
           model_id: model,
+          voice_settings: {
+            stability: 0.50,         // Natural variation (not robotic)
+            similarity_boost: 0.75,  // Close to original voice clone
+            style: 0.40,             // Moderate expressiveness
+            use_speaker_boost: true, // Clarity enhancement
+          },
         }),
         signal: AbortSignal.timeout(30_000),
       },

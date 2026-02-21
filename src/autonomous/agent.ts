@@ -2161,6 +2161,18 @@ export class AutonomousAgent {
       }
     });
 
+    // 8 PM daily X likes curated digest — reading list from today's X likes
+    this.scheduler.registerHandler('x_likes_digest', async () => {
+      try {
+        if (this.briefingGenerator) {
+          await this.briefingGenerator.xLikesDigest();
+        }
+        log.info('X likes digest delivered');
+      } catch (error: unknown) {
+        log.error({ error }, 'X likes digest failed');
+      }
+    });
+
     // ==========================================================================
     // CONTENT ENGINE: Draft generation + delivery to Telegram
     // ==========================================================================

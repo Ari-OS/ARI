@@ -50,6 +50,7 @@ EXCLUDE_PATTERNS=(
     "CLAUDE.md"            # Creator credit belongs here
     "CONTRIBUTING.md"      # May reference creator
     ".claude"              # Claude Code local config (not committed)
+    ".mcp.json"            # MCP server config (local secrets — not committed)
 )
 
 # Build exclude arguments for grep

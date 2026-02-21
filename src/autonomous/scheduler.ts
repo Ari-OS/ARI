@@ -173,6 +173,14 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     enabled: true,
     essential: true, // User-facing deliverable
   },
+  {
+    id: 'x-likes-digest',
+    name: 'X Likes Curated Digest',
+    cron: '0 20 * * *', // 8:00 PM daily — reading list from today's X likes
+    handler: 'x_likes_digest',
+    enabled: true,
+    essential: false,
+  },
 
   // ============================================================================
   // NON-ESSENTIAL TASKS - Skipped when budget is constrained

@@ -11,6 +11,7 @@ const {
   mockGetTodayAudit,
   mockGetAudit,
   mockLogActivity,
+  mockFsReadFile,
 } = vi.hoisted(() => ({
   mockNotionInit: vi.fn(),
   mockNotionIsReady: vi.fn(),
@@ -20,6 +21,13 @@ const {
   mockGetTodayAudit: vi.fn(),
   mockGetAudit: vi.fn(),
   mockLogActivity: vi.fn(),
+  mockFsReadFile: vi.fn(),
+}));
+
+// Mock node:fs/promises for xLikesDigest scan-log reads
+vi.mock('node:fs/promises', () => ({
+  default: { readFile: mockFsReadFile },
+  readFile: mockFsReadFile,
 }));
 
 // Mock NotionInbox
@@ -73,6 +81,7 @@ describe('BriefingGenerator', () => {
     mockProcessQueue.mockResolvedValue({ processed: 0, sent: 0 });
     mockNotify.mockResolvedValue({ sent: true });
     mockLogActivity.mockResolvedValue(undefined);
+    mockFsReadFile.mockRejectedValue(new Error('ENOENT: no such file'));
     mockGetTodayAudit.mockResolvedValue({
       date: '2026-01-31',
       activities: [
@@ -431,6 +440,68 @@ describe('BriefingGenerator', () => {
       const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
       const html = notifyCall.telegramHtml.join('\n');
       expect(html).toContain('BTC');
+    });
+  });
+
+  describe('xLikesDigest()', () => {
+    const makeScanLog = (hoursAgo: number, items: object[]) => JSON.stringify({
+      topItems: items,
+      startedAt: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
+    });
+
+    const socialItem = {
+      id: 'tweet-1',
+      title: 'AI breakthrough',
+      summary: 'Researchers discover new scaling law for language models.',
+      url: 'https://example.com/paper',
+      source: 'twitter',
+      sourceCategory: 'SOCIAL',
+      domains: ['ai'],
+      score: 85,
+      metadata: { authorUsername: 'researcher', authorName: 'Dr. Smith', likes: 250, retweets: 40 },
+    };
+
+    it('should send empty digest when scan-log does not exist', async () => {
+      // mockFsReadFile already rejects by default (set in beforeEach)
+      const result = await generator.xLikesDigest();
+
+      expect(result.success).toBe(true);
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'daily' }),
+      );
+    });
+
+    it('should include X items in digest when valid recent scan exists', async () => {
+      mockFsReadFile.mockResolvedValueOnce(makeScanLog(6, [socialItem]));
+
+      const result = await generator.xLikesDigest();
+
+      expect(result.success).toBe(true);
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const html = notifyCall.telegramHtml.join('\n');
+      expect(html).toContain('Dr. Smith');
+      expect(html).toContain('Reading List');
+    });
+
+    it('should send empty digest when scan is stale (>18 hours old)', async () => {
+      mockFsReadFile.mockResolvedValueOnce(makeScanLog(20, [socialItem]));
+
+      await generator.xLikesDigest();
+
+      const notifyCall = mockNotify.mock.calls[0][0] as { body: string };
+      expect(notifyCall.body).toContain('Nothing');
+    });
+
+    it('should filter out non-SOCIAL items from scan', async () => {
+      const techItem = { ...socialItem, id: 'tech-1', sourceCategory: 'TECH_NEWS' };
+      mockFsReadFile.mockResolvedValueOnce(makeScanLog(6, [techItem, socialItem]));
+
+      await generator.xLikesDigest();
+
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const html = notifyCall.telegramHtml.join('\n');
+      // Only the SOCIAL item's author should appear, not tech item
+      expect(html).toContain('Dr. Smith');
     });
   });
 

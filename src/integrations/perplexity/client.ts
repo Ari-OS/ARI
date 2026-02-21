@@ -61,7 +61,9 @@ type FocusType = 'web' | 'academic' | 'news';
 export class PerplexityClient {
   private apiKey: string;
   private baseUrl = 'https://api.perplexity.ai/chat/completions';
-  private model = 'llama-3.1-sonar-small-128k-online';
+  private model = 'sonar';                    // General search
+  private deepModel = 'sonar-pro';            // Deep research reports
+  private reasoningModel = 'sonar-reasoning'; // Financial/market analysis
   private cacheTtlMs = 10 * 60 * 1000; // 10 minutes
   private searchCache: Map<string, CacheEntry<PerplexityResult>> = new Map();
   private lastRequestTime = 0;
@@ -121,7 +123,7 @@ Always cite sources and provide factual information.`;
       ? `Research topic: ${topic}\n\nAdditional context: ${context}`
       : `Research topic: ${topic}`;
 
-    const result = await this.makeRequest(userQuery, systemPrompt);
+    const result = await this.makeRequest(userQuery, systemPrompt, this.deepModel);
 
     const report = this.parseResearchReport(topic, result);
     log.info(`Completed deep research: "${topic}"`);
@@ -138,7 +140,7 @@ Always cite sources and provide factual information.`;
 Provide clear, factual explanations with relevant context and citations.
 Focus on: what happened, why it matters, and potential implications.`;
 
-    const result = await this.makeRequest(`${event} market analysis`, systemPrompt);
+    const result = await this.makeRequest(`${event} market analysis today`, systemPrompt, this.reasoningModel);
     log.info(`Explained market event: "${event}"`);
     return result;
   }
@@ -174,7 +176,7 @@ Focus on: what happened, why it matters, and potential implications.`;
     return prompts[focus];
   }
 
-  private async makeRequest(query: string, systemPrompt: string): Promise<PerplexityResult> {
+  private async makeRequest(query: string, systemPrompt: string, model?: string): Promise<PerplexityResult> {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
@@ -186,11 +188,13 @@ Focus on: what happened, why it matters, and potential implications.`;
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: this.model,
+            model: model ?? this.model,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: query },
             ],
+            return_citations: true,
+            return_images: false,
           }),
         });
 
