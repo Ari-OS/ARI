@@ -558,8 +558,11 @@ function registerIntentRoutes(
     intent: 'crypto_price',
     patterns: [
       /\b(?:bitcoin|btc|eth|sol|bnb|doge|xrp|ada|avax|link|matic|dot)\b.*\b(?:price|worth|value|cost|at)\b/i,
+      /\b(?:price|value|worth|cost)\s+of\s+(?:bitcoin|btc|eth|sol|bnb|doge|xrp|ada|avax|link|matic|dot)\b/i,
+      /\b(?:current|live)\s+(?:price|value)\s+(?:of\s+)?(?:bitcoin|btc|eth|sol|bnb|doge|xrp|ada|avax|link|matic|dot)\b/i,
       /\bhow\s+(?:much|is)\s+(?:btc|eth|sol|bitcoin|ethereum)\b/i,
       /\b(?:crypto|coin)\s+prices?\b/i,
+      /\bwhat(?:'s| is)\s+(?:btc|eth|bitcoin|ethereum|solana)\s+(?:at|worth|going for)\b/i,
     ],
     handler: withTyping(async (ctx) => handleCrypto(ctx, registry)),
     priority: 10,
