@@ -46,7 +46,7 @@ interface TaskDetailModalProps {
 async function fetchTaskHistory(taskId: string): Promise<TaskHistoryResponse> {
   const response = await fetch(`/api/scheduler/tasks/${taskId}/history`);
   if (!response.ok) throw new Error('Failed to fetch task history');
-  return response.json();
+  return (await response.json()) as TaskHistoryResponse;
 }
 
 function formatDuration(ms: number): string {

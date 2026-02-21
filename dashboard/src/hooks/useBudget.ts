@@ -29,7 +29,7 @@ export function useBudgetProfileMutation() {
     mutationFn: (profile: BudgetProfileName) => setBudgetProfile(profile),
     onSuccess: () => {
       // Invalidate budget status to refetch with new profile
-      queryClient.invalidateQueries({ queryKey: ['budget-status'] });
+      void queryClient.invalidateQueries({ queryKey: ['budget-status'] });
     },
   });
 }
@@ -54,7 +54,7 @@ export function useApproveItemMutation() {
   return useMutation({
     mutationFn: ({ id, note }: { id: string; note?: string }) => approveItem(id, note),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['approval-queue'] });
+      void queryClient.invalidateQueries({ queryKey: ['approval-queue'] });
     },
   });
 }
@@ -68,7 +68,7 @@ export function useRejectItemMutation() {
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectItem(id, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['approval-queue'] });
+      void queryClient.invalidateQueries({ queryKey: ['approval-queue'] });
     },
   });
 }

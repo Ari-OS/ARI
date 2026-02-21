@@ -300,7 +300,7 @@ export function Governance() {
                 <ErrorState
                   title="Failed to load proposals"
                   message="Could not retrieve proposals. Please try again."
-                  onRetry={() => refetchProposals()}
+                  onRetry={() => { void refetchProposals(); }}
                 />
               );
             }
@@ -477,7 +477,7 @@ export function Governance() {
                   <ErrorState
                     title="Failed to load rules"
                     message="Could not retrieve rules. Please try again."
-                    onRetry={() => refetchRules()}
+                    onRetry={() => { void refetchRules(); }}
                   />
                 );
               }
@@ -554,7 +554,7 @@ export function Governance() {
                   <ErrorState
                     title="Failed to load gates"
                     message="Could not retrieve gates. Please try again."
-                    onRetry={() => refetchGates()}
+                    onRetry={() => { void refetchGates(); }}
                   />
                 );
               }

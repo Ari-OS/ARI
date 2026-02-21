@@ -7,6 +7,7 @@
  */
 export function exportToCSV(data: Record<string, unknown>[], filename: string): void {
   if (data.length === 0) {
+    // eslint-disable-next-line no-console
     console.warn('No data to export');
     return;
   }
@@ -33,7 +34,7 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string): 
             const json = JSON.stringify(value);
             return `"${json.replace(/"/g, '""')}"`;
           }
-          return String(value ?? '');
+          return value === null || value === undefined ? '' : String(value as string | number | boolean);
         })
         .join(',')
     ),

@@ -31,7 +31,7 @@ const CustomTooltip = ({
 }: CustomTooltipProps) => {
   if (!active || !payload || !payload.length) return null;
 
-  const data = payload[0].payload as EventRateDataPoint;
+  const data = payload[0].payload;
   const time = format(new Date(data.timestamp), 'HH:mm:ss');
 
   return (

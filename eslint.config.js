@@ -32,6 +32,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '**/*.test.ts', 'vitest.config.ts', 'eslint.config.js', 'src/e2e/**'],
+    ignores: ['dist/**', 'node_modules/**', '**/*.test.ts', 'vitest.config.ts', 'eslint.config.js', 'src/e2e/**', 'coverage/**', 'dashboard/dist/**', 'dashboard/postcss.config.js', 'scripts/**', 'playwright.config.ts', 'commitlint.config.js', '**/*.js'],
   }
 );

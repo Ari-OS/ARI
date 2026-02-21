@@ -25,13 +25,13 @@ async function fetchAlerts(filters?: AlertFilters): Promise<AlertsResponse> {
   const queryString = params.toString();
   const response = await fetch(`${API_BASE}/alerts${queryString ? `?${queryString}` : ''}`);
   if (!response.ok) throw new Error('Failed to fetch alerts');
-  return response.json();
+  return (await response.json()) as AlertsResponse;
 }
 
 async function fetchAlertSummary(): Promise<AlertSummary> {
   const response = await fetch(`${API_BASE}/alerts/summary`);
   if (!response.ok) throw new Error('Failed to fetch alert summary');
-  return response.json();
+  return (await response.json()) as AlertSummary;
 }
 
 async function acknowledgeAlert(id: string): Promise<Alert> {
@@ -39,7 +39,7 @@ async function acknowledgeAlert(id: string): Promise<Alert> {
     method: 'POST',
   });
   if (!response.ok) throw new Error('Failed to acknowledge alert');
-  const data = await response.json();
+  const data = (await response.json()) as { alert: Alert };
   return data.alert;
 }
 
@@ -48,7 +48,7 @@ async function resolveAlert(id: string): Promise<Alert> {
     method: 'POST',
   });
   if (!response.ok) throw new Error('Failed to resolve alert');
-  const data = await response.json();
+  const data = (await response.json()) as { alert: Alert };
   return data.alert;
 }
 
@@ -89,7 +89,7 @@ export function useAcknowledgeAlert() {
   return useMutation({
     mutationFn: acknowledgeAlert,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      void queryClient.invalidateQueries({ queryKey: ['alerts'] });
     },
   });
 }
@@ -100,7 +100,7 @@ export function useResolveAlert() {
   return useMutation({
     mutationFn: resolveAlert,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      void queryClient.invalidateQueries({ queryKey: ['alerts'] });
     },
   });
 }
@@ -111,7 +111,7 @@ export function useDeleteAlert() {
   return useMutation({
     mutationFn: deleteAlert,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      void queryClient.invalidateQueries({ queryKey: ['alerts'] });
     },
   });
 }

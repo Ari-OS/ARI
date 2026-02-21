@@ -167,8 +167,8 @@ export function Autonomy() {
   const triggerMutation = useMutation({
     mutationFn: triggerSchedulerTask,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduler-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['scheduler-status'] });
+      void queryClient.invalidateQueries({ queryKey: ['scheduler-tasks'] });
+      void queryClient.invalidateQueries({ queryKey: ['scheduler-status'] });
     },
     onSettled: () => {
       setTriggeringTask(null);
@@ -178,20 +178,20 @@ export function Autonomy() {
   const toggleMutation = useMutation({
     mutationFn: toggleSchedulerTask,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduler-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['scheduler-status'] });
+      void queryClient.invalidateQueries({ queryKey: ['scheduler-tasks'] });
+      void queryClient.invalidateQueries({ queryKey: ['scheduler-status'] });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteSubagent,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subagents'] });
-      queryClient.invalidateQueries({ queryKey: ['subagent-stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['subagents'] });
+      void queryClient.invalidateQueries({ queryKey: ['subagent-stats'] });
     },
   });
 
-  const handleTrigger = async (taskId: string) => {
+  const handleTrigger = (taskId: string) => {
     setTriggeringTask(taskId);
     triggerMutation.mutate(taskId);
   };
@@ -217,7 +217,7 @@ export function Autonomy() {
         <ErrorState
           title="Failed to load scheduler"
           message="Could not connect to ARI gateway. Ensure the gateway is running."
-          onRetry={() => refetchStatus()}
+          onRetry={() => { void refetchStatus(); }}
         />
       </div>
     );

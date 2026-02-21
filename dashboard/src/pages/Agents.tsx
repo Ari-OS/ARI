@@ -140,7 +140,7 @@ export function Agents() {
             <ErrorState
               title="Failed to load agents"
               message="Could not retrieve agent status. Please try again."
-              onRetry={() => refetch()}
+              onRetry={() => { void refetch(); }}
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">

@@ -14,7 +14,7 @@ interface SubagentDetailModalProps {
 async function fetchSubagent(id: string): Promise<Subagent> {
   const response = await fetch(`/api/subagents/${id}`);
   if (!response.ok) throw new Error('Failed to fetch subagent');
-  return response.json();
+  return (await response.json()) as Subagent;
 }
 
 export function SubagentDetailModal({

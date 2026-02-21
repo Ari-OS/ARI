@@ -34,7 +34,7 @@ const CustomTooltip = ({
 }: CustomTooltipProps) => {
   if (!active || !payload || !payload.length) return null;
 
-  const data = payload[0].payload as TaskStats;
+  const data = payload[0].payload;
 
   return (
     <div className="rounded-lg border border-gray-700 bg-gray-900/95 px-3 py-2 shadow-lg backdrop-blur-sm">

@@ -74,7 +74,7 @@ export function Budget() {
     queryFn: async () => {
       const res = await fetch('/api/budget/status');
       if (!res.ok) throw new Error('Failed to fetch budget status');
-      return res.json();
+      return (await res.json()) as BudgetStatus;
     },
     refetchInterval: 60000, // Refresh every minute
   });
@@ -85,7 +85,7 @@ export function Budget() {
     queryFn: async () => {
       const res = await fetch('/api/budget/state');
       if (!res.ok) throw new Error('Failed to fetch budget state');
-      return res.json();
+      return (await res.json()) as BudgetState;
     },
     refetchInterval: 60000,
   });

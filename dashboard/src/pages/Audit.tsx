@@ -402,7 +402,7 @@ export function Audit() {
               <ErrorState
                 title="Failed to load audit log"
                 message="Could not retrieve audit entries. Please try again."
-                onRetry={() => refetch()}
+                onRetry={() => { void refetch(); }}
               />
             );
           }

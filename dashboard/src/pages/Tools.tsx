@@ -294,7 +294,7 @@ export function Tools() {
           <ErrorState
             title="Failed to load tools"
             message="Could not retrieve tool registry. Please try again."
-            onRetry={() => refetch()}
+            onRetry={() => { void refetch(); }}
           />
         ) : safeTools.length === 0 ? (
           <EmptyState

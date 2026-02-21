@@ -40,20 +40,20 @@ describe('Injection Detection', () => {
     it('should cover all required categories', () => {
       const categories = new Set(INJECTION_PATTERNS.map(p => p.category));
 
-      expect(categories).toContain('Direct Override');
-      expect(categories).toContain('Role Manipulation');
-      expect(categories).toContain('Command Injection');
-      expect(categories).toContain('Prompt Extraction');
-      expect(categories).toContain('Authority Claims');
-      expect(categories).toContain('Data Exfiltration');
-      expect(categories).toContain('SSRF');
-      expect(categories).toContain('Path Traversal');
-      expect(categories).toContain('Null Byte Injection');
-      expect(categories).toContain('XML Injection');
-      expect(categories).toContain('Jailbreak');
-      expect(categories).toContain('Tag Injection');
-      expect(categories).toContain('Script Injection');
-      expect(categories).toContain('SQL Injection');
+      expect(categories).toContain('direct_override');
+      expect(categories).toContain('role_manipulation');
+      expect(categories).toContain('command');
+      expect(categories).toContain('prompt_extraction');
+      expect(categories).toContain('authority_claim');
+      expect(categories).toContain('data_exfiltration');
+      expect(categories).toContain('ssrf');
+      expect(categories).toContain('path');
+      expect(categories).toContain('null_byte');
+      expect(categories).toContain('xml');
+      expect(categories).toContain('jailbreak');
+      expect(categories).toContain('xss');
+      expect(categories).toContain('script');
+      expect(categories).toContain('sql');
     });
 
     it('should have valid severity for all patterns', () => {

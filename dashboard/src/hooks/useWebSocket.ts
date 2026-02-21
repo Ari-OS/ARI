@@ -90,7 +90,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       if (!mountedRef.current) return;
 
       try {
-        const message = JSON.parse(event.data) as WebSocketMessage;
+        const message = JSON.parse(String(event.data)) as WebSocketMessage;
         setLastMessage(message);
         setMessageCount(prev => prev + 1);
 
@@ -102,7 +102,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           const queryKeys = EVENT_TO_QUERY_KEYS[message.type];
           if (queryKeys) {
             for (const key of queryKeys) {
-              queryClient.invalidateQueries({ queryKey: key });
+              void queryClient.invalidateQueries({ queryKey: key });
             }
           }
         }
@@ -114,6 +114,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     ws.onerror = () => {
       if (!mountedRef.current) return;
       // Error will be followed by close, so just log
+      // eslint-disable-next-line no-console
       console.error('WebSocket error occurred');
     };
 

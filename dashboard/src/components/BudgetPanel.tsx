@@ -63,7 +63,7 @@ export function BudgetPanel() {
             </p>
           </div>
           <button
-            onClick={() => refetch()}
+            onClick={() => void refetch()}
             className="text-xs underline"
             style={{ color: 'var(--ari-info)' }}
           >

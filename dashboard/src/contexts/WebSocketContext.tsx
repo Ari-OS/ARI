@@ -29,6 +29,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
         try {
           handler(message.payload);
         } catch (error) {
+          // eslint-disable-next-line no-console
           console.error(`Error in WebSocket handler for ${message.type}:`, error);
         }
       }
@@ -41,6 +42,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
         try {
           handler({ type: message.type, ...message.payload });
         } catch (error) {
+          // eslint-disable-next-line no-console
           console.error('Error in WebSocket wildcard handler:', error);
         }
       }
@@ -115,7 +117,6 @@ export function useWebSocketEvent(
 ) {
   const { subscribe } = useWebSocketContext();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableHandler = useCallback(handler, deps);
 
   // Subscribe on mount, unsubscribe on unmount

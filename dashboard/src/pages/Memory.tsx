@@ -430,7 +430,7 @@ export function Memory() {
               <ErrorState
                 title="Failed to load memories"
                 message="Could not retrieve memory entries. Please try again."
-                onRetry={() => refetch()}
+                onRetry={() => { void refetch(); }}
               />
             );
           }

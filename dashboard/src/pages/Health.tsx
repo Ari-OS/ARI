@@ -130,7 +130,7 @@ export function Health() {
         <ErrorState
           title="Failed to load health status"
           message="Could not connect to ARI gateway. Ensure the gateway is running at 127.0.0.1:3141."
-          onRetry={() => refetchHealth()}
+          onRetry={() => { void refetchHealth(); }}
         />
       </div>
     );

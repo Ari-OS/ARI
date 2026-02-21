@@ -14,7 +14,7 @@ const STORAGE_KEY = 'ari-chat-history';
 function loadMessages(): ChatMessage[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    return stored ? (JSON.parse(stored) as ChatMessage[]) : [];
   } catch {
     return [];
   }
@@ -37,8 +37,8 @@ export function useChat() {
   const { send, isConnected, status } = useWebSocket({
     onMessage: (wsMessage) => {
       if (wsMessage.type === 'chat:response') {
-        const payload = wsMessage.payload as { content?: string };
-        const content = payload.content ?? String(payload);
+        const payload = wsMessage.payload;
+        const content = typeof payload.content === 'string' ? payload.content : JSON.stringify(payload);
 
         const assistantMessage: ChatMessage = {
           id: crypto.randomUUID(),

@@ -47,7 +47,7 @@ async function fetchAPI<T>(endpoint: string): Promise<T> {
     );
   }
 
-  return response.json();
+  return (await response.json()) as T;
 }
 
 async function postAPI<T>(endpoint: string, body: unknown): Promise<T> {
@@ -58,14 +58,14 @@ async function postAPI<T>(endpoint: string, body: unknown): Promise<T> {
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    const errorData = (await response.json().catch(() => ({}))) as { error?: string };
     throw new APIError(
       response.status,
-      (errorData as { error?: string }).error || `API request failed: ${response.status} ${response.statusText}`,
+      errorData.error || `API request failed: ${response.status} ${response.statusText}`,
     );
   }
 
-  return response.json();
+  return (await response.json()) as T;
 }
 
 // Health Endpoints
@@ -153,10 +153,10 @@ export const triggerSchedulerTask = async (taskId: string): Promise<{ success: b
     method: 'POST',
   });
   if (!response.ok) {
-    const errorData = await response.json();
+    const errorData = (await response.json()) as { error?: string };
     throw new APIError(response.status, errorData.error || 'Failed to trigger task');
   }
-  return response.json();
+  return (await response.json()) as { success: boolean; message?: string; error?: string };
 };
 
 export const toggleSchedulerTask = async (taskId: string): Promise<{ success: boolean; taskId: string; enabled: boolean }> => {
@@ -164,10 +164,10 @@ export const toggleSchedulerTask = async (taskId: string): Promise<{ success: bo
     method: 'POST',
   });
   if (!response.ok) {
-    const errorData = await response.json();
+    const errorData = (await response.json()) as { error?: string };
     throw new APIError(response.status, errorData.error || 'Failed to toggle task');
   }
-  return response.json();
+  return (await response.json()) as { success: boolean; taskId: string; enabled: boolean };
 };
 
 // Subagent Endpoints
@@ -184,10 +184,10 @@ export const deleteSubagent = async (agentId: string): Promise<{ success: boolea
     method: 'DELETE',
   });
   if (!response.ok) {
-    const errorData = await response.json();
+    const errorData = (await response.json()) as { error?: string };
     throw new APIError(response.status, errorData.error || 'Failed to delete subagent');
   }
-  return response.json();
+  return (await response.json()) as { success: boolean; message?: string };
 };
 
 // System Metrics

@@ -396,13 +396,14 @@ export function ReviewCalendar({
           newDay = Math.max(0, dayIndex - 1);
           break;
         case 'Enter':
-        case ' ':
+        case ' ': {
           event.preventDefault();
           const date = dates[weekIndex][dayIndex];
           if (date) {
             handleCellClick(date);
           }
           break;
+        }
         default:
           return;
       }

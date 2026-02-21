@@ -81,7 +81,7 @@ export function useE2E() {
             };
           });
           // Invalidate runs query to fetch updated data
-          queryClient.invalidateQueries({ queryKey: ['e2e', 'runs'] });
+          void queryClient.invalidateQueries({ queryKey: ['e2e', 'runs'] });
           // Clear live run after a delay
           setTimeout(() => setLiveRun(null), 5000);
           break;

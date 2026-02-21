@@ -24,8 +24,8 @@ export function useStartNewCycleMutation() {
   return useMutation({
     mutationFn: startNewBillingCycle,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['billing-cycle'] });
-      queryClient.invalidateQueries({ queryKey: ['budget-status'] });
+      void queryClient.invalidateQueries({ queryKey: ['billing-cycle'] });
+      void queryClient.invalidateQueries({ queryKey: ['budget-status'] });
     },
   });
 }

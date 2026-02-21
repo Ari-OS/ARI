@@ -70,8 +70,7 @@ describe('ModelRegistry', () => {
 
     it('should filter available only', () => {
       const available = registry.listModels({ availableOnly: true });
-      // Anthropic models (7) are available by default: opus-4.6, opus-4.5, sonnet-4.6, sonnet-4.5, sonnet-4, haiku-4.5, haiku-3.5
-      expect(available).toHaveLength(7);
+      expect(available).toHaveLength(11);
       expect(available.every(m => m.isAvailable)).toBe(true);
     });
   });
@@ -121,7 +120,7 @@ describe('ModelRegistry', () => {
 
     it('should return false for unavailable models', () => {
       expect(registry.isAvailable('gpt-5.2')).toBe(false);
-      expect(registry.isAvailable('gemini-2.5-pro')).toBe(false);
+      expect(registry.isAvailable('grok-4')).toBe(false);
     });
   });
 
@@ -133,9 +132,9 @@ describe('ModelRegistry', () => {
   });
 
   describe('getCheapestAvailable', () => {
-    it('should return haiku 3 as cheapest', () => {
+    it('should return flash-lite as cheapest', () => {
       const cheapest = registry.getCheapestAvailable();
-      expect(cheapest.id).toBe('claude-haiku-3');
+      expect(cheapest.id).toBe('gemini-2.5-flash-lite');
     });
   });
 
@@ -149,7 +148,7 @@ describe('ModelRegistry', () => {
       registry.setAvailability('claude-opus-4.6', false);
       registry.setAvailability('claude-opus-4.5', false);
       const best = registry.getHighestQualityAvailable();
-      expect(best.id).toBe('claude-sonnet-4.6'); // quality 9, higher than sonnet-4.5 (8)
+      expect(best.id).toBe('gemini-3.1-pro'); // quality 10
     });
   });
 });

@@ -191,9 +191,11 @@ describe('IntentRouter', () => {
     it('should use AI when no regex matches', async () => {
       const orchestrator = createMockOrchestrator(
         JSON.stringify({
-          intent: 'status_check',
-          confidence: 0.85,
-          entities: {},
+          primaryIntent: {
+            intent: 'status_check',
+            confidence: 0.85,
+            entities: {},
+          }
         }),
       );
 
@@ -227,9 +229,11 @@ describe('IntentRouter', () => {
     it('should reject low confidence AI classifications', async () => {
       const orchestrator = createMockOrchestrator(
         JSON.stringify({
-          intent: 'status_check',
-          confidence: 0.3, // Below clarification threshold (0.45) → uses default handler
-          entities: {},
+          primaryIntent: {
+            intent: 'status_check',
+            confidence: 0.3, // Below clarification threshold (0.45) → uses default handler
+            entities: {},
+          }
         }),
       );
 
@@ -271,9 +275,11 @@ describe('IntentRouter', () => {
     it('should extract entities from AI response', async () => {
       const orchestrator = createMockOrchestrator(
         JSON.stringify({
-          intent: 'crypto_price',
-          confidence: 0.95,
-          entities: { coin: 'bitcoin', exchange: 'coinbase' },
+          primaryIntent: {
+            intent: 'crypto_price',
+            confidence: 0.95,
+            entities: { coin: 'bitcoin', exchange: 'coinbase' },
+          }
         }),
       );
 
@@ -358,9 +364,11 @@ describe('IntentRouter', () => {
     it('should use AI classification for routeText', async () => {
       const orchestrator = createMockOrchestrator(
         JSON.stringify({
-          intent: 'status_check',
-          confidence: 0.95,
-          entities: {},
+          primaryIntent: {
+            intent: 'status_check',
+            confidence: 0.95,
+            entities: {},
+          }
         }),
       );
 
@@ -420,7 +428,7 @@ describe('IntentRouter', () => {
 
     it('should truncate long text in AI prompt', async () => {
       const orchestrator = createMockOrchestrator(
-        JSON.stringify({ intent: 'test', confidence: 0.8, entities: {} }),
+        JSON.stringify({ primaryIntent: { intent: 'test', confidence: 0.8, entities: {} } }),
       );
 
       const routerWithAI = new IntentRouter(orchestrator, eventBus);

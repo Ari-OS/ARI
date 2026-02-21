@@ -31,7 +31,6 @@ const MOCK_BUDGET_DATA = [
 ];
 
 export default function TheOffice(): ReactElement {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return (
     <div className="p-6 h-full overflow-y-auto">
       <div className="mb-8 flex justify-between items-center">
@@ -198,7 +197,6 @@ export default function TheOffice(): ReactElement {
             { id: 'ad-02', target: 'dashboard/src/pages/TheOffice.tsx', msg: 'Implemented AreaChart and BarChart using Recharts', time: '1 hr ago', status: 'Passed' },
             { id: 'ad-03', target: 'src/governance/council.ts', msg: 'Added Graduated Veto checks for System Level overrides', time: '3 hrs ago', status: 'Passed' },
           ].map((commit, i) => (
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             <div key={i} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg border border-gray-700/30">
               <div>
                 <div className="flex items-center gap-2 mb-1">

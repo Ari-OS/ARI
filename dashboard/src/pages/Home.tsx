@@ -61,7 +61,7 @@ export function Home() {
         <ErrorState
           title="Failed to load system status"
           message="Could not connect to ARI gateway at 127.0.0.1:3141. Ensure the gateway is running."
-          onRetry={() => refetchHealth()}
+          onRetry={() => { void refetchHealth(); }}
         />
       </div>
     );
