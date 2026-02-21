@@ -1322,15 +1322,19 @@ export class AutonomousAgent {
             ? this.lastCareerMatches.map(m => ({ title: m.title, company: m.company, matchScore: m.matchScore }))
             : null,
           portfolio: this.lastPortfolio,
+          governance: governanceReporter.generateSnapshot(),
         });
       }
       log.info('Evening summary completed');
     });
 
-    // Weekly review on Sunday 6pm
+    // Weekly review on Sunday 7 PM
     this.scheduler.registerHandler('weekly_review', async () => {
       if (this.briefingGenerator) {
-        await this.briefingGenerator.weeklyReview();
+        const weeklyGovernance = governanceReporter.generateSnapshot(7 * 24 * 60 * 60 * 1000);
+        await this.briefingGenerator.weeklyReview({
+          governance: weeklyGovernance,
+        });
       }
       log.info('Weekly review completed');
     });
@@ -1993,44 +1997,19 @@ export class AutonomousAgent {
       }
     });
 
-    // AI Council nightly review at 10 PM — governance summary to Telegram
-    this.scheduler.registerHandler('ai_council_nightly', async () => {
+    // AI Council nightly review at 10 PM — audit log only (governance in evening summary)
+    this.scheduler.registerHandler('ai_council_nightly', () => {
       try {
         log.info('AI Council nightly review started');
 
-        // Generate governance snapshot for the last 24 hours
+        // Generate governance snapshot for audit — Telegram delivery is via 9 PM evening summary
         const snapshot = governanceReporter.generateSnapshot();
-        const formatted = governanceReporter.formatForBriefing(snapshot);
 
-        // Build council summary with system metrics
-        const lines: string[] = ['<b>🏛️ Council Nightly Review</b>', ''];
-
-        // Governance activity
-        lines.push(formatted);
-        lines.push('');
-
-        // System health summary
-        lines.push('<b>📊 System Status</b>');
-        lines.push(`▸ Tasks processed: ${this.state.tasksProcessed}`);
-        lines.push(`▸ Errors today: ${this.state.errors}`);
-        if (this.costTracker) {
-          const status = this.costTracker.getThrottleStatus();
-          lines.push(`▸ Budget: ${status.usagePercent.toFixed(0)}% used (${status.level})`);
-        }
-        lines.push('');
-
-        lines.push('Council session complete. ⚖️');
-
-        // Send to Telegram
-        if (notificationManager.isReady()) {
-          await notificationManager.notify({
-            category: 'governance',
-            title: 'Council Nightly Review',
-            body: lines.join('\n'),
-            priority: 'normal',
-            telegramHtml: lines.join('\n'),
-          });
-        }
+        // Governance already delivered via 9 PM evening summary — log only (no Telegram duplicate)
+        log.info(
+          { events: snapshot.pipeline.totalEvents, complianceRate: snapshot.arbiter.complianceRate },
+          'AI Council nightly review logged (no Telegram — see evening summary)',
+        );
 
         this.eventBus.emit('audit:log', {
           action: 'ai_council:nightly_review',
@@ -2047,6 +2026,7 @@ export class AutonomousAgent {
       } catch (error) {
         log.error({ error }, 'AI Council nightly review failed');
       }
+      return Promise.resolve();
     });
 
     // E2E daily test run (placeholder)
@@ -2166,13 +2146,16 @@ export class AutonomousAgent {
       }
     });
 
-    // 4 PM weekday work-day digest — flushes all notifications batched during school IT hours
+    // 4 PM weekday work-day digest — flushes notifications + market pulse + family-time signal
     this.scheduler.registerHandler('workday_digest', async () => {
       try {
-        const result = await notificationManager.processQueue();
-        if (result.processed > 0) {
-          log.info({ processed: result.processed, sent: result.sent }, 'Work-day digest delivered');
+        if (this.briefingGenerator) {
+          await this.briefingGenerator.workdayDigest({
+            marketAlerts: this.lastMarketAlerts.length > 0 ? this.lastMarketAlerts : null,
+            portfolio: this.lastPortfolio,
+          });
         }
+        log.info('Work-day digest delivered');
       } catch (error) {
         log.error({ error }, 'Work-day digest failed');
       }

@@ -124,6 +124,7 @@ export interface EveningContext {
   }> | null;
   portfolio?: BriefingPortfolio | null;
   llmCostToday?: LlmCostSummary | null;
+  governance?: GovernanceSnapshot | null;
   /** Autonomy dial level (0-100) */
   autonomyLevel?: number | null;
   /** CRM contacts needing follow-up */
@@ -132,6 +133,18 @@ export interface EveningContext {
   soulProposals?: Array<{ trait: string; direction: string }> | null;
   /** Human 3.0 quadrant scores */
   quadrantScores?: { mind: number; body: number; spirit: number; vocation: number } | null;
+}
+
+export interface WeeklyContext {
+  /** 7-day governance window snapshot */
+  governance?: GovernanceSnapshot | null;
+  /** Top insights from weekly wisdom / self-improvement loop */
+  topInsights?: string[] | null;
+}
+
+export interface WorkdayDigestContext {
+  marketAlerts?: Array<{ asset: string; change: string; severity: string }> | null;
+  portfolio?: BriefingPortfolio | null;
 }
 
 // ─── Briefing Generator ─────────────────────────────────────────────────────
@@ -342,7 +355,7 @@ export class BriefingGenerator {
   /**
    * Generate and send weekly review
    */
-  async weeklyReview(): Promise<BriefingResult> {
+  async weeklyReview(context?: WeeklyContext): Promise<BriefingResult> {
     // Get 7 days of audit data
     const weekData = await this.getWeekAuditData();
 
@@ -367,7 +380,7 @@ export class BriefingGenerator {
     }
 
     // Build weekly review HTML
-    const telegramHtml = this.formatWeeklyHtml(content, weekData);
+    const telegramHtml = this.formatWeeklyHtml(content, weekData, context);
 
     // Send weekly review via Telegram
     await this.notificationManager.notify({
@@ -402,6 +415,84 @@ export class BriefingGenerator {
       success: true,
       notionPageId,
       smsSent: false,
+    };
+  }
+
+  /**
+   * Generate and send 4 PM workday digest
+   *
+   * Always sends — even when nothing was queued — so Pryce
+   * gets the "family time" signal and a market pulse to close the work day.
+   */
+  async workdayDigest(context?: WorkdayDigestContext): Promise<BriefingResult> {
+    // Flush any queued notifications first
+    const queueResult = await this.notificationManager.processQueue();
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: this.timezone,
+    });
+
+    const lines: string[] = [];
+    lines.push(`<b>⏰ Work Day Wrap — ${timeStr}</b>`);
+    lines.push('');
+
+    // Queued items (only shown if there were any)
+    if (queueResult.processed > 0) {
+      lines.push('<b>📬 Queued Items</b>');
+      lines.push(`▸ ${queueResult.processed} item${queueResult.processed !== 1 ? 's' : ''} flushed (${queueResult.sent} sent)`);
+      lines.push('');
+    }
+
+    // Market pulse (only shown if data available)
+    if (context?.portfolio || (context?.marketAlerts && context.marketAlerts.length > 0)) {
+      lines.push('<b>📈 Market Pulse</b>');
+      const pulseLines: string[] = [];
+      if (context?.portfolio) {
+        const p = context.portfolio;
+        const sign = p.dailyChangePercent >= 0 ? '+' : '';
+        const arrow = p.dailyChangePercent >= 0 ? '↑' : '↓';
+        pulseLines.push(`Portfolio  $${p.totalValue.toLocaleString()}  ${arrow} ${sign}${p.dailyChangePercent.toFixed(1)}%`);
+      }
+      if (context?.marketAlerts) {
+        for (const alert of context.marketAlerts.slice(0, 3)) {
+          const icon = alert.severity === 'critical' ? '🚨' : '⚠';
+          pulseLines.push(`${icon} ${this.esc(alert.asset).padEnd(6)}  ${this.esc(alert.change)}  (${this.esc(alert.severity)})`);
+        }
+      }
+      if (pulseLines.length > 0) {
+        lines.push(`<pre>${pulseLines.join('\n')}</pre>`);
+      }
+      lines.push('');
+    }
+
+    lines.push('Family time. Back online at 9. 🏠');
+
+    const telegramHtml = splitTelegramMessage(lines.join('\n'));
+
+    const notifyResult = await this.notificationManager.notify({
+      category: 'daily',
+      title: 'Work Day Wrap',
+      body: `Work day done. ${queueResult.processed > 0 ? `${queueResult.processed} items flushed.` : 'Queue clear.'} Family time.`,
+      priority: 'normal',
+      telegramHtml,
+    });
+
+    await dailyAudit.logActivity(
+      'system_event',
+      'Work Day Wrap',
+      `Processed ${queueResult.processed} queued items`,
+      {
+        outcome: 'success',
+        details: { type: 'workday_digest', processed: queueResult.processed, sent: queueResult.sent },
+      }
+    );
+
+    return {
+      success: true,
+      smsSent: notifyResult.sent,
     };
   }
 
@@ -549,15 +640,16 @@ export class BriefingGenerator {
       const p = context.portfolio;
       const dir = p.dailyChangePercent >= 0 ? '📈' : '📉';
       const sign = p.dailyChangePercent >= 0 ? '+' : '';
+      const arrow = p.dailyChangePercent >= 0 ? '↑' : '↓';
       lines.push(`<b>${dir} Portfolio</b>`);
-      lines.push(`▸ $${p.totalValue.toLocaleString()} (${sign}${p.dailyChangePercent.toFixed(1)}% today)`);
+      lines.push(`▸ $${p.totalValue.toLocaleString()} ${arrow} ${sign}${p.dailyChangePercent.toFixed(1)}% today`);
       if (p.topGainers.length > 0) {
         const top = p.topGainers[0];
-        lines.push(`▸ Top: ${this.esc(top.asset)} +${top.changePercent.toFixed(1)}%`);
+        lines.push(`▸ Best: ${this.esc(top.asset)} ↑ +${top.changePercent.toFixed(1)}%`);
       }
       if (p.topLosers.length > 0) {
         const worst = p.topLosers[0];
-        lines.push(`▸ Dip: ${this.esc(worst.asset)} ${worst.changePercent.toFixed(1)}%`);
+        lines.push(`▸ Dip:  ${this.esc(worst.asset)} ↓ ${worst.changePercent.toFixed(1)}%`);
       }
       lines.push('');
     }
@@ -624,7 +716,7 @@ export class BriefingGenerator {
 
         // Arbiter compliance
         if (gov.arbiter.evaluations > 0) {
-          const rate = Math.round(gov.arbiter.complianceRate * 100);
+          const rate = Math.round(gov.arbiter.complianceRate);
           if (gov.arbiter.violations > 0) {
             lines.push(`▸ Arbiter: ${gov.arbiter.violations} violation${gov.arbiter.violations !== 1 ? 's' : ''} (${rate}% compliant)`);
           } else {
@@ -678,8 +770,11 @@ export class BriefingGenerator {
     if (auditData) {
       const completed = auditData.activities.filter(a => a.outcome === 'success').length;
       const failed = auditData.activities.filter(a => a.outcome === 'failure').length;
+      const total = completed + failed;
+      const successPct = total > 0 ? Math.round((completed / total) * 100) : 100;
+      const bar = this.buildUtilizationBar(successPct);
       lines.push(`<b>📊 Today's Results</b>`);
-      lines.push(`✓ ${completed} completed · ✗ ${failed} failed`);
+      lines.push(`✓ ${completed}   ✗ ${failed}   <code>${bar}</code>  ${successPct}%`);
 
       if (content.highlights.length > 0) {
         for (const h of content.highlights.slice(0, 3)) {
@@ -705,6 +800,15 @@ export class BriefingGenerator {
       lines.push('');
     }
 
+    // ── Council Brief ──
+    if (context?.governance) {
+      const councilLines = this.formatCouncilBrief(context.governance);
+      if (councilLines.length > 0) {
+        lines.push(...councilLines);
+        lines.push('');
+      }
+    }
+
     // ── Tonight's Build Context ──
     if (context?.suggestedTasks && context.suggestedTasks.length > 0) {
       lines.push('<b>🔧 Tonight\'s Build Context</b>');
@@ -719,8 +823,21 @@ export class BriefingGenerator {
       const p = context.portfolio;
       const dir = p.dailyChangePercent >= 0 ? '📈' : '📉';
       const sign = p.dailyChangePercent >= 0 ? '+' : '';
+      const arrow = p.dailyChangePercent >= 0 ? '↑' : '↓';
       lines.push(`<b>${dir} Today's P&amp;L</b>`);
-      lines.push(`▸ ${sign}$${Math.abs(p.dailyChange).toLocaleString()} (${sign}${p.dailyChangePercent.toFixed(1)}%)`);
+      const preLines: string[] = [];
+      preLines.push(`Total  $${p.totalValue.toLocaleString().padStart(10)}  ${arrow} ${sign}${p.dailyChangePercent.toFixed(1)}%`);
+      if (p.topGainers.length > 0) {
+        for (const g of p.topGainers.slice(0, 2)) {
+          preLines.push(`${this.esc(g.asset).padEnd(6)} ${''.padStart(10)}  ↑ +${g.changePercent.toFixed(1)}%`);
+        }
+      }
+      if (p.topLosers.length > 0) {
+        for (const l of p.topLosers.slice(0, 1)) {
+          preLines.push(`${this.esc(l.asset).padEnd(6)} ${''.padStart(10)}  ↓ ${l.changePercent.toFixed(1)}%`);
+        }
+      }
+      lines.push(`<pre>${preLines.join('\n')}</pre>`);
       lines.push('');
     }
 
@@ -784,7 +901,7 @@ export class BriefingGenerator {
     }
 
     // ── Closing ──
-    lines.push('Build strong tonight. I\'m here if you need me.');
+    lines.push('Make it count tonight.');
 
     const fullHtml = lines.join('\n');
     // Split into multiple messages if exceeding Telegram's 4096-char limit
@@ -793,38 +910,100 @@ export class BriefingGenerator {
 
   /**
    * Format weekly review as Telegram HTML
+   *
+   * Uses ━━ divider sections for scannability.
    */
   private formatWeeklyHtml(
     content: BriefingContent,
     weekData: DailyAudit[],
+    context?: WeeklyContext,
   ): string[] {
     const lines: string[] = [];
 
-    lines.push('<b>📊 Weekly Review</b>');
+    // ── Header with week number + date range ──
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const weekNumber = Math.ceil((now.getTime() - startOfYear.getTime()) / (7 * 24 * 60 * 60 * 1000));
+
+    // Derive Monday–Sunday of current week in Indiana timezone
+    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'short', timeZone: this.timezone });
+    const daysMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const todayIdx = daysMap[dayOfWeek] ?? 0;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((todayIdx + 6) % 7));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const fmt = (d: Date): string => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: this.timezone });
+    const dateRange = `${fmt(monday)}–${fmt(sunday)}`;
+
+    lines.push(`<b>📊 Weekly Review — Week ${weekNumber}</b>`);
+    lines.push(`<i>${dateRange}</i>`);
     lines.push('');
 
-    // ── Metrics ──
+    // ── Performance ──
     const totalActivities = weekData.reduce((sum, d) => sum + d.activities.length, 0);
     const totalSuccess = weekData.reduce(
       (sum, d) => sum + d.activities.filter(a => a.outcome === 'success').length, 0
     );
-    const rate = totalActivities > 0 ? Math.round((totalSuccess / totalActivities) * 100) : 0;
-    lines.push(`<b>📈 Performance</b>`);
-    lines.push(`${totalSuccess}/${totalActivities} tasks successful (${rate}%) across ${weekData.length} days`);
+    const rate = totalActivities > 0 ? Math.round((totalSuccess / totalActivities) * 100) : 100;
+    const perfBar = this.buildUtilizationBar(rate);
+    lines.push('<b>━━ Performance ━━━━━━━━━━━━━━━━━━━━━━━</b>');
+    lines.push(`${totalSuccess}/${totalActivities} tasks · ${weekData.length} days · <code>${perfBar}</code> ${rate}%`);
     lines.push('');
+
+    // ── Council Chamber (if governance provided) ──
+    if (context?.governance && context.governance.pipeline.totalEvents > 0) {
+      const gov = context.governance;
+      lines.push('<b>━━ Council Chamber ━━━━━━━━━━━━━━━━━━━</b>');
+      lines.push(`Votes this week: ${gov.council.votesCompleted}`);
+
+      const { passed, failed, vetoed, expired } = gov.council.outcomes;
+      lines.push(`<code>✅ ${passed}   ❌ ${failed}   🛑 ${vetoed}   ⌛ ${expired}</code>`);
+
+      const topics = gov.council.topicsSummary.slice(0, 3);
+      if (topics.length > 0) {
+        lines.push(`Topics: ${topics.map(t => this.esc(t)).join(' · ')}`);
+      }
+
+      if (vetoed > 0 && gov.council.vetoes.length > 0) {
+        const veto = gov.council.vetoes[0];
+        lines.push(`🛑 ${this.esc(veto.vetoer)} vetoed ${this.esc(veto.domain)} — <i>"${this.esc(veto.reason.slice(0, 80))}"</i>`);
+      }
+
+      if (gov.arbiter.evaluations > 0) {
+        const arbiterRate = Math.round(gov.arbiter.complianceRate);
+        const bar = this.buildUtilizationBar(arbiterRate);
+        lines.push(`Arbiter  <code>${bar}</code>  ${arbiterRate}%  (${gov.arbiter.evaluations} evals, ${gov.arbiter.violations} violations)`);
+      }
+
+      if (gov.overseer.gatesChecked > 0) {
+        lines.push(`Gates: ${gov.overseer.gatesPassed}/${gov.overseer.gatesChecked}`);
+      }
+
+      lines.push('');
+    }
+
+    // ── Insights (if provided) ──
+    if (context?.topInsights && context.topInsights.length > 0) {
+      lines.push('<b>━━ Insights ━━━━━━━━━━━━━━━━━━━━━━━━━━</b>');
+      for (const insight of context.topInsights.slice(0, 3)) {
+        lines.push(`▸ ${this.esc(insight)}`);
+      }
+      lines.push('');
+    }
 
     // ── Highlights ──
     if (content.highlights.length > 0) {
-      lines.push('<b>🏆 Highlights</b>');
+      lines.push('<b>━━ Highlights ━━━━━━━━━━━━━━━━━━━━━━━━</b>');
       for (const h of content.highlights.slice(0, 5)) {
         lines.push(`▸ ${this.esc(h)}`);
       }
       lines.push('');
     }
 
-    // ── Issues ──
+    // ── Unresolved ──
     if (content.issues.length > 0) {
-      lines.push('<b>⚠ Unresolved</b>');
+      lines.push('<b>━━ Unresolved ━━━━━━━━━━━━━━━━━━━━━━━━</b>');
       for (const i of content.issues.slice(0, 3)) {
         lines.push(`▸ ${this.esc(i)}`);
       }
@@ -833,7 +1012,7 @@ export class BriefingGenerator {
 
     // ── Next Week ──
     if (content.actionItems && content.actionItems.length > 0) {
-      lines.push('<b>🎯 Next Week</b>');
+      lines.push('<b>━━ Next Week ━━━━━━━━━━━━━━━━━━━━━━━━</b>');
       for (const a of content.actionItems.slice(0, 3)) {
         lines.push(`▸ ${this.esc(a)}`);
       }
@@ -848,6 +1027,70 @@ export class BriefingGenerator {
   }
 
   // ─── Private Helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Format a compact "Council Brief" section for evening/weekly reports.
+   * Returns [] when totalEvents === 0 so callers can skip the section entirely.
+   */
+  private formatCouncilBrief(gov: GovernanceSnapshot): string[] {
+    if (gov.pipeline.totalEvents === 0) {
+      return [];
+    }
+
+    const lines: string[] = [];
+    lines.push('<b>⚖️ Council Brief</b>');
+
+    // Topic docket
+    const topics = gov.council.topicsSummary.slice(0, 3);
+    if (topics.length > 0) {
+      lines.push(`<i>today's docket: ${topics.map(t => this.esc(t)).join(' · ')}</i>`);
+    }
+    lines.push('');
+
+    // Vote tally
+    const { passed, failed, vetoed, expired } = gov.council.outcomes;
+    const totalVotes = gov.council.votesCompleted;
+    if (totalVotes > 0) {
+      lines.push(`<code>✅ ${passed}   ❌ ${failed}   🛑 ${vetoed}   ⌛ ${expired}</code>   (${totalVotes} total)`);
+
+      // Most recent veto callout
+      if (vetoed > 0 && gov.council.vetoes.length > 0) {
+        const veto = gov.council.vetoes[0];
+        const reason = this.esc(veto.reason.slice(0, 80));
+        lines.push(`🛑 ${this.esc(veto.vetoer)} vetoed ${this.esc(veto.domain)} — <i>"${reason}"</i>`);
+      }
+      lines.push('');
+    }
+
+    // Arbiter compliance bar
+    if (gov.arbiter.evaluations > 0) {
+      const rate = Math.round(gov.arbiter.complianceRate);
+      const bar = this.buildUtilizationBar(rate);
+      const icon = rate >= 95 ? '🟢' : rate >= 80 ? '🟡' : '🔴';
+      lines.push(`Arbiter  <code>${bar}</code>  ${icon} ${rate}%  (${gov.arbiter.evaluations} evals, ${gov.arbiter.violations} violations)`);
+    }
+
+    // Quality gates
+    if (gov.overseer.gatesChecked > 0) {
+      lines.push(`Gates    ${gov.overseer.gatesPassed}/${gov.overseer.gatesChecked} ✓`);
+    }
+
+    lines.push('');
+
+    // Verdict
+    const hasIssues = gov.arbiter.violations > 0 || gov.overseer.gatesFailed > 0;
+    const verdictPrefix = hasIssues ? '⚠' : '✓';
+    const verdictParts: string[] = [];
+    if (vetoed > 0) verdictParts.push(`${vetoed} veto${vetoed !== 1 ? 'es' : ''} issued`);
+    if (gov.arbiter.violations > 0) verdictParts.push(`${gov.arbiter.violations} violation${gov.arbiter.violations !== 1 ? 's' : ''}`);
+    if (gov.overseer.gatesFailed > 0) verdictParts.push(`${gov.overseer.gatesFailed} gate${gov.overseer.gatesFailed !== 1 ? 's' : ''} failing`);
+    const verdict = verdictParts.length > 0
+      ? verdictParts.join('. ')
+      : 'System constitutionally sound';
+    lines.push(`<i>${verdictPrefix} ${verdict}.</i>`);
+
+    return lines;
+  }
 
   private getContextualGreeting(dayName: string): string {
     const greetings: Record<string, string> = {

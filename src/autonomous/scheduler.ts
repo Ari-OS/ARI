@@ -204,7 +204,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'weekly-review',
     name: 'Weekly Review',
-    cron: '0 18 * * 0', // Sunday 6:00 PM
+    cron: '0 19 * * 0', // Sunday 7:00 PM
     handler: 'weekly_review',
     enabled: true,
     essential: false,
@@ -212,7 +212,7 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
   {
     id: 'weekly-wisdom',
     name: 'Weekly Wisdom Digest',
-    cron: '10 18 * * 0', // Sunday 6:10 PM (after weekly_review)
+    cron: '10 19 * * 0', // Sunday 7:10 PM (after weekly_review)
     handler: 'weekly_wisdom',
     enabled: true,
     essential: false,

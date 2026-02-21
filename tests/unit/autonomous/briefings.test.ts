@@ -222,7 +222,7 @@ describe('BriefingGenerator', () => {
             vetoes: [{ vetoer: 'AEGIS', domain: 'security', reason: 'Risk too high' }],
             topicsSummary: ['Deploy change', 'Config update', 'API expansion'],
           },
-          arbiter: { evaluations: 12, violations: 0, violationsByRule: {}, complianceRate: 1.0 },
+          arbiter: { evaluations: 12, violations: 0, violationsByRule: {}, complianceRate: 100 },
           overseer: { gatesChecked: 5, gatesPassed: 5, gatesFailed: 0, failedGates: [] },
           pipeline: { totalEvents: 47, eventsByType: {} },
         },
@@ -351,6 +351,89 @@ describe('BriefingGenerator', () => {
     });
   });
 
+  describe('eveningSummary() with governance', () => {
+    beforeEach(async () => {
+      await generator.initNotion({
+        enabled: true,
+        databaseId: 'db-123',
+        token: 'token',
+        dailyLogParentId: 'parent-123',
+      });
+      mockNotionGetTodayEntries.mockResolvedValue([]);
+    });
+
+    it('should include Council Brief when governance data provided', async () => {
+      await generator.eveningSummary({
+        governance: {
+          period: { start: Date.now() - 86400000, end: Date.now() },
+          council: {
+            votesCreated: 3,
+            votesCompleted: 3,
+            outcomes: { passed: 2, failed: 0, expired: 0, vetoed: 1 },
+            openVotes: [],
+            vetoes: [{ vetoer: 'AEGIS', domain: 'security', reason: 'Scope exceeds approved perimeter' }],
+            topicsSummary: ['content-pipeline', 'model-routing'],
+          },
+          arbiter: { evaluations: 12, violations: 0, violationsByRule: {}, complianceRate: 100 },
+          overseer: { gatesChecked: 5, gatesPassed: 5, gatesFailed: 0, failedGates: [] },
+          pipeline: { totalEvents: 47, eventsByType: {} },
+        },
+      });
+
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const html = notifyCall.telegramHtml.join('\n');
+      expect(html).toContain('Council Brief');
+      expect(html).toContain('AEGIS');
+    });
+
+    it('should omit Council Brief when no governance activity', async () => {
+      await generator.eveningSummary({
+        governance: {
+          period: { start: Date.now() - 86400000, end: Date.now() },
+          council: {
+            votesCreated: 0, votesCompleted: 0,
+            outcomes: { passed: 0, failed: 0, expired: 0, vetoed: 0 },
+            openVotes: [], vetoes: [], topicsSummary: [],
+          },
+          arbiter: { evaluations: 0, violations: 0, violationsByRule: {}, complianceRate: 100 },
+          overseer: { gatesChecked: 0, gatesPassed: 0, gatesFailed: 0, failedGates: [] },
+          pipeline: { totalEvents: 0, eventsByType: {} },
+        },
+      });
+
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const html = notifyCall.telegramHtml.join('\n');
+      expect(html).not.toContain('Council Brief');
+    });
+  });
+
+  describe('workdayDigest()', () => {
+    it('should send workday digest even without queued items', async () => {
+      mockProcessQueue.mockResolvedValueOnce({ processed: 0, sent: 0 });
+
+      const result = await generator.workdayDigest();
+
+      expect(result.success).toBe(true);
+      expect(mockProcessQueue).toHaveBeenCalled();
+      expect(mockNotify).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'daily' }),
+      );
+    });
+
+    it('should include market alert in workday digest when provided', async () => {
+      mockProcessQueue.mockResolvedValueOnce({ processed: 0, sent: 0 });
+
+      const result = await generator.workdayDigest({
+        marketAlerts: [{ asset: 'BTC', change: '-8%', severity: 'critical' }],
+      });
+
+      expect(result.success).toBe(true);
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const html = notifyCall.telegramHtml.join('\n');
+      expect(html).toContain('BTC');
+    });
+  });
+
   describe('weeklyReview()', () => {
     beforeEach(async () => {
       await generator.initNotion({
@@ -414,6 +497,31 @@ describe('BriefingGenerator', () => {
       const result = await generator.weeklyReview();
 
       expect(result.success).toBe(true);
+    });
+
+    it('should include Council Chamber in weekly review when governance provided', async () => {
+      mockGetAudit.mockResolvedValue(null);
+
+      await generator.weeklyReview({
+        governance: {
+          period: { start: Date.now() - 7 * 86400000, end: Date.now() },
+          council: {
+            votesCreated: 10,
+            votesCompleted: 10,
+            outcomes: { passed: 8, failed: 1, expired: 0, vetoed: 1 },
+            openVotes: [],
+            vetoes: [{ vetoer: 'AEGIS', domain: 'deployment', reason: 'Unsafe parameters' }],
+            topicsSummary: ['model-routing', 'content-pipeline', 'deployment'],
+          },
+          arbiter: { evaluations: 40, violations: 1, violationsByRule: {}, complianceRate: 97 },
+          overseer: { gatesChecked: 10, gatesPassed: 10, gatesFailed: 0, failedGates: [] },
+          pipeline: { totalEvents: 120, eventsByType: {} },
+        },
+      });
+
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const html = notifyCall.telegramHtml.join('\n');
+      expect(html).toContain('Council');
     });
   });
 
