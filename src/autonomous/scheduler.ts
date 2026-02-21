@@ -165,6 +165,14 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     enabled: true,
     essential: true, // User-facing deliverable
   },
+  {
+    id: 'workday-digest',
+    name: 'Work-Day Digest',
+    cron: '0 16 * * 1-5', // 4:00 PM weekdays — flush notifications batched during school IT hours
+    handler: 'workday_digest',
+    enabled: true,
+    essential: true, // User-facing deliverable
+  },
 
   // ============================================================================
   // NON-ESSENTIAL TASKS - Skipped when budget is constrained

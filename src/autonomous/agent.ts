@@ -2166,6 +2166,18 @@ export class AutonomousAgent {
       }
     });
 
+    // 4 PM weekday work-day digest — flushes all notifications batched during school IT hours
+    this.scheduler.registerHandler('workday_digest', async () => {
+      try {
+        const result = await notificationManager.processQueue();
+        if (result.processed > 0) {
+          log.info({ processed: result.processed, sent: result.sent }, 'Work-day digest delivered');
+        }
+      } catch (error) {
+        log.error({ error }, 'Work-day digest failed');
+      }
+    });
+
     // ==========================================================================
     // CONTENT ENGINE: Draft generation + delivery to Telegram
     // ==========================================================================

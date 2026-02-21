@@ -204,7 +204,39 @@ describe('NotificationManager', () => {
       });
 
       expect(result.sent).toBe(true);
-      expect(result.reason).toBe('P1: Work hours delivery (Telegram + Notion)');
+      expect(result.reason).toBe('P1: Active hours delivery (Telegram + Notion)');
+    });
+
+    it('should defer non-critical notifications during work hours (Mon-Fri 7am-4pm)', async () => {
+      // 2026-02-02 is a Monday; 14:00 UTC = 9 AM Indiana time (work hours)
+      vi.setSystemTime(new Date('2026-02-02T14:00:00Z'));
+
+      // 'milestone' is not in the telegram-eligible-during-work set → should batch for 4 PM
+      const result = await manager.notify({
+        category: 'milestone',
+        title: 'Milestone',
+        body: 'Reached goal',
+        priority: 'normal',
+      });
+
+      expect(result.sent).toBe(false);
+      expect(result.reason).toBe('P2: Deferred to 4 PM work-day digest');
+      expect(mockTelegramSend).not.toHaveBeenCalled();
+    });
+
+    it('should let security alerts through even during work hours', async () => {
+      // 2026-02-02 Monday at 9 AM Indiana
+      vi.setSystemTime(new Date('2026-02-02T14:00:00Z'));
+
+      const result = await manager.notify({
+        category: 'security',
+        title: 'Security Alert',
+        body: 'Intrusion detected',
+        priority: 'critical',
+      });
+
+      expect(result.sent).toBe(true);
+      expect(result.reason).toBe('P0: Immediate delivery (all channels)');
     });
 
     it('should queue P1 during quiet hours', async () => {

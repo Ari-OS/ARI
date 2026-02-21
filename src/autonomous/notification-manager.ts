@@ -86,6 +86,8 @@ interface NotificationHistory {
 
 interface NotificationConfig {
   quietHours: { start: number; end: number };
+  workHours: { start: number; end: number };   // School IT hours — batch non-critical
+  workdayBatchTime: number;                    // Hour to send work-day queued digest
   maxSmsPerHour: number;
   maxPerDay: number;
   batchTime: number; // Hour to send batched notifications
@@ -103,10 +105,12 @@ interface ChannelConfig {
 // ─── Default Configuration ───────────────────────────────────────────────────
 
 const DEFAULT_CONFIG: NotificationConfig = {
-  quietHours: { start: 22, end: 7 }, // 10pm - 7am Indiana time
+  quietHours: { start: 22, end: 7 },  // 10pm - 7am Indiana time (sleep)
+  workHours: { start: 7, end: 16 },   // 7am - 4pm (school IT — non-critical batched)
+  workdayBatchTime: 16,               // 4pm digest of work-day queued items
   maxSmsPerHour: 5,
   maxPerDay: 20,
-  batchTime: 7, // 7am - send queued notifications
+  batchTime: 7, // 7am - send overnight queued notifications
   escalationThreshold: 3, // 3 same P1 errors → escalate to P0
   timezone: 'America/Indiana/Indianapolis',
   cooldowns: {
@@ -116,7 +120,7 @@ const DEFAULT_CONFIG: NotificationConfig = {
     milestone: 120,    // Nice-to-know, not urgent — was 30
     insight: 360,      // Max 2-3/day — was 60
     question: 0,       // ARI needs input — keep at 0
-    reminder: 0,
+    reminder: 60,      // Max one reminder per hour — was 0 (too noisy)
     finance: 240,      // 4hr — pre/post-market briefings handle the rest
     task: 30,          // Batch more — was 15
     system: 120,       // Background info — was 60
@@ -125,7 +129,7 @@ const DEFAULT_CONFIG: NotificationConfig = {
     billing: 1440,     // Once per day
     value: 720,        // Twice per day max
     adaptive: 1440,    // Once per day
-    governance: 60,    // Once per hour
+    governance: 120,   // Once per 2hr — was 60 (council vote noise)
   },
 };
 
@@ -275,11 +279,12 @@ export class NotificationManager {
     pLevel: TypedPriority
   ): Promise<NotificationResult> {
     const isQuiet = this.isQuietHours();
+    const isWork = !isQuiet && this.isWorkHours();
     const channels: NotificationResult['channels'] = {};
     let sent = false;
     let reason = '';
 
-    // P0 (critical): SMS + Telegram + Notion — bypasses quiet hours
+    // P0 (critical): SMS + Telegram + Notion — bypasses everything
     if (pLevel === 'P0') {
       channels.sms = await this.sendSMS(request, true);
       channels.telegram = await this.sendTelegram(request, true);
@@ -287,12 +292,20 @@ export class NotificationManager {
       sent = (channels.telegram?.sent ?? false) || (channels.sms?.sent ?? false) || !!channels.notion?.pageId;
       reason = 'P0: Immediate delivery (all channels)';
     }
-    // P1 during work hours: Telegram + Notion
+    // Work hours (7am-4pm M-F): only interrupt-worthy categories fire immediately
+    // Everything else queues for 4PM workday digest
+    else if (isWork && !this.isTelegramEligibleDuringWork(request.category)) {
+      this.queueForWorkday(request, pLevel);
+      channels.notion = await this.sendNotion(request, pLevel);
+      sent = false;
+      reason = `${pLevel}: Deferred to 4 PM work-day digest`;
+    }
+    // P1 during active hours: Telegram + Notion
     else if (pLevel === 'P1' && !isQuiet) {
       channels.telegram = await this.sendTelegram(request, false);
       channels.notion = await this.sendNotion(request, pLevel);
       sent = (channels.telegram?.sent ?? false) || !!channels.notion?.pageId;
-      reason = 'P1: Work hours delivery (Telegram + Notion)';
+      reason = 'P1: Active hours delivery (Telegram + Notion)';
     }
     // P1 during quiet hours: Queue for morning Telegram
     else if (pLevel === 'P1' && isQuiet) {
@@ -301,7 +314,7 @@ export class NotificationManager {
       sent = false;
       reason = 'P1: Queued for 7 AM Telegram (quiet hours)';
     }
-    // P2 during work hours: Telegram + Notion
+    // P2 during active hours: Telegram silent + Notion
     else if (pLevel === 'P2' && !isQuiet) {
       channels.telegram = await this.sendTelegram(request, false, true); // silent push
       channels.notion = await this.sendNotion(request, pLevel);
@@ -314,7 +327,7 @@ export class NotificationManager {
       sent = false;
       reason = `${pLevel}: Queued for morning`;
     }
-    // P3/P4 during work hours: Notion batched
+    // P3/P4: Notion batched
     else {
       this.queueForBatch(request, pLevel);
       sent = false;
@@ -617,6 +630,76 @@ export class NotificationManager {
       return hour >= start || hour < end;
     }
     return hour >= start && hour < end;
+  }
+
+  /**
+   * Work hours: 7am-4pm weekdays (school IT — Pryce is at work, can't be interrupted).
+   * During work hours only security, error, question categories reach Telegram immediately.
+   * Everything else queues for the 4 PM work-day digest.
+   */
+  private isWorkHours(): boolean {
+    const now = new Date();
+    const indiana = new Date(
+      now.toLocaleString('en-US', { timeZone: this.config.timezone })
+    );
+    const hour = indiana.getHours();
+    const day = indiana.getDay(); // 0=Sun, 6=Sat
+
+    if (day === 0 || day === 6) return false; // Weekdays only
+    const { start, end } = this.config.workHours;
+    return hour >= start && hour < end;
+  }
+
+  /**
+   * Categories that can still interrupt Telegram during work hours.
+   * Anything not in this list queues for 4 PM.
+   */
+  private isTelegramEligibleDuringWork(category: NotificationCategory): boolean {
+    const eligible: ReadonlySet<NotificationCategory> = new Set([
+      'security',    // Always interrupts — never silence security
+      'error',       // Critical system errors need attention
+      'question',    // ARI is asking for input — needs response
+    ]);
+    return eligible.has(category);
+  }
+
+  /**
+   * Queue notification for 4 PM work-day digest delivery.
+   */
+  private queueForWorkday(request: NotificationRequest, pLevel: TypedPriority): void {
+    const now = new Date();
+    const indiana = new Date(
+      now.toLocaleString('en-US', { timeZone: this.config.timezone })
+    );
+
+    const workdayEnd = new Date(indiana);
+    workdayEnd.setHours(this.config.workdayBatchTime, 0, 0, 0);
+
+    // If past 4 PM, queue for tomorrow 4 PM (shouldn't happen — isWorkHours() gates this)
+    if (indiana.getHours() >= this.config.workdayBatchTime) {
+      workdayEnd.setDate(workdayEnd.getDate() + 1);
+    }
+
+    const entry: NotificationEntry = {
+      id: crypto.randomUUID(),
+      priority: pLevel,
+      title: request.title,
+      body: request.body,
+      category: request.category,
+      channel: 'both',
+      queuedAt: now.toISOString(),
+      queuedFor: workdayEnd.toISOString(),
+      smsSent: false,
+      notionSent: false,
+      dedupKey: request.dedupKey,
+      escalationCount: 0,
+    };
+
+    this.batchQueue.push({
+      entry,
+      scheduledFor: workdayEnd.toISOString(),
+      reason: 'work_hours_batch',
+    });
   }
 
   /**
