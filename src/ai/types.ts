@@ -152,6 +152,8 @@ export const ValueScoreInputSchema = z.object({
   historicalPerformance: z.number().min(0).max(10).default(5),
   securitySensitive: z.boolean().default(false),
   category: TaskCategorySchema,
+  agent: z.string().optional(),
+  contentLength: z.number().optional(),
 });
 export type ValueScoreInput = z.infer<typeof ValueScoreInputSchema>;
 

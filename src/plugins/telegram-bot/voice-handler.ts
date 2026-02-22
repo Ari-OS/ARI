@@ -12,6 +12,7 @@ import { WhisperClient } from '../../integrations/whisper/client.js';
 
 export interface VoiceHandlerDeps {
   whisperApiKey: string | null;
+  wisprFlowApiKey?: string | null;
   eventBus: EventBus;
 }
 
@@ -27,8 +28,8 @@ export async function handleVoice(
   deps: VoiceHandlerDeps,
   onTranscribed: (ctx: Context, text: string) => Promise<void>,
 ): Promise<void> {
-  if (!deps.whisperApiKey) {
-    await ctx.reply('Voice transcription requires OPENAI_API_KEY to be configured.');
+  if (!deps.whisperApiKey && !deps.wisprFlowApiKey) {
+    await ctx.reply('Voice transcription requires OPENAI_API_KEY or WISPR_FLOW_API_KEY to be configured.');
     return;
   }
 
@@ -55,26 +56,48 @@ export async function handleVoice(
     }
     const buffer = Buffer.from(await response.arrayBuffer());
 
-    // Transcribe with Whisper (API mode)
-    const whisper = new WhisperClient({
-      mode: 'api',
-      apiKey: deps.whisperApiKey,
-      model: 'whisper-1',
-    });
+    let transcribedText = '';
 
-    const result = await whisper.transcribeBuffer(buffer, file.file_path.split('/').pop() ?? 'voice.ogg');
+    // Prefer Wispr Flow if available
+    if (deps.wisprFlowApiKey) {
+      // Wispr Flow implementation
+      const formData = new FormData();
+      const blob = new Blob([buffer], { type: 'audio/ogg' });
+      formData.append('file', blob, 'voice.ogg');
+      
+      const wisprRes = await fetch('https://api.wisprflow.ai/v1/transcribe', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${deps.wisprFlowApiKey}`
+        },
+        body: formData as unknown as BodyInit
+      });
+      
+      if (!wisprRes.ok) throw new Error('Wispr Flow API failed');
+      const data = (await wisprRes.json()) as { text: string };
+      transcribedText = data.text;
+    } else if (deps.whisperApiKey) {
+      // Fallback to Whisper
+      const whisper = new WhisperClient({
+        mode: 'api',
+        apiKey: deps.whisperApiKey,
+        model: 'whisper-1',
+      });
+      const result = await whisper.transcribeBuffer(buffer, file.file_path.split('/').pop() ?? 'voice.ogg');
+      transcribedText = result.text;
+    }
 
     deps.eventBus.emit('telegram:voice_transcribed', {
       duration: voice.duration,
-      textLength: result.text.length,
+      textLength: transcribedText.length,
       timestamp: new Date().toISOString(),
     });
 
     // Show transcription to user
-    await ctx.reply(`<i>Heard:</i> "${result.text}"`, { parse_mode: 'HTML' });
+    await ctx.reply(`<i>🎙️ Heard:</i> "${transcribedText}"`, { parse_mode: 'HTML' });
 
     // Route through intent system
-    await onTranscribed(ctx, result.text);
+    await onTranscribed(ctx, transcribedText);
   } catch (error: unknown) {
     const errorObj = error instanceof Error ? error : new Error(String(error));
     await ctx.reply(`Voice processing failed: ${errorObj.message}`);

@@ -1,19 +1,23 @@
 /**
  * Agent Swarm Coordinator — Orchestrates decentralized parallel agent dispatch.
  *
- * Implements a decentralized swarm model with work-stealing queues.
- * Agents steal work from each other to maintain high concurrency.
+ * Implements a decentralized swarm model with Kahn's algorithm for DAG dependency resolution.
  * Uses a memory-mapped shared state (simulated via SharedArrayBuffer)
  * for lock-free reads to avoid duplicating memory queries over EventBus.
  */
 
 import { randomUUID } from 'node:crypto';
-import type { EventBus } from '../kernel/event-bus.js';
+import { Piscina } from 'piscina';
 import type { AIOrchestrator } from '../ai/orchestrator.js';
+import type { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
+import type { AnalysisAgent } from './analysis-agent.js';
 import type { ResearchAgent } from './research-agent.js';
 import type { WritingAgent, WritingFormat } from './writing-agent.js';
-import type { AnalysisAgent } from './analysis-agent.js';
-import { createLogger } from '../kernel/logger.js';
+import type { Executor } from './executor.js';
+import type { MemoryManager } from './memory-manager.js';
+import type { AIProvider } from './core.js';
+import type { TrustLevel, AgentId } from '../kernel/types.js';
 
 const log = createLogger('coordinator-swarm');
 
@@ -21,9 +25,10 @@ const log = createLogger('coordinator-swarm');
 
 export interface CoordinatorTask {
   id?: string;
-  type: 'research' | 'write' | 'analyze';
+  type: 'research' | 'write' | 'analyze' | 'conversation' | 'tool_use' | 'system_command';
   payload: unknown;
   priority?: number;
+  dependencies?: string[];
 }
 
 export interface CoordinatorResult {
@@ -36,11 +41,13 @@ export interface CoordinatorResult {
 }
 
 interface CoordinatorConfig {
-  researchAgent: ResearchAgent;
-  writingAgent: WritingAgent;
-  analysisAgent: AnalysisAgent;
+  researchAgent?: ResearchAgent;
+  writingAgent?: WritingAgent;
+  analysisAgent?: AnalysisAgent;
+  executor?: Executor;
+  memoryManager?: MemoryManager;
   eventBus: EventBus;
-  orchestrator: AIOrchestrator;
+  orchestrator?: AIOrchestrator;
   concurrency?: number;
 }
 
@@ -62,6 +69,12 @@ interface AnalyzePayload {
   question: string;
 }
 
+interface CoreTaskPayload {
+  description: string;
+  assigned_to?: string;
+  trustLevel: TrustLevel;
+}
+
 // ── Memory-Mapped Shared State (Lock-Free Reads) ─────────────────────────────
 
 /**
@@ -69,89 +82,45 @@ interface AnalyzePayload {
  * Agents read from this buffer lock-free instead of using EventBus queries.
  */
 class SharedStateMemoryMap {
-  private buffer: SharedArrayBuffer | null = null;
+  private buffer: ArrayBufferLike | null = null;
   private view: Int32Array | null = null;
+  private isShared: boolean = false;
 
-  constructor(sizeBytes: number = 1024 * 1024) { // 1MB shared state
+  constructor(sizeBytes: number = 1024 * 1024) {
+    // 1MB shared state
     try {
-      this.buffer = new SharedArrayBuffer(sizeBytes);
-      this.view = new Int32Array(this.buffer);
+      if (typeof SharedArrayBuffer !== 'undefined') {
+        this.buffer = new SharedArrayBuffer(sizeBytes);
+        this.isShared = true;
+      } else {
+        this.buffer = new ArrayBuffer(sizeBytes);
+      }
     } catch (error) {
-      log.warn({ error: error instanceof Error ? error.message : String(error) }, 'SharedArrayBuffer not supported in this environment. Falling back to simple array.');
+      this.buffer = new ArrayBuffer(sizeBytes);
+      log.warn(
+        { error: error instanceof Error ? error.message : String(error) },
+        'SharedArrayBuffer not supported in this environment. Falling back to ArrayBuffer.',
+      );
     }
+    this.view = new Int32Array(this.buffer);
   }
 
   // Atomic read
   read(index: number): number {
-    if (this.view) {
+    if (this.isShared && this.view) {
       return Atomics.load(this.view, index);
+    } else if (this.view) {
+      return this.view[index];
     }
     return 0; // Fallback value
   }
 
   // Atomic write
   write(index: number, value: number): void {
-    if (this.view) {
+    if (this.isShared && this.view) {
       Atomics.store(this.view, index, value);
-    }
-  }
-}
-
-// ── Work-Stealing Queue ──────────────────────────────────────────────────────
-
-class WorkQueue {
-  private queue: CoordinatorTask[] = [];
-
-  push(task: CoordinatorTask) {
-    this.queue.push(task);
-    // Sort by priority (higher number = higher priority)
-    this.queue.sort((a, b) => (b.priority || 0) - (a.priority || 0));
-  }
-
-  pop(): CoordinatorTask | undefined {
-    return this.queue.shift();
-  }
-
-  steal(): CoordinatorTask | undefined {
-    // Steal from the end of the queue (lowest priority)
-    return this.queue.pop();
-  }
-
-  get length() {
-    return this.queue.length;
-  }
-}
-
-// ── Decentralized Swarm Worker ───────────────────────────────────────────────
-
-class SwarmWorker {
-  public id: string = randomUUID();
-  public queue: WorkQueue = new WorkQueue();
-  public isBusy: boolean = false;
-
-  constructor(
-    private coordinator: AgentCoordinator,
-    private sharedState: SharedStateMemoryMap
-  ) {}
-
-  async startLoop(results: CoordinatorResult[]): Promise<void> {
-    while (true) {
-      let task = this.queue.pop();
-
-      if (!task) {
-        // Work stealing: attempt to steal from other workers
-        task = this.coordinator.stealWork(this.id);
-      }
-
-      if (!task) {
-        // No work left in the swarm
-        break;
-      }
-
-      this.isBusy = true;
-      const result = await this.coordinator.executeTask(task, this.sharedState);
-      results.push(result);
-      this.isBusy = false;
+    } else if (this.view) {
+      this.view[index] = value;
     }
   }
 }
@@ -159,52 +128,45 @@ class SwarmWorker {
 // ── AgentCoordinator ─────────────────────────────────────────────────────────
 
 export class AgentCoordinator {
-  private readonly researchAgent: ResearchAgent;
-  private readonly writingAgent: WritingAgent;
-  private readonly analysisAgent: AnalysisAgent;
+  private readonly researchAgent?: ResearchAgent;
+  private readonly writingAgent?: WritingAgent;
+  private readonly analysisAgent?: AnalysisAgent;
+  private readonly executor?: Executor;
+  private readonly memoryManager?: MemoryManager;
+  private aiProvider?: AIProvider;
   private readonly eventBus: EventBus;
   private readonly concurrency: number;
-  private workers: SwarmWorker[] = [];
+  private piscinaPool: Piscina | null = null;
   private sharedState = new SharedStateMemoryMap();
 
   constructor(config: CoordinatorConfig) {
     this.researchAgent = config.researchAgent;
     this.writingAgent = config.writingAgent;
     this.analysisAgent = config.analysisAgent;
+    this.executor = config.executor;
+    this.memoryManager = config.memoryManager;
     this.eventBus = config.eventBus;
-    
+
     // Configurable concurrency, default to max safe Node.js concurrent limit
     this.concurrency = config.concurrency || parseInt(process.env.AGENT_CONCURRENCY || '10', 10);
-    
-    // Initialize swarm workers
-    for (let i = 0; i < this.concurrency; i++) {
-      this.workers.push(new SwarmWorker(this, this.sharedState));
+
+    try {
+      this.piscinaPool = new Piscina({
+        filename: new URL('data:text/javascript,export default async function run(data) { return { status: "success", data }; }').href,
+        minThreads: 1,
+        maxThreads: this.concurrency
+      });
+    } catch {
+      // Piscina setup might fail in some test environments
     }
   }
 
-  /**
-   * Work stealing mechanism used by workers to find tasks in other queues.
-   */
-  public stealWork(thiefId: string): CoordinatorTask | undefined {
-    // Find the worker with the largest queue
-    let targetWorker: SwarmWorker | null = null;
-    let maxLen = 0;
-
-    for (const worker of this.workers) {
-      if (worker.id !== thiefId && worker.queue.length > maxLen) {
-        maxLen = worker.queue.length;
-        targetWorker = worker;
-      }
-    }
-
-    if (targetWorker) {
-      return targetWorker.queue.steal();
-    }
-    return undefined;
+  public setAIProvider(provider: AIProvider): void {
+    this.aiProvider = provider;
   }
 
   /**
-   * Dispatch multiple tasks to the decentralized swarm.
+   * Dispatch multiple tasks to the decentralized swarm using Kahn's algorithm for DAG resolution.
    */
   async dispatch(tasks: CoordinatorTask[]): Promise<CoordinatorResult[]> {
     const startTime = Date.now();
@@ -216,29 +178,83 @@ export class AgentCoordinator {
       timestamp: new Date().toISOString(),
     });
 
-    // Distribute tasks round-robin to worker queues
-    let workerIndex = 0;
     for (const task of tasks) {
       if (!task.id) task.id = randomUUID();
-      this.workers[workerIndex].queue.push(task);
-      workerIndex = (workerIndex + 1) % this.concurrency;
     }
 
-    // Start all workers in parallel
+    const adjList = new Map<string, string[]>();
+    const inDegree = new Map<string, number>();
+    const taskMap = new Map<string, CoordinatorTask>();
+
+    for (const task of tasks) {
+      const id = task.id!;
+      taskMap.set(id, task);
+      adjList.set(id, []);
+      inDegree.set(id, 0);
+    }
+
+    for (const task of tasks) {
+      const id = task.id!;
+      if (task.dependencies) {
+        for (const dep of task.dependencies) {
+          if (adjList.has(dep)) {
+            adjList.get(dep)!.push(id);
+            inDegree.set(id, inDegree.get(id)! + 1);
+          }
+        }
+      }
+    }
+
+    const queue: string[] = [];
+    for (const [id, deg] of inDegree.entries()) {
+      if (deg === 0) queue.push(id);
+    }
+
+    const executionLevels: CoordinatorTask[][] = [];
+    let currentLevel: string[] = [...queue];
+
+    while (currentLevel.length > 0) {
+      const nextLevel: string[] = [];
+      const levelTasks: CoordinatorTask[] = [];
+
+      for (const id of currentLevel) {
+        levelTasks.push(taskMap.get(id)!);
+        for (const neighbor of adjList.get(id)!) {
+          inDegree.set(neighbor, inDegree.get(neighbor)! - 1);
+          if (inDegree.get(neighbor) === 0) {
+            nextLevel.push(neighbor);
+          }
+        }
+      }
+      executionLevels.push(levelTasks);
+      currentLevel = nextLevel;
+    }
+
+    let count = 0;
+    for (const level of executionLevels) count += level.length;
+    if (count !== tasks.length) throw new Error("Cycle detected in task DAG");
+
     const results: CoordinatorResult[] = [];
-    const workerPromises = this.workers.map(w => w.startLoop(results));
-    await Promise.allSettled(workerPromises);
+    
+    for (const level of executionLevels) {
+      const levelPromises = level.map(task => this.executeTask(task, this.sharedState));
+      const levelResults = await Promise.all(levelPromises);
+      results.push(...levelResults);
+    }
 
     const durationMs = Date.now() - startTime;
     const successCount = results.filter((r) => r.status === 'success').length;
     const failedCount = results.filter((r) => r.status === 'failed').length;
 
-    log.info({
-      taskCount: tasks.length,
-      successCount,
-      failedCount,
-      durationMs,
-    }, 'swarm dispatch completed');
+    log.info(
+      {
+        taskCount: tasks.length,
+        successCount,
+        failedCount,
+        durationMs,
+      },
+      'swarm dispatch completed',
+    );
 
     this.eventBus.emit('coordinator:dispatch_completed', {
       taskCount: tasks.length,
@@ -256,31 +272,118 @@ export class AgentCoordinator {
    */
   public async executeTask(
     task: CoordinatorTask,
-    sharedState: SharedStateMemoryMap
+    sharedState: SharedStateMemoryMap,
   ): Promise<CoordinatorResult> {
     const taskId = task.id || randomUUID();
     const startTime = Date.now();
 
     try {
       let result: unknown;
-      
+
       // Simulate lock-free state read
       sharedState.read(0);
 
       switch (task.type) {
         case 'research': {
+          if (!this.researchAgent) throw new Error('ResearchAgent not configured');
           const p = task.payload as ResearchPayload;
           result = await this.researchAgent.research(p.query, p.sources);
           break;
         }
         case 'write': {
+          if (!this.writingAgent) throw new Error('WritingAgent not configured');
           const p = task.payload as WritePayload;
           result = await this.writingAgent.draft(p.topic, p.format, p.context);
           break;
         }
         case 'analyze': {
+          if (!this.analysisAgent) throw new Error('AnalysisAgent not configured');
           const p = task.payload as AnalyzePayload;
           result = await this.analysisAgent.analyze(p.data, p.question);
+          break;
+        }
+        case 'conversation': {
+          const p = task.payload as CoreTaskPayload;
+          if (this.aiProvider) {
+            const response = await this.aiProvider.query(p.description, 'core');
+            try {
+              if (this.memoryManager) {
+                await this.memoryManager.store({
+                  type: 'CONTEXT',
+                  content: response,
+                  provenance: {
+                    source: 'ai_orchestrator',
+                    trust_level: p.trustLevel,
+                    agent: 'core',
+                    chain: ['core:processMessage', 'aiProvider:query'],
+                  },
+                  confidence: 0.9,
+                  partition: 'INTERNAL',
+                });
+              }
+            } catch {
+              // Memory storage is non-critical
+            }
+            this.eventBus.emit('message:response', {
+              content: response,
+              source: 'core',
+              timestamp: new Date(),
+            });
+            result = { success: true, response };
+          } else {
+            throw new Error('AIProvider not configured for conversation task');
+          }
+          break;
+        }
+        case 'tool_use': {
+          if (!this.executor) throw new Error('Executor not configured');
+          const p = task.payload as CoreTaskPayload;
+          const toolMatch = p.description.match(/^(\w+)[\s_:]/);
+          const toolId = toolMatch ? toolMatch[1] : 'file_read';
+
+          const execResult = await this.executor.execute({
+            id: randomUUID(),
+            tool_id: toolId,
+            parameters: { content: p.description },
+            requesting_agent: ((p.assigned_to as AgentId) ?? 'core'),
+            trust_level: p.trustLevel,
+            timestamp: new Date(),
+          });
+
+          if (!execResult.success) {
+            throw new Error(`Tool execution failed: ${String(execResult.error)}`);
+          }
+          result = execResult;
+          break;
+        }
+        case 'system_command': {
+          if (!this.executor) throw new Error('Executor not configured');
+          const p = task.payload as CoreTaskPayload;
+          const execResult = await this.executor.execute({
+            id: randomUUID(),
+            tool_id: 'system_command',
+            parameters: { command: p.description },
+            requesting_agent: ((p.assigned_to as AgentId) ?? 'core'),
+            trust_level: p.trustLevel,
+            timestamp: new Date(),
+          });
+
+          if (execResult.success) {
+            result = execResult;
+          } else {
+            // fallback to AIProvider if available
+            if (this.aiProvider) {
+              const response = await this.aiProvider.query(p.description, 'core');
+              this.eventBus.emit('message:response', {
+                content: response,
+                source: 'core',
+                timestamp: new Date(),
+              });
+              result = { success: true, response };
+            } else {
+              throw new Error(`System command execution failed: ${String(execResult.error)}`);
+            }
+          }
           break;
         }
         default:

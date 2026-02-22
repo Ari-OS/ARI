@@ -5,6 +5,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  reasoning?: string;
   timestamp: string;
 }
 
@@ -37,13 +38,14 @@ export function useChat() {
   const { send, isConnected, status } = useWebSocket({
     onMessage: (wsMessage) => {
       if (wsMessage.type === 'chat:response') {
-        const payload = wsMessage.payload;
+        const payload = wsMessage.payload as any;
         const content = typeof payload.content === 'string' ? payload.content : JSON.stringify(payload);
 
         const assistantMessage: ChatMessage = {
           id: crypto.randomUUID(),
           role: 'assistant',
           content,
+          reasoning: payload.reasoning as string | undefined,
           timestamp: new Date().toISOString(),
         };
 

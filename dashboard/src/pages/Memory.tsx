@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Virtuoso } from 'react-virtuoso';
 import { getMemories } from '../api/client';
 import type { MemoryType, MemoryPartition } from '../types/api';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -446,129 +447,133 @@ export function Memory() {
           }
 
           return (
-            <div className="space-y-4 stagger-children">
-              {filteredMemories.map((memory) => {
-                const typeStyle = TYPE_STYLES[memory.type as keyof typeof TYPE_STYLES] || TYPE_STYLES.FACT;
-                const partitionStyle = PARTITION_STYLES[memory.partition as keyof typeof PARTITION_STYLES] || PARTITION_STYLES.PUBLIC;
+            <div style={{ height: '600px' }} className="w-full">
+              <Virtuoso
+                style={{ height: '100%' }}
+                data={filteredMemories}
+                itemContent={(_index: number, memory: any) => {
+                  const typeStyle = TYPE_STYLES[memory.type as keyof typeof TYPE_STYLES] || TYPE_STYLES.FACT;
+                  const partitionStyle = PARTITION_STYLES[memory.partition as keyof typeof PARTITION_STYLES] || PARTITION_STYLES.PUBLIC;
 
-                return (
-                  <div
-                    key={memory.id}
-                    className="card-ari card-ari-hover rounded-xl p-6"
-                    style={{
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-muted)',
-                    }}
-                  >
-                    <div className="mb-3 flex items-start justify-between">
-                      <div className="flex flex-wrap gap-2">
-                        <span
-                          className="rounded px-2 py-1 text-xs font-semibold"
-                          style={{ background: typeStyle.cssBg, color: typeStyle.cssColor }}
-                        >
-                          {memory.type}
-                        </span>
-                        <span
-                          className="rounded px-2 py-1 text-xs font-semibold"
-                          style={{ background: partitionStyle.cssBg, color: partitionStyle.cssColor }}
-                        >
-                          {memory.partition}
-                        </span>
-                        <span
-                          className="rounded px-2 py-1 text-xs"
-                          style={{
-                            background: 'var(--bg-tertiary)',
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          {memory.trustLevel}
-                        </span>
-                      </div>
-                      {memory.confidence !== undefined && (
-                        <div className="text-right">
-                          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                            Confidence
-                          </div>
-                          <div
-                            className="font-mono text-sm"
-                            style={{
-                              color: memory.confidence >= 0.8
-                                ? 'var(--ari-success)'
-                                : memory.confidence >= 0.5
-                                  ? 'var(--ari-warning)'
-                                  : 'var(--ari-error)',
-                            }}
-                          >
-                            {(memory.confidence * 100).toFixed(0)}%
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <p className="mb-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      {memory.content}
-                    </p>
-
-                    {Array.isArray(memory.tags) && memory.tags.length > 0 && (
-                      <div className="mb-3 flex flex-wrap gap-2">
-                        {memory.tags.map((tag: string, idx: number) => (
-                          <span
-                            key={idx}
-                            className="rounded-full px-3 py-1 text-xs"
-                            style={{
-                              background: 'var(--bg-tertiary)',
-                              color: 'var(--ari-purple)',
-                            }}
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
+                  return (
                     <div
-                      className="flex justify-between pt-3 font-mono text-xs"
+                      key={memory.id}
+                      className="card-ari card-ari-hover rounded-xl p-6 mb-4"
                       style={{
-                        borderTop: '1px solid var(--border-muted)',
-                        color: 'var(--text-muted)',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-muted)',
                       }}
                     >
-                      <span>Source: {memory.source}</span>
-                      <span>
-                        {new Date(memory.timestamp).toLocaleString()}
-                      </span>
-                    </div>
-
-                    {Array.isArray(memory.provenance?.chain) && memory.provenance.chain.length > 0 && (
-                      <details
-                        className="mt-3 pt-3"
-                        style={{ borderTop: '1px solid var(--border-muted)' }}
-                      >
-                        <summary
-                          className="cursor-pointer text-xs focus:outline-none"
-                          style={{ color: 'var(--ari-purple)' }}
-                        >
-                          View Provenance Chain ({memory.provenance.chain.length} links)
-                        </summary>
-                        <div
-                          className="mt-2 space-y-1 rounded-xl p-3 font-mono text-xs"
-                          style={{
-                            background: 'var(--bg-tertiary)',
-                            color: 'var(--text-tertiary)',
-                          }}
-                        >
-                          {memory.provenance.chain.map((item: string, idx: number) => (
-                            <div key={idx} className="flex items-center gap-2">
-                              <span style={{ color: 'var(--ari-purple)' }}>→</span>
-                              <span>{item}</span>
+                      <div className="mb-3 flex items-start justify-between">
+                        <div className="flex flex-wrap gap-2">
+                          <span
+                            className="rounded px-2 py-1 text-xs font-semibold"
+                            style={{ background: typeStyle.cssBg, color: typeStyle.cssColor }}
+                          >
+                            {memory.type}
+                          </span>
+                          <span
+                            className="rounded px-2 py-1 text-xs font-semibold"
+                            style={{ background: partitionStyle.cssBg, color: partitionStyle.cssColor }}
+                          >
+                            {memory.partition}
+                          </span>
+                          <span
+                            className="rounded px-2 py-1 text-xs"
+                            style={{
+                              background: 'var(--bg-tertiary)',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {memory.trustLevel}
+                          </span>
+                        </div>
+                        {memory.confidence !== undefined && (
+                          <div className="text-right">
+                            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                              Confidence
                             </div>
+                            <div
+                              className="font-mono text-sm"
+                              style={{
+                                color: memory.confidence >= 0.8
+                                  ? 'var(--ari-success)'
+                                  : memory.confidence >= 0.5
+                                    ? 'var(--ari-warning)'
+                                    : 'var(--ari-error)',
+                              }}
+                            >
+                              {(memory.confidence * 100).toFixed(0)}%
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="mb-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        {memory.content}
+                      </p>
+
+                      {Array.isArray(memory.tags) && memory.tags.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {memory.tags.map((tag: string, idx: number) => (
+                            <span
+                              key={idx}
+                              className="rounded-full px-3 py-1 text-xs"
+                              style={{
+                                background: 'var(--bg-tertiary)',
+                                color: 'var(--ari-purple)',
+                              }}
+                            >
+                              #{tag}
+                            </span>
                           ))}
                         </div>
-                      </details>
-                    )}
-                  </div>
-                );
-              })}
+                      )}
+
+                      <div
+                        className="flex justify-between pt-3 font-mono text-xs"
+                        style={{
+                          borderTop: '1px solid var(--border-muted)',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        <span>Source: {memory.source}</span>
+                        <span>
+                          {new Date(memory.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+
+                      {Array.isArray(memory.provenance?.chain) && memory.provenance.chain.length > 0 && (
+                        <details
+                          className="mt-3 pt-3"
+                          style={{ borderTop: '1px solid var(--border-muted)' }}
+                        >
+                          <summary
+                            className="cursor-pointer text-xs focus:outline-none"
+                            style={{ color: 'var(--ari-purple)' }}
+                          >
+                            View Provenance Chain ({memory.provenance.chain.length} links)
+                          </summary>
+                          <div
+                            className="mt-2 space-y-1 rounded-xl p-3 font-mono text-xs"
+                            style={{
+                              background: 'var(--bg-tertiary)',
+                              color: 'var(--text-tertiary)',
+                            }}
+                          >
+                            {memory.provenance.chain.map((item: string, idx: number) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <span style={{ color: 'var(--ari-purple)' }}>→</span>
+                                <span>{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  );
+                }}
+              />
             </div>
           );
         })()}

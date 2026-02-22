@@ -16,17 +16,25 @@
  * Philosophy: Notify only when it adds value to the operator's life.
  */
 
-import { GmailSMS, type SMSResult } from '../integrations/sms/gmail-sms.js';
 import { NotionInbox } from '../integrations/notion/inbox.js';
-import { TelegramSender, type TelegramSendResult, type TelegramSenderConfig } from '../integrations/telegram/sender.js';
+import { GmailSMS, type SMSResult } from '../integrations/sms/gmail-sms.js';
+import {
+  TelegramSender,
+  type TelegramSendResult,
+  type TelegramSenderConfig,
+} from '../integrations/telegram/sender.js';
 import { dailyAudit } from './daily-audit.js';
-import { priorityScorer, legacyPriorityToOverrides, type ScoringResult } from './priority-scorer.js';
+import {
+  legacyPriorityToOverrides,
+  priorityScorer,
+  type ScoringResult,
+} from './priority-scorer.js';
 import type {
-  SMSConfig,
-  NotionConfig,
   NotificationEntry,
-  NotificationPriority as TypedPriority,
+  NotionConfig,
   QueuedNotification,
+  SMSConfig,
+  NotificationPriority as TypedPriority,
 } from './types.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -35,22 +43,22 @@ import type {
 type InternalPriority = 'critical' | 'high' | 'normal' | 'low' | 'silent';
 
 export type NotificationCategory =
-  | 'error'           // System errors, failures
-  | 'security'        // Security alerts
-  | 'opportunity'     // Time-sensitive opportunities
-  | 'milestone'       // Significant achievements
-  | 'insight'         // Valuable learnings
-  | 'question'        // ARI needs input
-  | 'reminder'        // Scheduled reminders
-  | 'finance'         // Money-related
-  | 'task'            // Task completions
-  | 'system'          // System status
-  | 'daily'           // Daily summaries
-  | 'budget'          // Budget thresholds and alerts
-  | 'billing'         // Billing cycle events
-  | 'value'           // Value analytics
-  | 'adaptive'        // Adaptive learning recommendations
-  | 'governance'      // Council votes, arbiter rulings, oversight
+  | 'error' // System errors, failures
+  | 'security' // Security alerts
+  | 'opportunity' // Time-sensitive opportunities
+  | 'milestone' // Significant achievements
+  | 'insight' // Valuable learnings
+  | 'question' // ARI needs input
+  | 'reminder' // Scheduled reminders
+  | 'finance' // Money-related
+  | 'task' // Task completions
+  | 'system' // System status
+  | 'daily' // Daily summaries
+  | 'budget' // Budget thresholds and alerts
+  | 'billing' // Billing cycle events
+  | 'value' // Value analytics
+  | 'adaptive' // Adaptive learning recommendations
+  | 'governance' // Council votes, arbiter rulings, oversight
   | 'council_approval'; // Council vote interactions
 
 export interface NotificationRequest {
@@ -87,8 +95,8 @@ interface NotificationHistory {
 
 interface NotificationConfig {
   quietHours: { start: number; end: number };
-  workHours: { start: number; end: number };   // School IT hours — batch non-critical
-  workdayBatchTime: number;                    // Hour to send work-day queued digest
+  workHours: { start: number; end: number }; // School IT hours — batch non-critical
+  workdayBatchTime: number; // Hour to send work-day queued digest
   maxSmsPerHour: number;
   maxPerDay: number;
   batchTime: number; // Hour to send batched notifications
@@ -106,9 +114,9 @@ interface ChannelConfig {
 // ─── Default Configuration ───────────────────────────────────────────────────
 
 const DEFAULT_CONFIG: NotificationConfig = {
-  quietHours: { start: 22, end: 7 },  // 10pm - 7am Indiana time (sleep)
-  workHours: { start: 7, end: 16 },   // 7am - 4pm (school IT — non-critical batched)
-  workdayBatchTime: 16,               // 4pm digest of work-day queued items
+  quietHours: { start: 22, end: 7 }, // 10pm - 7am Indiana time (sleep)
+  workHours: { start: 7, end: 16 }, // 7am - 4pm (school IT — non-critical batched)
+  workdayBatchTime: 16, // 4pm digest of work-day queued items
   maxSmsPerHour: 5,
   maxPerDay: 20,
   batchTime: 7, // 7am - send overnight queued notifications
@@ -116,21 +124,21 @@ const DEFAULT_CONFIG: NotificationConfig = {
   timezone: 'America/Indiana/Indianapolis',
   cooldowns: {
     error: 5,
-    security: 0,       // Always send security
-    opportunity: 60,   // 1/hr max — briefings handle the rest
-    milestone: 120,    // Nice-to-know, not urgent — was 30
-    insight: 360,      // Max 2-3/day — was 60
-    question: 0,       // ARI needs input — keep at 0
-    reminder: 60,      // Max one reminder per hour — was 0 (too noisy)
-    finance: 240,      // 4hr — pre/post-market briefings handle the rest
-    task: 30,          // Batch more — was 15
-    system: 120,       // Background info — was 60
-    daily: 1440,       // Once per day
-    budget: 120,       // Reduced fatigue — was 60
-    billing: 1440,     // Once per day
-    value: 720,        // Twice per day max
-    adaptive: 1440,    // Once per day
-    governance: 120,   // Once per 2hr — was 60 (council vote noise)
+    security: 0, // Always send security
+    opportunity: 60, // 1/hr max — briefings handle the rest
+    milestone: 120, // Nice-to-know, not urgent — was 30
+    insight: 360, // Max 2-3/day — was 60
+    question: 0, // ARI needs input — keep at 0
+    reminder: 60, // Max one reminder per hour — was 0 (too noisy)
+    finance: 240, // 4hr — pre/post-market briefings handle the rest
+    task: 30, // Batch more — was 15
+    system: 120, // Background info — was 60
+    daily: 1440, // Once per day
+    budget: 120, // Reduced fatigue — was 60
+    billing: 1440, // Once per day
+    value: 720, // Twice per day max
+    adaptive: 1440, // Once per day
+    governance: 120, // Once per 2hr — was 60 (council vote noise)
     council_approval: 0, // No cooldown for council votes
   },
 };
@@ -168,7 +176,9 @@ export class NotificationManager {
   /**
    * Initialize with channel configurations
    */
-  async init(channels: ChannelConfig): Promise<{ sms: boolean; telegram: boolean; notion: boolean }> {
+  async init(
+    channels: ChannelConfig,
+  ): Promise<{ sms: boolean; telegram: boolean; notion: boolean }> {
     const results = { sms: false, telegram: false, notion: false };
 
     // Initialize SMS (emergency backup)
@@ -246,9 +256,7 @@ export class NotificationManager {
    * If caller provides an explicit legacy priority, bridge it to factor overrides.
    */
   private scoreNotification(request: NotificationRequest): ScoringResult {
-    const overrides = request.priority
-      ? legacyPriorityToOverrides(request.priority)
-      : undefined;
+    const overrides = request.priority ? legacyPriorityToOverrides(request.priority) : undefined;
 
     return priorityScorer.score({
       category: request.category,
@@ -278,7 +286,7 @@ export class NotificationManager {
   private async routeNotification(
     request: NotificationRequest,
     priority: InternalPriority,
-    pLevel: TypedPriority
+    pLevel: TypedPriority,
   ): Promise<NotificationResult> {
     const isQuiet = this.isQuietHours();
     const isWork = !isQuiet && this.isWorkHours();
@@ -291,7 +299,10 @@ export class NotificationManager {
       channels.sms = await this.sendSMS(request, true);
       channels.telegram = await this.sendTelegram(request, true);
       channels.notion = await this.sendNotion(request, pLevel);
-      sent = (channels.telegram?.sent ?? false) || (channels.sms?.sent ?? false) || !!channels.notion?.pageId;
+      sent =
+        (channels.telegram?.sent ?? false) ||
+        (channels.sms?.sent ?? false) ||
+        !!channels.notion?.pageId;
       reason = 'P0: Immediate delivery (all channels)';
     }
     // Work hours (7am-4pm M-F): only interrupt-worthy categories fire immediately
@@ -349,7 +360,7 @@ export class NotificationManager {
       {
         details: { category: request.category, priority, pLevel, channels },
         outcome: sent ? 'success' : 'pending',
-      }
+      },
     );
 
     return {
@@ -366,7 +377,7 @@ export class NotificationManager {
    */
   private async sendSMS(
     request: NotificationRequest,
-    force: boolean
+    force: boolean,
   ): Promise<SMSResult | undefined> {
     if (!this.sms?.isReady()) {
       return undefined;
@@ -388,7 +399,7 @@ export class NotificationManager {
   private async sendTelegram(
     request: NotificationRequest,
     force: boolean,
-    silent = false
+    silent = false,
   ): Promise<TelegramSendResult | undefined> {
     if (!this.telegram?.isReady()) {
       return undefined;
@@ -426,10 +437,7 @@ export class NotificationManager {
    * Escape HTML special characters for Telegram parse_mode=HTML
    */
   private escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   /**
@@ -437,7 +445,7 @@ export class NotificationManager {
    */
   private async sendNotion(
     request: NotificationRequest,
-    pLevel: TypedPriority
+    pLevel: TypedPriority,
   ): Promise<{ pageId?: string }> {
     if (!this.notion?.isReady()) {
       return {};
@@ -467,13 +475,11 @@ export class NotificationManager {
   private queueForMorning(
     request: NotificationRequest,
     pLevel: TypedPriority,
-    reason: string
+    reason: string,
   ): void {
     // Calculate next 7 AM Indiana time
     const now = new Date();
-    const indiana = new Date(
-      now.toLocaleString('en-US', { timeZone: this.config.timezone })
-    );
+    const indiana = new Date(now.toLocaleString('en-US', { timeZone: this.config.timezone }));
 
     const nextMorning = new Date(indiana);
     nextMorning.setHours(this.config.batchTime, 0, 0, 0);
@@ -507,10 +513,7 @@ export class NotificationManager {
   /**
    * Queue notification for batched delivery
    */
-  private queueForBatch(
-    request: NotificationRequest,
-    pLevel: TypedPriority
-  ): void {
+  private queueForBatch(request: NotificationRequest, pLevel: TypedPriority): void {
     const entry: NotificationEntry = {
       id: crypto.randomUUID(),
       priority: pLevel,
@@ -537,7 +540,7 @@ export class NotificationManager {
    */
   private checkEscalation(
     request: NotificationRequest,
-    currentP: TypedPriority
+    currentP: TypedPriority,
   ): TypedPriority | null {
     // Only escalate P1 errors
     if (currentP !== 'P1' || request.category !== 'error') {
@@ -620,9 +623,7 @@ export class NotificationManager {
     }
 
     const now = new Date();
-    const indiana = new Date(
-      now.toLocaleString('en-US', { timeZone: this.config.timezone })
-    );
+    const indiana = new Date(now.toLocaleString('en-US', { timeZone: this.config.timezone }));
     const hour = indiana.getHours();
 
     const { start, end } = this.config.quietHours;
@@ -641,9 +642,7 @@ export class NotificationManager {
    */
   private isWorkHours(): boolean {
     const now = new Date();
-    const indiana = new Date(
-      now.toLocaleString('en-US', { timeZone: this.config.timezone })
-    );
+    const indiana = new Date(now.toLocaleString('en-US', { timeZone: this.config.timezone }));
     const hour = indiana.getHours();
     const day = indiana.getDay(); // 0=Sun, 6=Sat
 
@@ -658,9 +657,9 @@ export class NotificationManager {
    */
   private isTelegramEligibleDuringWork(category: NotificationCategory): boolean {
     const eligible: ReadonlySet<NotificationCategory> = new Set([
-      'security',    // Always interrupts — never silence security
-      'error',       // Critical system errors need attention
-      'question',    // ARI is asking for input — needs response
+      'security', // Always interrupts — never silence security
+      'error', // Critical system errors need attention
+      'question', // ARI is asking for input — needs response
     ]);
     return eligible.has(category);
   }
@@ -670,9 +669,7 @@ export class NotificationManager {
    */
   private queueForWorkday(request: NotificationRequest, pLevel: TypedPriority): void {
     const now = new Date();
-    const indiana = new Date(
-      now.toLocaleString('en-US', { timeZone: this.config.timezone })
-    );
+    const indiana = new Date(now.toLocaleString('en-US', { timeZone: this.config.timezone }));
 
     const workdayEnd = new Date(indiana);
     workdayEnd.setHours(this.config.workdayBatchTime, 0, 0, 0);
@@ -734,9 +731,7 @@ export class NotificationManager {
    */
   async processQueue(): Promise<{ processed: number; sent: number }> {
     const now = new Date();
-    const toProcess = this.batchQueue.filter(
-      (q) => new Date(q.scheduledFor) <= now
-    );
+    const toProcess = this.batchQueue.filter((q) => new Date(q.scheduledFor) <= now);
 
     if (toProcess.length === 0) {
       return { processed: 0, sent: 0 };
@@ -745,7 +740,7 @@ export class NotificationManager {
     let sent = 0;
 
     // Convert QueuedNotification to NotificationRecord format for grouper
-    const records = toProcess.map(q => ({
+    const records = toProcess.map((q) => ({
       id: q.entry.id,
       category: q.entry.category as NotificationCategory,
       title: q.entry.title,
@@ -758,7 +753,7 @@ export class NotificationManager {
       originalScore: 0,
       currentScore: 0,
       escalationLevel: 0,
-      dedupKey: q.entry.dedupKey
+      dedupKey: q.entry.dedupKey,
     }));
 
     // Import the grouper
@@ -768,9 +763,10 @@ export class NotificationManager {
     const digests = notificationGrouper.generateBatchDigest(records);
 
     // Send the structured digest via Telegram
+    let telegramSent = false;
     if (digests.length > 0 && this.telegram?.isReady()) {
       const summaryLines = ['📬 <b>Batched Updates</b>\n'];
-      
+
       for (const digest of digests) {
         const icon = this.getCategoryIcon(digest.category);
         summaryLines.push(`${icon} <b>${digest.title}</b>`);
@@ -779,20 +775,25 @@ export class NotificationManager {
       }
 
       await this.telegram.send(summaryLines.join('\n'), { forceDelivery: false });
-      sent++;
+      telegramSent = true;
     }
 
     // Log all processed items to Notion
+    let notionSent = false;
     if (this.notion?.isReady()) {
-      const entries = toProcess.map(q => q.entry);
+      const entries = toProcess.map((q) => q.entry);
       await this.notion.createBatchSummary(entries);
-      sent += entries.length;
+      notionSent = true;
+    }
+
+    // If either channel succeeds, we consider the batch delivered for reporting.
+    // Use the count of actual items processed (toProcess.length) rather than 1 per digest
+    if (telegramSent || notionSent) {
+      sent += toProcess.length;
     }
 
     // Remove processed items
-    this.batchQueue = this.batchQueue.filter(
-      (q) => new Date(q.scheduledFor) > now
-    );
+    this.batchQueue = this.batchQueue.filter((q) => new Date(q.scheduledFor) > now);
 
     return { processed: toProcess.length, sent };
   }
@@ -848,7 +849,7 @@ export class NotificationManager {
     if (this.telegram?.isReady()) {
       await this.telegram.send(
         `▫ <b>${this.escapeHtml(summary.title)}</b>\n${this.escapeHtml(summary.body)}`,
-        { forceDelivery: false }
+        { forceDelivery: false },
       );
     } else if (this.sms?.isReady()) {
       await this.sms.send(summary.body.slice(0, 160), { forceDelivery: false });
@@ -874,7 +875,7 @@ export class NotificationManager {
       'notification_sent',
       'Batch Summary',
       `${this.legacyBatchQueue.length} notifications batched`,
-      { outcome: 'success' }
+      { outcome: 'success' },
     );
 
     this.legacyBatchQueue = [];
@@ -899,7 +900,7 @@ export class NotificationManager {
     byCategory.forEach((items, category) => {
       const icon = this.getCategoryIcon(category);
       lines.push(`${icon} ${category} (${items.length})`);
-      items.slice(0, 2).forEach(item => {
+      items.slice(0, 2).forEach((item) => {
         lines.push(`  · ${item.title}`);
       });
       if (items.length > 2) {
@@ -1021,7 +1022,7 @@ export class NotificationManager {
   async opportunity(
     title: string,
     details: string,
-    urgency: 'high' | 'medium' | 'low' = 'medium'
+    urgency: 'high' | 'medium' | 'low' = 'medium',
   ): Promise<NotificationResult> {
     const indicator = urgency === 'high' ? '▲▲▲' : urgency === 'medium' ? '▲▲' : '▲';
     return this.notify({
@@ -1094,7 +1095,7 @@ export class NotificationManager {
   async taskComplete(
     taskName: string,
     success: boolean,
-    summary: string
+    summary: string,
   ): Promise<NotificationResult> {
     const icon = success ? '✓' : '✗';
     const word = success ? 'Done' : 'Failed';
@@ -1121,27 +1122,32 @@ export class NotificationManager {
     const lines: string[] = [];
 
     // Stats bar
-    const successRate = audit.tasksCompleted + audit.tasksFailed > 0
-      ? Math.round((audit.tasksCompleted / (audit.tasksCompleted + audit.tasksFailed)) * 100)
-      : 100;
-    const costStr = audit.estimatedCost < 0.001
-      ? '<$0.01'
-      : `$${audit.estimatedCost.toFixed(2)}`;
+    const successRate =
+      audit.tasksCompleted + audit.tasksFailed > 0
+        ? Math.round((audit.tasksCompleted / (audit.tasksCompleted + audit.tasksFailed)) * 100)
+        : 100;
+    const costStr = audit.estimatedCost < 0.001 ? '<$0.01' : `$${audit.estimatedCost.toFixed(2)}`;
     lines.push(`✓ ${audit.tasksCompleted}  ✗ ${audit.tasksFailed}  ◈ ${costStr}  ${successRate}%`);
 
     // Trend indicator — only show efficiency when there's real cost data
-    const trend = audit.efficiency.trend === 'improving' ? '↑' :
-                  audit.efficiency.trend === 'declining' ? '↓' : '→';
+    const trend =
+      audit.efficiency.trend === 'improving'
+        ? '↑'
+        : audit.efficiency.trend === 'declining'
+          ? '↓'
+          : '→';
     if (audit.estimatedCost >= 0.001 && audit.efficiency.tasksPerApiDollar > 0) {
       lines.push(`Efficiency ${trend} ${audit.efficiency.tasksPerApiDollar.toFixed(1)} tasks/$`);
     } else if (audit.tasksCompleted > 0) {
-      lines.push(`${audit.tasksCompleted} task${audit.tasksCompleted !== 1 ? 's' : ''} completed today`);
+      lines.push(
+        `${audit.tasksCompleted} task${audit.tasksCompleted !== 1 ? 's' : ''} completed today`,
+      );
     }
 
     // Highlights
     if (audit.highlights.length > 0) {
       lines.push('');
-      audit.highlights.slice(0, 3).forEach(h => {
+      audit.highlights.slice(0, 3).forEach((h) => {
         lines.push(`▸ ${h}`);
       });
     }
@@ -1149,7 +1155,7 @@ export class NotificationManager {
     // Issues
     if (audit.issues.length > 0) {
       lines.push('');
-      audit.issues.slice(0, 2).forEach(i => {
+      audit.issues.slice(0, 2).forEach((i) => {
         lines.push(`⚠ ${i}`);
       });
     }
@@ -1165,7 +1171,11 @@ export class NotificationManager {
   /**
    * Cost alert
    */
-  async costAlert(spent: number, limit: number, daysRemaining: number): Promise<NotificationResult> {
+  async costAlert(
+    spent: number,
+    limit: number,
+    daysRemaining: number,
+  ): Promise<NotificationResult> {
     const percent = Math.round((spent / limit) * 100);
     const filled = Math.round(percent / 10);
     const bar = '▓'.repeat(filled) + '░'.repeat(10 - filled);
@@ -1186,7 +1196,7 @@ export class NotificationManager {
   async budgetWarning(
     percentUsed: number,
     remaining: number,
-    recommendation: string
+    recommendation: string,
   ): Promise<NotificationResult> {
     const priority: InternalPriority = percentUsed >= 90 ? 'high' : 'normal';
 
@@ -1244,7 +1254,7 @@ export class NotificationManager {
   async dailyValueReport(
     score: number,
     cost: number,
-    efficiency: string
+    efficiency: string,
   ): Promise<NotificationResult> {
     const emoji = score >= 70 ? '★' : score >= 50 ? '✓' : score >= 30 ? '◈' : '✗';
 
@@ -1266,8 +1276,8 @@ export class NotificationManager {
     trend: string;
     recommendations: string[];
   }): Promise<NotificationResult> {
-    const trendEmoji = report.trend === 'improving' ? '↑' :
-                       report.trend === 'declining' ? '↓' : '→';
+    const trendEmoji =
+      report.trend === 'improving' ? '↑' : report.trend === 'declining' ? '↓' : '→';
 
     const lines: string[] = [
       `Avg Score: ${report.averageScore.toFixed(0)}/100 | Total: $${report.totalCost.toFixed(2)} | Trend: ${trendEmoji} ${report.trend}`,
@@ -1276,7 +1286,7 @@ export class NotificationManager {
     if (report.recommendations.length > 0) {
       lines.push('');
       lines.push('Recommendations:');
-      report.recommendations.slice(0, 3).forEach(r => {
+      report.recommendations.slice(0, 3).forEach((r) => {
         lines.push(`• ${r}`);
       });
     }

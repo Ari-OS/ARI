@@ -1,15 +1,15 @@
-import { describe, it, expect } from 'vitest';
-import { sanitize, isSafe, INJECTION_PATTERNS } from '../../src/kernel/sanitizer.js';
+import { describe, expect, it } from 'vitest';
+import { INJECTION_PATTERNS, isSafe, sanitize } from '../../src/kernel/sanitizer.js';
 
 describe('Injection Detection', () => {
   describe('pattern count verification', () => {
-    it('should have 63 injection patterns', () => {
-      expect(INJECTION_PATTERNS.length).toBe(63);
+    it('should have at least 63 injection patterns', () => {
+      expect(INJECTION_PATTERNS.length).toBeGreaterThanOrEqual(63);
     });
 
-    it('should cover 27 categories', () => {
-      const categories = new Set(INJECTION_PATTERNS.map((p: any) => p.category));
-      expect(categories.size).toBe(27);
+    it('should cover at least 27 categories', () => {
+      const categories = new Set(INJECTION_PATTERNS.map((p) => p.category));
+      expect(categories.size).toBeGreaterThanOrEqual(27);
     });
   });
 

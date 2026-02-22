@@ -123,7 +123,7 @@ describe('Guardian', () => {
     expect(eventBus.listenerCount('message:accepted')).toBe(0);
   });
 
-  it('should track stats correctly after analyzing messages', () => {
+  it('should track stats correctly after analyzing messages', async () => {
     guardian.start();
 
     // Emit messages through the event bus to trigger analyzeMessage
@@ -154,6 +154,9 @@ describe('Guardian', () => {
       source: 'hostile' as TrustLevel,
       timestamp: new Date(),
     });
+
+    // Give the async event handlers time to process the messages
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     const stats = guardian.getStats();
 

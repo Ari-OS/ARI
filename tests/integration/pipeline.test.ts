@@ -145,7 +145,7 @@ describe('Pipeline Integration', () => {
     expect(result.blockers.some(b => b.includes('test_coverage'))).toBe(true);
   });
 
-  it('should complete council vote lifecycle with MAJORITY', () => {
+  it('should complete council vote lifecycle with MAJORITY', async () => {
     const council = new Council(audit, eventBus);
 
     // Create vote
@@ -174,6 +174,9 @@ describe('Pipeline Integration', () => {
         `${voter} approves the policy update`,
       );
     }
+
+    // Wait for async events to process
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     // Vote should be auto-closed as PASSED (early conclusion)
     const updatedVote = council.getVote(vote.vote_id);

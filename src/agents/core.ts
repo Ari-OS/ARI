@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import type { AuditLogger } from '../kernel/audit.js';
 import type { EventBus } from '../kernel/event-bus.js';
 import type { Message, TrustLevel, CouncilInterface, ArbiterInterface, OverseerInterface } from '../kernel/types.js';
@@ -9,6 +8,7 @@ import type { Planner } from './planner.js';
 import type { Scratchpad } from './scratchpad.js';
 import type { LearningMachine } from './learning-machine.js';
 import type { ContextLayerManager } from '../system/context-layers.js';
+import { AgentCoordinator, type CoordinatorTask } from './coordinator.js';
 
 /**
  * AIProvider interface — allows Core to use AI capabilities
@@ -72,6 +72,7 @@ export class Core {
   private readonly memoryManager: MemoryManager;
   private readonly executor: Executor;
   private readonly planner: Planner;
+  private readonly coordinator: AgentCoordinator;
 
   // New cognitive components
   private readonly scratchpad: Scratchpad | null;
@@ -100,6 +101,14 @@ export class Core {
     this.executor = config.executor;
     this.planner = config.planner;
 
+    // Initialize agent coordinator for decentralized swarm processing
+    this.coordinator = new AgentCoordinator({
+      executor: this.executor,
+      memoryManager: this.memoryManager,
+      eventBus: this.eventBus,
+      concurrency: 5, // A reasonable default for core tasks
+    });
+
     // Initialize new cognitive components
     this.scratchpad = config.scratchpad || null;
     this.learningMachine = config.learningMachine || null;
@@ -121,6 +130,7 @@ export class Core {
    */
   setAIProvider(provider: AIProvider): void {
     this.aiProvider = provider;
+    this.coordinator.setAIProvider(provider);
   }
 
   /**
@@ -399,6 +409,17 @@ export class Core {
       }
     }
 
+    try {
+      const { getPlaybookManager } = await import('./playbook-manager.js');
+      const playbookMgr = getPlaybookManager();
+      const playbookContext = await playbookMgr.getContextString('general');
+      if (playbookContext) {
+        learnedInsights.push(`[Playbook] ${playbookContext}`);
+      }
+    } catch {
+      // Playbook retrieval is non-critical
+    }
+
     // Step 4: Create a plan for the message
     const planDescription = learnedInsights.length > 0
       ? `Handle message: ${message.content.substring(0, 100)}\n\nLearned insights:\n${learnedInsights.join('\n')}`
@@ -518,105 +539,51 @@ export class Core {
     planId: string,
     trustLevel: TrustLevel
   ): Promise<{ executed: number; succeeded: number; failed: number }> {
-    let executed = 0;
+    const nextTasks = this.planner.getNextTasks(planId);
+    
+    // Mark tasks as in progress
+    for (const task of nextTasks) {
+      await this.planner.updateTaskStatus(planId, task.id, 'in_progress');
+    }
+
+    // Convert planner tasks to coordinator swarm tasks
+    const swarmTasks: CoordinatorTask[] = nextTasks.map(task => {
+      let intent = this.classifyIntent(task.description);
+      
+      // Fallback to system_command if conversation intent but no AI provider
+      if (intent === 'conversation' && !this.aiProvider) {
+        intent = 'system_command';
+      }
+      
+      return {
+        id: task.id,
+        type: intent as CoordinatorTask['type'],
+        payload: {
+          description: task.description,
+          assigned_to: task.assigned_to,
+          trustLevel
+        },
+        priority: task.priority === 'critical' ? 4 :
+                  task.priority === 'high' ? 3 :
+                  task.priority === 'medium' ? 2 : 1
+      };
+    });
+
+    // Dispatch to decentralized swarm
+    const results = await this.coordinator.dispatch(swarmTasks);
+
+    const executed = results.length;
     let succeeded = 0;
     let failed = 0;
 
-    const nextTasks = this.planner.getNextTasks(planId);
-
-    for (const task of nextTasks) {
-      await this.planner.updateTaskStatus(planId, task.id, 'in_progress');
-      executed++;
-
-      try {
-        const intent = this.classifyIntent(task.description);
-
-        if (intent === 'conversation' && this.aiProvider) {
-          // Route to AI for conversational responses
-          const response = await this.aiProvider.query(task.description, 'core');
-
-          // Store the AI response in memory for context
-          try {
-            await this.memoryManager.store({
-              type: 'CONTEXT',
-              content: response,
-              provenance: {
-                source: 'ai_orchestrator',
-                trust_level: trustLevel,
-                agent: 'core',
-                chain: ['core:processMessage', 'aiProvider:query'],
-              },
-              confidence: 0.9,
-              partition: 'INTERNAL',
-            });
-          } catch {
-            // Memory storage is non-critical — continue
-          }
-
-          succeeded++;
-          await this.planner.updateTaskStatus(planId, task.id, 'completed');
-
-          // Emit the AI response for downstream consumers
-          this.eventBus.emit('message:response', {
-            content: response,
-            source: 'core',
-            timestamp: new Date(),
-          });
-        } else if (intent === 'tool_use') {
-          // Extract tool info from the task description
-          const toolMatch = task.description.match(/^(\w+)[\s_:]/);
-          const toolId = toolMatch ? toolMatch[1] : 'file_read';
-
-          const result = await this.executor.execute({
-            id: randomUUID(),
-            tool_id: toolId,
-            parameters: { content: task.description },
-            requesting_agent: task.assigned_to ?? 'core',
-            trust_level: trustLevel,
-            timestamp: new Date(),
-          });
-
-          if (result.success) {
-            succeeded++;
-            await this.planner.updateTaskStatus(planId, task.id, 'completed');
-          } else {
-            failed++;
-            await this.planner.updateTaskStatus(planId, task.id, 'failed');
-          }
-        } else {
-          // System command or no AI provider available — use executor
-          const result = await this.executor.execute({
-            id: randomUUID(),
-            tool_id: 'system_command',
-            parameters: { command: task.description },
-            requesting_agent: task.assigned_to ?? 'core',
-            trust_level: trustLevel,
-            timestamp: new Date(),
-          });
-
-          if (result.success) {
-            succeeded++;
-            await this.planner.updateTaskStatus(planId, task.id, 'completed');
-          } else {
-            // If system_command tool doesn't exist and we have AI, fall back
-            if (this.aiProvider) {
-              const response = await this.aiProvider.query(task.description, 'core');
-              this.eventBus.emit('message:response', {
-                content: response,
-                source: 'core',
-                timestamp: new Date(),
-              });
-              succeeded++;
-              await this.planner.updateTaskStatus(planId, task.id, 'completed');
-            } else {
-              failed++;
-              await this.planner.updateTaskStatus(planId, task.id, 'failed');
-            }
-          }
-        }
-      } catch {
+    // Update planner with results
+    for (const res of results) {
+      if (res.status === 'success') {
+        succeeded++;
+        await this.planner.updateTaskStatus(planId, res.taskId, 'completed');
+      } else {
         failed++;
-        await this.planner.updateTaskStatus(planId, task.id, 'failed');
+        await this.planner.updateTaskStatus(planId, res.taskId, 'failed');
       }
     }
 

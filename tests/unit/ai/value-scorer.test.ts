@@ -103,7 +103,7 @@ describe('ValueScorer', () => {
         'normal',
       );
       // Security-sensitive → minimum Sonnet
-      expect(['claude-sonnet-4', 'claude-sonnet-4.5']).toContain(result.recommendedTier);
+      expect(['claude-sonnet-4', 'claude-sonnet-4.5', 'claude-sonnet-4.6']).toContain(result.recommendedTier);
     });
 
     it('should downgrade to haiku in pause budget state', () => {
@@ -136,7 +136,7 @@ describe('ValueScorer', () => {
         'pause',
       );
       // Score >= 80 in pause → minimum sonnet
-      expect(['claude-sonnet-4', 'claude-sonnet-4.5']).toContain(result.recommendedTier);
+      expect(['claude-sonnet-4', 'claude-sonnet-4.5', 'claude-sonnet-4.6']).toContain(result.recommendedTier);
     });
 
     it('should use haiku 4.5 in reduce state for moderate scores', () => {

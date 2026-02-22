@@ -1,7 +1,8 @@
 import type { Context } from 'grammy';
 import type { EventBus } from '../../../kernel/event-bus.js';
-import type { PluginRegistry } from '../../../plugins/registry.js';
+import { InlineKeyboard } from 'grammy';
 import type { CryptoPlugin } from '../../crypto/index.js';
+import type { PluginRegistry } from '../../../plugins/registry.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // /market — Market overview, crypto, stocks, alerts
@@ -51,21 +52,30 @@ async function handleCryptoPrices(
   const coinIds = plugin.getConfig().defaultCoins || ['bitcoin', 'ethereum', 'solana'];
   const prices = await plugin.getClient().getPrice(coinIds);
 
-  const lines: string[] = ['<b>📈 Market Overview</b>', '<blockquote>'];
+  const lines: string[] = ['<b>Crypto Prices</b>', ''];
+  lines.push('<pre>Asset | Price       | 24h% ');
+  lines.push('------|-------------|------');
 
   for (const id of coinIds) {
     const data = prices[id];
     if (data) {
       const price = data.usd.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
       const change = data.usd_24h_change ?? 0;
-      const trend = change > 0 ? '🟢' : change < 0 ? '🔴' : '⚪';
-      const changeStr = change > 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
-      lines.push(`${trend} <b>${id.toUpperCase()}</b>: ${price} <i>(${changeStr})</i>`);
+      const trend = change > 0 ? '+' : '';
+      const assetStr = id.toUpperCase().padEnd(5).substring(0, 5);
+      const priceStr = price.padEnd(11).substring(0, 11);
+      const changeStr = `${trend}${change.toFixed(1)}%`.padEnd(5).substring(0, 5);
+      
+      lines.push(`${assetStr} | ${priceStr} | ${changeStr}`);
     }
   }
-  lines.push('</blockquote>');
+  lines.push('</pre>');
 
-  await ctx.reply(lines.join('\n'), { parse_mode: 'HTML' });
+  const keyboard = new InlineKeyboard()
+    .text('📊 View Detailed Chart', 'action_view_chart')
+    .text('✅ Approve Arbitrage', 'action_approve_arbitrage');
+
+  await ctx.reply(lines.join('\n'), { parse_mode: 'HTML', reply_markup: keyboard });
 }
 
 async function handleMarketAlerts(
@@ -108,15 +118,16 @@ async function handlePortfolioOverview(
   ctx: Context,
   eventBus: EventBus,
 ): Promise<void> {
-  // Emit event to request portfolio data from market monitor
-  // This is a placeholder for future implementation
+  const keyboard = new InlineKeyboard()
+    .text('📈 Crypto', 'cmd_market_crypto')
+    .text('📉 Stocks', 'cmd_market_stocks')
+    .row()
+    .text('⚠️ View Alerts', 'cmd_market_alerts');
+
   await ctx.reply(
     '<b>Market Overview</b>\n\n' +
-    'Use:\n' +
-    '<code>/market crypto</code> — Crypto prices\n' +
-    '<code>/market stocks</code> — Stock prices (coming soon)\n' +
-    '<code>/market alerts</code> — View alerts',
-    { parse_mode: 'HTML' },
+    'Select a market sector below to view metrics and ascii-table charts.',
+    { parse_mode: 'HTML', reply_markup: keyboard },
   );
 
   eventBus.emit('telegram:market_viewed', {

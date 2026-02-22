@@ -7,10 +7,13 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { Task, TaskSchema, TaskPriority, TaskStatus, TaskSource } from './types.js';
 
-const QUEUE_DIR = path.join(process.env.HOME || '~', '.ari', 'queue');
+const QUEUE_DIR = process.env.NODE_ENV === 'test'
+  ? path.join(tmpdir(), `ari-queue-${Date.now()}-${randomUUID()}`)
+  : path.join(process.env.HOME || '~', '.ari', 'queue');
 const QUEUE_FILE = path.join(QUEUE_DIR, 'tasks.json');
 
 export class TaskQueue {

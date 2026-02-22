@@ -403,6 +403,11 @@ export class TemporalMemory {
     for (const note of weekNotes) {
       note.synthesized = true;
     }
+    
+    // Explicitly update map with the modified notes just in case
+    for (const note of weekNotes) {
+      this.dailyNotes.set(note.date, note);
+    }
 
     // Store synthesis
     this.weeklyReports.set(targetWeekId, synthesis);

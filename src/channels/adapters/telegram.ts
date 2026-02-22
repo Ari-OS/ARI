@@ -198,6 +198,11 @@ export class TelegramChannel extends BaseChannel {
       });
 
       const json = await response.json() as unknown;
+      // Handle the case where the Telegram API returns a valid but empty/unexpected response structure
+      if (!json) {
+         logger.error({ description: 'Empty response body' }, 'Telegram API error');
+         return null;
+      }
       const data = json as TelegramResponse<T>;
 
       if (data.ok && data.result !== undefined) {

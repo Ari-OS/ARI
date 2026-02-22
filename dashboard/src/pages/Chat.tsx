@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChat } from '../hooks/useChat';
+import { Virtuoso } from 'react-virtuoso';
 
 export function Chat() {
   const { messages, isLoading, isConnected, sendMessage, clearHistory } = useChat();
@@ -77,11 +78,9 @@ export function Chat() {
       {/* Messages */}
       <div style={{
         flex: 1,
-        overflowY: 'auto',
         padding: '20px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
       }}>
         {messages.length === 0 && !isLoading && (
           <div style={{
@@ -99,45 +98,69 @@ export function Chat() {
           </div>
         )}
 
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            style={{
-              display: 'flex',
-              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-            }}
-          >
-            <div style={{
-              maxWidth: '75%',
-              padding: '10px 14px',
-              borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-              backgroundColor: msg.role === 'user'
-                ? 'var(--ari-accent, #6366f1)'
-                : 'var(--bg-tertiary)',
-              color: msg.role === 'user'
-                ? '#fff'
-                : 'var(--text-primary)',
-              fontSize: '0.875rem',
-              lineHeight: 1.5,
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-            }}>
-              {msg.content}
-              <div style={{
-                fontSize: '0.65rem',
-                opacity: 0.6,
-                marginTop: '4px',
-                textAlign: msg.role === 'user' ? 'right' : 'left',
-              }}>
-                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        {messages.length > 0 && (
+          <Virtuoso
+            style={{ height: '100%' }}
+            data={messages}
+            followOutput="smooth"
+            itemContent={(_index: number, msg: any) => (
+              <div
+                key={msg.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                  marginBottom: '16px',
+                }}
+              >
+                <div style={{
+                  maxWidth: '75%',
+                  padding: '10px 14px',
+                  borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                  backgroundColor: msg.role === 'user'
+                    ? 'var(--ari-accent, #6366f1)'
+                    : 'var(--bg-tertiary)',
+                  color: msg.role === 'user'
+                    ? '#fff'
+                    : 'var(--text-primary)',
+                  fontSize: '0.875rem',
+                  lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}>
+                  {msg.content}
+                  
+                  {msg.reasoning && (
+                    <details style={{
+                      marginTop: '8px',
+                      paddingTop: '8px',
+                      borderTop: '1px solid rgba(255,255,255,0.1)',
+                      fontSize: '0.75rem',
+                      opacity: 0.8
+                    }}>
+                      <summary style={{ cursor: 'pointer', outline: 'none' }}>Thought Process</summary>
+                      <div style={{ marginTop: '8px', whiteSpace: 'pre-wrap' }}>
+                        {msg.reasoning}
+                      </div>
+                    </details>
+                  )}
+
+                  <div style={{
+                    fontSize: '0.65rem',
+                    opacity: 0.6,
+                    marginTop: '4px',
+                    textAlign: msg.role === 'user' ? 'right' : 'left',
+                  }}>
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        ))}
+            )}
+          />
+        )}
 
         {/* Typing indicator */}
         {isLoading && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '16px' }}>
             <div style={{
               padding: '10px 14px',
               borderRadius: '14px 14px 14px 4px',

@@ -114,13 +114,12 @@ export function formatMarketData(data: CoinGeckoMarketData[]): string {
 export function formatPriceHtml(
   data: Array<{ coinId: string; symbol: string; price: number; change24h: number }>,
 ): string {
-  const lines = ['<b>📈 Crypto Prices</b>', '<blockquote>'];
+  const lines = ['<b>Crypto Prices</b>', ''];
   for (const coin of data) {
-    const arrow = coin.change24h >= 0 ? '🟢' : '🔴';
+    const arrow = coin.change24h >= 0 ? '📈' : '📉';
     const change = coin.change24h >= 0 ? `+${coin.change24h.toFixed(2)}%` : `${coin.change24h.toFixed(2)}%`;
-    lines.push(`${arrow} <b>${coin.symbol.toUpperCase()}</b>: ${formatUsd(coin.price)} <i>(${change})</i>`);
+    lines.push(`${arrow} <b>${coin.symbol.toUpperCase()}</b>: ${formatUsd(coin.price)} (${change})`);
   }
-  lines.push('</blockquote>');
   return lines.join('\n');
 }
 
@@ -138,8 +137,8 @@ export function formatPortfolioHtml(
     : `${formatUsd(portfolio.pnl)} (${portfolio.pnlPercent.toFixed(1)}%)`;
 
   const lines = [
-    '<b>💼 Portfolio</b>',
-    '<blockquote>',
+    '<b>Portfolio</b>',
+    '',
     `💰 Total: <b>${formatUsd(portfolio.totalValue)}</b>`,
     `${arrow} P&amp;L: ${pnlStr}`,
     '',
@@ -147,9 +146,8 @@ export function formatPortfolioHtml(
 
   for (const h of portfolio.holdings) {
     const hArrow = h.change24h >= 0 ? '🟢' : '🔴';
-    lines.push(`• ${hArrow} <b>${h.symbol}</b>: ${formatUsd(h.value)}`);
+    lines.push(`${hArrow} ${h.symbol}: ${formatUsd(h.value)}`);
   }
-  lines.push('</blockquote>');
 
   return lines.join('\n');
 }

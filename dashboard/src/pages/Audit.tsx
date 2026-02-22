@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Virtuoso } from 'react-virtuoso';
 import { getAuditLog, verifyAuditChain } from '../api/client';
 import { AuditEntry as AuditEntryComponent } from '../components/AuditEntry';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -423,18 +424,23 @@ export function Audit() {
               style={{
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-muted)',
+                height: '600px',
               }}
             >
-              {filteredEntries.map((entry, index) => (
-                <div
-                  key={entry.id}
-                  style={{
-                    borderTop: index > 0 ? '1px solid var(--border-muted)' : 'none',
-                  }}
-                >
-                  <AuditEntryComponent entry={entry} />
-                </div>
-              ))}
+              <Virtuoso
+                style={{ height: '100%' }}
+                data={filteredEntries}
+                itemContent={(_index, entry) => (
+                  <div
+                    key={entry.id}
+                    style={{
+                      borderTop: _index > 0 ? '1px solid var(--border-muted)' : 'none',
+                    }}
+                  >
+                    <AuditEntryComponent entry={entry} />
+                  </div>
+                )}
+              />
             </div>
           );
         })()}

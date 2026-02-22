@@ -230,6 +230,8 @@ export class AIOrchestrator {
         historicalPerformance: 5,
         securitySensitive: validated.securitySensitive,
         category: validated.category,
+        agent: validated.agent,
+        contentLength: validated.content.length,
       },
       budgetState,
     );

@@ -22,12 +22,12 @@
  * Architecture: Layer 5 (Execution) — imports from L0-L4
  */
 
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs/promises';
+import { homedir } from 'node:os';
+import path from 'node:path';
 import { EventBus } from '../kernel/event-bus.js';
 import { createLogger } from '../kernel/logger.js';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { homedir } from 'node:os';
-import { execFileSync } from 'node:child_process';
 
 const log = createLogger('life-monitor');
 
@@ -156,9 +156,7 @@ export class LifeMonitor {
     }
 
     // Filter out suppressed alerts
-    const activeAlerts = alerts.filter(
-      (a) => !this.state.suppressedAlertIds.includes(a.id)
-    );
+    const activeAlerts = alerts.filter((a) => !this.state.suppressedAlertIds.includes(a.id));
 
     // Sort by severity (critical first)
     const severityOrder: Record<AlertSeverity, number> = {
@@ -192,11 +190,14 @@ export class LifeMonitor {
       urgent: report.urgentCount,
     });
 
-    log.info({
-      total: activeAlerts.length,
-      critical: report.criticalCount,
-      urgent: report.urgentCount,
-    }, 'Life monitor scan complete');
+    log.info(
+      {
+        total: activeAlerts.length,
+        critical: report.criticalCount,
+        urgent: report.urgentCount,
+      },
+      'Life monitor scan complete',
+    );
 
     return report;
   }
@@ -232,7 +233,8 @@ export class LifeMonitor {
             severity: 'critical',
             title: 'Anthropic API Key Invalid',
             description: 'Your Anthropic API key is rejected. ARI cannot use Claude models.',
-            actionRequired: 'Go to console.anthropic.com and generate a new key, then update ~/.ari/.env',
+            actionRequired:
+              'Go to console.anthropic.com and generate a new key, then update ~/.ari/.env',
             createdAt: new Date().toISOString(),
           });
         } else if (response.status === 429) {
@@ -254,7 +256,8 @@ export class LifeMonitor {
               category: 'api_credits',
               severity: 'urgent',
               title: 'Anthropic API Credits Depleted',
-              description: 'No API credits remaining. ARI cascades to free models but loses Claude quality.',
+              description:
+                'No API credits remaining. ARI cascades to free models but loses Claude quality.',
               actionRequired: 'Add $5+ credits at console.anthropic.com/settings/billing',
               deadline: new Date().toISOString(), // Immediate
               createdAt: new Date().toISOString(),
@@ -344,9 +347,10 @@ export class LifeMonitor {
           severity: sub.cost >= 50 ? 'warning' : 'info',
           title: `${sub.name} Renews in ${daysUntilRenewal} Day${daysUntilRenewal > 1 ? 's' : ''}`,
           description: `$${sub.cost}/mo will be charged on the ${sub.renewalDay}th.${sub.notes ? ` Note: ${sub.notes}` : ''}`,
-          actionRequired: daysUntilRenewal === 1
-            ? `Review if you still need ${sub.name}. Cancel before tomorrow if not.`
-            : `Ensure payment method is current for ${sub.name}.`,
+          actionRequired:
+            daysUntilRenewal === 1
+              ? `Review if you still need ${sub.name}. Cancel before tomorrow if not.`
+              : `Ensure payment method is current for ${sub.name}.`,
           deadline: new Date(now.getFullYear(), now.getMonth(), sub.renewalDay).toISOString(),
           data: { cost: sub.cost, service: sub.name },
           createdAt: new Date().toISOString(),
@@ -444,10 +448,14 @@ export class LifeMonitor {
       if (sizeMatch) {
         const value = parseFloat(sizeMatch[1]);
         const unit = sizeMatch[2];
-        const sizeGB = unit === 'G' ? value
-          : unit === 'T' ? value * 1024
-          : unit === 'M' ? value / 1024
-          : value / (1024 * 1024);
+        const sizeGB =
+          unit === 'G'
+            ? value
+            : unit === 'T'
+              ? value * 1024
+              : unit === 'M'
+                ? value / 1024
+                : value / (1024 * 1024);
 
         if (sizeGB > 5) {
           alerts.push({
@@ -581,7 +589,8 @@ export class LifeMonitor {
           category: 'ari_health',
           severity: 'urgent',
           title: 'Scheduler Not Running',
-          description: 'The ARI scheduler has not run in over 2 days. No briefings or scans are executing.',
+          description:
+            'The ARI scheduler has not run in over 2 days. No briefings or scans are executing.',
           actionRequired: 'Check daemon status: npx ari daemon status. Reinstall if needed.',
           createdAt: new Date().toISOString(),
         });
@@ -622,7 +631,10 @@ export class LifeMonitor {
     try {
       const digestDir = path.join(ARI_DIR, 'knowledge', 'digests');
       const files = await fs.readdir(digestDir);
-      const jsonFiles = files.filter((f) => f.endsWith('.json')).sort().reverse();
+      const jsonFiles = files
+        .filter((f) => f.endsWith('.json'))
+        .sort()
+        .reverse();
 
       if (jsonFiles.length === 0) {
         alerts.push({
@@ -630,7 +642,8 @@ export class LifeMonitor {
           category: 'ari_health',
           severity: 'info',
           title: 'No Daily Digests Yet',
-          description: 'ARI has never generated a daily intel digest. Intelligence scanner may not be running.',
+          description:
+            'ARI has never generated a daily intel digest. Intelligence scanner may not be running.',
           actionRequired: 'Ensure daemon is running with X_BEARER_TOKEN set in ~/.ari/.env.',
           createdAt: new Date().toISOString(),
         });
@@ -731,18 +744,19 @@ export class LifeMonitor {
       const group = alerts.filter((a) => a.severity === severity);
       if (group.length === 0) continue;
 
-      lines.push(`<b>${severity.toUpperCase()} ALERTS</b>`);
+      lines.push(`━━━ <b>${severity.toUpperCase()}</b> ━━━`);
 
       for (const alert of group) {
-        lines.push(`<blockquote>${severityIcon[severity]} <b>${this.escapeHtml(alert.title)}</b>\n${this.escapeHtml(alert.actionRequired)}</blockquote>`);
+        lines.push(`${severityIcon[severity]} <b>${this.escapeHtml(alert.title)}</b>`);
+        lines.push(`   ↳ <i>${this.escapeHtml(alert.actionRequired)}</i>`);
         if (alert.deadline) {
           const deadline = new Date(alert.deadline);
           const now = new Date();
           const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / 86400000);
           if (daysLeft <= 1) {
-            lines.push('<i>Due TODAY</i>');
+            lines.push('   ↳ ⏰ <b>Due TODAY</b>');
           } else if (daysLeft <= 3) {
-            lines.push(`<i>Due in ${daysLeft} days</i>`);
+            lines.push(`   ↳ ⏰ <b>Due in ${daysLeft} days</b>`);
           }
         }
       }
@@ -750,17 +764,14 @@ export class LifeMonitor {
     }
 
     lines.push(
-      `<i>${alerts.length} items · ${new Date().toLocaleString('en-US', { timeZone: 'America/Indiana/Indianapolis', hour: 'numeric', minute: '2-digit' })}</i>`
+      `<i>${alerts.length} items · ${new Date().toLocaleString('en-US', { timeZone: 'America/Indiana/Indianapolis', hour: 'numeric', minute: '2-digit' })}</i>`,
     );
 
     return lines.join('\n');
   }
 
   private escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   // ─── Subscription Management ───────────────────────────────────────────────
@@ -772,7 +783,7 @@ export class LifeMonitor {
 
   async removeSubscription(name: string): Promise<boolean> {
     const idx = this.state.subscriptions.findIndex(
-      (s) => s.name.toLowerCase() === name.toLowerCase()
+      (s) => s.name.toLowerCase() === name.toLowerCase(),
     );
     if (idx === -1) return false;
     this.state.subscriptions.splice(idx, 1);
@@ -793,9 +804,7 @@ export class LifeMonitor {
   }
 
   unsuppressAlert(alertId: string): void {
-    this.state.suppressedAlertIds = this.state.suppressedAlertIds.filter(
-      (id) => id !== alertId
-    );
+    this.state.suppressedAlertIds = this.state.suppressedAlertIds.filter((id) => id !== alertId);
   }
 
   // ─── Persistence ───────────────────────────────────────────────────────────
@@ -829,10 +838,7 @@ export class LifeMonitor {
 
   private async saveSubscriptions(): Promise<void> {
     await fs.mkdir(path.dirname(SUBSCRIPTIONS_PATH), { recursive: true });
-    await fs.writeFile(
-      SUBSCRIPTIONS_PATH,
-      JSON.stringify(this.state.subscriptions, null, 2)
-    );
+    await fs.writeFile(SUBSCRIPTIONS_PATH, JSON.stringify(this.state.subscriptions, null, 2));
   }
 
   // ─── Status ────────────────────────────────────────────────────────────────

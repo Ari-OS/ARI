@@ -10,6 +10,9 @@ import type {
 import { ModelRegistry } from './model-registry.js';
 import type { PerformanceTracker } from './performance-tracker.js';
 import type { CircuitBreaker } from './circuit-breaker.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { homedir, tmpdir } from 'node:os';
 
 interface WeightSet {
   quality: number;
@@ -32,11 +35,28 @@ const BUDGET_STATE_WEIGHTS: Record<ThrottleLevel, WeightSet> = {
   pause: { quality: 0.15, cost: 0.50, speed: 0.10 },
 };
 
+/**
+ * Reinforcement Learning State for Q-Learning model selection.
+ */
+interface RLState {
+  qTable: Record<string, Record<ModelTier, number>>; // Category -> Model -> Q-Value
+  visits: Record<string, Record<ModelTier, number>>;
+}
+
 export class ValueScorer {
   private readonly eventBus: EventBus;
   private readonly registry: ModelRegistry;
   private readonly performanceTracker: PerformanceTracker | null;
   private readonly circuitBreaker: CircuitBreaker | null;
+
+  // RL state
+  private rlState: RLState = { qTable: {}, visits: {} };
+  private readonly RL_STATE_PATH = process.env.NODE_ENV === 'test'
+    ? path.join(tmpdir(), `rl_router_state_${Date.now()}.json`)
+    : path.join(homedir(), '.ari', 'rl_router_state.json');
+  private readonly ALPHA = 0.1; // Learning rate
+  private readonly GAMMA = 0.9; // Discount factor
+  private readonly EPSILON = 0.1; // Exploration rate
 
   constructor(
     eventBus: EventBus,
@@ -50,6 +70,67 @@ export class ValueScorer {
     this.registry = registry;
     this.performanceTracker = options?.performanceTracker ?? null;
     this.circuitBreaker = options?.circuitBreaker ?? null;
+
+    this.loadRLState();
+    this.setupRLListeners();
+  }
+
+  private loadRLState() {
+    try {
+      if (fs.existsSync(this.RL_STATE_PATH)) {
+        const data = fs.readFileSync(this.RL_STATE_PATH, 'utf-8');
+        this.rlState = JSON.parse(data) as RLState;
+      }
+    } catch {
+      // Start fresh if no state exists
+    }
+  }
+
+  private saveRLState() {
+    try {
+      const dir = path.dirname(this.RL_STATE_PATH);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(this.RL_STATE_PATH, JSON.stringify(this.rlState, null, 2));
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[ValueScorer] Failed to save RL state:', e);
+    }
+  }
+
+  private setupRLListeners() {
+    // Listen for model task completions to update Q-values (Reward function)
+    this.eventBus.on('llm:request_complete', (payload: unknown) => {
+      const p = payload as { model: string; taskCategory: string; success: boolean; duration: number; cost: number; qualityScore?: number };
+      const { model, taskCategory, success, duration, cost, qualityScore = 1.0 } = p;
+      if (!taskCategory) return;
+      
+      // Calculate reward: success gives positive, failure gives negative. 
+      // Speed and cost efficiency boost the reward slightly.
+      let reward = success ? (qualityScore * 10) : -10;
+      if (success) {
+        const costEfficiency = Math.max(0, 1 - (cost / 0.05)); // Reward low cost
+        const speedEfficiency = Math.max(0, 1 - (duration / 10000)); // Reward fast duration
+        reward += costEfficiency * 2 + speedEfficiency * 2;
+      }
+
+      this.updateQValue(taskCategory, model, reward);
+    });
+  }
+
+  private updateQValue(category: string, model: ModelTier, reward: number) {
+    if (!this.rlState.qTable[category]) {
+      this.rlState.qTable[category] = {} as Record<ModelTier, number>;
+      this.rlState.visits[category] = {} as Record<ModelTier, number>;
+    }
+    
+    const currentQ = this.rlState.qTable[category][model] || 0;
+    const visits = this.rlState.visits[category][model] || 0;
+
+    // Q-learning update rule (simplified single-step bandit)
+    this.rlState.qTable[category][model] = currentQ + this.ALPHA * (reward - currentQ);
+    this.rlState.visits[category][model] = visits + 1;
+
+    this.saveRLState();
   }
 
   score(input: ValueScoreInput, budgetState: ThrottleLevel): ValueScoreResult {
@@ -70,6 +151,8 @@ export class ValueScorer {
       budgetState,
       input.category,
       input.securitySensitive,
+      input.agent,
+      input.contentLength
     );
 
     const weights = this.getWeightsForBudgetState(budgetState);
@@ -96,72 +179,27 @@ export class ValueScorer {
     const lowerContent = content.toLowerCase();
     let score = 0;
 
-    const securityPatterns = [
-      'auth',
-      'credential',
-      'secret',
-      'encryption',
-      'vulnerability',
-      'injection',
-      'xss',
-      'csrf',
-    ];
-    if (securityPatterns.some((p) => lowerContent.includes(p))) {
-      score += 3;
-    }
+    const securityPatterns = ['auth', 'credential', 'secret', 'encryption', 'vulnerability', 'injection', 'xss', 'csrf'];
+    if (securityPatterns.some((p) => lowerContent.includes(p))) score += 3;
 
-    const reasoningPatterns = [
-      'why',
-      'explain',
-      'analyze',
-      'compare',
-      'evaluate',
-      'tradeoff',
-    ];
-    if (reasoningPatterns.some((p) => lowerContent.includes(p))) {
-      score += 2;
-    }
+    const reasoningPatterns = ['why', 'explain', 'analyze', 'compare', 'evaluate', 'tradeoff'];
+    if (reasoningPatterns.some((p) => lowerContent.includes(p))) score += 2;
 
-    const codeGenPatterns = [
-      'implement',
-      'refactor',
-      'class',
-      'method',
-      'function',
-    ];
-    if (codeGenPatterns.some((p) => lowerContent.includes(p))) {
-      score += 2;
-    }
+    const codeGenPatterns = ['implement', 'refactor', 'class', 'method', 'function'];
+    if (codeGenPatterns.some((p) => lowerContent.includes(p))) score += 2;
 
-    const creativityPatterns = [
-      'design',
-      'architect',
-      'brainstorm',
-      'novel',
-      'innovative',
-    ];
-    if (creativityPatterns.some((p) => lowerContent.includes(p))) {
-      score += 1.5;
-    }
+    const creativityPatterns = ['design', 'architect', 'brainstorm', 'novel', 'innovative'];
+    if (creativityPatterns.some((p) => lowerContent.includes(p))) score += 1.5;
 
-    const multiStepPatterns = ['first', 'then', 'next', 'finally'];
-    const hasMultiStep = multiStepPatterns.some((p) => lowerContent.includes(p));
+    const hasMultiStep = ['first', 'then', 'next', 'finally'].some((p) => lowerContent.includes(p));
     const hasNumberedSteps = /\d+\.\s/.test(content);
-    if (hasMultiStep || hasNumberedSteps) {
-      score += 1;
-    }
+    if (hasMultiStep || hasNumberedSteps) score += 1;
 
     const estimatedTokens = content.length / 4;
-    if (estimatedTokens > 2000) {
-      score += 1;
-    }
-    if (estimatedTokens > 5000) {
-      score += 1;
-    }
+    if (estimatedTokens > 2000) score += 1;
+    if (estimatedTokens > 5000) score += 1;
 
-    if (category === 'security') {
-      score += 2;
-    }
+    if (category === 'security') score += 2;
 
     if (score < 1) return 'trivial';
     if (score < 2) return 'simple';
@@ -174,42 +212,17 @@ export class ValueScorer {
     return BUDGET_STATE_WEIGHTS[budgetState];
   }
 
-  /**
-   * Get performance weight multiplier for a model based on historical data.
-   *
-   * Returns a multiplier (0.5-1.5) that adjusts model selection based on:
-   * - Quality score (40% weight)
-   * - Error rate (30% weight)
-   * - Average latency (30% weight)
-   *
-   * Returns 1.0 if no performance data is available.
-   */
   getModelPerformanceWeight(modelId: ModelTier, category: TaskCategory): number {
-    if (!this.performanceTracker) {
-      return 1.0;
-    }
-
+    if (!this.performanceTracker) return 1.0;
     const stats = this.performanceTracker.getPerformanceStats(modelId);
     const categoryPerf = stats.categories.find((c) => c.category === category);
+    if (!categoryPerf || categoryPerf.totalCalls < 5) return 1.0;
 
-    // Need at least 5 calls for meaningful data
-    if (!categoryPerf || categoryPerf.totalCalls < 5) {
-      return 1.0;
-    }
-
-    // Normalize metrics to 0-1 range
     const qualityNorm = categoryPerf.avgQuality;
     const errorNorm = Math.max(0, 1 - categoryPerf.errorRate);
     const latencyNorm = Math.max(0, 1 - categoryPerf.avgLatencyMs / 10000);
 
-    // Weighted score
-    const performanceScore =
-      qualityNorm * 0.4 +
-      errorNorm * 0.3 +
-      latencyNorm * 0.3;
-
-    // Map score to multiplier range (0.5-1.5)
-    // Score 0.0 → 0.5x, Score 0.5 → 1.0x, Score 1.0 → 1.5x
+    const performanceScore = qualityNorm * 0.4 + errorNorm * 0.3 + latencyNorm * 0.3;
     return 0.5 + performanceScore;
   }
 
@@ -218,16 +231,25 @@ export class ValueScorer {
     budgetState: ThrottleLevel,
     category: TaskCategory,
     securitySensitive: boolean,
+    agent?: string,
+    contentLength?: number
   ): ModelTier {
+    // 1. Context Window Hard Requirement
+    // Leverage Claude 4.6 Opus/Sonnet 1M context if input is extremely large (> 150K tokens ~= 600K chars)
+    if (contentLength && contentLength > 600_000) {
+      const opus46 = this.registry.listModels({ availableOnly: true }).find(m => m.id === 'claude-opus-4.6');
+      if (opus46) return this.selectWithFallback(opus46.id, category);
+      
+      const sonnet46 = this.registry.listModels({ availableOnly: true }).find(m => m.id === 'claude-sonnet-4.6');
+      if (sonnet46) return this.selectWithFallback(sonnet46.id, category);
+    }
+
+    // 2. Heartbeat Routing
     if (category === 'heartbeat') {
       return this.selectWithFallback('claude-haiku-3', category);
     }
 
-    if (securitySensitive) {
-      return this.selectWithFallback(this.findMinimumSonnet(), category);
-    }
-
-    // Cost-aware routing: when budget < 20% (pause state), aggressively prefer cheaper models
+    // 3. Budget Constraints
     if (budgetState === 'pause') {
       if (score >= 80) {
         return this.selectWithFallback(this.findMinimumSonnet(), category);
@@ -235,107 +257,55 @@ export class ValueScorer {
       return this.selectWithFallback('claude-haiku-3', category);
     }
 
-    if (budgetState === 'reduce') {
-      if (score >= 70) {
-        return this.selectWithFallback(this.findBestSonnet(), category);
+    // 3. Security Constraint
+    if (securitySensitive) {
+      return this.selectWithFallback(this.findMinimumSonnet(), category);
+    }
+
+    // 4. Epsilon-Greedy Reinforcement Learning Selection
+    const available = this.registry.listModels({ availableOnly: true }).map(m => m.id);
+    if (available.length === 0) return 'claude-haiku-3';
+
+    // Exploration: Choose random model
+    if (Math.random() < this.EPSILON) {
+      const randomModel = available[Math.floor(Math.random() * available.length)];
+      return this.selectWithFallback(randomModel, category);
+    }
+
+    // Exploitation: Choose best model based on Q-table and performance weights
+    let bestModel = available[0];
+    let bestQ = -Infinity;
+
+    const categoryQ = this.rlState.qTable[category];
+    
+    for (const model of available) {
+      // Base Q-value from RL
+      const qValue = (categoryQ && categoryQ[model]) !== undefined ? categoryQ[model] : 0;
+      
+      // Incorporate performance weight
+      const perfWeight = this.getModelPerformanceWeight(model, category);
+      
+      // Incorporate score vs capability heuristic
+      let heuristicBonus = 0;
+      if (score >= 85 && (model === 'claude-opus-4.6' || model === 'claude-opus-4.5')) heuristicBonus = 5;
+      if (score >= 60 && score < 85 && (model === 'claude-sonnet-4.6' || model === 'claude-sonnet-4.5')) heuristicBonus = 5;
+      if (score < 50 && (model === 'claude-haiku-4.5' || model === 'claude-haiku-3')) heuristicBonus = 5;
+
+      const totalValue = (qValue * 0.6) + (perfWeight * 5 * 0.2) + (heuristicBonus * 0.2);
+
+      if (totalValue > bestQ) {
+        bestQ = totalValue;
+        bestModel = model;
       }
-      return this.selectWithFallback('claude-haiku-4.5', category);
     }
 
-    // Data-driven routing: weight static rules with historical performance
-    const candidates: ModelTier[] = [];
-
-    if (score >= 85 && (category === 'planning' || category === 'analysis')) {
-      candidates.push('claude-opus-4.6', 'claude-opus-4.5');
-      // Gemini 3.1 Pro: 1M context window excels at long-form deep research
-      if (this.registry.isAvailable('gemini-3.1-pro')) {
-        candidates.push('gemini-3.1-pro');
-      }
-    }
-
-    if (score >= 70) {
-      candidates.push('claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-sonnet-4');
-      // Gemini Flash: cost-efficient for standard throughput tasks
-      if (this.registry.isAvailable('gemini-2.5-flash')) {
-        candidates.push('gemini-2.5-flash');
-      }
-    }
-
-    if (
-      score >= 50 &&
-      (category === 'code_generation' ||
-        category === 'code_review' ||
-        category === 'analysis' ||
-        category === 'planning')
-    ) {
-      candidates.push('claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-sonnet-4');
-    }
-
-    // Gemini Flash-Lite: 60% cheaper than Haiku for bulk triage (RSS, email, news)
-    if (score < 50 && this.registry.isAvailable('gemini-2.5-flash-lite')) {
-      candidates.push('gemini-2.5-flash-lite');
-    }
-
-    candidates.push('claude-haiku-4.5', 'claude-haiku-3');
-
-    // Select best candidate with performance weighting
-    return this.selectBestCandidate(candidates, category);
+    return this.selectWithFallback(bestModel, category);
   }
 
-  /**
-   * Select best model from candidates using performance data.
-   * Falls back to next-best if circuit breaker is OPEN.
-   */
-  private selectBestCandidate(candidates: ModelTier[], category: TaskCategory): ModelTier {
-    const available = candidates.filter((m) => this.registry.isAvailable(m));
-    if (available.length === 0) {
-      return 'claude-haiku-3';
-    }
-
-    // Apply performance weights if available
-    const scored = available.map((model) => {
-      const performanceWeight = this.getModelPerformanceWeight(model, category);
-      return { model, score: performanceWeight };
-    });
-
-    // Sort by weighted score (descending)
-    scored.sort((a, b) => b.score - a.score);
-
-    // Check circuit breaker and fallback if needed
-    for (const candidate of scored) {
-      const selected = this.selectWithFallback(candidate.model, category);
-      if (selected !== candidate.model) {
-        // Emit fallback event
-        this.eventBus.emit('ai:model_fallback', {
-          originalModel: candidate.model,
-          fallbackModel: selected,
-          reason: 'Circuit breaker OPEN',
-          category,
-          timestamp: new Date().toISOString(),
-        });
-      }
-      return selected;
-    }
-
-    return available[0];
-  }
-
-  /**
-   * Automatic downgrade: if circuit breaker is OPEN for selected model,
-   * fall back to next-best available model.
-   */
   private selectWithFallback(model: ModelTier, category: TaskCategory): ModelTier {
-    // If no circuit breaker, return model as-is
-    if (!this.circuitBreaker) {
-      return model;
-    }
+    if (!this.circuitBreaker) return model;
+    if (this.circuitBreaker.canExecute()) return model;
 
-    // Check if circuit breaker allows execution
-    if (this.circuitBreaker.canExecute()) {
-      return model;
-    }
-
-    // Circuit breaker is OPEN — find fallback
     const fallbackHierarchy: ModelTier[] = [
       'claude-haiku-3',
       'claude-haiku-4.5',
@@ -347,12 +317,8 @@ export class ValueScorer {
     ];
 
     const modelIndex = fallbackHierarchy.indexOf(model);
-    if (modelIndex === -1 || modelIndex === 0) {
-      // Already at cheapest model or not found
-      return model;
-    }
+    if (modelIndex <= 0) return model;
 
-    // Return next cheaper model
     const fallback = fallbackHierarchy[modelIndex - 1];
 
     this.eventBus.emit('ai:model_fallback', {
@@ -368,26 +334,16 @@ export class ValueScorer {
 
   private findBestSonnet(): ModelTier {
     const available = this.registry.listModels({ availableOnly: true });
-    const sonnet46 = available.find((m) => m.id === 'claude-sonnet-4.6');
-    if (sonnet46) return 'claude-sonnet-4.6';
-
-    const sonnet45 = available.find((m) => m.id === 'claude-sonnet-4.5');
-    if (sonnet45) return 'claude-sonnet-4.5';
-
-    const sonnet4 = available.find((m) => m.id === 'claude-sonnet-4');
-    if (sonnet4) return 'claude-sonnet-4';
-
+    if (available.find((m) => m.id === 'claude-sonnet-4.6')) return 'claude-sonnet-4.6';
+    if (available.find((m) => m.id === 'claude-sonnet-4.5')) return 'claude-sonnet-4.5';
+    if (available.find((m) => m.id === 'claude-sonnet-4')) return 'claude-sonnet-4';
     return 'claude-haiku-4.5';
   }
 
   private findMinimumSonnet(): ModelTier {
     const available = this.registry.listModels({ availableOnly: true });
-    const sonnet4 = available.find((m) => m.id === 'claude-sonnet-4');
-    if (sonnet4) return 'claude-sonnet-4';
-
-    const sonnet45 = available.find((m) => m.id === 'claude-sonnet-4.5');
-    if (sonnet45) return 'claude-sonnet-4.5';
-
+    if (available.find((m) => m.id === 'claude-sonnet-4')) return 'claude-sonnet-4';
+    if (available.find((m) => m.id === 'claude-sonnet-4.5')) return 'claude-sonnet-4.5';
     return 'claude-haiku-4.5';
   }
 
@@ -398,28 +354,20 @@ export class ValueScorer {
     tier: ModelTier,
   ): string {
     const parts: string[] = [];
-
-    parts.push(
-      `Complexity: ${input.complexity} (${COMPLEXITY_TO_NUMERIC[input.complexity]}/10)`,
-    );
+    parts.push(`Complexity: ${input.complexity} (${COMPLEXITY_TO_NUMERIC[input.complexity]}/10)`);
     parts.push(`Stakes: ${input.stakes}/10`);
     parts.push(`Quality priority: ${input.qualityPriority}/10`);
     parts.push(`Budget state: ${budgetState}`);
 
-    if (input.securitySensitive) {
-      parts.push('Security-sensitive: minimum Sonnet required');
-    }
+    if (input.securitySensitive) parts.push('Security-sensitive: minimum Sonnet required');
+    if (input.category === 'heartbeat') parts.push('Heartbeat task: routed to Haiku 3');
+    if (budgetState === 'pause' && score < 80) parts.push('Budget paused: using minimum cost model');
+    if (budgetState === 'reduce') parts.push('Budget reduced: downgrading to cost-efficient tier');
 
-    if (input.category === 'heartbeat') {
-      parts.push('Heartbeat task: routed to Haiku 3');
-    }
-
-    if (budgetState === 'pause' && score < 80) {
-      parts.push('Budget paused: using minimum cost model');
-    }
-
-    if (budgetState === 'reduce') {
-      parts.push('Budget reduced: downgrading to cost-efficient tier');
+    if (input.contentLength && input.contentLength > 600_000) {
+      parts.push('1M Context Window requirement matched');
+    } else {
+      parts.push('RL Q-Table epsilon-greedy selection applied');
     }
 
     parts.push(`Final score: ${score.toFixed(1)}/100`);

@@ -1,7 +1,7 @@
 import { execFileSync } from 'child_process';
 import { createHash, createHmac, randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
-import { homedir } from 'os';
+import { homedir, tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { AuditEvent, SecurityEvent, TrustLevel } from './types.js';
 
@@ -48,17 +48,27 @@ export class AuditLogger {
   /** Events logged since last checkpoint */
   private eventsSinceCheckpoint = 0;
 
+  // WAL properties
+  private walPath: string;
+  private walBuffer: AuditEvent[] = [];
+  private isFlushing = false;
+  private flushTimer: NodeJS.Timeout | null = null;
+
   /** Keychain identifiers for the signing key */
   private static readonly KEYCHAIN_SERVICE = 'ari-audit-signing-key';
   private static readonly KEYCHAIN_ACCOUNT = 'ari';
 
   constructor(auditPath?: string, options?: { checkpointInterval?: number; signingKey?: string }) {
     // Resolve ~ to home directory
-    const path = auditPath || '~/.ari/audit.json';
+    let path = auditPath || '~/.ari/audit.json';
+    if (!auditPath && process.env.NODE_ENV === 'test') {
+      path = join(tmpdir(), `test-audit-${randomUUID()}.json`);
+    }
     this.auditPath = path.startsWith('~')
       ? join(homedir(), path.slice(1))
       : path;
     this.checkpointPath = this.auditPath.replace(/\.json$/, '-checkpoints.json');
+    this.walPath = this.auditPath.replace(/\.json$/, '.jsonl');
     this.CHECKPOINT_INTERVAL = options?.checkpointInterval ?? 100;
 
     if (options?.signingKey) {
@@ -182,7 +192,9 @@ export class AuditLogger {
     };
 
     this.events.push(event);
-    await this.persist();
+    this.walBuffer.push(event);
+    // Persist to WAL asynchronously (fire and forget)
+    this.persist();
 
     // Auto-checkpoint if interval is set and reached
     this.eventsSinceCheckpoint++;
@@ -413,6 +425,34 @@ export class AuditLogger {
       }
     }
 
+    // Load any un-consolidated WAL events
+    try {
+      const walData = await fs.readFile(this.walPath, 'utf-8');
+      const lines = walData.split('\n').filter(line => line.trim().length > 0);
+      if (lines.length > 0) {
+        const walEvents = lines.map(line => {
+          const event = JSON.parse(line) as Record<string, unknown>;
+          return {
+            ...event,
+            timestamp: new Date(event.timestamp as string),
+          } as AuditEvent;
+        });
+        
+        // Find events that aren't already in this.events (in case of partial consolidate crash)
+        const existingIds = new Set(this.events.map(e => e.id));
+        const newWalEvents = walEvents.filter(e => !existingIds.has(e.id));
+        
+        if (newWalEvents.length > 0) {
+          this.events.push(...newWalEvents);
+          // Trigger consolidation asynchronously
+          // eslint-disable-next-line no-console
+          this.consolidateWal().catch((err) => console.error('[AuditLogger] Failed to consolidate WAL on load:', err));
+        }
+      }
+    } catch {
+      // Silently skip if WAL doesn't exist
+    }
+
     // Load checkpoints
     try {
       const cpData = await fs.readFile(this.checkpointPath, 'utf-8');
@@ -423,21 +463,73 @@ export class AuditLogger {
   }
 
   /**
-   * Persists audit events to disk.
-   * Creates the directory structure if it doesn't exist.
+   * Appends audit events to the WAL buffer.
+   * Flushes asynchronously to avoid blocking the event loop.
    */
-  private async persist(): Promise<void> {
-    const dir = dirname(this.auditPath);
+  private persist(): void {
+    if (this.walBuffer.length === 0) return;
+    
+    if (!this.flushTimer && !this.isFlushing) {
+      // Schedule a flush if not already flushing
+      this.flushTimer = setTimeout(() => {
+        this.flushTimer = null;
+        this.flushWal().catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error('[AuditLogger] Failed to flush WAL:', err);
+        });
+      }, 50); // Small batch window (50ms)
+    }
+  }
 
-    // Ensure directory exists
+  /**
+   * Flushes the WAL buffer to the .jsonl file on disk.
+   */
+  private async flushWal(): Promise<void> {
+    if (this.isFlushing || this.walBuffer.length === 0) return;
+    this.isFlushing = true;
+
+    try {
+      const dir = dirname(this.walPath);
+      await fs.mkdir(dir, { recursive: true });
+
+      // Take a snapshot of the buffer to flush
+      const batch = this.walBuffer.splice(0, this.walBuffer.length);
+      const batchData = batch.map(e => JSON.stringify(e)).join('\n') + '\n';
+      
+      await fs.appendFile(this.walPath, batchData, { encoding: 'utf-8', mode: 0o600 });
+      
+      // Periodically consolidate WAL into main audit.json
+      if (this.events.length % 1000 === 0) {
+        await this.consolidateWal();
+      }
+    } finally {
+      this.isFlushing = false;
+      
+      // If new events arrived during flush, trigger another flush
+      if (this.walBuffer.length > 0) {
+        this.persist();
+      }
+    }
+  }
+
+  /**
+   * Consolidates the WAL into the main audit.json and clears the WAL.
+   */
+  private async consolidateWal(): Promise<void> {
+    const dir = dirname(this.auditPath);
     await fs.mkdir(dir, { recursive: true });
 
-    // Write events to file
+    // Write all events to file
+    const tempPath = `${this.auditPath}.tmp`;
     await fs.writeFile(
-      this.auditPath,
+      tempPath,
       JSON.stringify(this.events, null, 2),
       { encoding: 'utf-8', mode: 0o600 }
     );
+    await fs.rename(tempPath, this.auditPath);
+    
+    // Clear the WAL now that it's consolidated
+    await fs.writeFile(this.walPath, '', { encoding: 'utf-8', mode: 0o600 });
   }
 
   /**

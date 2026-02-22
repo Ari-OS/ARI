@@ -14,7 +14,17 @@ import type { VideoScript, VideoProject } from '../../../../src/plugins/video-pi
 import { mkdirSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import os from 'node:os';
 import { randomUUID } from 'node:crypto';
+
+// ─── Mock os.homedir to use tmpDir ────────────────────────────────────────────
+vi.mock('node:os', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:os')>();
+  return {
+    ...actual,
+    homedir: () => process.env.HOME || actual.homedir(),
+  };
+});
 
 // ─── Test helpers ──────────────────────────────────────────────────────────────
 

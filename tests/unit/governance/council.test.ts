@@ -97,7 +97,7 @@ describe('Council', () => {
     expect(result).toBe(false);
   });
 
-  it('should pass early with MAJORITY threshold when 8+ approvals out of 15', () => {
+  it('should pass early with MAJORITY threshold when 4+ approvals out of 7', () => {
     const vote = council.createVote({
       topic: 'Test Proposal',
       description: 'A test proposal',
@@ -105,10 +105,8 @@ describe('Council', () => {
       initiated_by: 'router' as AgentId,
     });
 
-    // Cast 8 approvals (>50% of 15 = 8) - using the new 15-member Council
     const approvingAgents: AgentId[] = [
-      'router', 'planner', 'executor', 'memory_keeper', 'guardian',
-      'risk_assessor', 'scheduler', 'resource_manager'
+      'router', 'memory_keeper', 'guardian', 'planner'
     ];
 
     approvingAgents.forEach((agent) => {
@@ -117,11 +115,11 @@ describe('Council', () => {
 
     const updatedVote = council.getVote(vote.vote_id);
     expect(updatedVote?.status).toBe('PASSED');
-    expect(updatedVote?.result?.approve).toBe(8);
+    expect(updatedVote?.result?.approve).toBe(4);
     expect(updatedVote?.result?.threshold_met).toBe(true);
   });
 
-  it('should fail early with MAJORITY threshold when 8+ rejections', () => {
+  it('should fail early with MAJORITY threshold when 4+ rejections', () => {
     const vote = council.createVote({
       topic: 'Test Proposal',
       description: 'A test proposal',
@@ -129,10 +127,8 @@ describe('Council', () => {
       initiated_by: 'router' as AgentId,
     });
 
-    // Cast 8 rejections using the new 15-member Council
     const rejectingAgents: AgentId[] = [
-      'router', 'planner', 'executor', 'memory_keeper', 'guardian',
-      'risk_assessor', 'scheduler', 'resource_manager'
+      'router', 'memory_keeper', 'guardian', 'planner'
     ];
 
     rejectingAgents.forEach((agent) => {
@@ -141,11 +137,11 @@ describe('Council', () => {
 
     const updatedVote = council.getVote(vote.vote_id);
     expect(updatedVote?.status).toBe('FAILED');
-    expect(updatedVote?.result?.reject).toBe(8);
+    expect(updatedVote?.result?.reject).toBe(4);
     expect(updatedVote?.result?.threshold_met).toBe(false);
   });
 
-  it('should pass early with SUPERMAJORITY threshold when 10+ approvals', () => {
+  it('should pass early with SUPERMAJORITY threshold when 5+ approvals out of 7', () => {
     const vote = council.createVote({
       topic: 'Test Proposal',
       description: 'A test proposal',
@@ -153,10 +149,8 @@ describe('Council', () => {
       initiated_by: 'router' as AgentId,
     });
 
-    // Cast 10 approvals (>=66% of 15 = 10) - using the new 15-member Council
     const approvingAgents: AgentId[] = [
-      'router', 'planner', 'executor', 'memory_keeper', 'guardian',
-      'risk_assessor', 'scheduler', 'resource_manager', 'wellness', 'relationships'
+      'router', 'memory_keeper', 'guardian', 'planner', 'wealth'
     ];
 
     approvingAgents.forEach((agent) => {
@@ -165,7 +159,7 @@ describe('Council', () => {
 
     const updatedVote = council.getVote(vote.vote_id);
     expect(updatedVote?.status).toBe('PASSED');
-    expect(updatedVote?.result?.approve).toBe(10);
+    expect(updatedVote?.result?.approve).toBe(5);
     expect(updatedVote?.result?.threshold_met).toBe(true);
   });
 

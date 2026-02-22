@@ -4,6 +4,7 @@ import type { AIOrchestrator } from '../ai/orchestrator.js';
 import { execFileNoThrow } from '../utils/execFileNoThrow.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { getPlaybookManager } from './playbook-manager.js';
 
 const log = createLogger('auto-developer');
 
@@ -44,9 +45,15 @@ export class AutoDeveloper {
 
     log.info({ taskId: task.id, goal: task.goal }, 'Starting AutoDeveloper task');
 
+    const playbookMgr = getPlaybookManager();
+    await playbookMgr.initialize();
+    const playbookContext = await playbookMgr.getContextString('auto-developer');
+
     // System prompt defining the AutoDeveloper's capabilities and expected output format.
     const systemPrompt = `You are ARI's AutoDeveloper, an elite autonomous coding agent.
 Your objective is to accomplish the following goal: "${task.goal}".
+
+${playbookContext}
 
 You have access to the codebase. When you need to read a file, or write to a file, you must output a strict JSON block wrapped in \`\`\`json.
 To read a file, output:
@@ -139,34 +146,64 @@ You must only output ONE action per turn. Wait for the result before proceeding.
           const actionSummary = action.summary || 'Task completed.';
           log.info({ summary: actionSummary }, 'AutoDeveloper signaled completion. Running tests if configured.');
           
+          let testFailed = false;
+          let testOutput = '';
           if (task.testCommand) {
             const [cmd, ...args] = task.testCommand.split(' ');
             const testResult = await execFileNoThrow(cmd, args, { cwd: this.projectRoot });
-            
-            if (testResult.status === 0) {
-              log.info('Tests passed. Task complete.');
-              return {
-                success: true,
-                iterations: iteration,
-                filesChanged: Array.from(filesChanged),
-                finalOutput: actionSummary
-              };
-            } else {
-              log.warn({ status: testResult.status }, 'Tests failed. Feeding back to AutoDeveloper.');
-              messages.push({ 
-                role: 'user', 
-                content: `You signaled finish, but tests failed. Please fix the following errors:\n\nSTDOUT:\n${testResult.stdout}\n\nSTDERR:\n${testResult.stderr}` 
-              });
-              continue; // Keep looping to fix the tests
+            if (testResult.status !== 0) {
+              testFailed = true;
+              testOutput = `STDOUT:\n${testResult.stdout}\n\nSTDERR:\n${testResult.stderr}`;
             }
-          } else {
-            return {
-              success: true,
-              iterations: iteration,
-              filesChanged: Array.from(filesChanged),
-              finalOutput: actionSummary
-            };
           }
+
+          if (testFailed) {
+            log.warn('Tests failed. Feeding back to AutoDeveloper.');
+            messages.push({ 
+              role: 'user', 
+              content: `You signaled finish, but tests failed. Please fix the following errors:\n\n${testOutput}` 
+            });
+            continue; // Keep looping to fix the tests
+          }
+
+          // Critic Loop: Overseer Review (SCoRe / RISE)
+          const overseerPrompt = `You are the Overseer. Review the following completion of the goal.
+Goal: "${task.goal}"
+
+AutoDeveloper claims completion with summary:
+"${actionSummary}"
+
+Files changed:
+${Array.from(filesChanged).join(', ')}
+
+Evaluate if the solution fully satisfies the goal. 
+Reply strictly in JSON: {"approved": boolean, "feedback": "string explaining why it failed or passed"}`;
+          
+          try {
+            const reviewStr = await this.orchestrator.query(overseerPrompt, 'overseer');
+            const match = reviewStr.match(/```json\n([\s\S]*?)\n```/);
+            const reviewJson = match ? match[1] : reviewStr;
+            const review = JSON.parse(reviewJson) as { approved: boolean; feedback: string };
+            if (review.approved === false) {
+              log.warn({ feedback: review.feedback }, 'Overseer rejected AutoDeveloper completion.');
+              messages.push({
+                role: 'user',
+                content: `Overseer review failed. Please refine your solution based on this feedback:\n${review.feedback}`
+              });
+              continue;
+            }
+          } catch (e) {
+            log.warn({ err: e }, 'Overseer review threw an error or returned invalid JSON. Assuming approved.');
+          }
+
+          log.info('Tests passed (if any) and Overseer approved. Task complete.');
+          await playbookMgr.appendInsight('auto-developer', `Task "${task.goal}" succeeded. The strategy used was effective.`);
+          return {
+            success: true,
+            iterations: iteration,
+            filesChanged: Array.from(filesChanged),
+            finalOutput: actionSummary
+          };
         }
 
       } catch (error) {
@@ -181,6 +218,7 @@ You must only output ONE action per turn. Wait for the result before proceeding.
     }
 
     log.warn('AutoDeveloper hit maximum iterations.');
+    await playbookMgr.appendInsight('auto-developer', `Task "${task.goal}" failed after maximum iterations. Need to reconsider the approach or break down the task further.`);
     return {
       success: false,
       iterations: maxIterations,

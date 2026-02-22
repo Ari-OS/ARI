@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import { EventBus } from '../../../src/kernel/event-bus.js';
 import { AuditLogger } from '../../../src/kernel/audit.js';
+import { randomUUID } from 'node:crypto';
 import {
   HealthMonitor,
   type MonitorHealthStatus,
@@ -102,7 +103,7 @@ describe('HealthMonitor', () => {
     eventBus = new EventBus();
 
     // Create mock audit logger with test signing key
-    mockAuditLogger = new AuditLogger('/tmp/test-audit.json', {
+    mockAuditLogger = new AuditLogger(`/tmp/test-audit-${randomUUID()}.json`, {
       checkpointInterval: 0,
       signingKey: 'test-key-12345',
     });

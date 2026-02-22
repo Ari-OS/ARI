@@ -163,6 +163,9 @@ describe('Full Pipeline E2E', () => {
       await logger.log('test:action_2', 'guardian', 'system', { step: 2 });
       await logger.log('test:action_3', 'executor', 'system', { step: 3 });
 
+      // Force consolidation to ensure the file exists before reloading
+      await (logger as any).consolidateWal();
+
       // Reload and verify chain
       const verifyLogger = new AuditLogger(auditPath);
       await verifyLogger.load();
@@ -179,6 +182,9 @@ describe('Full Pipeline E2E', () => {
 
       await logger.log('test:action_1', 'core', 'system', { data: 'original' });
       await logger.log('test:action_2', 'core', 'system', { data: 'second' });
+      
+      // Force consolidation to ensure the file exists before tampering
+      await (logger as any).consolidateWal();
 
       // Tamper with the file
       const content = await fs.readFile(auditPath, 'utf-8');
@@ -305,7 +311,7 @@ describe('Full Pipeline E2E', () => {
   // ── Cognitive EventBus Connectivity ────────────────────────────────
 
   describe('Cognitive EventBus (P1-2 Verification)', () => {
-    it('should propagate LOGOS events through shared EventBus', () => {
+    it('should propagate LOGOS events through shared EventBus', async () => {
       const received: string[] = [];
 
       eventBus.on('cognition:belief_updated', () => received.push('belief'));
@@ -329,12 +335,14 @@ describe('Full Pipeline E2E', () => {
         agent: 'logos',
         timestamp: new Date().toISOString(),
       });
+      
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(received).toContain('belief');
       expect(received).toContain('ev');
     });
 
-    it('should propagate ETHOS events through shared EventBus', () => {
+    it('should propagate ETHOS events through shared EventBus', async () => {
       const received: string[] = [];
 
       eventBus.on('cognition:bias_detected', () => received.push('bias'));
@@ -354,12 +362,14 @@ describe('Full Pipeline E2E', () => {
         emotions: ['anxiety', 'fear'],
         timestamp: new Date().toISOString(),
       });
+      
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(received).toContain('bias');
       expect(received).toContain('emotion');
     });
 
-    it('should propagate PATHOS events through shared EventBus', () => {
+    it('should propagate PATHOS events through shared EventBus', async () => {
       const received: string[] = [];
 
       eventBus.on('cognition:thought_reframed', () => received.push('reframe'));
@@ -380,6 +390,8 @@ describe('Full Pipeline E2E', () => {
         agent: 'pathos',
         timestamp: new Date().toISOString(),
       });
+      
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(received).toContain('reframe');
       expect(received).toContain('wisdom');
@@ -451,7 +463,7 @@ describe('Full Pipeline E2E', () => {
       expect(entries[0].frameworks_used).toContain('Cognitive Behavioral Therapy (Beck)');
     });
 
-    it('should compute accurate statistics', () => {
+    it('should compute accurate statistics', async () => {
       // Emit multiple events
       eventBus.emit('cognition:belief_updated', {
         hypothesis: 'Test 1', priorProbability: 0.5, posteriorProbability: 0.8,
@@ -465,6 +477,8 @@ describe('Full Pipeline E2E', () => {
         original: 'test', distortions: ['CATASTROPHIZING'],
         reframed: 'ok', agent: 'pathos', timestamp: new Date().toISOString(),
       });
+      
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       const stats = journal.getDecisionStats();
       expect(stats.total).toBe(3);

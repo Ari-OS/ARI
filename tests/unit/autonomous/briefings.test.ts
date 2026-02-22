@@ -283,6 +283,67 @@ describe('BriefingGenerator', () => {
         })
       );
     });
+
+    it('should include crypto global dominance section when provided', async () => {
+      await generator.morningBriefing({
+        cryptoGlobal: {
+          btcDominance: 52.4,
+          ethDominance: 17.1,
+          totalMarketCapChangePercent: 3.7,
+          activeCurrencies: 15000,
+        },
+      });
+
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const html = notifyCall.telegramHtml.join('\n');
+      expect(html).toContain('Crypto Sentiment');
+      expect(html).toContain('52.4%');
+      expect(html).toContain('17.1%');
+    });
+
+    it('should include Perplexity AI brief section when provided', async () => {
+      await generator.morningBriefing({
+        perplexityBriefing: {
+          answer: 'Top AI story: OpenAI released GPT-5 today.',
+          citations: ['https://openai.com/gpt5'],
+        },
+      });
+
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const html = notifyCall.telegramHtml.join('\n');
+      expect(html).toContain('AI Morning Brief');
+      expect(html).toContain('GPT-5');
+    });
+
+    it('should include GitHub notifications grouped by repo', async () => {
+      await generator.morningBriefing({
+        githubNotifications: [
+          { id: '1', reason: 'mention', subject: { title: 'PR #42', type: 'PullRequest' }, repository: 'Ari-OS/ARI' },
+          { id: '2', reason: 'review_requested', subject: { title: 'PR #43', type: 'PullRequest' }, repository: 'Ari-OS/ARI' },
+          { id: '3', reason: 'assign', subject: { title: 'Issue #10', type: 'Issue' }, repository: 'Ari-OS/ARI' },
+        ],
+      });
+
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const html = notifyCall.telegramHtml.join('\n');
+      expect(html).toContain('GitHub');
+      expect(html).toContain('Ari-OS/ARI');
+    });
+
+    it('should include earnings watch section when upcoming earnings provided', async () => {
+      await generator.morningBriefing({
+        upcomingEarnings: [
+          { symbol: 'AAPL', name: 'Apple Inc.', daysUntil: 1, estimate: 2.35 },
+          { symbol: 'NVDA', name: 'NVIDIA', daysUntil: 3, estimate: null },
+        ],
+      });
+
+      const notifyCall = mockNotify.mock.calls[0][0] as { telegramHtml: string[] };
+      const html = notifyCall.telegramHtml.join('\n');
+      expect(html).toContain('Earnings Watch');
+      expect(html).toContain('AAPL');
+      expect(html).toContain('Tomorrow');
+    });
   });
 
   describe('eveningSummary()', () => {

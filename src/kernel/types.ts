@@ -1,9 +1,16 @@
-import { z } from 'zod';
 import { randomUUID } from 'crypto';
+import { z } from 'zod';
 
 // ── Trust ────────────────────────────────────────────────────────────────────
 
-export const TrustLevelSchema = z.enum(['system', 'operator', 'verified', 'standard', 'untrusted', 'hostile']);
+export const TrustLevelSchema = z.enum([
+  'system',
+  'operator',
+  'verified',
+  'standard',
+  'untrusted',
+  'hostile',
+]);
 export type TrustLevel = z.infer<typeof TrustLevelSchema>;
 
 /** Numeric trust scores for risk calculations */
@@ -37,39 +44,46 @@ export type SourceType = z.infer<typeof SourceTypeSchema>;
  */
 export const AgentIdSchema = z.enum([
   // System agents (non-voting, orchestration/oversight)
-  'core', 'arbiter', 'overseer', 'autonomous',
+  'core',
+  'arbiter',
+  'overseer',
+  'autonomous',
 
   // === THE COUNCIL OF FIFTEEN ===
 
   // Pillar 1: INFRASTRUCTURE — "The Foundation"
-  'router',          // 🧭 ATLAS — Guides messages, finds the path
-  'executor',        // ⚡ BOLT — Executes actions, lightning fast
-  'memory_keeper',   // 📚 ECHO — Remembers everything, echoes back
+  'router', // 🧭 ATLAS — Guides messages, finds the path
+  'executor', // ⚡ BOLT — Executes actions, lightning fast
+  'memory_keeper', // 📚 ECHO — Remembers everything, echoes back
 
   // Pillar 2: PROTECTION — "The Shield"
-  'guardian',        // 🛡️ AEGIS — Shields from threats, the protector
-  'risk_assessor',   // 📊 SCOUT — Scouts ahead, spots dangers
+  'guardian', // 🛡️ AEGIS — Shields from threats, the protector
+  'risk_assessor', // 📊 SCOUT — Scouts ahead, spots dangers
 
   // Pillar 3: STRATEGY — "The Compass"
-  'planner',         // 🎯 TRUE — Finds true north, charts the course
-  'scheduler',       // ⏰ TEMPO — Keeps the beat, guards your time
+  'planner', // 🎯 TRUE — Finds true north, charts the course
+  'scheduler', // ⏰ TEMPO — Keeps the beat, guards your time
   'resource_manager', // 💎 OPAL — Protects the precious, guards resources
 
   // Pillar 4: LIFE DOMAINS — "The Heart"
-  'wellness',        // 💚 PULSE — Monitors your pulse, guards health
-  'relationships',   // 🤝 EMBER — Keeps connections warm and glowing
-  'creative',        // ✨ PRISM — Splits light into possibilities
-  'wealth',          // 💰 MINT — Where value is made and kept
-  'growth',          // 🌱 BLOOM — Helps you flourish and grow
+  'wellness', // 💚 PULSE — Monitors your pulse, guards health
+  'relationships', // 🤝 EMBER — Keeps connections warm and glowing
+  'creative', // ✨ PRISM — Splits light into possibilities
+  'wealth', // 💰 MINT — Where value is made and kept
+  'growth', // 🌱 BLOOM — Helps you flourish and grow
 
   // Pillar 5: META — "The Balance"
-  'ethics',          // ⚖️ VERA — Speaks truth, ensures fairness
-  'integrator',      // 🔗 NEXUS — Connects everything, breaks ties
+  'ethics', // ⚖️ VERA — Speaks truth, ensures fairness
+  'integrator', // 🔗 NEXUS — Connects everything, breaks ties
 
   // Specialized task agents (Phase 9)
   'research_agent',
   'writing_agent',
   'analysis_agent',
+  
+  // Swarm Pods (V8)
+  'production_pod',
+  'growth_pod',
 ]);
 export type AgentId = z.infer<typeof AgentIdSchema>;
 
@@ -80,15 +94,25 @@ export type AgentId = z.infer<typeof AgentIdSchema>;
  */
 export const VOTING_AGENTS: readonly AgentId[] = [
   // Pillar 1: Infrastructure
-  'router', 'executor', 'memory_keeper',
+  'router',
+  'executor',
+  'memory_keeper',
   // Pillar 2: Protection
-  'guardian', 'risk_assessor',
+  'guardian',
+  'risk_assessor',
   // Pillar 3: Strategy
-  'planner', 'scheduler', 'resource_manager',
+  'planner',
+  'scheduler',
+  'resource_manager',
   // Pillar 4: Life Domains
-  'wellness', 'relationships', 'creative', 'wealth', 'growth',
+  'wellness',
+  'relationships',
+  'creative',
+  'wealth',
+  'growth',
   // Pillar 5: Meta
-  'ethics', 'integrator',
+  'ethics',
+  'integrator',
 ] as const;
 
 // ── Veto Authority ───────────────────────────────────────────────────────────
@@ -98,14 +122,14 @@ export const VOTING_AGENTS: readonly AgentId[] = [
  * A veto in a domain immediately fails a vote related to that domain.
  */
 export const VetoDomainSchema = z.enum([
-  'security',           // 🛡️ AEGIS can veto
-  'memory',             // 📚 ECHO can veto
-  'high_risk',          // 📊 SCOUT can veto
-  'time_conflict',      // ⏰ TEMPO can veto
+  'security', // 🛡️ AEGIS can veto
+  'memory', // 📚 ECHO can veto
+  'high_risk', // 📊 SCOUT can veto
+  'time_conflict', // ⏰ TEMPO can veto
   'resource_depletion', // 💎 OPAL can veto
-  'health_harm',        // 💚 PULSE can veto
-  'major_financial',    // 💰 MINT can veto
-  'ethics_violation',   // ⚖️ VERA can veto
+  'health_harm', // 💚 PULSE can veto
+  'major_financial', // 💰 MINT can veto
+  'ethics_violation', // ⚖️ VERA can veto
 ]);
 export type VetoDomain = z.infer<typeof VetoDomainSchema>;
 
@@ -138,7 +162,12 @@ export const PILLAR_MEMBERS: Record<CouncilPillar, readonly AgentId[]> = {
 
 // ── Permissions ──────────────────────────────────────────────────────────────
 
-export const PermissionTierSchema = z.enum(['READ_ONLY', 'WRITE_SAFE', 'WRITE_DESTRUCTIVE', 'ADMIN']);
+export const PermissionTierSchema = z.enum([
+  'READ_ONLY',
+  'WRITE_SAFE',
+  'WRITE_DESTRUCTIVE',
+  'ADMIN',
+]);
 export type PermissionTier = z.infer<typeof PermissionTierSchema>;
 
 /** Numeric permission levels for comparison */
@@ -151,7 +180,10 @@ export const PERMISSION_LEVELS: Record<PermissionTier, number> = {
 
 // Message schema
 export const MessageSchema = z.object({
-  id: z.string().uuid().default(() => randomUUID()),
+  id: z
+    .string()
+    .uuid()
+    .default(() => randomUUID()),
   content: z.string(),
   source: TrustLevelSchema,
   timestamp: z.date().default(() => new Date()),
@@ -161,7 +193,10 @@ export type Message = z.infer<typeof MessageSchema>;
 
 // AuditEvent schema
 export const AuditEventSchema = z.object({
-  id: z.string().uuid().default(() => randomUUID()),
+  id: z
+    .string()
+    .uuid()
+    .default(() => randomUUID()),
   timestamp: z.date().default(() => new Date()),
   action: z.string(),
   actor: z.string(),
@@ -174,9 +209,20 @@ export type AuditEvent = z.infer<typeof AuditEventSchema>;
 
 // SecurityEvent schema
 export const SecurityEventSchema = z.object({
-  id: z.string().uuid().default(() => randomUUID()),
+  id: z
+    .string()
+    .uuid()
+    .default(() => randomUUID()),
   timestamp: z.date().default(() => new Date()),
-  eventType: z.enum(['injection_detected', 'trust_violation', 'unauthorized_access', 'chain_tamper', 'constitutional_violation', 'auth_missing', 'auth_failed']),
+  eventType: z.enum([
+    'injection_detected',
+    'trust_violation',
+    'unauthorized_access',
+    'chain_tamper',
+    'constitutional_violation',
+    'auth_missing',
+    'auth_failed',
+  ]),
   severity: z.enum(['low', 'medium', 'high', 'critical']),
   source: z.string(),
   details: z.record(z.unknown()),
@@ -199,11 +245,13 @@ export type Config = z.infer<typeof ConfigSchema>;
 // SanitizeResult schema
 export const SanitizeResultSchema = z.object({
   safe: z.boolean(),
-  threats: z.array(z.object({
-    pattern: z.string(),
-    category: z.string(),
-    severity: z.string(),
-  })),
+  threats: z.array(
+    z.object({
+      pattern: z.string(),
+      category: z.string(),
+      severity: z.string(),
+    }),
+  ),
   sanitizedContent: z.string(),
   riskScore: z.number(),
 });
@@ -211,7 +259,14 @@ export type SanitizeResult = z.infer<typeof SanitizeResultSchema>;
 
 // ── Memory ───────────────────────────────────────────────────────────────────
 
-export const MemoryTypeSchema = z.enum(['FACT', 'PREFERENCE', 'PATTERN', 'CONTEXT', 'DECISION', 'QUARANTINE']);
+export const MemoryTypeSchema = z.enum([
+  'FACT',
+  'PREFERENCE',
+  'PATTERN',
+  'CONTEXT',
+  'DECISION',
+  'QUARANTINE',
+]);
 export type MemoryType = z.infer<typeof MemoryTypeSchema>;
 
 export const MemoryPartitionSchema = z.enum(['PUBLIC', 'INTERNAL', 'SENSITIVE']);
@@ -257,19 +312,25 @@ export const VoteSchema = z.object({
   description: z.string(),
   threshold: VoteThresholdSchema,
   deadline: z.string(),
-  votes: z.record(z.object({
-    agent: AgentIdSchema,
-    vote: VoteOptionSchema,
-    reasoning: z.string(),
-    timestamp: z.string(),
-  })),
+  created_at: z.string().optional(),
+  eligible_voters: z.array(AgentIdSchema).optional(),
+  votes: z.record(
+    z.object({
+      agent: AgentIdSchema,
+      vote: VoteOptionSchema,
+      reasoning: z.string(),
+      timestamp: z.string(),
+    }),
+  ),
   status: VoteStatusSchema,
-  result: z.object({
-    approve: z.number(),
-    reject: z.number(),
-    abstain: z.number(),
-    threshold_met: z.boolean(),
-  }).optional(),
+  result: z
+    .object({
+      approve: z.number(),
+      reject: z.number(),
+      abstain: z.number(),
+      threshold_met: z.boolean(),
+    })
+    .optional(),
 });
 export type Vote = z.infer<typeof VoteSchema>;
 
@@ -342,7 +403,7 @@ export interface ArbiterInterface {
   evaluateAction(
     action: string,
     context: Record<string, unknown>,
-    agentId?: string
+    agentId?: string,
   ): { allowed: boolean; violations: string[]; ruling_id: string; constitutional_status: string };
   start(): void;
   stop(): void;
@@ -375,11 +436,13 @@ export const ToolDefinitionSchema = z.object({
   allowed_agents: z.array(AgentIdSchema),
   timeout_ms: z.number(),
   sandboxed: z.boolean(),
-  parameters: z.record(z.object({
-    type: z.string(),
-    required: z.boolean(),
-    description: z.string(),
-  })),
+  parameters: z.record(
+    z.object({
+      type: z.string(),
+      required: z.boolean(),
+      description: z.string(),
+    }),
+  ),
 });
 export type ToolDefinition = z.infer<typeof ToolDefinitionSchema>;
 
@@ -500,11 +563,13 @@ export const ToolCapabilitySchema = z.object({
   description: z.string(),
   timeout_ms: z.number(),
   sandboxed: z.boolean(),
-  parameters: z.record(z.object({
-    type: z.string(),
-    required: z.boolean(),
-    description: z.string(),
-  })),
+  parameters: z.record(
+    z.object({
+      type: z.string(),
+      required: z.boolean(),
+      description: z.string(),
+    }),
+  ),
   handler: z.string().optional(), // Reference to handler function
 });
 export type ToolCapability = z.infer<typeof ToolCapabilitySchema>;

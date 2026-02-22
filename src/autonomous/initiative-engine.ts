@@ -483,6 +483,7 @@ function discoverImprovementInitiatives(_projectPath: string): Initiative[] {
   initiatives.push({
     id: `skill-${Date.now()}`,
     category: 'IMPROVEMENTS',
+    kind: 'SKILL_CRYSTALLIZATION',
     title: 'Create new skill for common pattern',
     description: 'Identify frequently repeated operations that could become a skill.',
     rationale: 'Skills automate common workflows and reduce errors.',

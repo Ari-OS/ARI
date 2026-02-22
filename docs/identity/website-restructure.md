@@ -1,22 +1,29 @@
 # prycehedrick.com Website Restructure
 
-This document outlines the professional structure and content updates for `prycehedrick.com`, positioning you strictly as an Enterprise IT Engineer, AI Systems Architect, and the Founder of Pryceless Solutions.
+This document outlines the professional structure and content updates for `prycehedrick.com`, adopting the 0xPryce "build in public" ecosystem model.
 
 ## 1. Global Brand Positioning
 
-- **Hero Section:** "Pryce Hedrick — Engineering the intersection of enterprise infrastructure and autonomous AI."
+- **Hero Section:** "0xPryce — Building Intelligent Systems in Public."
 - **Primary Call to Action:** "Explore ARI (OS)" (Linking to the `/ari` page or GitHub)
 - **Secondary Call to Action:** "Pryceless Solutions Consulting" (Linking to `/consulting`)
 
-## 2. Site Architecture (Professional Hub)
+## 2. Site Architecture (Branded House Hub)
 
 ### `/` (Landing Page)
 
-- **Introduction:** Clean, minimalist introduction highlighting your dual expertise: Enterprise IT Infrastructure and Advanced AI Systems Architecture.
-- **2-Column Layout or Clean Grid:**
+- **Introduction:** Clean, minimalist introduction highlighting the 0xPryce builder identity and live-streaming ecosystem.
+- **3-Column Layout or Clean Grid:**
+  - **The Build (Stream):** Live streams, VODs, and build logs of ARI (Links to `/build`)
   - **ARI (Open Source):** The Technical Flagship (Links to `/ari`)
   - **Pryceless Solutions:** Business & Consulting entity (Links to `/consulting`)
-- **Experience Highlights:** Brief mention of your day-to-day enterprise scale operations to build immediate credibility.
+
+### `/build` (The Builder/Streamer Brand)
+
+- **Focus:** The "0xPryce" streaming persona.
+- Stream schedule, YouTube VODs of building ARI.
+- Architecture deep-dives and transparent revenue/failure logs.
+- Link to the "0xPryce Builders" Discord community.
 
 ### `/ari` (Technical Showcase)
 
@@ -27,13 +34,13 @@ This document outlines the professional structure and content updates for `pryce
 
 ### `/consulting` (Pryceless Solutions)
 
-- Professional B2B consulting page.
-- **Focus:** Custom AI system integrations, automated operational pipelines, and secure local-first agent deployments.
+- Professional B2B consulting page serving as the backend monetization engine.
+- **Focus:** Custom AI system implementations for enterprise viewers who watch the stream.
 - **Target Audience:** Businesses looking to integrate AI without sacrificing data privacy or security.
 - Professional intake form for enterprise clients ($750 - $3,500+ projects).
 
 ## 3. SEO & Meta Tags
 
-- **Title:** Pryce Hedrick | AI Systems Architect & Enterprise IT Engineer
-- **Description:** Pryce Hedrick is an AI Systems Architect and Enterprise IT Engineer. Founder of Pryceless Solutions and creator of the ARI autonomous operating system.
-- **Keywords:** AI Systems Architect, Enterprise IT, ARI OS, Pryceless Solutions, Autonomous Agents, TypeScript, Local AI, Security Engineering
+- **Title:** 0xPryce | Building Intelligent Systems in Public
+- **Description:** 0xPryce is the builder identity of Pryce Hedrick, streaming the development of ARI (Autonomous AI OS) and founder of Pryceless Solutions consulting.
+- **Keywords:** 0xPryce, AI Systems Architect, Enterprise IT, ARI OS, Pryceless Solutions, Autonomous Agents, TypeScript, Local AI, Build in Public

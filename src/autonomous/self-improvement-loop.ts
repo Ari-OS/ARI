@@ -26,7 +26,7 @@ import type { CouncilInterface } from '../kernel/types.js';
 import type { BudgetTracker } from './budget-tracker.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 
 // =============================================================================
 // TYPES
@@ -109,8 +109,11 @@ export class SelfImprovementLoop {
     this.decisionJournal = options.decisionJournal ?? null;
     this.council = options.council ?? null;
     this.budgetTracker = options.budgetTracker ?? null;
-    this.persistPath = options.persistPath ??
-      path.join(homedir(), '.ari', 'self-improvement-state.json');
+    this.persistPath = options.persistPath ?? (
+      process.env.NODE_ENV === 'test'
+        ? path.join(tmpdir(), `self-improvement-state-${Date.now()}.json`)
+        : path.join(homedir(), '.ari', 'self-improvement-state.json')
+    );
 
     this.config = {
       governanceEnabled: true,

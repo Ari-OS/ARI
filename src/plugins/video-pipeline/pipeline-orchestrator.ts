@@ -29,22 +29,25 @@ const log = createLogger('video-pipeline-orchestrator');
 
 // ─── Project persistence ──────────────────────────────────────────────────────
 
-const PROJECTS_DIR = path.join(homedir(), '.ari', 'video-projects');
+function getProjectsDir(): string {
+  return path.join(homedir(), '.ari', 'video-projects');
+}
 
 function ensureProjectsDir(): void {
-  if (!existsSync(PROJECTS_DIR)) {
-    mkdirSync(PROJECTS_DIR, { recursive: true });
+  const dir = getProjectsDir();
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
   }
 }
 
 function saveProject(project: VideoProject): void {
   ensureProjectsDir();
-  const filePath = path.join(PROJECTS_DIR, `${project.id}.json`);
+  const filePath = path.join(getProjectsDir(), `${project.id}.json`);
   writeFileSync(filePath, JSON.stringify(project, null, 2), 'utf-8');
 }
 
 function loadProject(id: string): VideoProject | null {
-  const filePath = path.join(PROJECTS_DIR, `${id}.json`);
+  const filePath = path.join(getProjectsDir(), `${id}.json`);
   if (!existsSync(filePath)) return null;
   const raw = readFileSync(filePath, 'utf-8');
   return JSON.parse(raw) as VideoProject;
@@ -52,9 +55,10 @@ function loadProject(id: string): VideoProject | null {
 
 function listProjectFiles(): string[] {
   ensureProjectsDir();
-  return readdirSync(PROJECTS_DIR)
+  const dir = getProjectsDir();
+  return readdirSync(dir)
     .filter((f: string) => f.endsWith('.json'))
-    .map((f: string) => path.join(PROJECTS_DIR, f));
+    .map((f: string) => path.join(dir, f));
 }
 
 // ─── OrchestratorAdapter (duck-typed) ────────────────────────────────────────

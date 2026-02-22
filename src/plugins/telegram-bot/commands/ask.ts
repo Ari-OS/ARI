@@ -32,30 +32,53 @@ export async function handleAsk(
   try {
     await ctx.replyWithChatAction('typing');
 
-    let response: string;
+    let responseContent: string;
+    let reasoningBlock = '';
 
     if (sessionManager && chatId) {
       // Conversational mode — pass full session history
       const messages = sessionManager.addUserMessage(chatId, query);
       const systemPrompt = await sessionManager.getSystemPrompt();
 
-      response = await orchestrator.chat(
-        messages.map((m) => ({ role: m.role, content: m.content })),
+      const lastMessage = messages[messages.length - 1];
+      const aiResponse = await orchestrator.execute({
+        content: lastMessage?.content ?? '',
+        category: 'chat',
+        agent: 'core',
+        trustLevel: 'system',
+        priority: 'STANDARD',
+        enableCaching: true,
+        securitySensitive: false,
         systemPrompt,
-        'core',
-      );
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      });
+
+      responseContent = aiResponse.content;
+      const reasoning1 = (aiResponse as Record<string, unknown>).reasoning as string | undefined;
+      reasoningBlock = reasoning1 ? `\n\n[Thought Process: ${reasoning1}]` : '';
 
       // Record ARI's response in session
-      sessionManager.addAssistantMessage(chatId, response);
+      sessionManager.addAssistantMessage(chatId, responseContent);
     } else {
       // Fallback — stateless query
-      response = await orchestrator.query(query, 'core');
+      const aiResponse = await orchestrator.execute({
+        content: query,
+        category: 'query',
+        agent: 'core',
+        trustLevel: 'system',
+        priority: 'STANDARD',
+        enableCaching: true,
+        securitySensitive: false,
+      });
+      responseContent = aiResponse.content;
+      const reasoning1 = (aiResponse as Record<string, unknown>).reasoning as string | undefined;
+      reasoningBlock = reasoning1 ? `\n\n[Thought Process: ${reasoning1}]` : '';
     }
 
     // Humanize: strip AI-speak before formatting
-    const humanized = humanizeQuick(response || 'No response generated.');
+    const humanized = humanizeQuick(responseContent || 'No response generated.');
     // Convert markdown → Telegram HTML and split at 4096-char limit
-    const formatted = formatForTelegram(humanized);
+    const formatted = formatForTelegram(humanized + reasoningBlock);
     const chunks = splitTelegramMessage(formatted);
 
     // Send all chunks; attach 👍/👎 feedback buttons to the last one

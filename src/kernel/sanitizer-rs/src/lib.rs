@@ -1,4 +1,4 @@
-use aho_corasick::{AhoCorasick, MatchKind};
+use regex::{RegexSet, RegexBuilder};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
@@ -18,7 +18,7 @@ pub struct SanitizeResult {
 
 #[wasm_bindgen]
 pub struct Sanitizer {
-    ac: AhoCorasick,
+    regex_set: RegexSet,
     patterns: Vec<Threat>,
 }
 
@@ -29,18 +29,18 @@ impl Sanitizer {
         let patterns: Vec<Threat> = serde_json::from_str(patterns_json)
             .map_err(|e| JsValue::from_str(&format!("Failed to parse patterns: {}", e)))?;
 
-        let mut ac_patterns = Vec::new();
+        let mut regex_strs = Vec::new();
         for p in &patterns {
-            ac_patterns.push(p.pattern.clone());
+            regex_strs.push(p.pattern.clone());
         }
 
-        let ac = AhoCorasick::builder()
-            .ascii_case_insensitive(true)
-            .match_kind(MatchKind::LeftmostFirst)
-            .build(&ac_patterns)
-            .map_err(|e| JsValue::from_str(&format!("Failed to build AhoCorasick: {}", e)))?;
+        let regex_set = regex::RegexSetBuilder::new(&regex_strs)
+            .case_insensitive(true)
+            .size_limit(10 * (1 << 20))
+            .build()
+            .map_err(|e| JsValue::from_str(&format!("Failed to compile regex set: {}", e)))?;
 
-        Ok(Sanitizer { ac, patterns })
+        Ok(Sanitizer { regex_set, patterns })
     }
 
     #[wasm_bindgen]
@@ -48,8 +48,9 @@ impl Sanitizer {
         let mut threats = Vec::new();
         let mut risk_score = 0.0;
 
-        for mat in self.ac.find_iter(content) {
-            let matched_pattern = &self.patterns[mat.pattern()];
+        let matches = self.regex_set.matches(content);
+        for i in matches.into_iter() {
+            let matched_pattern = &self.patterns[i];
             threats.push(matched_pattern.clone());
 
             let weight = match matched_pattern.severity.as_str() {

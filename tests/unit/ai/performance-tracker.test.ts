@@ -161,7 +161,7 @@ describe('PerformanceTracker', () => {
       expect(stats.categories).toHaveLength(0);
     });
 
-    it('should aggregate across categories for a model', () => {
+    it('should aggregate across categories for a model', async () => {
       const categories = ['chat', 'analysis', 'code'];
       for (const cat of categories) {
         eventBus.emit('llm:request_complete', {
@@ -177,6 +177,8 @@ describe('PerformanceTracker', () => {
         });
       }
 
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       const stats = tracker.getPerformanceStats('claude-sonnet-4');
       expect(stats.totalCalls).toBe(3);
       expect(stats.categories).toHaveLength(3);
@@ -185,7 +187,7 @@ describe('PerformanceTracker', () => {
   });
 
   describe('Top Performers', () => {
-    it('should rank models by weighted score', () => {
+    it('should rank models by weighted score', async () => {
       // Fast, cheap, reliable haiku
       for (let i = 0; i < 6; i++) {
         eventBus.emit('llm:request_complete', {
@@ -213,6 +215,8 @@ describe('PerformanceTracker', () => {
           success: true,
         });
       }
+
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       const top = tracker.getTopPerformers(3);
       expect(top).toHaveLength(2);

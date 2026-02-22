@@ -3,12 +3,8 @@ import { createLogger } from './logger.js';
 
 const log = createLogger('event-bus');
 
-/**
- * EventMap interface defining event name to payload mappings.
- * The EventBus is the ONLY coupling between kernel and system/agent layers.
- */
+// EventMap remains the same...
 export interface EventMap {
-  // ── Kernel events ──────────────────────────────────────────────────────
   'message:received': Message;
   'message:accepted': Message;
   'message:processed': Message;
@@ -25,10 +21,8 @@ export interface EventMap {
   'system:halted': { authority: string; reason: string; timestamp: Date };
   'system:resumed': { authority: string; timestamp: Date };
 
-  // ── System events ──────────────────────────────────────────────────────
   'system:routed': { messageId: string; contextId?: string; route: string; timestamp: Date };
 
-  // ── Agent events ───────────────────────────────────────────────────────
   'security:alert': { type: string; source: string; data: Record<string, unknown> };
   'agent:started': { agent: AgentId; timestamp: Date };
   'agent:stopped': { agent: AgentId; reason: string };
@@ -37,7 +31,6 @@ export interface EventMap {
   'memory:stored': { memoryId: string; type: string; partition: string; agent: AgentId };
   'memory:quarantined': { memoryId: string; reason: string; agent: AgentId };
 
-  // ── Governance events ──────────────────────────────────────────────────
   'vote:started': { voteId: string; topic: string; threshold: string; deadline: string };
   'vote:cast': { voteId: string; agent: AgentId; option: string };
   'vote:completed': { voteId: string; status: string; result?: Record<string, unknown> };
@@ -46,7 +39,6 @@ export interface EventMap {
   'arbiter:ruling': { ruleId: string; type: string; decision: string };
   'overseer:gate': { gateId: string; passed: boolean; reason: string };
 
-  // ── PolicyEngine events (Separation of Powers) ───────────────────────────
   'permission:granted': { requestId: string; toolId: string; agentId: AgentId; tokenId: string; autoApproved: boolean };
   'permission:denied': { requestId: string; toolId: string; agentId: AgentId; reason: string; violations: string[] };
   'permission:approval_required': { requestId: string; toolId: string; agentId: AgentId; parameters: Record<string, unknown>; permissionTier: string };
@@ -54,224 +46,77 @@ export interface EventMap {
   'permission:rejected': { requestId: string; toolId: string; agentId: AgentId; rejector: AgentId; reason: string };
   'permission:expired': { requestId: string; toolId: string; agentId: AgentId };
 
-  // ── ToolRegistry events ──────────────────────────────────────────────────
   'tool:registered': { toolId: string; toolName: string };
   'tool:unregistered': { toolId: string };
 
-  // ── Session events ─────────────────────────────────────────────────────
   'session:started': { sessionId: string; channel: string; senderId: string; groupId?: string; trustLevel: TrustLevel; startedAt: Date };
   'session:ended': { sessionId: string; reason: string; endedAt: Date };
   'session:activity': { sessionId: string; timestamp: Date };
 
-  // ── Tool streaming events ──────────────────────────────────────────────
   'tool:start': { callId: string; toolId: string; toolName: string; agent: AgentId; sessionId?: string; parameters: Record<string, unknown>; timestamp: Date };
   'tool:update': { callId: string; toolId: string; progress?: number; status: string; message?: string; timestamp: Date };
   'tool:end': { callId: string; toolId: string; success: boolean; result?: unknown; error?: string; duration: number; timestamp: Date };
 
-  // ── Channel events ─────────────────────────────────────────────────────
   'channel:connected': { channelId: string; channelName: string; connectedAt: Date };
   'channel:disconnected': { channelId: string; channelName: string; reason: string; disconnectedAt: Date };
   'channel:message:inbound': { channelId: string; messageId: string; senderId: string; content: string; timestamp: Date };
   'channel:message:outbound': { channelId: string; messageId: string; recipientId: string; content: string; timestamp: Date };
 
-  // ── Scheduler events ─────────────────────────────────────────────────────
   'scheduler:task_run': { taskId: string; taskName: string; startedAt: Date; runId?: string };
   'scheduler:task_complete': { taskId: string; taskName: string; duration: number; success: boolean; error?: string; runId?: string; triggeredBy?: 'scheduler' | 'manual' | 'api' | 'subagent' };
   'scheduler:daily_reset': { date: string; previousDate: string };
 
-  // ── Knowledge events ─────────────────────────────────────────────────────
   'knowledge:indexed': { documentCount: number; duration: number };
   'knowledge:searched': { query: string; resultCount: number };
 
-  // ── Subagent events ──────────────────────────────────────────────────────
   'subagent:spawned': { taskId: string; agentId: AgentId; worktree: string };
   'subagent:progress': { taskId: string; progress: number; message: string };
   'subagent:completed': { taskId: string; success: boolean; result?: unknown };
 
-  // ── Context events ───────────────────────────────────────────────────────
   'context:loaded': { path: string; depth: number; skills: string[] };
 
-  // ── Alert events (Observability) ────────────────────────────────────────
   'alert:created': { id: string; severity: string; title: string; message: string; source: string };
   'alert:acknowledged': { id: string; acknowledgedBy: string; acknowledgedAt: string };
   'alert:resolved': { id: string; resolvedBy: string; resolvedAt: string };
 
-  // ── Audit log event (for logging) ───────────────────────────────────────
   'audit:log': { action: string; agent: string; trustLevel: TrustLevel; details: Record<string, unknown> };
 
-  // ── Cognition events (used by DecisionJournal for framework attribution) ──
-  'cognition:belief_updated': {
-    hypothesis: string;
-    priorProbability: number;
-    posteriorProbability: number;
-    shift: number;
-    timestamp: string;
-  };
-  'cognition:expected_value_calculated': {
-    decision: string;
-    expectedValue: number;
-    recommendation: string;
-    timestamp: string;
-  };
-  'cognition:kelly_calculated': {
-    recommendedFraction: number;
-    strategy: string;
-    edge: number;
-    timestamp: string;
-  };
-  'cognition:leverage_point_identified': {
-    system: string;
-    level: number;
-    effectiveness: string;
-    timestamp: string;
-  };
-  'cognition:antifragility_assessed': {
-    item: string;
-    category: string;
-    score: number;
-    timestamp: string;
-  };
-  'cognition:decision_tree_evaluated': {
-    rootId: string;
-    expectedValue: number;
-    optimalPath: string[];
-    timestamp: string;
-  };
-  'cognition:bias_detected': {
-    agent: string;
-    biases: Array<{ type: string; severity: number }>;
-    reasoning: string;
-    timestamp: string;
-  };
-  'cognition:emotional_risk': {
-    riskScore: number;
-    state: { valence: number; arousal: number; dominance: number };
-    emotions: string[];
-    timestamp: string;
-  };
-  'cognition:discipline_check': {
-    agent: string;
-    decision: string;
-    passed: boolean;
-    overallScore: number;
-    violations: string[];
-    timestamp: string;
-  };
-  'cognition:fear_greed_detected': {
-    pattern: string;
-    phase: string;
-    severity: number;
-    recommendation: string;
-    timestamp: string;
-  };
-  'cognition:thought_reframed': {
-    distortions: string[];
-    originalThought: string;
-    reframedThought: string;
-    timestamp: string;
-  };
-  'cognition:reflection_complete': {
-    outcomeId: string;
-    insights: string[];
-    principles: string[];
-    timestamp: string;
-  };
-  'cognition:wisdom_consulted': {
-    query: string;
-    tradition: string;
-    principle: string;
-    timestamp: string;
-  };
-  'cognition:practice_plan_created': {
-    skill: string;
-    currentLevel: number;
-    targetLevel: number;
-    estimatedHours: number;
-    timestamp: string;
-  };
-  'cognition:dichotomy_analyzed': {
-    situation: string;
-    controllableCount: number;
-    uncontrollableCount: number;
-    focusArea: string;
-    timestamp: string;
-  };
-  'cognition:virtue_check': {
-    decision: string;
-    overallAlignment: number;
-    conflicts: string[];
-    timestamp: string;
-  };
+  'cognition:belief_updated': { hypothesis: string; priorProbability: number; posteriorProbability: number; shift: number; timestamp: string; };
+  'cognition:expected_value_calculated': { decision: string; expectedValue: number; recommendation: string; timestamp: string; };
+  'cognition:kelly_calculated': { recommendedFraction: number; strategy: string; edge: number; timestamp: string; };
+  'cognition:leverage_point_identified': { system: string; level: number; effectiveness: string; timestamp: string; };
+  'cognition:antifragility_assessed': { item: string; category: string; score: number; timestamp: string; };
+  'cognition:decision_tree_evaluated': { rootId: string; expectedValue: number; optimalPath: string[]; timestamp: string; };
+  'cognition:bias_detected': { agent: string; biases: Array<{ type: string; severity: number }>; reasoning: string; timestamp: string; };
+  'cognition:emotional_risk': { riskScore: number; state: { valence: number; arousal: number; dominance: number }; emotions: string[]; timestamp: string; };
+  'cognition:discipline_check': { agent: string; decision: string; passed: boolean; overallScore: number; violations: string[]; timestamp: string; };
+  'cognition:fear_greed_detected': { pattern: string; phase: string; severity: number; recommendation: string; timestamp: string; };
+  'cognition:thought_reframed': { distortions: string[]; originalThought: string; reframedThought: string; timestamp: string; };
+  'cognition:reflection_complete': { outcomeId: string; insights: string[]; principles: string[]; timestamp: string; };
+  'cognition:wisdom_consulted': { query: string; tradition: string; principle: string; timestamp: string; };
+  'cognition:practice_plan_created': { skill: string; currentLevel: number; targetLevel: number; estimatedHours: number; timestamp: string; };
+  'cognition:dichotomy_analyzed': { situation: string; controllableCount: number; uncontrollableCount: number; focusArea: string; timestamp: string; };
+  'cognition:virtue_check': { decision: string; overallAlignment: number; conflicts: string[]; timestamp: string; };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // LEARNING LOOP events (Self-Improvement System)
-  // ═══════════════════════════════════════════════════════════════════════
-  'learning:performance_review': {
-    period: string;
-    successRate: number;
-    biasCount: number;
-    insightCount: number;
-    recommendations: string[];
-    timestamp: string;
-  };
-  'learning:gap_analysis': {
-    period: string;
-    gapsFound: number;
-    topGaps: Array<{ domain: string; severity: string }>;
-    sourceSuggestions: number;
-    timestamp: string;
-  };
-  'learning:self_assessment': {
-    period: string;
-    grade: string;
-    improvement: number;
-    trend: string;
-    recommendations: string[];
-    timestamp: string;
-  };
-  'learning:insight_generated': {
-    insightId: string;
-    type: string;
-    description: string;
-    confidence: number;
-    source: string;
-    generalizes: boolean;
-    timestamp: string;
-  };
+  'learning:performance_review': { period: string; successRate: number; biasCount: number; insightCount: number; recommendations: string[]; timestamp: string; };
+  'learning:gap_analysis': { period: string; gapsFound: number; topGaps: Array<{ domain: string; severity: string }>; sourceSuggestions: number; timestamp: string; };
+  'learning:self_assessment': { period: string; grade: string; improvement: number; trend: string; recommendations: string[]; timestamp: string; };
+  'learning:insight_generated': { insightId: string; type: string; description: string; confidence: number; source: string; generalizes: boolean; timestamp: string; };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // HEARTBEAT events (System Health Monitoring)
-  // ═══════════════════════════════════════════════════════════════════════
   'system:heartbeat': { componentId: string; status: string; timestamp: Date; metrics: Record<string, unknown>; latencyMs: number };
   'system:heartbeat_started': { timestamp: Date; componentCount: number };
   'system:heartbeat_stopped': { timestamp: Date };
   'system:heartbeat_failure': { componentId: string; consecutiveFailures: number; timestamp: Date; error: string };
 
-  // ── Cost & Budget events ───────────────────────────────────────────────
   'cost:tracked': { operation: string; cost: number; model: string };
   'cost:budget_warning': { type: string; current: number; budget: number; percentage: number };
   'cost:budget_exceeded': { type: string; current: number; budget: number };
   'budget:daily_reset': { previousUsage: number; profile: string };
   'billing:cycle_started': { cycleStart: string; cycleEnd: string; budget: number };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // VALUE ANALYTICS events (Cost-to-Reward Tracking)
-  // ═══════════════════════════════════════════════════════════════════════
-  'value:day_analyzed': {
-    date: string;
-    score: number;
-    cost: number;
-    efficiency: string;
-    breakdown: string[];
-  };
-  'value:weekly_report': {
-    averageScore: number;
-    totalCost: number;
-    trend: string;
-    recommendations: string[];
-  };
+  'value:day_analyzed': { date: string; score: number; cost: number; efficiency: string; breakdown: string[]; };
+  'value:weekly_report': { averageScore: number; totalCost: number; trend: string; recommendations: string[]; };
 
-  // Value-generating events (tracked for scoring)
   'briefing:morning_delivered': { date: string };
   'briefing:evening_delivered': { date: string };
   'briefing:weekly_delivered': { date: string; weekNumber: number };
@@ -283,192 +128,68 @@ export interface EventMap {
   'pattern:learned': { pattern: string; confidence: number };
   'initiative:executed': { initiativeId: string; title: string; category: string; success: boolean };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // ADAPTIVE LEARNING events (Pattern Recognition)
-  // ═══════════════════════════════════════════════════════════════════════
   'adaptive:weekly_summary': { summary: Record<string, unknown>; recommendations: unknown[] };
   'adaptive:recommendation': { type: string; recommendation: string; confidence: number };
   'adaptive:pattern_applied': { patternId: string; result: 'success' | 'failure' };
   'user:active': { hour: number; date: string };
   'model:selected': { taskType: string; model: string; success: boolean };
-  'notification:response': {
-    category: string;
-    priority: string;
-    response: 'opened' | 'dismissed' | 'ignored';
-  };
+  'notification:response': { category: string; priority: string; response: 'opened' | 'dismissed' | 'ignored'; };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // APPROVAL QUEUE events (Safety Gates)
-  // ═══════════════════════════════════════════════════════════════════════
-  'approval:item_added': { itemId: string; type: string; risk: string; estimatedCost: number };
+  'approval:item_added': { itemId: string; type: string; risk: string; estimatedCost: number; metadata?: Record<string, unknown> };
   'approval:approved': { itemId: string; type: string; approvedBy?: string };
   'approval:rejected': { itemId: string; type: string; reason: string; rejectedBy?: string };
   'approval:expired': { itemId: string; type: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PLAN REVIEW events (Quality Gates)
-  // ═══════════════════════════════════════════════════════════════════════
   'plan:review_started': { planId: string; requiredReviews: string[] };
   'plan:review_approved': { planId: string; approvedAt: Date };
   'plan:review_rejected': { planId: string; reason: string };
   'plan:review_needs_revision': { planId: string; concerns: string[]; tips: string[] };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // SCRATCHPAD events (Temporary Reasoning Space)
-  // ═══════════════════════════════════════════════════════════════════════
   'scratchpad:written': { agent: string; key: string; size: number };
   'scratchpad:deleted': { agent: string; key: string };
   'scratchpad:cleared': { agent: string; count: number };
   'scratchpad:cleanup': { cleaned: number; remaining: number };
 
-  // ── Model Routing events ───────────────────────────────────────────────
   'model:routed': { task: string; model: string; reason: string; estimatedCost?: number };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // E2E TESTING events (Playwright Integration)
-  // ═══════════════════════════════════════════════════════════════════════
   'e2e:scenario_started': { runId: string; scenario: string };
-  'e2e:scenario_complete': {
-    runId: string;
-    scenario: string;
-    passed: boolean;
-    duration: number;
-    error?: string;
-    screenshot?: string;
-  };
-  'e2e:run_complete': {
-    runId: string;
-    passed: number;
-    failed: number;
-    skipped: number;
-    duration: number;
-    consecutiveFailures: number;
-  };
+  'e2e:scenario_complete': { runId: string; scenario: string; passed: boolean; duration: number; error?: string; screenshot?: string; };
+  'e2e:run_complete': { runId: string; passed: number; failed: number; skipped: number; duration: number; consecutiveFailures: number; };
   'e2e:bug_filed': { runId: string; issueUrl: string; issueNumber: number };
   'e2e:skipped': { reason: 'budget_pause' | 'already_running' | 'gateway_down' };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // BUDGET TRACKER events (Enhanced Model Management)
-  // ═══════════════════════════════════════════════════════════════════════
   'budget:warning': { spent: number; remaining: number };
   'budget:critical': { spent: number; remaining: number };
   'budget:pause': { spent: number; budget: number; percentUsed: number };
   'budget:cycle_reset': { previousSpent: number; newBudget: number };
   'budget:update': { status: string; spent: number; remaining: number; percentUsed: number; mode: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // AI ORCHESTRATION events (Unified Pipeline)
-  // ═══════════════════════════════════════════════════════════════════════
-  'ai:request_received': {
-    requestId: string;
-    category: string;
-    complexity: string;
-    classificationScore: number;
-    confidence: number;
-    suggestedChain: string;
-    reasoning: string;
-    agent: string;
-    timestamp: string;
-  };
-  'ai:model_selected': {
-    requestId: string;
-    model: string;
-    valueScore: number;
-    reasoning: string;
-    estimatedCost: number;
-    timestamp: string;
-  };
-  'ai:response_evaluated': {
-    requestId: string;
-    qualityScore: number;
-    escalated: boolean;
-    escalationReason?: string;
-    timestamp: string;
-  };
-  'ai:circuit_breaker_state_changed': {
-    previousState: string;
-    newState: string;
-    failures: number;
-    timestamp: string;
-  };
-  // ═══════════════════════════════════════════════════════════════════════
-  // LLM REQUEST events (Token & Cost Tracking)
-  // ═══════════════════════════════════════════════════════════════════════
+  'ai:request_received': { requestId: string; category: string; complexity: string; classificationScore: number; confidence: number; suggestedChain: string; reasoning: string; agent: string; timestamp: string; };
+  'ai:model_selected': { requestId: string; model: string; valueScore: number; reasoning: string; estimatedCost: number; timestamp: string; };
+  'ai:response_evaluated': { requestId: string; qualityScore: number; escalated: boolean; escalationReason?: string; timestamp: string; };
+  'ai:circuit_breaker_state_changed': { previousState: string; newState: string; failures: number; timestamp: string; };
+
   'llm:request_start': { model: string; estimatedTokens: number };
-  'llm:request_complete': {
-    timestamp: string;
-    model: string;
-    inputTokens: number;
-    outputTokens: number;
-    cost: number;
-    taskType: string;
-    taskCategory?: string;
-    duration: number;
-    success: boolean;
-  };
+  'llm:request_complete': { timestamp: string; model: string; inputTokens: number; outputTokens: number; cost: number; taskType: string; taskCategory?: string; duration: number; success: boolean; };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PHASE 4F events (Adaptive Routing, Budget Projection, Confidence)
-  // ═══════════════════════════════════════════════════════════════════════
-  'ai:model_fallback': {
-    originalModel: string;
-    fallbackModel: string;
-    reason: string;
-    category: string;
-    timestamp: string;
-  };
-  'budget:projection_exceeded': {
-    projected: number;
-    budget: number;
-    burnRate: number;
-    hoursRemaining: number;
-    percentOver: number;
-  };
-  'self_improvement:low_confidence': {
-    initiativeId: string;
-    title: string;
-    confidence: number;
-    threshold: number;
-    reason: string;
-  };
+  'ai:model_fallback': { originalModel: string; fallbackModel: string; reason: string; category: string; timestamp: string; };
+  'budget:projection_exceeded': { projected: number; budget: number; burnRate: number; hoursRemaining: number; percentOver: number; };
+  'self_improvement:low_confidence': { initiativeId: string; title: string; confidence: number; threshold: number; reason: string; };
 
-  // ── Web Navigation events (simplified) ─────────────────────────────────
   'web:navigate': { callId: string; url: string; action: string; agent: AgentId; trustLevel: TrustLevel; timestamp: Date };
   'web:error': { callId: string; url: string; action: string; error: string; timestamp: Date };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PROVIDER LIFECYCLE events (Multi-Model LLM Routing)
-  // ═══════════════════════════════════════════════════════════════════════
   'provider:connected': { providerId: string; models: string[]; latencyMs: number };
   'provider:disconnected': { providerId: string; reason: string };
   'provider:error': { providerId: string; error: string; model: string; retryable: boolean };
   'provider:health_changed': { providerId: string; status: 'healthy' | 'degraded' | 'down' };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // CASCADE ROUTING events (FrugalGPT)
-  // ═══════════════════════════════════════════════════════════════════════
   'cascade:started': { chain: string; queryLength: number };
   'cascade:step_complete': { chain: string; step: number; model: string; quality: number; escalated: boolean; costCents: number };
   'cascade:complete': { chain: string; finalModel: string; totalSteps: number; totalCostCents: number; durationMs: number };
-  'ai:cascade_routing_used': {
-    requestId: string;
-    chainId: string;
-    baseChainId: string;
-    finalModel: string;
-    timeBlock: string;
-    timestamp: string;
-  };
-  'ai:cascade_routing_failed': {
-    requestId: string;
-    chainId: string;
-    error: string;
-    fallingBackToModel: string;
-    timestamp: string;
-  };
+  'ai:cascade_routing_used': { requestId: string; chainId: string; baseChainId: string; finalModel: string; timeBlock: string; timestamp: string; };
+  'ai:cascade_routing_failed': { requestId: string; chainId: string; error: string; fallingBackToModel: string; timestamp: string; };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PLUGIN SYSTEM events
-  // ═══════════════════════════════════════════════════════════════════════
   'plugin:registered': { pluginId: string; name: string; capabilities: string[] };
   'plugin:initialized': { pluginId: string; durationMs: number };
   'plugin:error': { pluginId: string; error: string; fatal: boolean };
@@ -477,31 +198,19 @@ export interface EventMap {
   'plugin:briefing_contributed': { pluginId: string; section: string; type: 'morning' | 'evening' | 'weekly' };
   'plugin:alert_generated': { pluginId: string; severity: 'info' | 'warning' | 'critical'; title: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // CRYPTO PLUGIN events (CoinGecko)
-  // ═══════════════════════════════════════════════════════════════════════
   'crypto:price_fetched': { coins: string[]; source: string; cached: boolean; timestamp: string };
   'crypto:portfolio_updated': { totalValue: number; change24h: number; holdings: number; timestamp: string };
   'crypto:alert_triggered': { coinId: string; type: 'above' | 'below'; price: number; threshold: number; timestamp: string };
   'crypto:snapshot_saved': { totalValue: number; holdings: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // POKEMON TCG PLUGIN events
-  // ═══════════════════════════════════════════════════════════════════════
   'pokemon:card_searched': { query: string; resultCount: number; cached: boolean; timestamp: string };
   'pokemon:collection_updated': { totalCards: number; totalValue: number; timestamp: string };
   'pokemon:alert_triggered': { cardId: string; cardName: string; type: 'above' | 'below'; price: number; threshold: number; timestamp: string };
   'pokemon:snapshot_saved': { totalValue: number; totalCards: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // TTS PLUGIN events (ElevenLabs)
-  // ═══════════════════════════════════════════════════════════════════════
   'tts:speech_generated': { textLength: number; cost: number; cached: boolean; voice: string; timestamp: string };
   'tts:budget_rejected': { textLength: number; estimatedCost: number; dailyCap: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // TELEGRAM BOT PLUGIN events
-  // ═══════════════════════════════════════════════════════════════════════
   'telegram:command_received': { command: string; userId: number; chatId: number; timestamp: string };
   'telegram:message_sent': { chatId: number; type: 'text' | 'voice' | 'photo'; timestamp: string };
   'telegram:auth_rejected': { userId: number; chatId: number; timestamp: string };
@@ -523,51 +232,19 @@ export interface EventMap {
   'telegram:request_approval': { projectId: string; category: string; timestamp: string };
   'telegram:council_vote': { voteId: string; agent: string; option: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // KNOWLEDGE MANAGEMENT events (Cognitive Layer)
-  // ═══════════════════════════════════════════════════════════════════════
   'knowledge:source_fetched': { sourceId: string; contentLength: number; timestamp: string };
   'knowledge:validated': { sourceId: string; contentId: string; passed: boolean; stage: string; stageNumber: number };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // LEARNING LOOP events (Cognitive Layer)
-  // ═══════════════════════════════════════════════════════════════════════
   'learning:review_complete': { grade: string; successRate: number; decisionsCount: number; timestamp: string };
   'learning:gap_identified': { gapCount: number; topGapSeverity: string; timestamp: string };
   'learning:assessment_complete': { grade: string; overallImprovement: number; trend: string; timestamp: string };
   'learning:improvement_measured': { metric: string; previous: number; current: number; change: number };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // VECTOR STORE & KNOWLEDGE events (Master Plan Phase 2)
-  // ═══════════════════════════════════════════════════════════════════════
-  'vector:document_indexed': {
-    documentId: string;
-    contentHash: string;
-    source: string;
-    sourceType: string;
-    domain?: string;
-    chunkIndex: number;
-    chunkTotal: number;
-    timestamp: Date;
-  };
-  'vector:search_complete': {
-    resultCount: number;
-    totalSearched: number;
-    topScore: number;
-    duration: number;
-    filters: {
-      domain?: string;
-      sourceType?: string;
-      tags?: string[];
-    };
-    timestamp: Date;
-  };
+  'vector:document_indexed': { documentId: string; contentHash: string; source: string; sourceType: string; domain?: string; chunkIndex: number; chunkTotal: number; timestamp: Date; };
+  'vector:search_complete': { resultCount: number; totalSearched: number; topScore: number; duration: number; filters: { domain?: string; sourceType?: string; tags?: string[]; }; timestamp: Date; };
   'knowledge:ingested': { sourceType: string; sourceId: string; chunksCreated: number };
   'knowledge:queried': { query: string; resultCount: number; responseGenerated: boolean };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // INVESTMENT INTELLIGENCE events (Master Plan Phase 4)
-  // ═══════════════════════════════════════════════════════════════════════
   'market:snapshot_complete': { timestamp: string; pricesChecked: number; alertsGenerated: number };
   'market:price_alert': { symbol: string; price: number; change: number; threshold: number; context?: string };
   'market:flash_crash': { asset: string; dropPercent: number; previousPrice: number; currentPrice: number };
@@ -579,29 +256,17 @@ export interface EventMap {
   'investment:portfolio_update': { totalValue: number; dailyChange: number };
   'career:new_matches': { count: number; topMatch: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // OPERATIONS events (Master Plan Phase 2/7)
-  // ═══════════════════════════════════════════════════════════════════════
   'ops:backup_complete': { type: string; size: number; duration: number };
   'ops:backup_failed': { type: string; error: string };
   'ops:git_synced': { filesCommitted: number; pushed: boolean };
   'system:health_check': { status: 'healthy' | 'degraded' | 'unhealthy'; failures: string[] };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // MEMORY EVOLUTION events (Master Plan Phase 6)
-  // ═══════════════════════════════════════════════════════════════════════
   'memory:daily_captured': { date: string; entryCount: number };
   'memory:weekly_synthesized': { weekId: string; patternCount: number };
   'memory:promoted_long_term': { entryId: string; confidence: number };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // TELEGRAM TOPICS events (Master Plan Phase 2)
-  // ═══════════════════════════════════════════════════════════════════════
   'telegram:topic_message_sent': { topicName: string; messageId: number; success: boolean };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // CONTENT PIPELINE events (Master Plan Phase 5)
-  // ═══════════════════════════════════════════════════════════════════════
   'content:draft_created': { topicId: string; title: string; platform: string };
   'content:approved': { topicId: string; scheduledFor?: string };
   'content:trend_analyzed': { topicCount: number; topDomains: string[] };
@@ -615,53 +280,31 @@ export interface EventMap {
   'content:feedback_generated': { insightCount: number; timestamp: string };
   'content:engagement_found': { opportunityCount: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // INTELLIGENCE SCANNER events (Master Plan Phase 4)
-  // ═══════════════════════════════════════════════════════════════════════
   'intelligence:scan_started': { scanId: string; startedAt: string };
   'intelligence:scan_complete': { scanId: string; itemsFound: number; topScore: number; duration: number };
   'intelligence:new_item': { id: string; title: string; score: number; domains: string[]; source: string };
   'intelligence:digest_generated': { date: string; sections: number; items: number };
 
-  // ── Life Monitor events ─────────────────────────────────────────────────
   'life_monitor:scan_complete': { alerts: number; critical: number; urgent: number };
   'life_monitor:report_ready': { alertCount: number; critical: number; urgent: number; summary: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // NOTIFICATION INTERACTION events (Telegram Inline Keyboard Callbacks)
-  // ═══════════════════════════════════════════════════════════════════════
   'notification:snoozed': { notificationId: string; snoozeUntil: number };
   'notification:detail_requested': { notificationId: string; action: string; chatId?: number; messageId?: number };
   'notification:saved': { notificationId: string; category?: string; title?: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // APPLE ECOSYSTEM events (Calendar, Reminders, Focus Mode)
-  // ═══════════════════════════════════════════════════════════════════════
   'apple:calendar_polled': { eventCount: number; nextEvent?: string; timestamp: string };
   'apple:reminder_synced': { synced: number; skipped: number; errors: number; timestamp: string };
   'apple:focus_changed': { active: boolean; mode: string | null; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // INTEGRATION events (Weather, News, GitHub)
-  // ═══════════════════════════════════════════════════════════════════════
   'integration:weather_fetched': { location: string; tempF: number; condition: string; timestamp: string };
   'integration:news_fetched': { source: string; itemCount: number; timestamp: string };
   'integration:github_polled': { repo: string; stars: number; openPRs: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // GMAIL events (IMAP Integration)
-  // ═══════════════════════════════════════════════════════════════════════
   'integration:gmail_fetched': { emailCount: number; newCount: number; timestamp: string };
   'integration:gmail_classified': { messageId: string; classification: string; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PERPLEXITY events (AI Research)
-  // ═══════════════════════════════════════════════════════════════════════
   'integration:perplexity_ready': { timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // VIDEO PIPELINE events (Approval Gate)
-  // ═══════════════════════════════════════════════════════════════════════
   'video:approval_requested': { requestId: string; type: string; videoProjectId: string; timestamp: string };
   'video:approval_response': { requestId: string; action: string; feedback?: string };
   'video:stage_started': { projectId: string; stage: string; timestamp: string };
@@ -673,72 +316,47 @@ export interface EventMap {
   'content:video_script_ready': { script: string | string[]; topic: string };
   'market:earnings_analysis_requested': { requestedAt: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // MISSING EVENTS — Phase 0 Bug 6 additions
-  // ═══════════════════════════════════════════════════════════════════════
-
-  // Alert events
   'alert:system_unhealthy': { timestamp: string; components: string[]; severity: string };
 
-  // Backup events (canonical names alongside ops:backup_*)
   'backup:completed': { type: string; path: string; size: number; duration: number };
   'backup:failed': { type: string; error: string; retryable: boolean };
   'backup:pruned': { deletedCount: number; remainingCount: number; freedBytes: number };
 
-  // Investment events
   'investment:analysis_complete': { symbol: string; recommendation: string; confidence: number; timestamp: string };
 
-  // Career events
   'career:weekly_report': { matchCount: number; topMatches: string[]; timestamp: string };
 
-  // Pokemon events
   'pokemon:price_spike': { cardId: string; cardName: string; priceUsd: number; changePercent: number; timestamp: string };
   'pokemon:investment_signal': { cardId: string; cardName: string; signal: 'buy' | 'sell' | 'hold'; confidence: number; timestamp: string };
 
-  // Calendar events
   'calendar:events_fetched': { timestamp: string; eventCount: number; nextEvent: string | null };
   'calendar:reminder': { title: string; startsAt: string; minutesBefore: number };
 
-  // Health check events
   'health:check_complete': { timestamp: string; healthy: boolean; components: Record<string, boolean> };
 
-  // Content events
   'content:rejected': { timestamp: string; draftId: string; reason: string };
 
-  // Project events
   'project:proposed': { timestamp: string; name: string; description: string };
   'project:approved': { timestamp: string; name: string; scaffoldedAt: string };
 
-  // Preference events
   'preference:updated': { timestamp: string; key: string; value: unknown };
   'preference:learned': { timestamp: string; pattern: string; confidence: number };
 
-  // Feedback events (Phase 3 — 👍/👎)
   'feedback:signal': { messageId: string; chatId: number; signal: 'positive' | 'negative'; context?: string; timestamp: string };
 
-  // Feedback tracker events (Phase 12 — Self-Improvement Loop Enhancement)
   'feedback:recorded': { messageId: string; userId: string; positive: boolean; category: string; timestamp: string };
   'feedback:analysis_generated': { period: { start: string; end: string }; totalFeedback: number; positiveRate: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // X (formerly Twitter) events
-  // ═══════════════════════════════════════════════════════════════════════
   'x:cost_tracked': { operation: string; endpoint: string; cost: number; itemCount: number; deduplicated: number; timestamp: string };
   'x:limit_approaching': { percentUsed: number; spent: number; limit: number; level: 'warning' | 'critical'; timestamp: string };
   'x:daily_reset': { previousDate: string; previousSpent: number; newDate: string; timestamp: string };
   'x:request_deduplicated': { operation: string; originalCount: number; deduplicatedCount: number; savedCost: number; timestamp: string };
   'x:operation_skipped': { operation: string; reason: string; priority: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // LANE QUEUE events (Phase 9 — Agent Coordination)
-  // ═══════════════════════════════════════════════════════════════════════
   'queue:enqueued': { id: string; lane: string; priority: number; timestamp: string };
   'queue:completed': { id: string; lane: string; durationMs: number; timestamp: string };
   'queue:failed': { id: string; lane: string; error: string; retries: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // AGENT SPECIALIZATION events (Phase 9 — Agent Coordination)
-  // ═══════════════════════════════════════════════════════════════════════
   'agent:research_started': { query: string; sources: string[]; timestamp: string };
   'agent:research_completed': { query: string; findingsCount: number; confidence: number; timestamp: string };
   'agent:writing_started': { topic: string; format: string; timestamp: string };
@@ -746,22 +364,13 @@ export interface EventMap {
   'agent:analysis_started': { question: string; timestamp: string };
   'agent:analysis_completed': { question: string; dataPoints: number; confidence: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // COORDINATOR events (Phase 9 — Agent Coordination)
-  // ═══════════════════════════════════════════════════════════════════════
   'coordinator:dispatch_started': { taskCount: number; timestamp: string; swarmSize?: number };
   'coordinator:dispatch_completed': { taskCount: number; successCount: number; failedCount: number; durationMs: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // VOICE INTERFACE events (Phase 10 — Voice Pipeline)
-  // ═══════════════════════════════════════════════════════════════════════
   'voice:transcribed': { userId: string; transcript: string; durationMs: number; timestamp: string };
   'voice:response_sent': { userId: string; transcript: string; responseLength: number; hadAudio: boolean; durationMs: number; timestamp: string };
   'voice:error': { userId: string; stage: 'transcription' | 'processing' | 'tts'; error: string; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // SOUL EVOLUTION events (Phase 11 — Autonomous Growth)
-  // ═══════════════════════════════════════════════════════════════════════
   'soul:proposal_created': { proposalId: string; dimension: string; currentValue: string; proposedValue: string; reasoning: string; timestamp: string };
   'soul:proposal_approved': { proposalId: string; dimension: string; approvedBy: string; timestamp: string };
   'soul:proposal_rejected': { proposalId: string; dimension: string; reason: string; timestamp: string };
@@ -772,65 +381,35 @@ export interface EventMap {
   'soul:approve_request': { proposalId: string };
   'soul:reject_request': { proposalId: string; reason?: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // CONTENT QUALITY events (Phase 26 — Content Engine)
-  // ═══════════════════════════════════════════════════════════════════════
   'content:quality_scored': { contentId: string; score: number; dimensions: Record<string, number>; timestamp: string };
   'content:humanized': { contentId: string; originalLength: number; humanizedLength: number; patternsRemoved: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // SECURITY HARDENING events (Phase 14)
-  // ═══════════════════════════════════════════════════════════════════════
   'security:anomaly_detected': { detectorId: string; anomalyType: string; severity: number; details: Record<string, unknown>; timestamp: string };
   'security:api_key_warning': { keyId: string; issue: string; severity: 'info' | 'warning' | 'critical'; timestamp: string };
   'security:sanitizer_blocked': { pattern: string; category: string; input: string; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // DEPENDENCY MONITOR events (Phase 14)
-  // ═══════════════════════════════════════════════════════════════════════
   'ops:dependency_check': { packageCount: number; outdatedCount: number; vulnerableCount: number; timestamp: string };
   'ops:vulnerability_found': { packageName: string; severity: string; advisoryUrl: string; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // SOCIAL GROWTH events (Phase 22)
-  // ═══════════════════════════════════════════════════════════════════════
   'social:growth_report': { platform: string; followers: number; growth: number; engagement: number; timestamp: string };
   'social:milestone_reached': { platform: string; metric: string; value: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // FATHOM events (Phase 20)
-  // ═══════════════════════════════════════════════════════════════════════
   'fathom:meeting_processed': { meetingId: string; actionItemCount: number; duration: number; timestamp: string };
   'fathom:action_item_created': { id: string; title: string; assignee: string; dueDate: string; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // HEALTH JOURNAL events (Phase 21)
-  // ═══════════════════════════════════════════════════════════════════════
   'health:meal_logged': { mealId: string; description: string; calories: number; timestamp: string };
   'health:nutrition_summary': { date: string; totalCalories: number; macros: Record<string, number>; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // ENTITY EXTRACTION events (Phase 28)
-  // ═══════════════════════════════════════════════════════════════════════
   'entity:extracted': { sourceId: string; entityCount: number; types: string[]; timestamp: string };
   'entity:linked': { entityId: string; linkedTo: string; relationship: string; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // GOVERNANCE COUNCIL events (Phase 13)
-  // ═══════════════════════════════════════════════════════════════════════
   'governance:council_convened': { councilId: string; memberCount: number; topic: string; timestamp: string };
   'governance:threshold_met': { voteId: string; threshold: string; result: string; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PHASE 15 events (Progressive Disclosure Briefings)
-  // ═══════════════════════════════════════════════════════════════════════
   'session:state_saved': { timestamp: string };
   'session:state_restored': { lastActive: string; pendingItems: number };
   'autonomy:level_changed': { category: string; previous: string; current: string; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PHASE 16-19 events (Apple Deep, Email, Stripe, CRM)
-  // ═══════════════════════════════════════════════════════════════════════
   'email:triaged': { emailId: string; category: string; priority: string; timestamp: string };
   'email:action_required': { emailId: string; subject: string; suggestedAction: string; timestamp: string };
   'stripe:payment_received': { amount: number; currency: string; customer: string; timestamp: string };
@@ -840,22 +419,13 @@ export interface EventMap {
   'crm:interaction_logged': { contactId: string; type: string; summary: string; timestamp: string };
   'crm:follow_up_needed': { contactId: string; name: string; daysSinceContact: number; urgency: string; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PHASE 27 events (Video Generation Alternatives)
-  // ═══════════════════════════════════════════════════════════════════════
   'video:broll_generated': { id: string; prompt: string; duration: number; style: string; provider: string; timestamp: string };
   'video:thumbnail_fallback_used': { url: string; provider: string; prompt: string; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PHASE 28 events (Knowledge Base System)
-  // ═══════════════════════════════════════════════════════════════════════
   'knowledge:kb_ingested': { id: string; sourceType: string; title: string; tags: string[]; timestamp: string };
   'knowledge:kb_searched': { query: string; resultCount: number; timestamp: string };
   'knowledge:kb_accessed': { id: string; accessCount: number; timestamp: string };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // PHASE 29 events (Human 3.0 — Mind/Body/Spirit/Vocation Tracking)
-  // ═══════════════════════════════════════════════════════════════════════
   'human:entry_logged': { id: string; quadrant: string; activity: string; quality: number; timestamp: string };
   'human:weekly_review': { period: { start: string; end: string }; overallScore: number; timestamp: string };
   'human:balance_alert': { leastAttended: string; score: number; recommendation: string; timestamp: string };
@@ -863,43 +433,33 @@ export interface EventMap {
   'life_review:delivered': { channel: string; timestamp: string };
 }
 
+interface QueuedEvent {
+  event: keyof EventMap;
+  payload: unknown;
+  priority: number;
+}
+
 /**
  * Typed pub/sub event system for ARI
+ * Asynchronous execution with priority queues (Security=Immediate, Logging=Batched).
  */
 export class EventBus {
   private listeners: Map<string, Set<(payload: unknown) => void>> = new Map();
   private handlerErrors: number = 0;
-  private handlerTimeoutMs: number = 30_000; // 30 second default timeout
+  private handlerTimeoutMs: number = 30_000;
+  
+  private queue: QueuedEvent[] = [];
+  private processing: boolean = false;
 
-  /**
-   * Subscribe to an event
-   * @param event Event name
-   * @param handler Event handler
-   * @returns Unsubscribe function
-   */
-  on<K extends keyof EventMap>(
-    event: K,
-    handler: (payload: EventMap[K]) => void
-  ): () => void {
+  on<K extends keyof EventMap>(event: K, handler: (payload: EventMap[K]) => void): () => void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
-
     this.listeners.get(event)!.add(handler as (payload: unknown) => void);
-
-    // Return unsubscribe function
     return () => this.off(event, handler);
   }
 
-  /**
-   * Unsubscribe from an event
-   * @param event Event name
-   * @param handler Event handler to remove
-   */
-  off<K extends keyof EventMap>(
-    event: K,
-    handler: (payload: EventMap[K]) => void
-  ): void {
+  off<K extends keyof EventMap>(event: K, handler: (payload: EventMap[K]) => void): void {
     const handlers = this.listeners.get(event);
     if (handlers) {
       handlers.delete(handler as (payload: unknown) => void);
@@ -910,84 +470,78 @@ export class EventBus {
   }
 
   /**
-   * Emit an event to all subscribers
-   * @param event Event name
-   * @param payload Event payload
+   * Emit an event to all subscribers asynchronously based on priority
    */
   emit<K extends keyof EventMap>(event: K, payload: EventMap[K]): void {
-    const handlers = this.listeners.get(event);
-    if (!handlers) return;
-
-    // Call each handler, wrapping in try/catch to prevent one handler from breaking others
-    for (const handler of handlers) {
-      try {
-        handler(payload);
-      } catch (error) {
-        this.handlerErrors++;
-        const errorMsg = error instanceof Error ? error.message : String(error);
-
-        // Log error
-        log.error({ event: String(event), err: error }, 'Error in event handler');
-
-        // Emit error event (guard against recursion from handler_error handlers)
-        if (event !== 'system:handler_error' && event !== 'audit:log') {
-          this.emit('system:handler_error', {
-            event: String(event),
-            error: errorMsg,
-            handler: handler.name || 'anonymous',
-            timestamp: new Date(),
-          });
-        }
-      }
+    const isSecurity = String(event).startsWith('security:');
+    const isAudit = String(event).startsWith('audit:');
+    
+    // Priority: Security = 0 (Immediate), Audit = 2 (Batched/Low), Normal = 1
+    const priority = isSecurity ? 0 : (isAudit ? 2 : 1);
+    
+    this.queue.push({ event, payload, priority });
+    this.queue.sort((a, b) => a.priority - b.priority); // Lower number = higher priority
+    
+    if (!this.processing) {
+      void this.processQueue();
     }
   }
 
-  /**
-   * Subscribe to an event for a single occurrence
-   * @param event Event name
-   * @param handler Event handler
-   * @returns Unsubscribe function
-   */
-  once<K extends keyof EventMap>(
-    event: K,
-    handler: (payload: EventMap[K]) => void
-  ): () => void {
+  private async processQueue() {
+    this.processing = true;
+    while (this.queue.length > 0) {
+      const { event, payload } = this.queue.shift()!;
+      const handlers = this.listeners.get(event as string);
+      
+      if (!handlers) continue;
+
+      // Execute handlers asynchronously to prevent blocking the thread
+      for (const handler of handlers) {
+        try {
+          await Promise.resolve(handler(payload));
+        } catch (error) {
+          this.handlerErrors++;
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          log.error({ event: String(event), err: error }, 'Error in event handler');
+          
+          if (event !== 'system:handler_error' && event !== 'audit:log') {
+            // Queue error event recursively
+            this.emit('system:handler_error', {
+              event: String(event),
+              error: errorMsg,
+              handler: handler.name || 'anonymous',
+              timestamp: new Date(),
+            });
+          }
+        }
+      }
+    }
+    this.processing = false;
+  }
+
+  once<K extends keyof EventMap>(event: K, handler: (payload: EventMap[K]) => void): () => void {
     const wrappedHandler = (payload: EventMap[K]) => {
       handler(payload);
       this.off(event, wrappedHandler);
     };
-
     return this.on(event, wrappedHandler);
   }
 
-  /**
-   * Remove all event listeners
-   */
   clear(): void {
     this.listeners.clear();
     this.handlerErrors = 0;
+    this.queue = [];
   }
 
-  /**
-   * Get the number of listeners for an event
-   * @param event Event name
-   * @returns Number of listeners
-   */
   listenerCount(event: keyof EventMap): number {
     const handlers = this.listeners.get(event);
     return handlers ? handlers.size : 0;
   }
 
-  /**
-   * Get the number of handler errors that have occurred
-   */
   getHandlerErrorCount(): number {
     return this.handlerErrors;
   }
 
-  /**
-   * Set handler timeout in milliseconds (0 to disable)
-   */
   setHandlerTimeout(ms: number): void {
     this.handlerTimeoutMs = ms;
   }

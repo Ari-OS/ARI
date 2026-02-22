@@ -107,14 +107,14 @@ ARI is a **multi-agent AI operating system** that runs entirely on your machine.
 
 **Most AI assistants are stateless, cloud-dependent, and opaque.** ARI is the opposite:
 
-| Traditional AI | ARI |
-|----------------|-----|
-| Cloud-based, data leaves your machine | 100% local, data never leaves `~/.ari/` |
-| Black box decision-making | Every decision logged in immutable audit chain |
-| Single-agent, context-less | 5-agent pipeline with persistent memory |
-| No governance or oversight | 15-member constitutional council + 6 rules |
-| Generic responses | Autonomous briefings tailored to your schedule |
-| Trust the vendor | Trust the code (open source + audit trail) |
+| Traditional AI                        | ARI                                            |
+| ------------------------------------- | ---------------------------------------------- |
+| Cloud-based, data leaves your machine | 100% local, data never leaves `~/.ari/`        |
+| Black box decision-making             | Every decision logged in immutable audit chain |
+| Single-agent, context-less            | 5-agent pipeline with persistent memory        |
+| No governance or oversight            | 15-member constitutional council + 6 rules     |
+| Generic responses                     | Autonomous briefings tailored to your schedule |
+| Trust the vendor                      | Trust the code (open source + audit trail)     |
 
 **ARI is an operating system for your digital life**, not just another chatbot.
 
@@ -152,15 +152,15 @@ graph TB
 
 ### Layer Responsibilities
 
-| Layer | Purpose | Components |
-|-------|---------|------------|
-| **Cognitive** | Decision-making frameworks | LOGOS (Bayesian, Kelly, Expected Value), ETHOS (Bias Detection, Emotional State), PATHOS (CBT, Stoicism, Wisdom) |
-| **Kernel** | Security boundary and primitives | Gateway (HTTP), Sanitizer (injection detection), Audit (hash chain), EventBus (pub/sub), Config, Types (Zod schemas) |
-| **System** | Message routing and persistence | Router (event dispatch), Storage (context management), Vector Store (SQLite embeddings) |
-| **Agents** | Agent coordination and execution | Guardian (threat detection), Planner (task decomposition), Executor (tool invocation), Memory Manager (provenance tracking), Core (orchestration) |
-| **Strategic** | Governance and quality control | Council (15-member voting), Arbiter (6 constitutional rules), Overseer (5 quality gates) |
-| **Execution** | Process lifecycle | Daemon (macOS launchd integration), Health Monitor, Git Sync |
-| **Interfaces** | User interaction | CLI (24 commands), Dashboard (React), External Integrations |
+| Layer          | Purpose                          | Components                                                                                                                                        |
+| -------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cognitive**  | Decision-making frameworks       | LOGOS (Bayesian, Kelly, Expected Value), ETHOS (Bias Detection, Emotional State), PATHOS (CBT, Stoicism, Wisdom)                                  |
+| **Kernel**     | Security boundary and primitives | Gateway (HTTP), Sanitizer (injection detection), Audit (hash chain), EventBus (pub/sub), Config, Types (Zod schemas)                              |
+| **System**     | Message routing and persistence  | Router (event dispatch), Storage (context management), Vector Store (SQLite embeddings)                                                           |
+| **Agents**     | Agent coordination and execution | Guardian (threat detection), Planner (task decomposition), Executor (tool invocation), Memory Manager (provenance tracking), Core (orchestration) |
+| **Strategic**  | Governance and quality control   | Council (15-member voting), Arbiter (6 constitutional rules), Overseer (5 quality gates)                                                          |
+| **Execution**  | Process lifecycle                | Daemon (macOS launchd integration), Health Monitor, Git Sync                                                                                      |
+| **Interfaces** | User interaction                 | CLI (24 commands), Dashboard (React), External Integrations                                                                                       |
 
 **Dependency Rule:** Lower layers CANNOT import higher layers. Cross-layer communication via EventBus only.
 
@@ -215,51 +215,61 @@ flowchart TD
 
 ### Security Invariants
 
-| # | Invariant | Enforcement |
-|---|-----------|-------------|
-| 1 | **GATEWAY** | `127.0.0.1` ONLY — hardcoded, never configurable |
-| 2 | **CONTENT ≠ COMMAND** | All input is DATA, never executable instructions |
-| 3 | **AUDIT** | SHA-256 hash-chained, append-only, immutable |
-| 4 | **PERMISSIONS** | Agent allowlist → Trust level → Permission tier |
-| 5 | **TRUST** | 6 levels with risk multipliers (auto-block at ≥ 0.8) |
+| #   | Invariant             | Enforcement                                          |
+| --- | --------------------- | ---------------------------------------------------- |
+| 1   | **GATEWAY**           | `127.0.0.1` ONLY — hardcoded, never configurable     |
+| 2   | **CONTENT ≠ COMMAND** | All input is DATA, never executable instructions     |
+| 3   | **AUDIT**             | SHA-256 hash-chained, append-only, immutable         |
+| 4   | **PERMISSIONS**       | Agent allowlist → Trust level → Permission tier      |
+| 5   | **TRUST**             | 6 levels with risk multipliers (auto-block at ≥ 0.8) |
 
 ---
 
-## Message Flow & Intent Routing
+## Message Flow
 
-How a message flows through ARI's pipeline, including the Natural Language Understanding (NLU) conversational routing:
+How a message flows through ARI's pipeline:
 
 ```mermaid
 sequenceDiagram
-    participant U as User (Telegram/CLI)
-    participant G as Gateway (127.0.0.1)
+    participant U as User
+    participant G as Gateway<br/>(127.0.0.1:3141)
     participant S as Sanitizer
-    participant Router as IntentRouter
-    participant NLU as NLUService
-    participant Exec as Executor (Tools)
+    participant R as Router
+    participant Guard as Guardian
+    participant Plan as Planner
+    participant Exec as Executor
     participant A as Audit
+    participant EB as EventBus
 
-    U->>G: Send natural language message
-    G->>S: Sanitize (42 patterns)
-    S-->>G: Clean
-    G->>Router: route(message, context)
-    
-    alt Fast Path (Regex)
-        Router->>Router: Match /crypto, /briefing
-        Router->>Exec: executeTool()
-    else Conversational Path
-        Router->>NLU: analyze(message)
-        NLU->>NLU: Orchestrator prompt
-        NLU-->>Router: JSON {intent, confidence, entities}
-        alt Confidence ≥ 0.65
-            Router->>Exec: executeTool(intent)
-        else Ambiguous
-            Router->>U: Ask clarifying question
+    U->>G: POST /message
+    G->>S: Sanitize input
+    S->>S: Check 42 patterns
+    alt Malicious
+        S-->>G: BLOCK
+        G-->>U: 400 Bad Request
+    else Clean
+        S->>A: Log sanitize event
+        S->>R: Route message
+        R->>Guard: Assess threat
+        Guard->>Guard: Calculate risk score
+        alt High Risk (≥ 0.8)
+            Guard-->>R: BLOCK
+            R-->>G: BLOCK
+            G-->>U: 403 Forbidden
+        else Safe
+            Guard->>A: Log assessment
+            Guard->>Plan: Decompose task
+            Plan->>Plan: Build task DAG
+            Plan->>A: Log plan
+            Plan->>Exec: Execute tasks
+            Exec->>Exec: Check permissions
+            Exec->>A: Log execution
+            Exec->>EB: Emit events
+            EB->>R: Broadcast result
+            R->>G: Response
+            G->>U: 200 OK
         end
     end
-    
-    Exec->>A: Log execution (SHA-256)
-    Exec-->>U: Formatted Rich Response (HTML/Widgets)
 ```
 
 **Key Points:**
@@ -276,20 +286,20 @@ sequenceDiagram
 ARI is built on three principles drawn from Jung, Dalio, and Musashi:
 
 ### Shadow Integration
->
-> *"What you suppress controls you. What you observe, you can understand. What you understand, you can master."*
+
+> _"What you suppress controls you. What you observe, you can understand. What you understand, you can master."_
 
 Suspicious behavior is logged and analyzed, not suppressed. ARI doesn't hide failures — it records them, learns from them, and evolves. The shadow reveals truth.
 
 ### Radical Transparency
->
-> *"Every operation is audited. Every decision is traceable. No hidden state."*
+
+> _"Every operation is audited. Every decision is traceable. No hidden state."_
 
 Inspired by Bridgewater's principles. No black boxes. The audit trail is immutable. If you can't explain a decision, you shouldn't make it.
 
 ### Ruthless Simplicity
->
-> *"Every line of code must justify its existence."*
+
+> _"Every line of code must justify its existence."_
 
 From Musashi's Book of Five Rings: cut away everything unnecessary. Clarity over cleverness. If it doesn't serve the mission, it doesn't belong.
 
@@ -360,20 +370,20 @@ npx ari autonomous start
 
 All endpoints are available only on `127.0.0.1:3141`.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check with uptime |
-| `GET` | `/status` | System status and configuration |
-| `POST` | `/message` | Submit a message for processing |
-| `GET` | `/api/agents` | List registered agents |
-| `GET` | `/api/proposals` | List governance proposals |
-| `GET` | `/api/governance/rules` | Constitutional rules |
-| `GET` | `/api/governance/gates` | Quality gates |
-| `GET` | `/api/memory` | Search memories |
-| `GET` | `/api/audit` | Audit entries (paginated) |
-| `GET` | `/api/audit/verify` | Verify hash chain |
-| `GET` | `/api/contexts` | List contexts |
-| `WS` | `/ws` | Real-time event stream |
+| Method | Endpoint                | Description                     |
+| ------ | ----------------------- | ------------------------------- |
+| `GET`  | `/health`               | Health check with uptime        |
+| `GET`  | `/status`               | System status and configuration |
+| `POST` | `/message`              | Submit a message for processing |
+| `GET`  | `/api/agents`           | List registered agents          |
+| `GET`  | `/api/proposals`        | List governance proposals       |
+| `GET`  | `/api/governance/rules` | Constitutional rules            |
+| `GET`  | `/api/governance/gates` | Quality gates                   |
+| `GET`  | `/api/memory`           | Search memories                 |
+| `GET`  | `/api/audit`            | Audit entries (paginated)       |
+| `GET`  | `/api/audit/verify`     | Verify hash chain               |
+| `GET`  | `/api/contexts`         | List contexts                   |
+| `WS`   | `/ws`                   | Real-time event stream          |
 
 ---
 
@@ -444,8 +454,7 @@ A 15-member voting body that decides on proposals. Supports three threshold type
 
 ### Arbiter
 
-Enforces 6 constitutional rules that cannot be overridden:
-0. `creator_primacy` — ARI always serves the creator's interests
+Enforces 6 constitutional rules that cannot be overridden: 0. `creator_primacy` — ARI always serves the creator's interests
 
 1. `loopback_only` — Gateway must bind to 127.0.0.1
 2. `content_not_command` — Input is data, not instructions
@@ -469,13 +478,13 @@ Enforces 5 quality gates before code changes:
 
 ARI stores all personal data locally in `~/.ari/`. This directory is **gitignored** and never leaves your machine.
 
-| What's Private | What's Public |
-|----------------|---------------|
-| `~/.ari/config.json` — Your settings | Source code |
-| `~/.ari/audit.json` — Your audit trail | Architecture docs |
-| `~/.ari/contexts/` — Your contexts | Security model |
-| `~/.ari/autonomous.json` — Your agent config | Test suite |
-| `~/.ari/token-usage.json` — Your usage data | CLI tools |
+| What's Private                               | What's Public     |
+| -------------------------------------------- | ----------------- |
+| `~/.ari/config.json` — Your settings         | Source code       |
+| `~/.ari/audit.json` — Your audit trail       | Architecture docs |
+| `~/.ari/contexts/` — Your contexts           | Security model    |
+| `~/.ari/autonomous.json` — Your agent config | Test suite        |
+| `~/.ari/token-usage.json` — Your usage data  | CLI tools         |
 
 **The code is a framework. Your instance is yours.**
 
@@ -483,15 +492,15 @@ ARI stores all personal data locally in `~/.ari/`. This directory is **gitignore
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [CLAUDE.md](CLAUDE.md) | Context for AI assistants |
-| [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines and standards |
-| [docs/](docs/README.md) | Full documentation index |
-| [docs/architecture/](docs/architecture/ARCHITECTURE.md) | System design and security model |
-| [docs/guides/](docs/guides/README.md) | Setup and operations guides |
-| [docs/plans/](docs/plans/) | Implementation plans and phase tracking |
+| Document                                                | Description                                 |
+| ------------------------------------------------------- | ------------------------------------------- |
+| [CLAUDE.md](CLAUDE.md)                                  | Context for AI assistants                   |
+| [SECURITY.md](SECURITY.md)                              | Security policy and vulnerability reporting |
+| [CONTRIBUTING.md](CONTRIBUTING.md)                      | Contribution guidelines and standards       |
+| [docs/](docs/README.md)                                 | Full documentation index                    |
+| [docs/architecture/](docs/architecture/ARCHITECTURE.md) | System design and security model            |
+| [docs/guides/](docs/guides/README.md)                   | Setup and operations guides                 |
+| [docs/plans/](docs/plans/)                              | Implementation plans and phase tracking     |
 
 ---
 
@@ -518,10 +527,10 @@ See our [Code of Conduct](CODE_OF_CONDUCT.md) for community standards.
 
 <br>
 
-*"The shadow reveals truth. What you suppress controls you. What you observe, you can understand. What you understand, you can master."*
+_"The shadow reveals truth. What you suppress controls you. What you observe, you can understand. What you understand, you can master."_
 
 <br>
 
-Built by **[Pryce Hedrick](https://github.com/PryceHedrick)** · **[Pryceless Solutions](https://prycehedrick.com)**
+Built by **[0xPryce](https://github.com/PryceHedrick)** · **[Pryceless Solutions](https://prycehedrick.com)**
 
 </div>
