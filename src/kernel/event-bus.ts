@@ -173,6 +173,7 @@ export interface EventMap {
   'llm:request_complete': { timestamp: string; model: string; inputTokens: number; outputTokens: number; cost: number; taskType: string; taskCategory?: string; duration: number; success: boolean; };
 
   'ai:model_fallback': { originalModel: string; fallbackModel: string; reason: string; category: string; timestamp: string; };
+  'ai:policy_downgrade': { requestId: string; originalModel: string; fallbackModel: string; reason: string; estimatedInputTokens: number; maxInputTokens: number; costForSelected: number; costCapUsd: number; taskType: string; timestamp: string; };
   'budget:projection_exceeded': { projected: number; budget: number; burnRate: number; hoursRemaining: number; percentOver: number; };
   'self_improvement:low_confidence': { initiativeId: string; title: string; confidence: number; threshold: number; reason: string; };
 

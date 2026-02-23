@@ -236,10 +236,38 @@ export class AIOrchestrator {
       budgetState,
     );
 
-    const selectedModel = scoreResult.recommendedTier;
+    // Step 5.5: EXECUTION POLICY ENFORCEMENT
+    // If the caller attached a ModelExecutionPolicy, enforce token/cost caps
+    // and downgrade to the fallback model when limits are exceeded.
+    let selectedModel = scoreResult.recommendedTier;
+    const estimatedInputTokens = Math.ceil(validated.content.length / 4);
+
+    if (validated.executionPolicy) {
+      const policy = validated.executionPolicy;
+      const costForSelected = this.registry.estimateCost(selectedModel, estimatedInputTokens);
+      const tokenOverCap = estimatedInputTokens > policy.maxInputTokens;
+      const costOverCap = costForSelected > policy.costCapUsd;
+
+      if ((tokenOverCap || costOverCap) && policy.fallbackModel) {
+        this.eventBus.emit('ai:policy_downgrade', {
+          requestId,
+          originalModel: selectedModel,
+          fallbackModel: policy.fallbackModel,
+          reason: tokenOverCap ? 'token_cap_exceeded' : 'cost_cap_exceeded',
+          estimatedInputTokens,
+          maxInputTokens: policy.maxInputTokens,
+          costForSelected,
+          costCapUsd: policy.costCapUsd,
+          taskType: policy.taskType,
+          timestamp: new Date().toISOString(),
+        });
+        selectedModel = policy.fallbackModel;
+      }
+    }
+
     const estimatedCost = this.registry.estimateCost(
       selectedModel,
-      Math.ceil(validated.content.length / 4),
+      estimatedInputTokens,
     );
 
     // Emit model selected

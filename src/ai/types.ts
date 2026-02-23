@@ -94,6 +94,42 @@ export const AIPrioritySchema = z.enum([
 ]);
 export type AIPriority = z.infer<typeof AIPrioritySchema>;
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODEL EXECUTION POLICY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Cost circuit breaker policy applied per request.
+ *
+ * Controls fallback model selection, input token caps, and per-request
+ * cost limits. Background tasks run under tighter budgets than P0 (critical)
+ * tasks, which may escalate to more capable models.
+ *
+ * Usage:
+ *   orchestrator.execute({
+ *     ...request,
+ *     executionPolicy: {
+ *       taskType: 'background',
+ *       maxInputTokens: 4000,
+ *       costCapUsd: 0.005,
+ *       fallbackModel: 'claude-haiku-4.5',
+ *     },
+ *   });
+ */
+export const ModelExecutionPolicySchema = z.object({
+  /** How the task is classified for budget purposes. */
+  taskType: z.enum(['background', 'interactive', 'p0']),
+  /** Maximum estimated input tokens. Requests over this cap use fallbackModel. */
+  maxInputTokens: z.number().positive(),
+  /** Maximum estimated cost in USD. Requests over this cap use fallbackModel. */
+  costCapUsd: z.number().positive(),
+  /** Model to use when maxInputTokens or costCapUsd are exceeded. */
+  fallbackModel: ModelTierSchema.optional(),
+  /** Allow automatic model upgrade for high-complexity requests (P0 only). */
+  allowEscalation: z.boolean().default(false),
+});
+export type ModelExecutionPolicy = z.infer<typeof ModelExecutionPolicySchema>;
+
 /**
  * Full AI request with all routing metadata.
  */
@@ -112,6 +148,8 @@ export const AIRequestSchema = z.object({
   enableCaching: z.boolean().default(true),
   maxTokens: z.number().positive().optional(),
   securitySensitive: z.boolean().default(false),
+  /** Optional execution policy for cost circuit breaking. */
+  executionPolicy: ModelExecutionPolicySchema.optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 export type AIRequest = z.infer<typeof AIRequestSchema>;

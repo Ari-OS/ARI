@@ -37,6 +37,7 @@ import { OpportunityScanner } from './opportunity-scanner.js';
 import { CareerTracker } from './career-tracker.js';
 import { TemporalMemory } from '../agents/temporal-memory.js';
 import { IntelligenceScanner } from './intelligence-scanner.js';
+import { CronStateEnvelope } from './cron-state-envelope.js';
 import { DailyDigestGenerator } from './daily-digest.js';
 import { LifeMonitor } from './life-monitor.js';
 import { NotificationRouter } from './notification-router.js';
@@ -163,6 +164,9 @@ export class AutonomousAgent {
   private lastUpcomingEarnings: Array<{ symbol: string; name: string; daysUntil: number; estimate: number | null }> = [];
   private lastCryptoGlobal: import('../plugins/crypto/types.js').CoinGeckoGlobalData | null = null;
   private lastPerplexityBriefing: { answer: string; citations: string[] } | null = null;
+
+  // CronStateEnvelope: persists intelligence scan output across process restarts
+  private cronStateEnvelope: CronStateEnvelope | null = null;
 
   // Budget-aware components
   private costTracker: CostTracker | null = null;
@@ -456,12 +460,14 @@ export class AutonomousAgent {
     }
     this.intelligenceScanner = new IntelligenceScanner(this.eventBus, xClient);
     await this.intelligenceScanner.init();
+    this.cronStateEnvelope = new CronStateEnvelope();
+    this.cronStateEnvelope.init();
     this.dailyDigest = new DailyDigestGenerator(this.eventBus);
     this.lifeMonitor = new LifeMonitor(this.eventBus);
     await this.lifeMonitor.init();
     this.notificationRouter = new NotificationRouter(this.eventBus);
     this.notificationRouter.init();
-    log.info('Intelligence scanner, daily digest, life monitor, and notification router initialized');
+    log.info('Intelligence scanner, cron-state-envelope, daily digest, life monitor, and notification router initialized');
 
     // Wire governance events → GovernanceReporter for morning briefing inclusion
     this.eventBus.on('vote:started', (payload) => {
@@ -1262,9 +1268,32 @@ export class AutonomousAgent {
    * Register handlers for scheduled tasks
    */
   private registerSchedulerHandlers(): void {
-    // Morning briefing at 6:30am — unified report with intelligence + life monitor + career
+    // Morning briefing at 7:00am — unified report with intelligence + life monitor + career
     this.scheduler.registerHandler('morning_briefing', async () => {
       if (this.briefingGenerator) {
+        // Attempt to restore intelligence data from CronStateEnvelope when
+        // in-memory state was cleared by a process restart between 06:00-07:00.
+        if (!this.lastDigest && this.cronStateEnvelope) {
+          const today = new Date().toISOString().slice(0, 10);
+          const windowKey = `morning-briefing-${today}`;
+          const envelope = this.cronStateEnvelope.read<{
+            digest: import('./daily-digest.js').DailyDigest | null;
+            cryptoGlobal: import('../plugins/crypto/types.js').CoinGeckoGlobalData | null;
+            perplexityBriefing: { answer: string; citations: string[] } | null;
+            upcomingEarnings: Array<{ symbol: string; name: string; daysUntil: number; estimate: number | null }> | null;
+          }>(windowKey, 'morning-briefing');
+
+          if (envelope) {
+            log.info({ windowKey }, 'Restored intelligence scan from CronStateEnvelope');
+            this.lastDigest = envelope.digest;
+            if (envelope.cryptoGlobal) this.lastCryptoGlobal = envelope.cryptoGlobal;
+            if (envelope.perplexityBriefing) this.lastPerplexityBriefing = envelope.perplexityBriefing;
+            if (envelope.upcomingEarnings) this.lastUpcomingEarnings = envelope.upcomingEarnings;
+          } else {
+            log.warn({ windowKey }, 'No valid envelope found — briefing runs in degraded state (no intelligence)');
+          }
+        }
+
         const governance = governanceReporter.generateSnapshot();
         const briefingContext = {
           digest: this.lastDigest,
@@ -1825,6 +1854,19 @@ export class AutonomousAgent {
       }
     });
 
+    // Envelope cleanup at 3:30 AM daily — removes expired cron-state envelopes
+    this.scheduler.registerHandler('envelope_cleanup', () => {
+      try {
+        if (this.cronStateEnvelope) {
+          const deleted = this.cronStateEnvelope.cleanup();
+          log.info({ deleted }, 'CronStateEnvelope cleanup completed');
+        }
+      } catch (error) {
+        log.error({ error }, 'Envelope cleanup failed');
+      }
+      return Promise.resolve();
+    });
+
     // Hourly git sync
     this.scheduler.registerHandler('git_sync', async () => {
       try {
@@ -2122,6 +2164,19 @@ export class AutonomousAgent {
           } catch (error) {
             log.warn({ error: error instanceof Error ? error.message : String(error) }, 'Earnings calendar fetch failed');
           }
+        }
+
+        // Persist all intelligence scan outputs to SQLite WAL envelope
+        // so morning-briefing can recover them even after a process restart.
+        if (this.cronStateEnvelope) {
+          const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+          const windowKey = `morning-briefing-${today}`;
+          this.cronStateEnvelope.write(windowKey, 'intelligence_scan', {
+            digest: this.lastDigest,
+            cryptoGlobal: this.lastCryptoGlobal,
+            perplexityBriefing: this.lastPerplexityBriefing,
+            upcomingEarnings: this.lastUpcomingEarnings.length > 0 ? this.lastUpcomingEarnings : null,
+          });
         }
       } catch (error) {
         log.error({ error }, 'Intelligence scan failed');

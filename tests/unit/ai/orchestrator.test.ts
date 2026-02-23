@@ -251,4 +251,70 @@ describe('AIOrchestrator', () => {
       expect((events[0] as Record<string, unknown>).success).toBe(false);
     });
   });
+
+  describe('ModelExecutionPolicy', () => {
+    it('should downgrade model when input tokens exceed maxInputTokens', async () => {
+      const downgrades: unknown[] = [];
+      eventBus.on('ai:policy_downgrade', (data) => downgrades.push(data));
+
+      // A request with very long content that exceeds a tight token cap
+      const longContent = 'a'.repeat(10000); // ~2500 tokens
+
+      await orchestrator.execute(makeRequest({
+        content: longContent,
+        executionPolicy: {
+          taskType: 'background',
+          maxInputTokens: 100,   // very low cap to force downgrade
+          costCapUsd: 1.0,
+          fallbackModel: 'claude-haiku-3',
+        },
+      }));
+
+      expect(downgrades).toHaveLength(1);
+      const downgrade = downgrades[0] as Record<string, unknown>;
+      expect(downgrade.reason).toBe('token_cap_exceeded');
+      expect(downgrade.fallbackModel).toBe('claude-haiku-3');
+      expect(downgrade.taskType).toBe('background');
+    });
+
+    it('should not downgrade when within policy limits', async () => {
+      const downgrades: unknown[] = [];
+      eventBus.on('ai:policy_downgrade', (data) => downgrades.push(data));
+
+      await orchestrator.execute(makeRequest({
+        content: 'Short request',
+        executionPolicy: {
+          taskType: 'interactive',
+          maxInputTokens: 10000,   // generous cap
+          costCapUsd: 10.0,        // generous budget
+          fallbackModel: 'claude-haiku-3',
+        },
+      }));
+
+      // Should succeed without downgrade
+      expect(downgrades).toHaveLength(0);
+    });
+
+    it('should still return a valid response when policy downgrade occurs', async () => {
+      const longContent = 'b'.repeat(10000);
+
+      const response = await orchestrator.execute(makeRequest({
+        content: longContent,
+        executionPolicy: {
+          taskType: 'background',
+          maxInputTokens: 10,
+          costCapUsd: 0.001,
+          fallbackModel: 'claude-haiku-3',
+        },
+      }));
+
+      expect(response.content).toBeDefined();
+      expect(response.requestId).toBeDefined();
+    });
+
+    it('should work without executionPolicy (backwards compat)', async () => {
+      const response = await orchestrator.execute(makeRequest());
+      expect(response.content).toBeDefined();
+    });
+  });
 });

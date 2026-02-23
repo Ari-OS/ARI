@@ -315,6 +315,18 @@ const DEFAULT_TASKS: Omit<ScheduledTask, 'lastRun' | 'nextRun'>[] = [
     },
   },
   {
+    id: 'envelope-cleanup',
+    name: 'CronStateEnvelope Cleanup',
+    cron: '30 3 * * *', // 3:30 AM daily (after backup completes)
+    handler: 'envelope_cleanup',
+    enabled: true,
+    essential: false,
+    metadata: {
+      category: 'OPERATIONS',
+      description: 'Delete expired cron-state envelopes from SQLite WAL store',
+    },
+  },
+  {
     id: 'git-sync',
     name: 'Git Sync',
     cron: '0 * * * *', // Every hour on the hour

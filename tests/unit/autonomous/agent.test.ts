@@ -121,6 +121,17 @@ vi.mock('../../../src/autonomous/scheduler.js', () => ({
   })),
 }));
 
+// Mock CronStateEnvelope — prevents real SQLite/fs calls from interfering with fake timers
+vi.mock('../../../src/autonomous/cron-state-envelope.js', () => ({
+  CronStateEnvelope: vi.fn().mockImplementation(() => ({
+    init: vi.fn(),
+    write: vi.fn(),
+    read: vi.fn().mockReturnValue(null),
+    cleanup: vi.fn().mockReturnValue(0),
+    close: vi.fn(),
+  })),
+}));
+
 import { AutonomousAgent } from '../../../src/autonomous/agent.js';
 import { EventBus } from '../../../src/kernel/event-bus.js';
 
@@ -495,7 +506,11 @@ describe('AutonomousAgent', () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       await agent.start();
+      // Flush microtask queue before advancing — poll() has ~8 await points
+      // that need multiple rounds of draining under load (full test suite)
+      await new Promise(resolve => process.nextTick(resolve));
       await vi.advanceTimersByTimeAsync(100);
+      await new Promise(resolve => process.nextTick(resolve));
 
       expect(mockNotifyQuestion).toHaveBeenCalled();
       expect(mockQueueUpdateStatus).toHaveBeenCalledWith('task-1', 'pending', 'Awaiting confirmation');
