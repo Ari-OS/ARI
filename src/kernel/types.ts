@@ -80,7 +80,7 @@ export const AgentIdSchema = z.enum([
   'research_agent',
   'writing_agent',
   'analysis_agent',
-  
+
   // Swarm Pods (V8)
   'production_pod',
   'growth_pod',

@@ -7,8 +7,8 @@
  */
 
 import type { Context } from 'grammy';
-import type { EventBus } from '../../kernel/event-bus.js';
 import { WhisperClient } from '../../integrations/whisper/client.js';
+import type { EventBus } from '../../kernel/event-bus.js';
 
 export interface VoiceHandlerDeps {
   whisperApiKey: string | null;
@@ -29,7 +29,9 @@ export async function handleVoice(
   onTranscribed: (ctx: Context, text: string) => Promise<void>,
 ): Promise<void> {
   if (!deps.whisperApiKey && !deps.wisprFlowApiKey) {
-    await ctx.reply('Voice transcription requires OPENAI_API_KEY or WISPR_FLOW_API_KEY to be configured.');
+    await ctx.reply(
+      'Voice transcription requires OPENAI_API_KEY or WISPR_FLOW_API_KEY to be configured.',
+    );
     return;
   }
 
@@ -64,15 +66,15 @@ export async function handleVoice(
       const formData = new FormData();
       const blob = new Blob([buffer], { type: 'audio/ogg' });
       formData.append('file', blob, 'voice.ogg');
-      
+
       const wisprRes = await fetch('https://api.wisprflow.ai/v1/transcribe', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${deps.wisprFlowApiKey}`
+          Authorization: `Bearer ${deps.wisprFlowApiKey}`,
         },
-        body: formData as unknown as BodyInit
+        body: formData as unknown as BodyInit,
       });
-      
+
       if (!wisprRes.ok) throw new Error('Wispr Flow API failed');
       const data = (await wisprRes.json()) as { text: string };
       transcribedText = data.text;
@@ -83,7 +85,10 @@ export async function handleVoice(
         apiKey: deps.whisperApiKey,
         model: 'whisper-1',
       });
-      const result = await whisper.transcribeBuffer(buffer, file.file_path.split('/').pop() ?? 'voice.ogg');
+      const result = await whisper.transcribeBuffer(
+        buffer,
+        file.file_path.split('/').pop() ?? 'voice.ogg',
+      );
       transcribedText = result.text;
     }
 

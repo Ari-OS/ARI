@@ -170,7 +170,7 @@ describe('Gateway', () => {
       expect(response.status).toBeDefined();
     });
 
-    it('should support message event subscriptions', () => {
+    it('should support message event subscriptions', async () => {
       const receivedEvents: unknown[] = [];
       const acceptedEvents: unknown[] = [];
 
@@ -180,6 +180,7 @@ describe('Gateway', () => {
       // Emit events directly to test subscription
       eventBus.emit('message:received', { id: 'test', content: 'test' });
       eventBus.emit('message:accepted', { id: 'test', content: 'test' });
+      await eventBus.flush();
 
       expect(receivedEvents).toHaveLength(1);
       expect(acceptedEvents).toHaveLength(1);

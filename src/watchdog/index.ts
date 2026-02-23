@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { createLogger } from '../kernel/logger.js';
 import { execFileNoThrow } from '../utils/execFileNoThrow.js';
 
@@ -10,7 +10,7 @@ const ERROR_LOG_PATH = join(homedir(), '.ari', 'logs', 'ari-kernel-error.log');
 
 /**
  * Watchdog Process
- * 
+ *
  * Runs alongside the main kernel via PM2.
  * If ari-kernel crashes, it captures the stack trace, feeds it to Claude Opus
  * via the GitHub MCP, generates the patch, applies it, runs the test suite,
@@ -57,7 +57,7 @@ class Watchdog {
       log.info('1. Capturing stack trace and feeding to Claude Opus via GitHub MCP...');
       // Simulated: This would be an MCP tool call in reality to prompt Claude Opus
       await this.runCommand('echo', ['"Simulating MCP payload to Claude Opus with stack trace"']);
-      
+
       log.info('2. Generating and applying patch...');
       // Simulated: Receive patch from MCP and apply it
       await this.runCommand('echo', ['"Applying generated patch..."']);
@@ -65,7 +65,7 @@ class Watchdog {
       log.info('3. Running test suite to verify patch...');
       // Run the test suite to ensure the patch didn't break invariants
       const testResult = await this.runCommand('npm', ['test']);
-      
+
       if (testResult.success) {
         log.info('4. Tests passed. Restarting ari-kernel autonomously...');
         await this.runCommand('npx', ['pm2', 'restart', 'ari-kernel']);
@@ -79,11 +79,14 @@ class Watchdog {
     }
   }
 
-  private async runCommand(cmd: string, args: string[]): Promise<{ success: boolean; output: string }> {
+  private async runCommand(
+    cmd: string,
+    args: string[],
+  ): Promise<{ success: boolean; output: string }> {
     const result = await execFileNoThrow(cmd, args);
     return {
       success: result.status === 0,
-      output: result.stdout + result.stderr
+      output: result.stdout + result.stderr,
     };
   }
 }

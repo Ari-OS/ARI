@@ -66,7 +66,7 @@ describe('voice-handler', () => {
     await handleVoice(mockCtx as Context, deps, mockOnTranscribed);
 
     expect(mockCtx.reply).toHaveBeenCalledWith(
-      '<i>Heard:</i> "hello world"',
+      '<i>🎙️ Heard:</i> "hello world"',
       { parse_mode: 'HTML' },
     );
 
@@ -88,7 +88,7 @@ describe('voice-handler', () => {
     await handleVoice(mockCtx as Context, deps, mockOnTranscribed);
 
     expect(mockCtx.reply).toHaveBeenCalledWith(
-      'Voice transcription requires OPENAI_API_KEY to be configured.',
+      'Voice transcription requires OPENAI_API_KEY or WISPR_FLOW_API_KEY to be configured.',
     );
 
     expect(mockOnTranscribed).not.toHaveBeenCalled();
@@ -148,7 +148,7 @@ describe('voice-handler', () => {
     await handleVoice(mockCtx as Context, deps, mockOnTranscribed);
 
     expect(mockCtx.reply).toHaveBeenCalledWith(
-      '<i>Heard:</i> "hello world"',
+      '<i>🎙️ Heard:</i> "hello world"',
       { parse_mode: 'HTML' },
     );
 

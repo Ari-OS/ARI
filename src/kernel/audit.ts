@@ -64,9 +64,7 @@ export class AuditLogger {
     if (!auditPath && process.env.NODE_ENV === 'test') {
       path = join(tmpdir(), `test-audit-${randomUUID()}.json`);
     }
-    this.auditPath = path.startsWith('~')
-      ? join(homedir(), path.slice(1))
-      : path;
+    this.auditPath = path.startsWith('~') ? join(homedir(), path.slice(1)) : path;
     this.checkpointPath = this.auditPath.replace(/\.json$/, '-checkpoints.json');
     this.walPath = this.auditPath.replace(/\.json$/, '.jsonl');
     this.CHECKPOINT_INTERVAL = options?.checkpointInterval ?? 100;
@@ -102,8 +100,15 @@ export class AuditLogger {
     try {
       const key = execFileSync(
         'security',
-        ['find-generic-password', '-a', AuditLogger.KEYCHAIN_ACCOUNT, '-s', AuditLogger.KEYCHAIN_SERVICE, '-w'],
-        { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+        [
+          'find-generic-password',
+          '-a',
+          AuditLogger.KEYCHAIN_ACCOUNT,
+          '-s',
+          AuditLogger.KEYCHAIN_SERVICE,
+          '-w',
+        ],
+        { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
       ).trim();
       if (key) {
         return { key, persisted: true };
@@ -119,8 +124,17 @@ export class AuditLogger {
     try {
       execFileSync(
         'security',
-        ['add-generic-password', '-a', AuditLogger.KEYCHAIN_ACCOUNT, '-s', AuditLogger.KEYCHAIN_SERVICE, '-w', newKey, '-U'],
-        { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+        [
+          'add-generic-password',
+          '-a',
+          AuditLogger.KEYCHAIN_ACCOUNT,
+          '-s',
+          AuditLogger.KEYCHAIN_SERVICE,
+          '-w',
+          newKey,
+          '-U',
+        ],
+        { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
       );
       return { key: newKey, persisted: true };
     } catch {
@@ -164,14 +178,12 @@ export class AuditLogger {
     action: string,
     actor: string,
     trustLevel: TrustLevel,
-    details?: Record<string, unknown>
+    details?: Record<string, unknown>,
   ): Promise<AuditEvent> {
     const id = randomUUID();
     const timestamp = new Date();
     const previousHash =
-      this.events.length > 0
-        ? this.events[this.events.length - 1].hash
-        : this.GENESIS_HASH;
+      this.events.length > 0 ? this.events[this.events.length - 1].hash : this.GENESIS_HASH;
 
     // Create event without hash first
     const eventWithoutHash: Omit<AuditEvent, 'hash'> = {
@@ -209,9 +221,7 @@ export class AuditLogger {
    * Logs a security event as an audit event.
    * Security events are stored with action='security_event' and actor='system'.
    */
-  async logSecurity(
-    event: Omit<SecurityEvent, 'id' | 'timestamp'>
-  ): Promise<void> {
+  async logSecurity(event: Omit<SecurityEvent, 'id' | 'timestamp'>): Promise<void> {
     await this.log('security_event', 'system', 'system', {
       eventType: event.eventType,
       severity: event.severity,
@@ -243,8 +253,7 @@ export class AuditLogger {
       const event = this.events[i];
 
       // Check previousHash linkage
-      const expectedPreviousHash =
-        i === 0 ? this.GENESIS_HASH : this.events[i - 1].hash;
+      const expectedPreviousHash = i === 0 ? this.GENESIS_HASH : this.events[i - 1].hash;
 
       if (event.previousHash !== expectedPreviousHash) {
         return {
@@ -292,6 +301,13 @@ export class AuditLogger {
       return null;
     }
 
+    // Flush WAL before checkpointing so events are on disk when checkpoint is verified
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+    await this.flushWal();
+
     const lastEvent = this.events[this.events.length - 1];
     const firstEvent = this.events[0];
 
@@ -333,7 +349,12 @@ export class AuditLogger {
     checked: number;
     mismatches: Array<{ checkpointId: string; field: string; expected: string; actual: string }>;
   } {
-    const mismatches: Array<{ checkpointId: string; field: string; expected: string; actual: string }> = [];
+    const mismatches: Array<{
+      checkpointId: string;
+      field: string;
+      expected: string;
+      actual: string;
+    }> = [];
 
     for (const cp of this.checkpoints) {
       // Check event count: chain must have at least as many events as checkpoint recorded
@@ -428,25 +449,27 @@ export class AuditLogger {
     // Load any un-consolidated WAL events
     try {
       const walData = await fs.readFile(this.walPath, 'utf-8');
-      const lines = walData.split('\n').filter(line => line.trim().length > 0);
+      const lines = walData.split('\n').filter((line) => line.trim().length > 0);
       if (lines.length > 0) {
-        const walEvents = lines.map(line => {
+        const walEvents = lines.map((line) => {
           const event = JSON.parse(line) as Record<string, unknown>;
           return {
             ...event,
             timestamp: new Date(event.timestamp as string),
           } as AuditEvent;
         });
-        
+
         // Find events that aren't already in this.events (in case of partial consolidate crash)
-        const existingIds = new Set(this.events.map(e => e.id));
-        const newWalEvents = walEvents.filter(e => !existingIds.has(e.id));
-        
+        const existingIds = new Set(this.events.map((e) => e.id));
+        const newWalEvents = walEvents.filter((e) => !existingIds.has(e.id));
+
         if (newWalEvents.length > 0) {
           this.events.push(...newWalEvents);
           // Trigger consolidation asynchronously
           // eslint-disable-next-line no-console
-          this.consolidateWal().catch((err) => console.error('[AuditLogger] Failed to consolidate WAL on load:', err));
+          this.consolidateWal().catch((err) =>
+            console.error('[AuditLogger] Failed to consolidate WAL on load:', err),
+          );
         }
       }
     } catch {
@@ -468,7 +491,7 @@ export class AuditLogger {
    */
   private persist(): void {
     if (this.walBuffer.length === 0) return;
-    
+
     if (!this.flushTimer && !this.isFlushing) {
       // Schedule a flush if not already flushing
       this.flushTimer = setTimeout(() => {
@@ -494,17 +517,17 @@ export class AuditLogger {
 
       // Take a snapshot of the buffer to flush
       const batch = this.walBuffer.splice(0, this.walBuffer.length);
-      const batchData = batch.map(e => JSON.stringify(e)).join('\n') + '\n';
-      
+      const batchData = batch.map((e) => JSON.stringify(e)).join('\n') + '\n';
+
       await fs.appendFile(this.walPath, batchData, { encoding: 'utf-8', mode: 0o600 });
-      
+
       // Periodically consolidate WAL into main audit.json
       if (this.events.length % 1000 === 0) {
         await this.consolidateWal();
       }
     } finally {
       this.isFlushing = false;
-      
+
       // If new events arrived during flush, trigger another flush
       if (this.walBuffer.length > 0) {
         this.persist();
@@ -521,13 +544,12 @@ export class AuditLogger {
 
     // Write all events to file
     const tempPath = `${this.auditPath}.tmp`;
-    await fs.writeFile(
-      tempPath,
-      JSON.stringify(this.events, null, 2),
-      { encoding: 'utf-8', mode: 0o600 }
-    );
+    await fs.writeFile(tempPath, JSON.stringify(this.events, null, 2), {
+      encoding: 'utf-8',
+      mode: 0o600,
+    });
     await fs.rename(tempPath, this.auditPath);
-    
+
     // Clear the WAL now that it's consolidated
     await fs.writeFile(this.walPath, '', { encoding: 'utf-8', mode: 0o600 });
   }
@@ -539,11 +561,10 @@ export class AuditLogger {
   private async persistCheckpoints(): Promise<void> {
     const dir = dirname(this.checkpointPath);
     await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(
-      this.checkpointPath,
-      JSON.stringify(this.checkpoints, null, 2),
-      { encoding: 'utf-8', mode: 0o600 }
-    );
+    await fs.writeFile(this.checkpointPath, JSON.stringify(this.checkpoints, null, 2), {
+      encoding: 'utf-8',
+      mode: 0o600,
+    });
   }
 
   /**

@@ -1,18 +1,18 @@
+import fs from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
+import path from 'node:path';
 import type { EventBus } from '../kernel/event-bus.js';
 import type { ThrottleLevel } from '../observability/cost-tracker.js';
+import type { CircuitBreaker } from './circuit-breaker.js';
+import { ModelRegistry } from './model-registry.js';
+import type { PerformanceTracker } from './performance-tracker.js';
 import type {
   ModelTier,
-  TaskComplexity,
   TaskCategory,
+  TaskComplexity,
   ValueScoreInput,
   ValueScoreResult,
 } from './types.js';
-import { ModelRegistry } from './model-registry.js';
-import type { PerformanceTracker } from './performance-tracker.js';
-import type { CircuitBreaker } from './circuit-breaker.js';
-import fs from 'node:fs';
-import path from 'node:path';
-import { homedir, tmpdir } from 'node:os';
 
 interface WeightSet {
   quality: number;
@@ -29,10 +29,10 @@ const COMPLEXITY_TO_NUMERIC: Record<TaskComplexity, number> = {
 };
 
 const BUDGET_STATE_WEIGHTS: Record<ThrottleLevel, WeightSet> = {
-  normal: { quality: 0.40, cost: 0.20, speed: 0.15 },
-  warning: { quality: 0.35, cost: 0.30, speed: 0.10 },
-  reduce: { quality: 0.25, cost: 0.40, speed: 0.10 },
-  pause: { quality: 0.15, cost: 0.50, speed: 0.10 },
+  normal: { quality: 0.4, cost: 0.2, speed: 0.15 },
+  warning: { quality: 0.35, cost: 0.3, speed: 0.1 },
+  reduce: { quality: 0.25, cost: 0.4, speed: 0.1 },
+  pause: { quality: 0.15, cost: 0.5, speed: 0.1 },
 };
 
 /**
@@ -51,9 +51,10 @@ export class ValueScorer {
 
   // RL state
   private rlState: RLState = { qTable: {}, visits: {} };
-  private readonly RL_STATE_PATH = process.env.NODE_ENV === 'test'
-    ? path.join(tmpdir(), `rl_router_state_${Date.now()}.json`)
-    : path.join(homedir(), '.ari', 'rl_router_state.json');
+  private readonly RL_STATE_PATH =
+    process.env.NODE_ENV === 'test'
+      ? path.join(tmpdir(), `rl_router_state_${Date.now()}.json`)
+      : path.join(homedir(), '.ari', 'rl_router_state.json');
   private readonly ALPHA = 0.1; // Learning rate
   private readonly GAMMA = 0.9; // Discount factor
   private readonly EPSILON = 0.1; // Exploration rate
@@ -100,16 +101,23 @@ export class ValueScorer {
   private setupRLListeners() {
     // Listen for model task completions to update Q-values (Reward function)
     this.eventBus.on('llm:request_complete', (payload: unknown) => {
-      const p = payload as { model: string; taskCategory: string; success: boolean; duration: number; cost: number; qualityScore?: number };
+      const p = payload as {
+        model: string;
+        taskCategory: string;
+        success: boolean;
+        duration: number;
+        cost: number;
+        qualityScore?: number;
+      };
       const { model, taskCategory, success, duration, cost, qualityScore = 1.0 } = p;
       if (!taskCategory) return;
-      
-      // Calculate reward: success gives positive, failure gives negative. 
+
+      // Calculate reward: success gives positive, failure gives negative.
       // Speed and cost efficiency boost the reward slightly.
-      let reward = success ? (qualityScore * 10) : -10;
+      let reward = success ? qualityScore * 10 : -10;
       if (success) {
-        const costEfficiency = Math.max(0, 1 - (cost / 0.05)); // Reward low cost
-        const speedEfficiency = Math.max(0, 1 - (duration / 10000)); // Reward fast duration
+        const costEfficiency = Math.max(0, 1 - cost / 0.05); // Reward low cost
+        const speedEfficiency = Math.max(0, 1 - duration / 10000); // Reward fast duration
         reward += costEfficiency * 2 + speedEfficiency * 2;
       }
 
@@ -122,7 +130,7 @@ export class ValueScorer {
       this.rlState.qTable[category] = {} as Record<ModelTier, number>;
       this.rlState.visits[category] = {} as Record<ModelTier, number>;
     }
-    
+
     const currentQ = this.rlState.qTable[category][model] || 0;
     const visits = this.rlState.visits[category][model] || 0;
 
@@ -140,9 +148,9 @@ export class ValueScorer {
     const rawScore =
       complexityScore * 0.35 +
       input.stakes * 0.25 +
-      input.qualityPriority * 0.20 +
-      budgetAdjustment * 0.10 +
-      input.historicalPerformance * 0.10;
+      input.qualityPriority * 0.2 +
+      budgetAdjustment * 0.1 +
+      input.historicalPerformance * 0.1;
 
     const normalizedScore = Math.min(100, Math.max(0, (rawScore / 10) * 100));
 
@@ -152,16 +160,11 @@ export class ValueScorer {
       input.category,
       input.securitySensitive,
       input.agent,
-      input.contentLength
+      input.contentLength,
     );
 
     const weights = this.getWeightsForBudgetState(budgetState);
-    const reasoning = this.buildReasoning(
-      input,
-      budgetState,
-      normalizedScore,
-      recommendedTier,
-    );
+    const reasoning = this.buildReasoning(input, budgetState, normalizedScore, recommendedTier);
 
     return {
       score: normalizedScore,
@@ -179,7 +182,16 @@ export class ValueScorer {
     const lowerContent = content.toLowerCase();
     let score = 0;
 
-    const securityPatterns = ['auth', 'credential', 'secret', 'encryption', 'vulnerability', 'injection', 'xss', 'csrf'];
+    const securityPatterns = [
+      'auth',
+      'credential',
+      'secret',
+      'encryption',
+      'vulnerability',
+      'injection',
+      'xss',
+      'csrf',
+    ];
     if (securityPatterns.some((p) => lowerContent.includes(p))) score += 3;
 
     const reasoningPatterns = ['why', 'explain', 'analyze', 'compare', 'evaluate', 'tradeoff'];
@@ -232,15 +244,19 @@ export class ValueScorer {
     category: TaskCategory,
     securitySensitive: boolean,
     agent?: string,
-    contentLength?: number
+    contentLength?: number,
   ): ModelTier {
     // 1. Context Window Hard Requirement
     // Leverage Claude 4.6 Opus/Sonnet 1M context if input is extremely large (> 150K tokens ~= 600K chars)
     if (contentLength && contentLength > 600_000) {
-      const opus46 = this.registry.listModels({ availableOnly: true }).find(m => m.id === 'claude-opus-4.6');
+      const opus46 = this.registry
+        .listModels({ availableOnly: true })
+        .find((m) => m.id === 'claude-opus-4.6');
       if (opus46) return this.selectWithFallback(opus46.id, category);
-      
-      const sonnet46 = this.registry.listModels({ availableOnly: true }).find(m => m.id === 'claude-sonnet-4.6');
+
+      const sonnet46 = this.registry
+        .listModels({ availableOnly: true })
+        .find((m) => m.id === 'claude-sonnet-4.6');
       if (sonnet46) return this.selectWithFallback(sonnet46.id, category);
     }
 
@@ -263,7 +279,7 @@ export class ValueScorer {
     }
 
     // 4. Epsilon-Greedy Reinforcement Learning Selection
-    const available = this.registry.listModels({ availableOnly: true }).map(m => m.id);
+    const available = this.registry.listModels({ availableOnly: true }).map((m) => m.id);
     if (available.length === 0) return 'claude-haiku-3';
 
     // Exploration: Choose random model
@@ -277,21 +293,28 @@ export class ValueScorer {
     let bestQ = -Infinity;
 
     const categoryQ = this.rlState.qTable[category];
-    
+
     for (const model of available) {
       // Base Q-value from RL
       const qValue = (categoryQ && categoryQ[model]) !== undefined ? categoryQ[model] : 0;
-      
+
       // Incorporate performance weight
       const perfWeight = this.getModelPerformanceWeight(model, category);
-      
+
       // Incorporate score vs capability heuristic
       let heuristicBonus = 0;
-      if (score >= 85 && (model === 'claude-opus-4.6' || model === 'claude-opus-4.5')) heuristicBonus = 5;
-      if (score >= 60 && score < 85 && (model === 'claude-sonnet-4.6' || model === 'claude-sonnet-4.5')) heuristicBonus = 5;
-      if (score < 50 && (model === 'claude-haiku-4.5' || model === 'claude-haiku-3')) heuristicBonus = 5;
+      if (score >= 85 && (model === 'claude-opus-4.6' || model === 'claude-opus-4.5'))
+        heuristicBonus = 5;
+      if (
+        score >= 60 &&
+        score < 85 &&
+        (model === 'claude-sonnet-4.6' || model === 'claude-sonnet-4.5')
+      )
+        heuristicBonus = 5;
+      if (score < 50 && (model === 'claude-haiku-4.5' || model === 'claude-haiku-3'))
+        heuristicBonus = 5;
 
-      const totalValue = (qValue * 0.6) + (perfWeight * 5 * 0.2) + (heuristicBonus * 0.2);
+      const totalValue = qValue * 0.6 + perfWeight * 5 * 0.2 + heuristicBonus * 0.2;
 
       if (totalValue > bestQ) {
         bestQ = totalValue;
@@ -361,7 +384,8 @@ export class ValueScorer {
 
     if (input.securitySensitive) parts.push('Security-sensitive: minimum Sonnet required');
     if (input.category === 'heartbeat') parts.push('Heartbeat task: routed to Haiku 3');
-    if (budgetState === 'pause' && score < 80) parts.push('Budget paused: using minimum cost model');
+    if (budgetState === 'pause' && score < 80)
+      parts.push('Budget paused: using minimum cost model');
     if (budgetState === 'reduce') parts.push('Budget reduced: downgrading to cost-efficient tier');
 
     if (input.contentLength && input.contentLength > 600_000) {

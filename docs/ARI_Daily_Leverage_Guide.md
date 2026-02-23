@@ -1,4 +1,5 @@
 # ARI Daily Leverage Guide: The Master Operations Manual
+
 **V10 - Pure Cloud & MCP Edition**
 
 Welcome to the new era of Artificial Reasoning Intelligence. ARI is now a proactive, omnipresent ecosystem strictly routed through high-performance cloud APIs (Anthropic, OpenAI, Gemini). Local MLX/Ollama models and career tracking logic have been permanently excised to ensure maximum reasoning capability and a 100% focus on revenue automation.
@@ -10,10 +11,12 @@ Welcome to the new era of Artificial Reasoning Intelligence. ARI is now a proact
 ARI utilizes Model Context Protocol (MCP) servers to seamlessly interface with the environment natively.
 
 ### 1.1 The Watchdog Process
+
 - **Purpose**: True self-healing and continuous uptime.
 - **Capabilities**: The `ari-watchdog` process runs alongside `ari-kernel`. If the kernel crashes, the Watchdog captures the stack trace, feeds it to Claude Opus via the GitHub MCP, applies the generated patch, runs the 5,400+ test suite, and restarts the kernel.
 
 ### 1.2 Active MCP Servers
+
 - **GitHub MCP**: Native read/write access for ARI to audit its repositories, review PRs, and push code.
 - **Filesystem MCP**: Secure access to `/Users/ari/RawFootage` and `/ProcessedFootage` for the Production Pod.
 - **SQLite MCP**: Natural SQL querying of WAL-mode memory and CRM databases.
@@ -25,12 +28,15 @@ ARI utilizes Model Context Protocol (MCP) servers to seamlessly interface with t
 Data presentation is now flawless and highly visual. No more text walls.
 
 ### 2.1 The "Rich Media" Telegram Interface
+
 - **Dynamic Charting**: ARI integrates QuickChart API to send clean, dark-mode line/bar charts directly in chat.
 - **Automated Screenshots**: Browserbase integration allows ARI to snap headless screenshots of competitor sites or trending eBay listings for instant visual verification.
 - **Subtle Formatting & Buttons**: Data uses strategic emojis (🟢, 🔴, 📈) and inline Telegram buttons (`[✅ Approve]`, `[🔗 View Live]`) for 1-tap actions.
 
 ### 2.2 The "Chronos" Biological Alignment Schedule
+
 Notifications map perfectly to your daily rhythm. (P0 Critical Threats bypass this schedule via Twilio SMS).
+
 - **07:00 AM (The Vanguard Digest)**: P3 digest. Trading Trail market charts, daily Pryceless leads, and itinerary.
 - **12:00 PM (The Midday Sync)**: P2 updates. Actionable CRM replies and negotiation escalations.
 - **17:00 PM (The Studio Gate)**: P1 alerts. Video render completions with thumbnails for 1-tap approval.
@@ -59,6 +65,7 @@ Notifications map perfectly to your daily rhythm. (P0 Critical Threats bypass th
 ## 5. Deployment
 
 The PM2 ecosystem is configured to run all components seamlessly:
+
 1. `ari-kernel` (Main OS & Event Bus)
 2. `ari-watchdog` (Isolated Self-Healing Process)
 3. `ari-dashboard` (Next.js Telemetry)

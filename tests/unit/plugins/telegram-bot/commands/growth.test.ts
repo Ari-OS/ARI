@@ -1,5 +1,5 @@
 /**
- * Tests for /growth Telegram command — content pipeline status
+ * Tests for /growth Telegram command — Growth Pod dashboard
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -15,7 +15,7 @@ describe('/growth command', () => {
     } as unknown as Parameters<typeof handleGrowth>[0];
   }
 
-  it('should show pipeline status by default', async () => {
+  it('should show Growth Pod dashboard by default', async () => {
     const ctx = createMockCtx('/growth');
     const mockRegistry = {} as PluginRegistry;
 
@@ -23,27 +23,27 @@ describe('/growth command', () => {
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     const reply = (ctx.reply as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-    expect(reply).toContain('Growth Pipeline');
+    expect(reply).toContain('Growth Pod');
   });
 
-  it('should show ideas placeholder', async () => {
-    const ctx = createMockCtx('/growth ideas');
+  it('should show morning digest for /growth digest', async () => {
+    const ctx = createMockCtx('/growth digest');
     const mockRegistry = {} as PluginRegistry;
 
     await handleGrowth(ctx, mockRegistry);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     const reply = (ctx.reply as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-    expect(reply).toContain('Content Ideas');
+    expect(reply).toContain('Morning Digest');
   });
 
-  it('should handle missing registry', async () => {
+  it('should show Growth Pod dashboard even when registry is null', async () => {
     const ctx = createMockCtx('/growth');
 
     await handleGrowth(ctx, null);
 
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     const reply = (ctx.reply as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-    expect(reply).toContain('not available');
+    expect(reply).toContain('Growth Pod');
   });
 });

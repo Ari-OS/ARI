@@ -82,7 +82,7 @@ describe('Learning Loop Full Cycle', () => {
       expect(spy).toHaveBeenCalledTimes(1);
     });
 
-    it('should support multiple subscribers on same event', () => {
+    it('should support multiple subscribers on same event', async () => {
       const spy1 = vi.fn();
       const spy2 = vi.fn();
 
@@ -98,6 +98,7 @@ describe('Learning Loop Full Cycle', () => {
         generalizes: true,
         timestamp: new Date().toISOString(),
       });
+      await eventBus.flush();
 
       expect(spy1).toHaveBeenCalledTimes(1);
       expect(spy2).toHaveBeenCalledTimes(1);
@@ -105,7 +106,7 @@ describe('Learning Loop Full Cycle', () => {
   });
 
   describe('Learning Event Chain', () => {
-    it('should support full event chain: insight → review → assessment', () => {
+    it('should support full event chain: insight → review → assessment', async () => {
       const events: string[] = [];
 
       eventBus.on('learning:insight_generated', () => events.push('insight'));
@@ -140,6 +141,7 @@ describe('Learning Loop Full Cycle', () => {
         recommendations: ['Review approach'],
         timestamp: new Date().toISOString(),
       });
+      await eventBus.flush();
 
       expect(events).toEqual(['insight', 'review', 'assessment']);
     });

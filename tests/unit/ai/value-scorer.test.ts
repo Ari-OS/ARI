@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventBus } from '../../../src/kernel/event-bus.js';
 import { ModelRegistry } from '../../../src/ai/model-registry.js';
 import { ValueScorer } from '../../../src/ai/value-scorer.js';
@@ -140,19 +140,25 @@ describe('ValueScorer', () => {
     });
 
     it('should use haiku 4.5 in reduce state for moderate scores', () => {
-      const result = scorer.score(
-        {
-          complexity: 'simple',
-          stakes: 3,
-          qualityPriority: 3,
-          budgetPressure: 7,
-          historicalPerformance: 5,
-          securitySensitive: false,
-          category: 'query',
-        },
-        'reduce',
-      );
-      expect(result.recommendedTier).toBe('claude-haiku-4.5');
+      // Mock Math.random > EPSILON (0.1) to force exploitation path (not random exploration)
+      const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      try {
+        const result = scorer.score(
+          {
+            complexity: 'simple',
+            stakes: 3,
+            qualityPriority: 3,
+            budgetPressure: 7,
+            historicalPerformance: 5,
+            securitySensitive: false,
+            category: 'query',
+          },
+          'reduce',
+        );
+        expect(result.recommendedTier).toBe('claude-haiku-4.5');
+      } finally {
+        randomSpy.mockRestore();
+      }
     });
 
     it('should include reasoning in result', () => {

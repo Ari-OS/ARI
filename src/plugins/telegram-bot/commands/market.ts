@@ -1,8 +1,8 @@
 import type { Context } from 'grammy';
-import type { EventBus } from '../../../kernel/event-bus.js';
 import { InlineKeyboard } from 'grammy';
-import type { CryptoPlugin } from '../../crypto/index.js';
+import type { EventBus } from '../../../kernel/event-bus.js';
 import type { PluginRegistry } from '../../../plugins/registry.js';
+import type { CryptoPlugin } from '../../crypto/index.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // /market — Market overview, crypto, stocks, alerts
@@ -14,7 +14,10 @@ export async function handleMarket(
   registry: PluginRegistry | null,
 ): Promise<void> {
   const text = ctx.message?.text ?? '';
-  const subcommand = text.replace(/^\/market\s*/i, '').trim().toLowerCase();
+  const subcommand = text
+    .replace(/^\/market\s*/i, '')
+    .trim()
+    .toLowerCase();
 
   try {
     if (subcommand === 'crypto') {
@@ -34,10 +37,7 @@ export async function handleMarket(
   }
 }
 
-async function handleCryptoPrices(
-  ctx: Context,
-  registry: PluginRegistry | null,
-): Promise<void> {
+async function handleCryptoPrices(ctx: Context, registry: PluginRegistry | null): Promise<void> {
   if (!registry) {
     await ctx.reply('Plugin registry not available.');
     return;
@@ -65,7 +65,7 @@ async function handleCryptoPrices(
       const assetStr = id.toUpperCase().padEnd(5).substring(0, 5);
       const priceStr = price.padEnd(11).substring(0, 11);
       const changeStr = `${trend}${change.toFixed(1)}%`.padEnd(5).substring(0, 5);
-      
+
       lines.push(`${assetStr} | ${priceStr} | ${changeStr}`);
     }
   }
@@ -78,10 +78,7 @@ async function handleCryptoPrices(
   await ctx.reply(lines.join('\n'), { parse_mode: 'HTML', reply_markup: keyboard });
 }
 
-async function handleMarketAlerts(
-  ctx: Context,
-  registry: PluginRegistry | null,
-): Promise<void> {
+async function handleMarketAlerts(ctx: Context, registry: PluginRegistry | null): Promise<void> {
   if (!registry) {
     await ctx.reply('Plugin registry not available.');
     return;
@@ -114,10 +111,7 @@ async function handleMarketAlerts(
   await ctx.reply(lines.join('\n'), { parse_mode: 'HTML' });
 }
 
-async function handlePortfolioOverview(
-  ctx: Context,
-  eventBus: EventBus,
-): Promise<void> {
+async function handlePortfolioOverview(ctx: Context, eventBus: EventBus): Promise<void> {
   const keyboard = new InlineKeyboard()
     .text('📈 Crypto', 'cmd_market_crypto')
     .text('📉 Stocks', 'cmd_market_stocks')
@@ -126,7 +120,7 @@ async function handlePortfolioOverview(
 
   await ctx.reply(
     '<b>Market Overview</b>\n\n' +
-    'Select a market sector below to view metrics and ascii-table charts.',
+      'Select a market sector below to view metrics and ascii-table charts.',
     { parse_mode: 'HTML', reply_markup: keyboard },
   );
 

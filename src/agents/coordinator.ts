@@ -7,7 +7,6 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { Piscina } from 'piscina';
 import type { AIOrchestrator } from '../ai/orchestrator.js';
 import type { EventBus } from '../kernel/event-bus.js';
 import { createLogger } from '../kernel/logger.js';
@@ -136,7 +135,7 @@ export class AgentCoordinator {
   private aiProvider?: AIProvider;
   private readonly eventBus: EventBus;
   private readonly concurrency: number;
-  private piscinaPool: Piscina | null = null;
+  private piscinaPool: null = null;
   private sharedState = new SharedStateMemoryMap();
 
   constructor(config: CoordinatorConfig) {
@@ -150,15 +149,6 @@ export class AgentCoordinator {
     // Configurable concurrency, default to max safe Node.js concurrent limit
     this.concurrency = config.concurrency || parseInt(process.env.AGENT_CONCURRENCY || '10', 10);
 
-    try {
-      this.piscinaPool = new Piscina({
-        filename: new URL('data:text/javascript,export default async function run(data) { return { status: "success", data }; }').href,
-        minThreads: 1,
-        maxThreads: this.concurrency
-      });
-    } catch {
-      // Piscina setup might fail in some test environments
-    }
   }
 
   public setAIProvider(provider: AIProvider): void {

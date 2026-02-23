@@ -30,10 +30,10 @@ export class ScreenshotService {
     try {
       // Stub for real Browserbase API integration
       // e.g., fetch('https://api.browserbase.com/v1/sessions/...', { ... })
-      
+
       // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       return `https://placehold.co/600x400/111111/FFFFFF/png?text=Live+Screenshot:%0A${encodeURIComponent(url)}`;
     } catch (error) {
       log.error({ error }, 'Failed to capture screenshot');

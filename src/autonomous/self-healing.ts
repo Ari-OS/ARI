@@ -1,18 +1,21 @@
-import { createLogger } from '../kernel/logger.js';
-import type { EventBus } from '../kernel/event-bus.js';
-import type { Executor } from '../agents/executor.js';
 import { randomUUID } from 'node:crypto';
+import type { Executor } from '../agents/executor.js';
+import type { EventBus } from '../kernel/event-bus.js';
+import { createLogger } from '../kernel/logger.js';
 
 const log = createLogger('self-healing');
 
 /**
  * Self-Healing Code Execution Agent
- * 
- * Autonomously drafts patches, runs local tests, applies fixes, and commits 
+ *
+ * Autonomously drafts patches, runs local tests, applies fixes, and commits
  * to the repository when a bug is reported via Telegram.
  */
 export class SelfHealingAgent {
-  constructor(private eventBus: EventBus, private executor: Executor) {}
+  constructor(
+    private eventBus: EventBus,
+    private executor: Executor,
+  ) {}
 
   async handleBugReport(description: string) {
     log.info({ description }, 'Initiating self-healing process for bug report');
@@ -21,7 +24,7 @@ export class SelfHealingAgent {
       action: 'self_healing:initiated',
       agent: 'system',
       trustLevel: 'system',
-      details: { description }
+      details: { description },
     });
 
     try {
@@ -33,7 +36,7 @@ export class SelfHealingAgent {
         parameters: { command: `echo "Drafting patch for: ${description}"` },
         requesting_agent: 'core',
         trust_level: 'system',
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       // 2. Run Local Tests
@@ -44,7 +47,7 @@ export class SelfHealingAgent {
         parameters: { command: `npm test` },
         requesting_agent: 'core',
         trust_level: 'system',
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       // 3. Apply Fix and Commit
@@ -53,17 +56,19 @@ export class SelfHealingAgent {
         await this.executor.execute({
           id: randomUUID(),
           tool_id: 'system_command',
-          parameters: { command: `git add . && git commit -m "fix(autonomous): auto-resolved bug: ${description}"` },
+          parameters: {
+            command: `git add . && git commit -m "fix(autonomous): auto-resolved bug: ${description}"`,
+          },
           requesting_agent: 'core',
           trust_level: 'system',
-          timestamp: new Date()
+          timestamp: new Date(),
         });
-        
+
         this.eventBus.emit('audit:log', {
           action: 'self_healing:resolved',
           agent: 'system',
           trustLevel: 'system',
-          details: { description }
+          details: { description },
         });
       } else {
         log.warn('Tests failed during self-healing process.');
@@ -71,7 +76,7 @@ export class SelfHealingAgent {
           action: 'self_healing:failed',
           agent: 'system',
           trustLevel: 'system',
-          details: { description, error: testTask.error }
+          details: { description, error: testTask.error },
         });
       }
     } catch (error) {

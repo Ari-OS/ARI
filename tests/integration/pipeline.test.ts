@@ -159,12 +159,9 @@ describe('Pipeline Integration', () => {
     expect(vote.vote_id).toBeTruthy();
     expect(vote.status).toBe('OPEN');
 
-    // Cast 8 approval votes from eligible VOTING_AGENTS (MAJORITY > 50% of 15)
-    // Using the new 15-member Council agents
-    const voters: AgentId[] = [
-      'router', 'planner', 'executor', 'memory_keeper',
-      'guardian', 'risk_assessor', 'scheduler', 'resource_manager',
-    ];
+    // Cast votes from the 4 core-eligible agents (isCore: true without domains)
+    // eligible_voters = router, memory_keeper, guardian, planner → councilSize=4, MAJORITY=3
+    const voters: AgentId[] = ['router', 'planner', 'memory_keeper', 'guardian'];
 
     for (const voter of voters) {
       council.castVote(
@@ -178,10 +175,10 @@ describe('Pipeline Integration', () => {
     // Wait for async events to process
     await new Promise(resolve => setTimeout(resolve, 50));
 
-    // Vote should be auto-closed as PASSED (early conclusion)
+    // Vote should be auto-closed as PASSED (4 approvals > MAJORITY threshold of 3)
     const updatedVote = council.getVote(vote.vote_id);
     expect(updatedVote?.status).toBe('PASSED');
-    expect(updatedVote?.result?.approve).toBe(8);
+    expect(updatedVote?.result?.approve).toBe(4);
     expect(updatedVote?.result?.threshold_met).toBe(true);
   });
 

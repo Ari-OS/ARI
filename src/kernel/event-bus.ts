@@ -545,4 +545,11 @@ export class EventBus {
   setHandlerTimeout(ms: number): void {
     this.handlerTimeoutMs = ms;
   }
+
+  /** Waits until the event queue is fully drained. Useful in tests. */
+  async flush(): Promise<void> {
+    while (this.processing || this.queue.length > 0) {
+      await new Promise<void>(resolve => setTimeout(resolve, 0));
+    }
+  }
 }
