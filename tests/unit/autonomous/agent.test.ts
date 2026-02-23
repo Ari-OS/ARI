@@ -506,11 +506,10 @@ describe('AutonomousAgent', () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       await agent.start();
-      // Flush microtask queue before advancing — poll() has ~8 await points
-      // that need multiple rounds of draining under load (full test suite)
-      await new Promise(resolve => process.nextTick(resolve));
-      await vi.advanceTimersByTimeAsync(100);
-      await new Promise(resolve => process.nextTick(resolve));
+      // Drain poll() → processTask() async chain (8+ await points).
+      // Two process.nextTick calls aren't sufficient; 30 Promise.resolve() rounds
+      // guarantee all internal awaits resolve even under full suite load.
+      for (let i = 0; i < 30; i++) await Promise.resolve();
 
       expect(mockNotifyQuestion).toHaveBeenCalled();
       expect(mockQueueUpdateStatus).toHaveBeenCalledWith('task-1', 'pending', 'Awaiting confirmation');
