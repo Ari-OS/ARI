@@ -22,7 +22,7 @@ export type { HeartbeatConfig, ComponentType, HealthStatus, ComponentHeartbeat, 
 export { EventBus } from './event-bus.js';
 export type { EventMap } from './event-bus.js';
 export { Gateway } from './gateway.js';
-export { loadConfig, saveConfig, ensureConfigDir, getConfigDir, getConfigPath, DEFAULT_CONFIG, CONFIG_DIR, CONFIG_PATH } from './config.js';
+export { loadConfig, saveConfig, ensureConfigDir, getConfigDir, getConfigPath, validateApiKeyFormat, assertValidApiKey, DEFAULT_CONFIG, CONFIG_DIR, CONFIG_PATH } from './config.js';
 
 // Control Plane exports
 export {
