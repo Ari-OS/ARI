@@ -9,7 +9,7 @@ Six agents, each with a SOUL file at `~/.ari/workspace/agents/{name}/SOUL.md`:
 | ARI   | 🧠 | claude-opus-4-6   | APEX  | CFO / Orchestrator |
 | NOVA  | 🎬 | claude-sonnet-4-6 | APEX  | P1 Content Creator |
 | CHASE | 🎯 | claude-sonnet-4-6 | APEX  | P2 Lead Connector |
-| PULSE | 🔮 | claude-haiku-4-5  | APEX  | Market Analyst |
+| PULSE | 📡 | claude-haiku-4-5  | APEX  | Market Analyst |
 | DEX   | 🗂️ | claude-haiku-4-5  | APEX  | Research Scout |
 | RUNE  | 🔧 | claude-sonnet-4-6 | CODEX | Engineering Builder |
 
@@ -26,7 +26,7 @@ Six agents, each with a SOUL file at `~/.ari/workspace/agents/{name}/SOUL.md`:
 
 ## Coordination Patterns
 
-- **Market → Content**: PULSE 🔮 writes signals to shared state; NOVA 🎬 reads during script gen
+- **Market → Content**: PULSE 📡 writes signals to shared state; NOVA 🎬 reads during script gen
 - **Research → Leads**: DEX 🗂️ surfaces vertical intel → CHASE 🎯 adjusts scoring
 - **Engineering support**: NOVA/CHASE request → RUNE 🔧 (CODEX plane, no business context)
 - **Peer handoff**: Agent emits `help_request` signal; target adopts within 15-20s

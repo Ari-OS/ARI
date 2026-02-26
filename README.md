@@ -4,7 +4,7 @@
 
 ### Artificial Reasoning Intelligence
 
-**Your Life Operating System**
+**Your Personal AI Operating System**
 
 <br>
 
@@ -12,117 +12,103 @@
 [![CodeQL](https://github.com/Ari-OS/ARI/actions/workflows/codeql.yml/badge.svg)](https://github.com/Ari-OS/ARI/actions/workflows/codeql.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen?logo=node.js&logoColor=white)](https://nodejs.org)
+[![Tests](https://img.shields.io/badge/tests-6%2C700%2B-brightgreen)](tests/)
 [![License](https://img.shields.io/badge/license-ARI%20v1.0-blue)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 </div>
 
 ---
 
-## Table of Contents
-
-- [What is ARI?](#what-is-ari)
-- [Features](#features)
-- [What Makes ARI Different](#what-makes-ari-different)
-- [Architecture](#architecture)
-- [Security Pipeline](#security-pipeline)
-- [Message Flow](#message-flow)
-- [Philosophy](#philosophy)
-- [Getting Started](#getting-started)
-- [API Reference](#api-reference)
-- [CLI Reference](#cli-reference)
-- [Governance](#governance)
-- [Your Data Stays Private](#your-data-stays-private)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
 ## What is ARI?
 
-ARI is a **multi-agent AI operating system** that runs entirely on your machine. ARI processes requests through a pipeline of specialized agents, enforces decisions through constitutional governance, and maintains a cryptographic audit trail of every action.
+ARI is a **multi-agent AI operating system** that runs entirely on your machine. Six specialized agents work together — coordinated by ARI as the orchestrator — to run your business pipelines, monitor markets, generate content, and deliver daily intelligence briefings. Every action is logged in a tamper-evident SHA-256 hash chain. Nothing leaves `~/.ari/`.
 
 **Core Properties:**
 
 - **Local-First** — All data stays on your machine. No cloud dependencies.
-- **Auditable** — Every decision is logged in a tamper-evident SHA-256 hash chain.
-- **Secure by Design** — Loopback-only gateway. 42-pattern injection detection. Zero trust architecture.
-- **Autonomous** — Morning/evening briefings, market monitoring, intelligent task management.
+- **Six Named Agents** — ARI 🧠, NOVA 🎬, CHASE 🎯, PULSE 📡, DEX 🗂️, RUNE 🔧. Each has a defined role, model, and plane.
+- **Auditable** — Every decision logged in an immutable SHA-256 hash chain.
+- **Secure by Design** — Loopback-only gateway. 63-pattern injection detection. Zero trust architecture.
+- **Autonomous** — 24 scheduled tasks: briefings, market monitoring, content pipelines, lead discovery.
+- **OpenClaw Plugin Runtime** — 13 plugins powering every capability. Hot-reloadable. Hook-based architecture.
 
 > **Note**: This is a framework. The code is open source. Your data is not.
 >
-> Everything in `~/.ari/` stays on your machine — config, audit logs, memory, contexts. The architecture is shareable. The relationship you build with your instance is yours alone.
+> Everything in `~/.ari/` stays on your machine — config, audit logs, memory, agent contexts. The architecture is shareable. The relationship you build with your instance is yours alone.
 
 ---
 
-## Features
+## The Agent Team
 
-<table>
-<tr>
-<td width="50%">
+Six named agents. Two context planes. One orchestrator.
 
-**Autonomous Intelligence**
+| Agent | Role | Model | Plane | Discord |
+|-------|------|-------|-------|---------|
+| **ARI 🧠** | CFO / Orchestrator | claude-opus-4-6 | APEX | #ari-main, #ari-deep |
+| **NOVA 🎬** | P1 Content Creator | claude-sonnet-4-6 | APEX | #paytheprice-main, #video-queue |
+| **CHASE 🎯** | P2 Lead Connector | claude-sonnet-4-6 | APEX | #leads, #outreach-queue |
+| **PULSE 📡** | Market Analyst | claude-haiku-4-5 | APEX | #market-alerts, #pokemon-market |
+| **DEX 🗂️** | Research Scout | claude-haiku-4-5 | APEX | #research-digest |
+| **RUNE 🔧** | Engineering Builder | claude-sonnet-4-6 | CODEX | (isolated — no business context) |
 
-- Morning briefings at 6:30 AM via Telegram
-- Evening summaries at 9:00 PM + weekly reports
-- Market monitoring: crypto, stocks, Pokemon TCG
-- Video content pipeline: script → avatar → publish
-- SEO citation monitoring (Perplexity, ChatGPT)
+**Two Context Planes:**
 
-**Security & Governance**
+- **APEX** — Full business context. ARI, NOVA, CHASE, PULSE, DEX receive SOUL.md, USER.md, GOALS.md, HEARTBEAT.md, and real-time market/pipeline state.
+- **CODEX** — Engineering isolation. RUNE receives only the task spec and AGENTS.md. No personal data, no pipeline state, no SOUL files. Enforced in code — violations throw immediately.
 
-- 42 injection patterns across 14 categories
-- SHA-256 hash-chained audit trail
-- 15-member constitutional council
-- 6 trust levels with risk multipliers
-- Loopback-only gateway (127.0.0.1)
-
-</td>
-<td width="50%">
-
-**Multi-Agent Orchestration**
-
-- Guardian (threat detection, 42-pattern scan)
-- Planner (DAG-based task decomposition)
-- Executor (tool invocation with DI governance)
-- Memory Manager (provenance-tracked storage)
-- Core Agent (pipeline orchestration)
-
-**Developer Experience**
-
-- 24 CLI commands
-- 6,700+ tests across 301 test files
-- 420+ TypeScript source files
-- 100,000+ lines of code
-- Cognitive layer (LOGOS/ETHOS/PATHOS)
-
-</td>
-</tr>
-</table>
+**ARI's Role:** Orchestrator only. She plans, prioritizes, and coordinates. She never builds, verifies, or codes inline. Subagents execute.
 
 ---
 
-## What Makes ARI Different
+## Business Pipelines
 
-**Most AI assistants are stateless, cloud-dependent, and opaque.** ARI is the opposite:
+### P1 — PayThePryce (NOVA 🎬)
 
-| Traditional AI                        | ARI                                            |
-| ------------------------------------- | ---------------------------------------------- |
-| Cloud-based, data leaves your machine | 100% local, data never leaves `~/.ari/`        |
-| Black box decision-making             | Every decision logged in immutable audit chain |
-| Single-agent, context-less            | 5-agent pipeline with persistent memory        |
-| No governance or oversight            | 15-member constitutional council + 6 rules     |
-| Generic responses                     | Autonomous briefings tailored to your schedule |
-| Trust the vendor                      | Trust the code (open source + audit trail)     |
+YouTube content pipeline for the Pokemon TCG market.
 
-**ARI is an operating system for your digital life**, not just another chatbot.
+```
+PULSE detects price spike → writes market signal to shared state
+  ↓
+NOVA reads signal → Haiku draft → Sonnet polish → confidence gate (≥0.95)
+  ↓
+Rights gate (every asset needs commercial_ok clearance)
+  ↓
+Thumbnail generation: Ideogram V3 (Fal.ai) + DALL-E 3 → 4 variants → #thumbnail-lab
+  ↓
+Pryce selects A/B/C/D thumbnail → video posted to #video-queue (48h TTL)
+  ↓
+Pryce clicks ✅ → NOVA uploads to YouTube
+```
+
+NOVA runs automatically at 10 AM daily scanning for price moves ≥15% over 7 days. Script confidence must reach 0.95 before advancing. Every claim has an evidenceId. NOVA never fabricates market data and never auto-publishes.
+
+### P2 — Pryceless Solutions (CHASE 🎯)
+
+Indiana B2B lead discovery and outreach pipeline.
+
+```
+CHASE discovers Indiana businesses (SerpAPI + Google Business Profile)
+  ↓
+5-criteria website audit: SEO + Contact + Presence + CTA + Business Signals
+  ↓
+Minimum score 40/100 to proceed. Below 40 → cold bucket silently.
+  ↓
+3-phase LLM qualification: Hot ≥75 | Warm 50-75 | Cold <50
+  ↓
+Prompt Forge 4-pass lock: Evidence → Offer → Critic → Lock (SHA-256, 7-day TTL)
+  ↓
+Demo site built showing the business what their improved site looks like
+  ↓
+Outreach draft → #outreach-queue for Pryce approval (OPERATOR-ONLY, 72h TTL)
+```
+
+CHASE runs Monday, Wednesday, and Friday automatically. He never sends outreach without an explicit slash command. Every outreach message leads with one specific verified fact about the business.
 
 ---
 
 ## Architecture
 
-ARI follows a **seven-layer architecture** with strict unidirectional dependencies. Each layer can only depend on layers below it. All inter-layer communication happens through a typed EventBus.
+ARI follows a **seven-layer architecture** with strict unidirectional dependencies. Each layer can only import layers below it. All cross-layer communication goes through a typed EventBus (ADR-003).
 
 ```mermaid
 graph TB
@@ -152,17 +138,39 @@ graph TB
 
 ### Layer Responsibilities
 
-| Layer          | Purpose                          | Components                                                                                                                                        |
-| -------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Cognitive**  | Decision-making frameworks       | LOGOS (Bayesian, Kelly, Expected Value), ETHOS (Bias Detection, Emotional State), PATHOS (CBT, Stoicism, Wisdom)                                  |
-| **Kernel**     | Security boundary and primitives | Gateway (HTTP), Sanitizer (injection detection), Audit (hash chain), EventBus (pub/sub), Config, Types (Zod schemas)                              |
-| **System**     | Message routing and persistence  | Router (event dispatch), Storage (context management), Vector Store (SQLite embeddings)                                                           |
-| **Agents**     | Agent coordination and execution | Guardian (threat detection), Planner (task decomposition), Executor (tool invocation), Memory Manager (provenance tracking), Core (orchestration) |
-| **Strategic**  | Governance and quality control   | Council (15-member voting), Arbiter (6 constitutional rules), Overseer (5 quality gates)                                                          |
-| **Execution**  | Process lifecycle                | Daemon (macOS launchd integration), Health Monitor, Git Sync                                                                                      |
-| **Interfaces** | User interaction                 | CLI (24 commands), Dashboard (React), External Integrations                                                                                       |
+| Layer | Purpose | Components |
+|-------|---------|------------|
+| **Cognitive** | Decision-making frameworks | LOGOS (Bayesian, Kelly, EV), ETHOS (Bias Detection), PATHOS (Growth Framing) |
+| **Kernel** | Security boundary | Gateway (HTTP), Sanitizer (63 patterns), Audit (hash chain), EventBus, Zod types |
+| **System** | Message routing & persistence | Router, Storage, SQLite WAL |
+| **Agents** | Internal pipeline | Guardian (threat detection), Planner (DAG), Executor (tool invocation), Memory, Core |
+| **Strategic** | Governance | Council (15-member voting), Arbiter (6 constitutional rules), Overseer (5 quality gates) |
+| **Execution** | Process lifecycle | Daemon (macOS launchd), Health Monitor |
+| **Interfaces** | User interaction | CLI (24 commands), Dashboard, External Integrations |
 
 **Dependency Rule:** Lower layers CANNOT import higher layers. Cross-layer communication via EventBus only.
+
+---
+
+## OpenClaw Plugin System
+
+ARI's capabilities are delivered through **13 OpenClaw plugins** — a hook-based plugin runtime that powers every agent and pipeline:
+
+| Plugin | Purpose |
+|--------|---------|
+| `ari-kernel` | 63-pattern sanitizer, trust multipliers, config validation, API key format enforcement |
+| `ari-ai` | ValueScore model routing across 4 providers (Anthropic, OpenRouter, Perplexity, Google) |
+| `ari-agents` | Named agent registry, APEX/CODEX plane enforcement, capability card coordination |
+| `ari-workspace` | Context bundle assembly, SOUL file loading, plane validation |
+| `ari-scheduler` | 24 cron tasks (Eastern Time), task lifecycle, priority queuing |
+| `ari-briefings` | Morning/workday/evening briefings with Ralph quality loops |
+| `ari-market` | Market monitoring, Z-score anomaly detection, PULSE formatting |
+| `ari-memory` | SQLite WAL + TF-IDF search, SHA-256 dedup, bookmark pipeline |
+| `ari-cognitive` | LOGOS/ETHOS/PATHOS prompt framework, synthesis output |
+| `ari-voice` | ElevenLabs TTS, OGG Vorbis, Discord multipart delivery |
+| `ari-governance` | 3-gate approval system (auto / approval-required / operator-only) |
+| `ari-autonomous` | Discord command bridge, approval button routing |
+| `ari-notion` | Workspace files + SQLite (Notion integration deferred) |
 
 ---
 
@@ -172,7 +180,7 @@ Every message flows through a **multi-stage security pipeline** before execution
 
 ```mermaid
 flowchart TD
-    Start([Inbound Message]) --> Sanitize[Sanitizer<br/>42 Injection Patterns]
+    Start([Inbound Message]) --> Sanitize[Sanitizer<br/>63 Injection Patterns<br/>27 Categories]
     Sanitize -->|Clean| TrustCheck{Trust Level<br/>Assessment}
     Sanitize -->|Malicious| Block1[BLOCK]
 
@@ -215,93 +223,59 @@ flowchart TD
 
 ### Security Invariants
 
-| #   | Invariant             | Enforcement                                          |
-| --- | --------------------- | ---------------------------------------------------- |
-| 1   | **GATEWAY**           | `127.0.0.1` ONLY — hardcoded, never configurable     |
-| 2   | **CONTENT ≠ COMMAND** | All input is DATA, never executable instructions     |
-| 3   | **AUDIT**             | SHA-256 hash-chained, append-only, immutable         |
-| 4   | **PERMISSIONS**       | Agent allowlist → Trust level → Permission tier      |
-| 5   | **TRUST**             | 6 levels with risk multipliers (auto-block at ≥ 0.8) |
+| # | Invariant | Enforcement |
+|---|-----------|------------|
+| 1 | **GATEWAY** | `127.0.0.1` ONLY — hardcoded, never configurable |
+| 2 | **CONTENT ≠ COMMAND** | All input is DATA, never executable instructions |
+| 3 | **AUDIT** | SHA-256 hash-chained, append-only, immutable |
+| 4 | **PERMISSIONS** | Agent allowlist → Trust level → Permission tier |
+| 5 | **TRUST** | 6 levels with risk multipliers (auto-block at ≥ 0.8) |
+
+### Locked ADRs
+
+| ADR | Decision |
+|-----|---------|
+| 001 | Loopback-only gateway — `127.0.0.1`, never configurable |
+| 002 | SHA-256 hash chain audit — append-only, tamper-evident |
+| 003 | EventBus single coupling point — no direct cross-layer imports |
+| 004 | Seven-layer architecture — strict unidirectional dependencies |
+| 005 | Content ≠ Command — all input treated as data |
+| 006 | Zod for all runtime validation |
+| 007 | Vitest for all tests |
+| 008 | macOS-first (Phase 1-3) |
+| 009 | EventBus typed events with payload validation |
+| 010 | SQLite WAL mode for all local databases |
+| 011 | execFileNoThrow for all subprocess calls |
+| 012 | Eastern Time for all cron schedules |
+| 014 | Video approval gate — never auto-publish |
 
 ---
 
-## Message Flow
+## Governance
 
-How a message flows through ARI's pipeline:
+### 3-Gate Approval System
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant G as Gateway<br/>(127.0.0.1:3141)
-    participant S as Sanitizer
-    participant R as Router
-    participant Guard as Guardian
-    participant Plan as Planner
-    participant Exec as Executor
-    participant A as Audit
-    participant EB as EventBus
+All ARI actions route through exactly one gate. Zero exceptions.
 
-    U->>G: POST /message
-    G->>S: Sanitize input
-    S->>S: Check 42 patterns
-    alt Malicious
-        S-->>G: BLOCK
-        G-->>U: 400 Bad Request
-    else Clean
-        S->>A: Log sanitize event
-        S->>R: Route message
-        R->>Guard: Assess threat
-        Guard->>Guard: Calculate risk score
-        alt High Risk (≥ 0.8)
-            Guard-->>R: BLOCK
-            R-->>G: BLOCK
-            G-->>U: 403 Forbidden
-        else Safe
-            Guard->>A: Log assessment
-            Guard->>Plan: Decompose task
-            Plan->>Plan: Build task DAG
-            Plan->>A: Log plan
-            Plan->>Exec: Execute tasks
-            Exec->>Exec: Check permissions
-            Exec->>A: Log execution
-            Exec->>EB: Emit events
-            EB->>R: Broadcast result
-            R->>G: Response
-            G->>U: 200 OK
-        end
-    end
-```
+| Gate | Who Approves | Examples |
+|------|-------------|---------|
+| **auto** | ARI (logged + traced) | Health checks, market scans, research, memory dedup |
+| **approval-required** | Pryce via Discord ✅/❌ | Video upload, outreach draft, social post |
+| **operator-only** | Pryce via explicit slash command | DELETE operations, data wipe, irreversible actions |
 
-**Key Points:**
+**Decision framework:**
+1. Reversible AND internal? → `auto`
+2. Public-facing OR external comms? → `approval-required`
+3. Irreversible (delete/wipe/transfer)? → `operator-only`
+4. Security event? → `operator-only` + immediate Discord alert
 
-- Every stage logs to the immutable audit chain
-- Failures block immediately and log the reason
-- EventBus decouples components (no direct dependencies)
-- Trust levels affect risk calculation at every stage
+**TTL rules:** Video approvals expire 48h. Outreach approvals expire 72h. Expired = auto-declined, requeued.
 
----
+### Constitutional Governance
 
-## Philosophy
-
-ARI is built on three principles drawn from Jung, Dalio, and Musashi:
-
-### Shadow Integration
-
-> _"What you suppress controls you. What you observe, you can understand. What you understand, you can master."_
-
-Suspicious behavior is logged and analyzed, not suppressed. ARI doesn't hide failures — it records them, learns from them, and evolves. The shadow reveals truth.
-
-### Radical Transparency
-
-> _"Every operation is audited. Every decision is traceable. No hidden state."_
-
-Inspired by Bridgewater's principles. No black boxes. The audit trail is immutable. If you can't explain a decision, you shouldn't make it.
-
-### Ruthless Simplicity
-
-> _"Every line of code must justify its existence."_
-
-From Musashi's Book of Five Rings: cut away everything unnecessary. Clarity over cleverness. If it doesn't serve the mission, it doesn't belong.
+- **Council** — 15-member voting body. Majority (>50%), Supermajority (≥66%), Unanimous (100%).
+- **Arbiter** — Enforces 6 constitutional rules that cannot be overridden: `creator_primacy`, `loopback_only`, `content_not_command`, `audit_immutable`, `least_privilege`, `trust_required`.
+- **Overseer** — 5 quality gates before any code change: coverage ≥80%, audit integrity, security scan, clean build, documentation current.
 
 ---
 
@@ -354,36 +328,46 @@ npx ari chat
 # Quick one-shot query
 npx ari ask "What's on my schedule?"
 
-# Task management
-npx ari task add "Review Q1 budget"
-
-# Planning
-npx ari plan "Prepare for product launch"
-
-# Autonomous agent (morning/evening briefings)
+# Autonomous agent (morning/evening briefings + 24 scheduled tasks)
 npx ari autonomous start
 ```
 
 ---
 
+## What Makes ARI Different
+
+**Most AI assistants are stateless, cloud-dependent, and opaque.** ARI is the opposite:
+
+| Traditional AI | ARI |
+|---------------|-----|
+| Cloud-based, data leaves your machine | 100% local, data never leaves `~/.ari/` |
+| Black box decision-making | Every decision logged in immutable audit chain |
+| Single-agent, context-less | 6 named agents with persistent memory and SOUL files |
+| No governance or oversight | 3-gate approval system + constitutional council |
+| Generic responses | Autonomous briefings tailored to your schedule |
+| Trust the vendor | Trust the code (open source + audit trail) |
+| One capability | Full business pipelines: content + leads + market intel |
+
+---
+
 ## API Reference
 
-All endpoints are available only on `127.0.0.1:3141`.
+All endpoints available only on `127.0.0.1:3141`.
 
-| Method | Endpoint                | Description                     |
-| ------ | ----------------------- | ------------------------------- |
-| `GET`  | `/health`               | Health check with uptime        |
-| `GET`  | `/status`               | System status and configuration |
-| `POST` | `/message`              | Submit a message for processing |
-| `GET`  | `/api/agents`           | List registered agents          |
-| `GET`  | `/api/proposals`        | List governance proposals       |
-| `GET`  | `/api/governance/rules` | Constitutional rules            |
-| `GET`  | `/api/governance/gates` | Quality gates                   |
-| `GET`  | `/api/memory`           | Search memories                 |
-| `GET`  | `/api/audit`            | Audit entries (paginated)       |
-| `GET`  | `/api/audit/verify`     | Verify hash chain               |
-| `GET`  | `/api/contexts`         | List contexts                   |
-| `WS`   | `/ws`                   | Real-time event stream          |
+| Method | Endpoint | Description |
+|--------|---------|-------------|
+| `GET` | `/health` | Health check with uptime |
+| `GET` | `/status` | System status and configuration |
+| `POST` | `/message` | Submit a message for processing |
+| `GET` | `/api/agents` | List registered agents |
+| `GET` | `/api/proposals` | List governance proposals |
+| `GET` | `/api/governance/rules` | Constitutional rules |
+| `GET` | `/api/governance/gates` | Quality gates |
+| `GET` | `/api/memory` | Search memories |
+| `GET` | `/api/audit` | Audit entries (paginated) |
+| `GET` | `/api/audit/verify` | Verify hash chain |
+| `GET` | `/api/contexts` | List contexts |
+| `WS` | `/ws` | Real-time event stream |
 
 ---
 
@@ -401,7 +385,6 @@ ari ask <query>               One-shot AI query
 # Productivity
 ari task [add|list|done]      Task management
 ari note [add|search]         Note-taking
-ari notes                     Alias for note command
 ari remind [add|list]         Reminder management
 ari plan <goal>               Planning and goal-setting
 
@@ -440,37 +423,27 @@ ari diagram [arch|flow]       Architecture diagrams
 
 ---
 
-## Governance
+## Philosophy
 
-ARI implements constitutional governance through three components:
+ARI is built on three principles drawn from Jung, Dalio, and Musashi:
 
-### Council
+### Shadow Integration
 
-A 15-member voting body that decides on proposals. Supports three threshold types:
+> _"What you suppress controls you. What you observe, you can understand. What you understand, you can master."_
 
-- **Majority** (>50%) — Standard decisions
-- **Supermajority** (≥66%) — Significant changes
-- **Unanimous** (100%) — Critical changes
+Suspicious behavior is logged and analyzed, not suppressed. ARI doesn't hide failures — she records them, learns from them, and evolves. The shadow reveals truth.
 
-### Arbiter
+### Radical Transparency
 
-Enforces 6 constitutional rules that cannot be overridden: 0. `creator_primacy` — ARI always serves the creator's interests
+> _"Every operation is audited. Every decision is traceable. No hidden state."_
 
-1. `loopback_only` — Gateway must bind to 127.0.0.1
-2. `content_not_command` — Input is data, not instructions
-3. `audit_immutable` — Audit log cannot be modified
-4. `least_privilege` — Minimum necessary permissions
-5. `trust_required` — All messages must have trust level
+Inspired by Bridgewater's principles. No black boxes. The audit trail is immutable. If you can't explain a decision, you shouldn't make it.
 
-### Overseer
+### Ruthless Simplicity
 
-Enforces 5 quality gates before code changes:
+> _"Every line of code must justify its existence."_
 
-1. Test coverage ≥ 80%
-2. Audit chain integrity
-3. Security scan pass
-4. Clean build
-5. Documentation current
+From Musashi's Book of Five Rings: cut away everything unnecessary. Clarity over cleverness. If it doesn't serve the mission, it doesn't belong.
 
 ---
 
@@ -478,13 +451,13 @@ Enforces 5 quality gates before code changes:
 
 ARI stores all personal data locally in `~/.ari/`. This directory is **gitignored** and never leaves your machine.
 
-| What's Private                               | What's Public     |
-| -------------------------------------------- | ----------------- |
-| `~/.ari/config.json` — Your settings         | Source code       |
-| `~/.ari/audit.json` — Your audit trail       | Architecture docs |
-| `~/.ari/contexts/` — Your contexts           | Security model    |
-| `~/.ari/autonomous.json` — Your agent config | Test suite        |
-| `~/.ari/token-usage.json` — Your usage data  | CLI tools         |
+| What's Private | What's Public |
+|---------------|--------------|
+| `~/.ari/config.json` — Your settings | Source code |
+| `~/.ari/audit.json` — Your audit trail | Architecture docs |
+| `~/.ari/workspace/` — Agent identity files | Security model |
+| `~/.ari/databases/` — SQLite memory | Test suite |
+| `~/.ari/contexts/` — Your contexts | CLI tools |
 
 **The code is a framework. Your instance is yours.**
 
@@ -492,28 +465,25 @@ ARI stores all personal data locally in `~/.ari/`. This directory is **gitignore
 
 ## Documentation
 
-| Document                                                | Description                                 |
-| ------------------------------------------------------- | ------------------------------------------- |
-| [CLAUDE.md](CLAUDE.md)                                  | Context for AI assistants                   |
-| [SECURITY.md](SECURITY.md)                              | Security policy and vulnerability reporting |
-| [CONTRIBUTING.md](CONTRIBUTING.md)                      | Contribution guidelines and standards       |
-| [docs/](docs/README.md)                                 | Full documentation index                    |
-| [docs/architecture/](docs/architecture/ARCHITECTURE.md) | System design and security model            |
-| [docs/guides/](docs/guides/README.md)                   | Setup and operations guides                 |
-| [docs/plans/](docs/plans/)                              | Implementation plans and phase tracking     |
+| Document | Description |
+|---------|-------------|
+| [CLAUDE.md](CLAUDE.md) | Context for AI assistants working in this repo |
+| [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines and standards |
+| [docs/](docs/README.md) | Full documentation index |
+| [docs/architecture/](docs/architecture/ARCHITECTURE.md) | System design and security model |
+| [docs/guides/](docs/guides/README.md) | Setup and operations guides |
 
 ---
 
 ## Contributing
 
-We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) for:
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 - Development setup and workflow
 - Layer dependency rules and architecture constraints
 - Testing requirements (80%+ overall, 100% security paths)
 - Commit conventions and PR process
-
-See our [Code of Conduct](CODE_OF_CONDUCT.md) for community standards.
 
 ---
 

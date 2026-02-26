@@ -58,7 +58,7 @@ The gateway binds exclusively to `127.0.0.1:3141`. No external network access.
 All inbound messages are treated as DATA, never as executable instructions.
 
 - **Implementation**: Sanitizer scans all input before processing
-- **Patterns detected**: 42 injection patterns across 14 categories
+- **Patterns detected**: 63 injection patterns across 27 categories
 - **Action**: Log suspicious patterns, block high-risk content (risk ≥ 0.8)
 
 ### 3. SHA-256 Hash Chain Audit Trail
@@ -99,14 +99,20 @@ Destructive operations require explicit user approval.
 
 ### Injection Detection
 
-The sanitizer detects 42 patterns across 14 categories:
+The sanitizer detects 63 patterns across 27 categories:
 
-1. **Direct Override** (4 patterns): "ignore previous instructions", "disregard all rules", etc.
-2. **Role Manipulation** (4 patterns): "you are now a", "pretend you are", etc.
-3. **Command Injection** (3 patterns): "execute the following", "run this code", etc.
-4. **Prompt Extraction** (3 patterns): "reveal your instructions", "show system prompt", etc.
-5. **Authority Claims** (4 patterns): "I am the administrator", "as your supervisor", etc.
-6. **Data Exfiltration** (3 patterns): "send all data to", "export context to", etc.
+1. **Direct Override**: "ignore previous instructions", "disregard all rules", etc.
+2. **Role Manipulation**: "you are now a", "pretend you are", etc.
+3. **Command Injection**: "execute the following", "run this code", etc.
+4. **Prompt Extraction**: "reveal your instructions", "show system prompt", etc.
+5. **Authority Claims**: "I am the administrator", "as your supervisor", etc.
+6. **Data Exfiltration**: "send all data to", "export context to", etc.
+7. **Jailbreak Patterns**: DAN variants, hypothetical framing, developer mode, etc.
+8. **Encoding Attacks**: Base64 injection, Unicode homoglyphs, leetspeak obfuscation, etc.
+9. **Context Manipulation**: Token smuggling, context window overflow, delimiter injection, etc.
+10. **Multi-language Injection**: Cross-language prompt attacks, translation exploitation, etc.
+11. **Indirect Injection**: Web content injection, file-based prompt attacks, etc.
+12. **And 16 additional categories** covering emerging attack vectors
 
 **Location**: `src/kernel/sanitizer.ts`
 **Coverage**: 100% (5 tests)

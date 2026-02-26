@@ -13,7 +13,7 @@ triggers: ["discord", "slash command", "approval button", "channel routing", "ou
 | ARI 🧠 | #ari-main | #ari-deep (opus mode) | Briefings, ops, general |
 | NOVA 🎬 | #paytheprice-main | #video-queue, #thumbnail-lab | Content strategy, video packages |
 | CHASE 🎯 | #leads | #demo-factory, #outreach-queue | Lead summaries, demos, outreach |
-| PULSE 🔮 | #market-alerts | #pokemon-market | Market snapshots, threshold alerts |
+| PULSE 📡 | #market-alerts | #pokemon-market | Market snapshots, threshold alerts |
 | DEX 🗂️ | #research-digest | (background) | Weekly AI digest |
 | SYSTEM | #system-status | #ops-dashboard | Health, P0 alerts, 3h dashboard |
 
@@ -202,7 +202,7 @@ async function postToChannel(
   Hot leads: {n} ≥75
   Bundle expiry warnings: {n}
 
-🔮 PULSE STATUS
+📡 PULSE STATUS
   Last snapshot: {timeAgo}
   Alerts today: {n}
   Thresholds hit: {list or 'none'}

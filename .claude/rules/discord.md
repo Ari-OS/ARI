@@ -6,8 +6,8 @@
 |---------|-------|---------|
 | #ari-main | ARI 🧠 | Briefings, ops, general |
 | #ari-deep | ARI 🧠 | Deep mode (opus) — complex reasoning, thread-per-question |
-| #market-alerts | PULSE 🔮 | Crypto/stock signals + anomaly alerts |
-| #pokemon-market | PULSE 🔮 | Pokemon TCG price moves + set releases |
+| #market-alerts | PULSE 📡 | Crypto/stock signals + anomaly alerts |
+| #pokemon-market | PULSE 📡 | Pokemon TCG price moves + set releases |
 | #research-digest | DEX 🗂️ | Weekly AI paper summaries |
 | #paytheprice-main | NOVA 🎬 | Content strategy, P1 general |
 | #video-queue | ARI (on behalf of NOVA) | Approval queue — 48h TTL |

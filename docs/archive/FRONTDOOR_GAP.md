@@ -118,12 +118,12 @@ await this.app.listen({ port: this.port, host: '127.0.0.1' });
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Real file operations | 🔮 Future | Tool implementations are mocks |
-| Disk persistence | 🔮 Future | Memory is in-memory only |
-| ML threat detection | 🔮 Future | Pattern matching only |
-| Weighted voting | 🔮 Future | Equal votes only |
-| Vote delegation | 🔮 Future | No proxy voting |
-| Auto-remediation | 🔮 Future | Manual only |
+| Real file operations | 📡 Future | Tool implementations are mocks |
+| Disk persistence | 📡 Future | Memory is in-memory only |
+| ML threat detection | 📡 Future | Pattern matching only |
+| Weighted voting | 📡 Future | Equal votes only |
+| Vote delegation | 📡 Future | No proxy voting |
+| Auto-remediation | 📡 Future | Manual only |
 
 ---
 
