@@ -62,7 +62,7 @@ Six named agents. Two context planes. One orchestrator.
 
 ## Business Pipelines
 
-### P1 — PayThePryce (NOVA 🎬)
+### P1 — Content Pipeline (NOVA 🎬)
 
 YouTube content pipeline for the Pokemon TCG market.
 
