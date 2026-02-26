@@ -68,10 +68,24 @@ export type VaultGaps = {
 
 // ─── Client factory ──────────────────────────────────────────────────────────
 
+class ObsidianUnavailableError extends Error {
+  constructor() {
+    super('Obsidian not configured: set ARI_OBSIDIAN_ENABLED=true and OBSIDIAN_API_KEY');
+    this.name = 'ObsidianUnavailableError';
+  }
+}
+
 function createClient(): ObsidianClient {
+  if (process.env.ARI_OBSIDIAN_ENABLED !== 'true') {
+    throw new ObsidianUnavailableError();
+  }
+  const apiKey = process.env.OBSIDIAN_API_KEY;
+  if (!apiKey) {
+    throw new ObsidianUnavailableError();
+  }
   return new ObsidianClient({
     baseUrl: process.env.OBSIDIAN_BASE_URL ?? 'http://127.0.0.1:27123',
-    apiKey: process.env.OBSIDIAN_API_KEY ?? '',
+    apiKey,
   });
 }
 
@@ -83,7 +97,12 @@ function createClient(): ObsidianClient {
  * Output: ~/.ari/workspace/OBSIDIAN-DAILY-DIGEST.md
  */
 export async function morningVaultDigest(): Promise<VaultDigest> {
-  const obsidian = createClient();
+  let obsidian: ObsidianClient;
+  try {
+    obsidian = createClient();
+  } catch {
+    return { themes: [], questions: [], relatedNotes: [], date: dateMinusDays(1) };
+  }
   const yesterdayDate = dateMinusDays(1);
   const yesterday = await obsidian.getDaily(yesterdayDate);
 
@@ -119,7 +138,8 @@ export async function morningVaultDigest(): Promise<VaultDigest> {
  * Triggered by /ari-vault-ideas Discord command (DEX agent).
  */
 export async function scan30DayIdeas(): Promise<IdeaCluster[]> {
-  const obsidian = createClient();
+  let obsidian: ObsidianClient;
+  try { obsidian = createClient(); } catch { return []; }
   const mentionMap = new Map<string, { dates: string[]; coTerms: string[] }>();
 
   // Load the last 30 daily notes
@@ -171,7 +191,8 @@ export async function scan30DayIdeas(): Promise<IdeaCluster[]> {
  * Triggered by /ari-vault-trace [topic] Discord command (DEX agent).
  */
 export async function traceIdeaEvolution(topic: string): Promise<EvolutionEntry[]> {
-  const obsidian = createClient();
+  let obsidian: ObsidianClient;
+  try { obsidian = createClient(); } catch { return []; }
   const timeline: EvolutionEntry[] = [];
 
   for (let i = 30; i >= 1; i--) {
@@ -199,7 +220,8 @@ export async function traceIdeaEvolution(topic: string): Promise<EvolutionEntry[
  * Triggered by /ari-vault-connect [d1] [d2] Discord command (DEX agent).
  */
 export async function connectDomains(domain1: string, domain2: string): Promise<BridgeReport> {
-  const obsidian = createClient();
+  let obsidian: ObsidianClient;
+  try { obsidian = createClient(); } catch { return { domain1, domain2, sharedReferences: [], bridgeCandidates: [] }; }
 
   const [results1, results2] = await Promise.all([
     obsidian.search(domain1),
@@ -236,7 +258,8 @@ export async function connectDomains(domain1: string, domain2: string): Promise<
  * Triggered by /ari-vault-gaps Discord command (DEX agent).
  */
 export async function findGaps(): Promise<VaultGaps> {
-  const obsidian = createClient();
+  let obsidian: ObsidianClient;
+  try { obsidian = createClient(); } catch { return { orphanNotes: [], staleHubs: [], untaggedNotes: [] }; }
   const allFiles = await obsidian.listFiles();
 
   const orphanNotes: string[] = [];

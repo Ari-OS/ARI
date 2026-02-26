@@ -285,6 +285,32 @@ export class CostTracker {
 
     // Start periodic persistence (every 30 seconds if dirty)
     this.startPeriodicPersist();
+
+    // Wire orchestrator cost events → persistent budget tracking (THE CRITICAL FIX)
+    // orchestrator.ts emits 'llm:request_complete' on every API call (success, fail, escalate)
+    this.eventBus.on('llm:request_complete', (payload: {
+      model?: string;
+      inputTokens?: number;
+      outputTokens?: number;
+      taskType?: string;
+      taskCategory?: string;
+    }) => {
+      if (!payload.model) return;
+      const inputTokens = payload.inputTokens ?? 0;
+      const outputTokens = payload.outputTokens ?? 0;
+      if (inputTokens === 0 && outputTokens === 0) return; // skip zero-cost failed calls
+      this.track({
+        operation: payload.taskCategory ?? payload.taskType ?? 'llm_call',
+        agent: 'ARI' as AgentId,
+        provider: payload.model.startsWith('claude') ? 'anthropic'
+          : payload.model.startsWith('gpt') ? 'openai'
+          : payload.model.startsWith('gemini') ? 'google'
+          : 'unknown',
+        model: payload.model,
+        inputTokens,
+        outputTokens,
+      });
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
